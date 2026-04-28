@@ -69,5 +69,9 @@ export async function GET() {
     added,
     skipped,
     total: buildings.length,
+    existingCount: existingIds.size,
+    existingSample: [...existingIds][0],
+    osmSample: buildings[0]?.id,
+    sampleType: typeof buildings[0]?.id,
   });
 }
