@@ -1,16 +1,9 @@
-import { supabase } from "@/lib/supabaseClient";
+import MapWrapper from "@/components/MapWrapper";
 
-export default async function Home() {
-  const { data, error } = await supabase.from("posts").select("*");
-
-  if (error) {
-    return <div>에러: {error.message}</div>;
-  }
-
+export default function Home() {
   return (
-    <div>
-      <h1>Supabase 연결 성공</h1>
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </div>
+    <main>
+      <MapWrapper />
+    </main>
   );
 }
