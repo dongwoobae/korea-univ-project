@@ -6,7 +6,9 @@ const OVERPASS_SERVERS = [
 
 const OVERPASS_QUERY = `
 [out:json][timeout:30];
-way["building"]["name"](37.5855,127.0270,37.5940,127.0400);
+way(26253960);
+map_to_area->.campus;
+way["building"]["name"](area.campus);
 out geom qt;
 `;
 
