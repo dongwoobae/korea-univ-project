@@ -49,13 +49,17 @@ export default function Map() {
   const [geoData, setGeoData] = useState(null);
 
   useEffect(() => {
-    fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      body: OVERPASS_QUERY,
-    })
+    fetch("/api/buildings")
       .then((res) => res.json())
-      .then((data) => setGeoData(osmToGeoJSON(data.elements)))
-      .catch((err) => console.error("Overpass fetch 실패:", err));
+      .then((data) => {
+        console.log("API 응답:", data); // 뭐가 오는지 확인
+        if (!data.elements) {
+          console.error("elements 없음:", data);
+          return;
+        }
+        setGeoData(osmToGeoJSON(data.elements));
+      })
+      .catch((err) => console.error("buildings fetch 실패:", err));
   }, []);
 
   return (
