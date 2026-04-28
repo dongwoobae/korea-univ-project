@@ -64,5 +64,10 @@ export async function GET() {
     if (!error) added++;
   }
 
-  return Response.json({ success: true, added, skipped });
+  return Response.json({
+    success: true,
+    added,
+    skipped,
+    total: buildings.length,
+  });
 }
