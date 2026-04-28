@@ -1,7 +1,9 @@
 export const revalidate = 86400; // 24시간에 한 번만 Overpass 호출
 const OVERPASS_QUERY = `
 [out:json][timeout:30];
-way["building"](37.5855,127.0270,37.5940,127.0400);
+way(26253960);
+map_to_area->.campus;
+way["building"](area.campus);
 out geom qt;
 `;
 

@@ -1,94 +1,349 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const KU_CENTER = [37.5893, 127.0327];
-//const KU_BOUNDS = L.latLngBounds([37.5855, 127.027], [37.594, 127.04]);
-const KU_BOUNDS = L.latLngBounds(
-  [37.582, 127.022], // SW 더 넓게
-  [37.597, 127.045], // NE 더 넓게
-);
-
-const OVERPASS_QUERY = `
-[out:json];
-way["building"](37.5855,127.0270,37.5940,127.0400);
-out geom;
-`;
+const KU_CENTER = [37.588, 127.03];
+//const KU_BOUNDS = L.latLngBounds([37.582, 127.022], [37.597, 127.045]);
 
 function osmToGeoJSON(elements) {
   return {
     type: "FeatureCollection",
-    features: elements.map((el) => ({
-      type: "Feature",
-      properties: {
-        id: el.id,
-        name: el.tags?.["name"] ?? el.tags?.["name:ko"] ?? "이름 없음",
-      },
-      geometry: {
-        type: "Polygon",
-        coordinates: [el.geometry.map((p) => [p.lon, p.lat])],
-      },
-    })),
+    features: elements
+      .filter((el) => el.geometry?.length > 0)
+      .filter((el) => el.tags?.["name"] ?? el.tags?.["name:ko"]) // 이름이 없는 건물은 제외
+      .map((el) => ({
+        type: "Feature",
+        properties: {
+          id: el.id,
+          name: el.tags?.["name"] ?? el.tags?.["name:ko"] ?? null,
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [el.geometry.map((p) => [p.lon, p.lat])],
+        },
+      })),
   };
 }
 
-function BoundsController() {
+function SearchControl({ geoData }) {
   const map = useMap();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [isFocused, setIsFocused] = useState(false);
+
   useEffect(() => {
-    map.setMaxBounds(KU_BOUNDS);
-    map.setMinZoom(15);
-    map.setMaxZoom(19);
-  }, [map]);
-  return null;
+    if (!geoData || query.trim() === "") {
+      setResults([]);
+      return;
+    }
+
+    const matched = geoData.features
+      .filter((f) => f.properties.name?.includes(query))
+      .slice(0, 6);
+
+    setResults(matched);
+  }, [query, geoData]);
+
+  function handleSelect(feature) {
+    const coords = feature.geometry.coordinates[0];
+    const latlngs = coords.map(([lon, lat]) => [lat, lon]);
+    const bounds = L.latLngBounds(latlngs);
+    map.fitBounds(bounds, { maxZoom: 18, animate: true });
+    setQuery(feature.properties.name);
+    setResults([]);
+  }
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: 16,
+        left: 60,
+        zIndex: 1000,
+        width: 260,
+      }}
+    >
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+        placeholder="건물 검색..."
+        style={{
+          width: "100%",
+          padding: "10px 14px",
+          border: "1px solid #ddd",
+          borderRadius: results.length > 0 && isFocused ? "8px 8px 0 0" : "8px",
+          fontSize: 14,
+          outline: "none",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          background: "#fff",
+        }}
+      />
+      {results.length > 0 && isFocused && (
+        <ul
+          style={{
+            margin: 0,
+            padding: 0,
+            listStyle: "none",
+            background: "#fff",
+            border: "1px solid #ddd",
+            borderTop: "none",
+            borderRadius: "0 0 8px 8px",
+            boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+            overflow: "hidden",
+          }}
+        >
+          {results.map((f) => (
+            <li
+              key={f.properties.id}
+              onMouseDown={() => handleSelect(f)}
+              style={{
+                padding: "9px 14px",
+                fontSize: 13,
+                cursor: "pointer",
+                borderBottom: "1px solid #f0f0f0",
+                color: "#333",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "#f5f5f5")
+              }
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+            >
+              {f.properties.name}
+            </li>
+          ))}
+        </ul>
+      )}
+      <button
+        onMouseDown={() => map.flyTo(KU_CENTER, 16, { animate: true })}
+        title="고려대로 돌아가기"
+        style={{
+          marginTop: 8,
+          width: 40,
+          height: 40,
+          background: "#fff",
+          border: "1px solid #ddd",
+          borderRadius: "50%",
+          cursor: "pointer",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          color: "#2563EB",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.background = "#f0f4ff")}
+        onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
+      >
+        <svg viewBox="0 0 40 40" width="24" height="24" fill="none">
+          <circle
+            cx="20"
+            cy="20"
+            r="15"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
+          <line
+            x1="20"
+            y1="16.5"
+            x2="20"
+            y2="8"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <line
+            x1="22.5"
+            y1="17.5"
+            x2="28.5"
+            y2="11.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <line
+            x1="23.5"
+            y1="20"
+            x2="32"
+            y2="20"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <line
+            x1="22.5"
+            y1="22.5"
+            x2="28.5"
+            y2="28.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <line
+            x1="20"
+            y1="23.5"
+            x2="20"
+            y2="32"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <line
+            x1="17.5"
+            y1="22.5"
+            x2="11.5"
+            y2="28.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <line
+            x1="16.5"
+            y1="20"
+            x2="8"
+            y2="20"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <line
+            x1="17.5"
+            y1="17.5"
+            x2="11.5"
+            y2="11.5"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+          <circle cx="20" cy="5" r="2.5" fill="currentColor" />
+          <circle cx="30.6" cy="9.4" r="2.5" fill="currentColor" />
+          <circle cx="35" cy="20" r="2.5" fill="currentColor" />
+          <circle cx="30.6" cy="30.6" r="2.5" fill="currentColor" />
+          <circle cx="20" cy="35" r="2.5" fill="currentColor" />
+          <circle cx="9.4" cy="30.6" r="2.5" fill="currentColor" />
+          <circle cx="5" cy="20" r="2.5" fill="currentColor" />
+          <circle cx="9.4" cy="9.4" r="2.5" fill="currentColor" />
+          <circle cx="20" cy="20" r="4" fill="currentColor" />
+        </svg>
+      </button>
+    </div>
+  );
 }
 
 export default function Map() {
   const [geoData, setGeoData] = useState(null);
+  const [tooltip, setTooltip] = useState({
+    visible: false,
+    name: "",
+    x: 0,
+    y: 0,
+  });
+  const mapRef = useRef(null);
 
   useEffect(() => {
     fetch("/api/buildings")
       .then((res) => res.json())
       .then((data) => {
-        console.log("API 응답:", data); // 뭐가 오는지 확인
-        if (!data.elements) {
-          console.error("elements 없음:", data);
-          return;
-        }
+        if (!data.elements) return;
         setGeoData(osmToGeoJSON(data.elements));
       })
       .catch((err) => console.error("buildings fetch 실패:", err));
   }, []);
 
+  function onEachFeature(feature, layer) {
+    layer.on({
+      mouseover(e) {
+        layer.setStyle({ fillOpacity: 0.5, weight: 2.5 });
+        const { clientX, clientY } = e.originalEvent;
+        const mapEl = mapRef.current?.getContainer();
+        if (!mapEl) return;
+        const rect = mapEl.getBoundingClientRect();
+        setTooltip({
+          visible: true,
+          name: feature.properties.name ?? "이름 없음",
+          x: clientX - rect.left + 12,
+          y: clientY - rect.top - 36,
+        });
+      },
+      mousemove(e) {
+        const { clientX, clientY } = e.originalEvent;
+        const mapEl = mapRef.current?.getContainer();
+        if (!mapEl) return;
+        const rect = mapEl.getBoundingClientRect();
+        setTooltip((prev) => ({
+          ...prev,
+          x: clientX - rect.left + 12,
+          y: clientY - rect.top - 36,
+        }));
+      },
+      mouseout() {
+        layer.setStyle({ fillOpacity: 0.2, weight: 1.5 });
+        setTooltip((prev) => ({ ...prev, visible: false }));
+      },
+    });
+  }
+
   return (
-    <MapContainer
-      center={KU_CENTER}
-      zoom={16}
-      style={{ width: "100%", height: "100vh" }}
-      maxBounds={KU_BOUNDS}
-      //maxBoundsViscosity={1.0}
-      maxBoundsViscosity={0.7}
-    >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        attribution="&copy; OpenStreetMap &copy; CARTO"
-        subdomains="abcd"
-        maxZoom={19}
-      />
-      <BoundsController />
-      {geoData && (
-        <GeoJSON
-          data={geoData}
-          style={{
-            color: "#2563EB",
-            weight: 1.5,
-            fillColor: "#2563EB",
-            fillOpacity: 0.2,
-          }}
+    <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+      <MapContainer
+        center={KU_CENTER}
+        zoom={16}
+        //minZoom={14}
+        style={{ width: "100%", height: "100%" }}
+        // maxBounds={KU_BOUNDS}
+        // maxBoundsViscosity={0.7}
+        ref={mapRef}
+      >
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution="&copy; OpenStreetMap &copy; CARTO"
+          subdomains="abcd"
+          maxZoom={19}
         />
+        {geoData && (
+          <>
+            <GeoJSON
+              data={geoData}
+              style={{
+                color: "#2563EB",
+                weight: 1.5,
+                fillColor: "#2563EB",
+                fillOpacity: 0.2,
+              }}
+              onEachFeature={onEachFeature}
+            />
+            <SearchControl geoData={geoData} />
+          </>
+        )}
+      </MapContainer>
+
+      {tooltip.visible && (
+        <div
+          style={{
+            position: "absolute",
+            left: tooltip.x,
+            top: tooltip.y,
+            background: "#fff",
+            border: "1px solid #ddd",
+            borderRadius: 6,
+            padding: "6px 10px",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "#333",
+            pointerEvents: "none",
+            zIndex: 1000,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {tooltip.name}
+        </div>
       )}
-    </MapContainer>
+    </div>
   );
 }
