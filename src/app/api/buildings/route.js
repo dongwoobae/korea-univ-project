@@ -1,41 +1,52 @@
-export const revalidate = 86400; // 24시간에 한 번만 Overpass 호출
+const OVERPASS_SERVERS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://overpass.openstreetmap.ru/api/interpreter",
+];
+
 const OVERPASS_QUERY = `
 [out:json][timeout:30];
-way(26253960);
-map_to_area->.campus;
-way["building"](area.campus);
+way["building"]["name"](37.5855,127.0270,37.5940,127.0400);
 out geom qt;
 `;
 
-export async function GET() {
-  try {
-    // const res = await fetch("https://overpass-api.de/api/interpreter", {
-    //   method: "POST",
-    //   body: new URLSearchParams({ data: OVERPASS_QUERY }),
-    //   next: { revalidate: 86400 }, // Next.js fetch 캐시
-    // });
-    const res = await fetch("https://overpass.kumi.systems/api/interpreter", {
-      method: "POST",
-      body: new URLSearchParams({ data: OVERPASS_QUERY }),
-      headers: {
-        "User-Agent": "KU-BarrierFree-Map/1.0 (dw5817@naver.com)",
-      },
-      next: { revalidate: 86400 },
-    });
-    const text = await res.text();
-    // console.log("Overpass API 응답 status : ", res.status);
-    // console.log("Overpass 응답 body:", text);
+export const revalidate = 86400;
 
-    if (!res.ok) {
-      return Response.json(
-        { error: "Overpass API 호출 실패" },
-        { status: 500 },
-      );
+export async function GET() {
+  let lastError = null;
+
+  for (const server of OVERPASS_SERVERS) {
+    try {
+      console.log(`Overpass 요청 시도: ${server}`);
+
+      const res = await fetch(server, {
+        method: "POST",
+        body: new URLSearchParams({ data: OVERPASS_QUERY }),
+        headers: { "User-Agent": "KU-BarrierFree-Map/1.0" },
+        next: { revalidate: 86400 },
+      });
+
+      if (!res.ok) {
+        console.log(`${server} 실패 — status: ${res.status}`);
+        lastError = `status ${res.status}`;
+        continue;
+      }
+
+      const text = await res.text();
+      const data = JSON.parse(text);
+
+      console.log(`성공: ${server}`);
+      return Response.json(data);
+    } catch (err) {
+      console.error(`${server} 오류:`, err.message);
+      lastError = err.message;
+      continue;
     }
-    const data = JSON.parse(text);
-    return Response.json(data);
-  } catch (err) {
-    console.error("Overpass API 호출 중 오류:", err);
-    return Response.json({ error: "Overpass API 호출 실패" }, { status: 500 });
   }
+
+  console.error("모든 Overpass 서버 실패:", lastError);
+  return Response.json(
+    { error: "모든 서버 요청 실패", detail: lastError },
+    { status: 500 },
+  );
 }

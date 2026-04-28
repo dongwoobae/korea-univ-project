@@ -70,7 +70,7 @@ function SearchControl({ geoData }) {
       style={{
         position: "absolute",
         top: 16,
-        left: 50,
+        left: 56,
         zIndex: 1000,
         width: 260,
       }}
@@ -134,6 +134,7 @@ function SearchControl({ geoData }) {
 
 export default function Map() {
   const [geoData, setGeoData] = useState(null);
+  const [loadingMap, setLoadingMap] = useState(true);
   const [tooltip, setTooltip] = useState({
     visible: false,
     name: "",
@@ -145,13 +146,15 @@ export default function Map() {
   const activeLayerRef = useRef(null);
 
   useEffect(() => {
+    setLoadingMap(true);
     fetch("/api/buildings")
       .then((res) => res.json())
       .then((data) => {
         if (!data.elements) return;
         setGeoData(osmToGeoJSON(data.elements));
       })
-      .catch((err) => console.error("buildings fetch 실패:", err));
+      .catch((err) => console.error("buildings fetch 실패:", err))
+      .finally(() => setLoadingMap(false));
   }, []);
 
   function onEachFeature(feature, layer) {
@@ -210,6 +213,36 @@ export default function Map() {
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+      {/* 로딩 오버레이 */}
+      {loadingMap && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 2000,
+            background: "rgba(255,255,255,0.85)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              border: "3px solid #e5e7eb",
+              borderTop: "3px solid #2563EB",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+            }}
+          />
+          <div style={{ fontSize: 14, color: "#555" }}>지도 불러오는 중...</div>
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      )}
+
       <MapContainer
         center={KU_CENTER}
         zoom={16}
