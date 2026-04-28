@@ -23,8 +23,8 @@ export async function GET() {
       next: { revalidate: 86400 },
     });
     const text = await res.text();
-    console.log("Overpass API 응답 status : ", res.status); // 응답 로그 추가
-    console.log("Overpass 응답 body:", text); // 응답 본문 로그 추가
+    // console.log("Overpass API 응답 status : ", res.status);
+    // console.log("Overpass 응답 body:", text);
 
     if (!res.ok) {
       return Response.json(

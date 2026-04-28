@@ -4,21 +4,22 @@ import { useEffect, useState, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import SidePanel from "@/components/SidePanel";
 
-const KU_CENTER = [37.588, 127.03];
-//const KU_BOUNDS = L.latLngBounds([37.582, 127.022], [37.597, 127.045]);
+const KU_CENTER = [37.5893, 127.0327];
+const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
 
 function osmToGeoJSON(elements) {
   return {
     type: "FeatureCollection",
     features: elements
       .filter((el) => el.geometry?.length > 0)
-      .filter((el) => el.tags?.["name"] ?? el.tags?.["name:ko"]) // 이름이 없는 건물은 제외
+      .filter((el) => el.tags?.["name"] ?? el.tags?.["name:ko"])
       .map((el) => ({
         type: "Feature",
         properties: {
           id: el.id,
-          name: el.tags?.["name"] ?? el.tags?.["name:ko"] ?? null,
+          name: el.tags?.["name"] ?? el.tags?.["name:ko"],
         },
         geometry: {
           type: "Polygon",
@@ -26,6 +27,16 @@ function osmToGeoJSON(elements) {
         },
       })),
   };
+}
+
+function BoundsController() {
+  const map = useMap();
+  useEffect(() => {
+    map.setMaxBounds(KU_BOUNDS);
+    map.setMinZoom(15);
+    map.setMaxZoom(19);
+  }, [map]);
+  return null;
 }
 
 function SearchControl({ geoData }) {
@@ -39,11 +50,9 @@ function SearchControl({ geoData }) {
       setResults([]);
       return;
     }
-
     const matched = geoData.features
       .filter((f) => f.properties.name?.includes(query))
       .slice(0, 6);
-
     setResults(matched);
   }, [query, geoData]);
 
@@ -61,7 +70,7 @@ function SearchControl({ geoData }) {
       style={{
         position: "absolute",
         top: 16,
-        left: 60,
+        left: 50,
         zIndex: 1000,
         width: 260,
       }}
@@ -119,118 +128,6 @@ function SearchControl({ geoData }) {
           ))}
         </ul>
       )}
-      <button
-        onMouseDown={() => map.flyTo(KU_CENTER, 16, { animate: true })}
-        title="고려대로 돌아가기"
-        style={{
-          marginTop: 8,
-          width: 40,
-          height: 40,
-          background: "#fff",
-          border: "1px solid #ddd",
-          borderRadius: "50%",
-          cursor: "pointer",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          color: "#2563EB",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: 0,
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = "#f0f4ff")}
-        onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
-      >
-        <svg viewBox="0 0 40 40" width="24" height="24" fill="none">
-          <circle
-            cx="20"
-            cy="20"
-            r="15"
-            stroke="currentColor"
-            strokeWidth="2"
-          />
-          <line
-            x1="20"
-            y1="16.5"
-            x2="20"
-            y2="8"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <line
-            x1="22.5"
-            y1="17.5"
-            x2="28.5"
-            y2="11.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <line
-            x1="23.5"
-            y1="20"
-            x2="32"
-            y2="20"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <line
-            x1="22.5"
-            y1="22.5"
-            x2="28.5"
-            y2="28.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <line
-            x1="20"
-            y1="23.5"
-            x2="20"
-            y2="32"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <line
-            x1="17.5"
-            y1="22.5"
-            x2="11.5"
-            y2="28.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <line
-            x1="16.5"
-            y1="20"
-            x2="8"
-            y2="20"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <line
-            x1="17.5"
-            y1="17.5"
-            x2="11.5"
-            y2="11.5"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <circle cx="20" cy="5" r="2.5" fill="currentColor" />
-          <circle cx="30.6" cy="9.4" r="2.5" fill="currentColor" />
-          <circle cx="35" cy="20" r="2.5" fill="currentColor" />
-          <circle cx="30.6" cy="30.6" r="2.5" fill="currentColor" />
-          <circle cx="20" cy="35" r="2.5" fill="currentColor" />
-          <circle cx="9.4" cy="30.6" r="2.5" fill="currentColor" />
-          <circle cx="5" cy="20" r="2.5" fill="currentColor" />
-          <circle cx="9.4" cy="9.4" r="2.5" fill="currentColor" />
-          <circle cx="20" cy="20" r="4" fill="currentColor" />
-        </svg>
-      </button>
     </div>
   );
 }
@@ -243,7 +140,9 @@ export default function Map() {
     x: 0,
     y: 0,
   });
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
   const mapRef = useRef(null);
+  const activeLayerRef = useRef(null);
 
   useEffect(() => {
     fetch("/api/buildings")
@@ -265,7 +164,7 @@ export default function Map() {
         const rect = mapEl.getBoundingClientRect();
         setTooltip({
           visible: true,
-          name: feature.properties.name ?? "이름 없음",
+          name: feature.properties.name,
           x: clientX - rect.left + 12,
           y: clientY - rect.top - 36,
         });
@@ -282,10 +181,31 @@ export default function Map() {
         }));
       },
       mouseout() {
-        layer.setStyle({ fillOpacity: 0.2, weight: 1.5 });
+        if (activeLayerRef.current !== layer) {
+          layer.setStyle({ fillOpacity: 0.2, weight: 1.5 });
+        }
         setTooltip((prev) => ({ ...prev, visible: false }));
       },
+      click() {
+        if (activeLayerRef.current && activeLayerRef.current !== layer) {
+          activeLayerRef.current.setStyle({ fillOpacity: 0.2, weight: 1.5 });
+        }
+        layer.setStyle({ fillOpacity: 0.5, weight: 2.5 });
+        activeLayerRef.current = layer;
+        setSelectedBuilding({
+          id: feature.properties.id,
+          name: feature.properties.name,
+        });
+      },
     });
+  }
+
+  function handleClosePanel() {
+    setSelectedBuilding(null);
+    if (activeLayerRef.current) {
+      activeLayerRef.current.setStyle({ fillOpacity: 0.2, weight: 1.5 });
+      activeLayerRef.current = null;
+    }
   }
 
   return (
@@ -293,10 +213,9 @@ export default function Map() {
       <MapContainer
         center={KU_CENTER}
         zoom={16}
-        //minZoom={14}
         style={{ width: "100%", height: "100%" }}
-        // maxBounds={KU_BOUNDS}
-        // maxBoundsViscosity={0.7}
+        maxBounds={KU_BOUNDS}
+        maxBoundsViscosity={0.7}
         ref={mapRef}
       >
         <TileLayer
@@ -305,6 +224,7 @@ export default function Map() {
           subdomains="abcd"
           maxZoom={19}
         />
+        <BoundsController />
         {geoData && (
           <>
             <GeoJSON
@@ -343,6 +263,14 @@ export default function Map() {
         >
           {tooltip.name}
         </div>
+      )}
+
+      {selectedBuilding && (
+        <SidePanel
+          buildingId={selectedBuilding.id}
+          buildingName={selectedBuilding.name}
+          onClose={handleClosePanel}
+        />
       )}
     </div>
   );
