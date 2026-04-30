@@ -3,11 +3,43 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
+const FAVORITES_KEY = "ku_favorites";
+
+function loadFavorites() {
+  try {
+    return JSON.parse(localStorage.getItem(FAVORITES_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveFavorites(ids) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids));
+}
+
 export default function SidePanel({ buildingId, buildingName, onClose }) {
   const [facilities, setFacilities] = useState([]);
   const [building, setBuilding] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
+  // 모바일 감지
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  // 즐겨찾기 초기 로드
+  useEffect(() => {
+    if (!buildingId) return;
+    const favs = loadFavorites();
+    setIsFavorite(favs.some((f) => f.id === buildingId));
+  }, [buildingId]);
+
+  // 데이터 fetch
   useEffect(() => {
     if (!buildingId) return;
     setLoading(true);
@@ -29,9 +61,49 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     fetchData();
   }, [buildingId]);
 
-  return (
-    <div
-      style={{
+  function toggleFavorite() {
+    const favs = loadFavorites();
+
+    // 최초 즐겨찾기 등록 시 (키 자체가 없었을 때) 안내
+    const isFirstTime = localStorage.getItem(FAVORITES_KEY) === null;
+
+    const next = isFavorite
+      ? favs.filter((f) => f.id !== buildingId)
+      : [...favs, { id: buildingId, name: buildingName }];
+    saveFavorites(next);
+    window.dispatchEvent(new Event("favoritesUpdated"));
+    setIsFavorite(!isFavorite);
+
+    // 첫 즐겨찾기 추가 시에만 안내
+    if (isFirstTime && !isFavorite) {
+      // Toast를 SidePanel에서 띄우기 위해 커스텀 이벤트 활용
+      window.dispatchEvent(
+        new CustomEvent("showToast", {
+          detail: {
+            message:
+              "즐겨찾기는 이 브라우저에 저장돼요. 캐시를 지우면 초기화될 수 있어요.",
+            type: "info",
+          },
+        }),
+      );
+    }
+  }
+  // 데스크탑: 오른쪽 패널 / 모바일: 바텀 시트
+  const panelStyle = isMobile
+    ? {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        width: "100%",
+        height: "62vh",
+        background: "#fff",
+        borderRadius: "16px 16px 0 0",
+        zIndex: 1000,
+        overflowY: "auto",
+        boxShadow: "0 -4px 20px rgba(0,0,0,0.12)",
+      }
+    : {
         position: "absolute",
         top: 0,
         right: 0,
@@ -42,52 +114,102 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         zIndex: 1000,
         overflowY: "auto",
         boxShadow: "-4px 0 12px rgba(0,0,0,0.08)",
-      }}
-    >
+      };
+
+  return (
+    <div style={panelStyle}>
+      {/* 모바일 드래그 핸들 */}
+      {isMobile && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            padding: "10px 0 4px",
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 4,
+              borderRadius: 2,
+              background: "#ddd",
+            }}
+          />
+        </div>
+      )}
+
+      {/* 헤더 */}
       <div
         style={{
-          padding: "16px",
+          padding: "14px 16px",
           borderBottom: "1px solid #f0f0f0",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
         }}
       >
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 600, color: "#111" }}>
             {buildingName}
           </div>
-          {building && (
+          {building?.name_en && (
             <div style={{ fontSize: 12, color: "#888", marginTop: 3 }}>
               {building.name_en}
             </div>
           )}
         </div>
-        <button
-          onClick={onClose}
+        <div
           style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 18,
-            color: "#888",
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            flexShrink: 0,
           }}
         >
-          ✕
-        </button>
+          {/* 즐겨찾기 버튼 */}
+          <button
+            onClick={toggleFavorite}
+            title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 20,
+              padding: "2px 6px",
+              lineHeight: 1,
+            }}
+          >
+            {isFavorite ? "⭐" : "☆"}
+          </button>
+          {/* 닫기 버튼 */}
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              fontSize: 18,
+              color: "#888",
+              padding: "2px 6px",
+            }}
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
+      {/* 사진 */}
       {building?.photo_url ? (
         <img
           src={building.photo_url}
           alt={buildingName}
-          style={{ width: "100%", height: 180, objectFit: "cover" }}
+          style={{ width: "100%", height: 160, objectFit: "cover" }}
         />
       ) : (
         <div
           style={{
             width: "100%",
-            height: 180,
+            height: 160,
             background: "#f5f5f5",
             display: "flex",
             alignItems: "center",
@@ -100,6 +222,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         </div>
       )}
 
+      {/* 시설 목록 */}
       <div style={{ padding: 16 }}>
         {loading ? (
           <div
@@ -163,7 +286,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                 >
                   {f.facility_types?.icon}
                 </div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 500, color: "#222" }}>
                     {f.name ?? f.facility_types?.label}
                   </div>
@@ -184,6 +307,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                     padding: "3px 8px",
                     borderRadius: 20,
                     fontWeight: 500,
+                    flexShrink: 0,
                     background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
                     color: f.is_installed ? "#3B6D11" : "#A32D2D",
                   }}
