@@ -9,6 +9,10 @@ const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
   ssr: false,
 });
 
+const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
+  ssr: false,
+});
+
 export default function BuildingDetail() {
   const { id } = useParams();
   const router = useRouter();
@@ -16,6 +20,7 @@ export default function BuildingDetail() {
   const [facilities, setFacilities] = useState([]);
   const [facilityTypes, setFacilityTypes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [editingPolygon, setEditingPolygon] = useState(false);
 
   useEffect(() => {
     async function init() {
@@ -162,6 +167,79 @@ export default function BuildingDetail() {
             </div>
           )}
           <PhotoUpload buildingId={id} onUpload={fetchData} />
+        </div>
+
+        {/* 폴리곤 편집 */}
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            padding: 20,
+            border: "1px solid #e5e7eb",
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: editingPolygon ? 16 : 0,
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>건물 폴리곤</div>
+              {!editingPolygon && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: building?.geojson ? "#3B6D11" : "#aaa",
+                    marginTop: 4,
+                  }}
+                >
+                  {building?.geojson
+                    ? "✅ 폴리곤 데이터 있음"
+                    : "❌ 폴리곤 없음 — 편집으로 추가"}
+                </div>
+              )}
+            </div>
+            {!editingPolygon && (
+              <button
+                onClick={() => setEditingPolygon(true)}
+                style={{
+                  fontSize: 13,
+                  padding: "6px 14px",
+                  background: "none",
+                  border: "1px solid #2563EB",
+                  color: "#2563EB",
+                  borderRadius: 8,
+                  cursor: "pointer",
+                }}
+              >
+                편집
+              </button>
+            )}
+          </div>
+
+          {editingPolygon && (
+            <PolygonEditor
+              geojson={building?.geojson ?? null}
+              onSave={async (newGeojson) => {
+                const { error } = await supabase
+                  .from("buildings")
+                  .update({ geojson: newGeojson })
+                  .eq("id", id);
+                if (error) {
+                  alert("저장 실패");
+                  return;
+                }
+                setEditingPolygon(false);
+                fetchData();
+                alert("폴리곤이 저장되었어요!");
+              }}
+              onCancel={() => setEditingPolygon(false)}
+            />
+          )}
         </div>
 
         {/* 시설 목록 */}

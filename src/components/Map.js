@@ -16,25 +16,7 @@ import SidePanel from "@/components/SidePanel";
 const KU_CENTER = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
 
-function osmToGeoJSON(elements) {
-  return {
-    type: "FeatureCollection",
-    features: elements
-      .filter((el) => el.geometry?.length > 0)
-      .filter((el) => el.tags?.["name"] ?? el.tags?.["name:ko"])
-      .map((el) => ({
-        type: "Feature",
-        properties: {
-          id: el.id,
-          name: el.tags?.["name"] ?? el.tags?.["name:ko"],
-        },
-        geometry: {
-          type: "Polygon",
-          coordinates: [el.geometry.map((p) => [p.lon, p.lat])],
-        },
-      })),
-  };
-}
+
 
 function BoundsController() {
   const map = useMap();
@@ -157,8 +139,8 @@ export default function Map() {
     fetch("/api/buildings")
       .then((res) => res.json())
       .then((data) => {
-        if (!data.elements) return;
-        setGeoData(osmToGeoJSON(data.elements));
+        if (!data.features) return;
+        setGeoData(data); // Supabase에서 이미 FeatureCollection으로 반환
       })
       .catch((err) => console.error("buildings fetch 실패:", err))
       .finally(() => setLoadingMap(false));

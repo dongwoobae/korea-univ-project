@@ -9,6 +9,7 @@
     "sync-buildings": "node --env-file=.env.local src/scripts/syncBuildings.js"
   },
   "dependencies": {
+    "@geoman-io/leaflet-geoman-free": "^2.19.3",
     "@supabase/supabase-js": "^2.105.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
