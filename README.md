@@ -143,14 +143,8 @@ building_facilities
 
 ## ⚙️ 환경 변수
 
-프로젝트 루트에 `.env.local` 파일을 생성하고 아래 값을 입력하세요.
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SYNC_SECRET=your_sync_secret
-```
+프로젝트 루트에 `.env.local` 파일을 생성하세요.
+변수 목록은 관리자에게 문의하세요.
 
 ---
 
