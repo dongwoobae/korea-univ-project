@@ -32,6 +32,7 @@ function BoundsController() {
 
 function SearchControl({ geoData }) {
   const map = useMap();
+  const { lang, t } = useLanguage();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
@@ -41,8 +42,13 @@ function SearchControl({ geoData }) {
       setResults([]);
       return;
     }
+    const q = query.toLowerCase();
     const matched = geoData.features
-      .filter((f) => f.properties.name?.includes(query))
+      .filter(
+        (f) =>
+          f.properties.name?.includes(query) ||
+          f.properties.name_en?.toLowerCase().includes(q),
+      )
       .slice(0, 6);
     setResults(matched);
   }, [query, geoData]);
@@ -52,7 +58,11 @@ function SearchControl({ geoData }) {
     const latlngs = coords.map(([lon, lat]) => [lat, lon]);
     const bounds = L.latLngBounds(latlngs);
     map.fitBounds(bounds, { maxZoom: 18, animate: true });
-    setQuery(feature.properties.name);
+    setQuery(
+      lang === "ko"
+        ? feature.properties.name
+        : (feature.properties.name_en ?? feature.properties.name),
+    );
     setResults([]);
   }
 
@@ -72,7 +82,7 @@ function SearchControl({ geoData }) {
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setTimeout(() => setIsFocused(false), 150)}
-        placeholder="건물 검색..."
+        placeholder={t("searchPlaceholder")}
         style={{
           width: "100%",
           padding: "10px 14px",
@@ -114,7 +124,9 @@ function SearchControl({ geoData }) {
               }
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
             >
-              {f.properties.name}
+              {lang === "ko"
+                ? f.properties.name
+                : (f.properties.name_en ?? f.properties.name)}
             </li>
           ))}
         </ul>
@@ -148,18 +160,35 @@ function getFacilityColor(code, index) {
   );
 }
 
-const FACILITY_TYPES = [
-  { code: "elevator", label: "엘리베이터", icon: "🛗" },
-  { code: "restroom", label: "장애인 화장실", icon: "🚻" },
-  { code: "ramp", label: "경사로", icon: "♿" },
-  { code: "parking", label: "장애인 주차", icon: "🅿️" },
-  { code: "braille", label: "점자 안내판", icon: "👁️" },
-];
-
+// ① 상수에 다국어 추가
 const SUBWAY_STATIONS = [
-  { id: 9000001, name: "고려대역", line: "6호선", lat: 37.5895, lng: 127.0363 },
-  { id: 9000002, name: "안암역", line: "6호선", lat: 37.5862, lng: 127.0294 },
-  { id: 9000003, name: "보문역", line: "6호선", lat: 37.5853, lng: 127.0194 },
+  {
+    id: 9000001,
+    name: "고려대역",
+    name_en: "Korea University Station",
+    name_zh: "高丽大站",
+    line: "6호선",
+    lat: 37.5895,
+    lng: 127.0363,
+  },
+  {
+    id: 9000002,
+    name: "안암역",
+    name_en: "Anam Station",
+    name_zh: "安岩站",
+    line: "6호선",
+    lat: 37.5862,
+    lng: 127.0294,
+  },
+  {
+    id: 9000003,
+    name: "보문역",
+    name_en: "Bomun Station",
+    name_zh: "普门站",
+    line: "6호선",
+    lat: 37.5853,
+    lng: 127.0194,
+  },
 ];
 
 function loadFavoritesFromStorage() {
@@ -183,15 +212,15 @@ export default function Map() {
   const [showFavorites, setShowFavorites] = useState(false);
   const [favoritesList, setFavoritesList] = useState([]);
   const [facilities, setFacilities] = useState([]);
-  const [facilityTypes, setFacilityTypes] = useState([]); // ← 추가
-  const [activeTypes, setActiveTypes] = useState({}); // ← 빈 객체로 변경
+  const [facilityTypes, setFacilityTypes] = useState([]);
+  const [activeTypes, setActiveTypes] = useState({});
+  const [toast, setToast] = useState(null);
   const { lang, setLang, t } = useLanguage();
 
   const mapRef = useRef(null);
   const activeLayerRef = useRef(null);
   const activeBuildingIdRef = useRef(null);
   const layerMapRef = useRef({});
-  // 새로고침 시에도 localStorage에서 즉시 초기화
   const favoriteIdsRef = useRef(
     new Set(loadFavoritesFromStorage().map((f) => f.id)),
   );
@@ -228,11 +257,11 @@ export default function Map() {
       fillOpacity: 0.5,
     };
   }
-  const [toast, setToast] = useState(null);
 
   function showToast(message, type = "success") {
     setToast({ message, type });
   }
+
   // 토스트
   useEffect(() => {
     const handler = (e) => setToast(e.detail);
@@ -274,25 +303,31 @@ export default function Map() {
       .finally(() => setLoadingMap(false));
   }, []);
 
-  // 시설 데이터
+  // 시설 마커 데이터
   useEffect(() => {
     fetch("/api/facilities")
       .then((r) => r.json())
       .then((data) => setFacilities(data ?? []))
       .catch(() => {});
   }, []);
-  // facility_types DB에서 동적 로드
+
+  // facility_types DB에서 동적 로드 (label_en, label_zh 포함)
   useEffect(() => {
     supabase
       .from("facility_types")
-      .select("code, label, icon")
+      .select("code, label, label_en, label_zh, icon")
       .then(({ data }) => {
         if (!data) return;
         setFacilityTypes(data);
-        // activeTypes를 DB에서 가져온 타입으로 초기화 (전부 false)
-        setActiveTypes(Object.fromEntries(data.map((t) => [t.code, false])));
+        setActiveTypes(Object.fromEntries(data.map((ft) => [ft.code, false])));
       });
   }, []);
+
+  function getFacilityLabel(ft) {
+    if (lang === "en") return ft.label_en ?? ft.label;
+    if (lang === "zh") return ft.label_zh ?? ft.label;
+    return ft.label;
+  }
 
   function onEachFeature(feature, layer) {
     const bId = feature.properties.id;
@@ -309,6 +344,7 @@ export default function Map() {
         setTooltip({
           visible: true,
           name: feature.properties.name,
+          name_en: feature.properties.name_en,
           x: clientX - rect.left + 12,
           y: clientY - rect.top - 36,
         });
@@ -332,12 +368,10 @@ export default function Map() {
         setTooltip((prev) => ({ ...prev, visible: false }));
       },
       click() {
-        // 같은 건물 다시 클릭 시 패널 닫기
         if (activeBuildingIdRef.current === bId) {
           handleClosePanel();
           return;
         }
-
         if (activeLayerRef.current && activeLayerRef.current !== layer) {
           const prevId = activeBuildingIdRef.current;
           activeLayerRef.current.setStyle(
@@ -353,7 +387,7 @@ export default function Map() {
   }
 
   function handleClosePanel() {
-    window.dispatchEvent(new Event("sidePanelShouldClose")); // 슬라이드 아웃 트리거
+    window.dispatchEvent(new Event("sidePanelShouldClose"));
     setTimeout(() => {
       setSelectedBuilding(null);
       if (activeLayerRef.current) {
@@ -364,7 +398,7 @@ export default function Map() {
         activeLayerRef.current = null;
         activeBuildingIdRef.current = null;
       }
-    }, 280); // transition 300ms보다 약간 짧게
+    }, 280);
   }
 
   return (
@@ -394,7 +428,7 @@ export default function Map() {
               animation: "spin 0.8s linear infinite",
             }}
           />
-          <div style={{ fontSize: 14, color: "#555" }}>지도 불러오는 중...</div>
+          <div style={{ fontSize: 14, color: "#555" }}>{t("loadingMap")}</div>
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       )}
@@ -429,7 +463,6 @@ export default function Map() {
             <SearchControl geoData={geoData} />
           </>
         )}
-
         {/* 시설 마커 */}
         {facilities
           .filter((f) => activeTypes[f.facility_types?.code])
@@ -463,21 +496,25 @@ export default function Map() {
               </Popup>
             </Marker>
           ))}
-
         {/* 지하철역 마커 */}
-        {SUBWAY_STATIONS.map((s) => (
-          <Marker
-            key={s.name}
-            position={[s.lat, s.lng]}
-            icon={subwayIcon(s.name)}
-            zIndexOffset={1000}
-            eventHandlers={{
-              click() {
-                setSelectedBuilding({ id: s.id, name: s.name });
-              },
-            }}
-          />
-        ))}
+        // ② 마커 렌더링 시 언어별 이름 사용
+        {SUBWAY_STATIONS.map((s) => {
+          const displayName =
+            lang === "ko" ? s.name : lang === "en" ? s.name_en : s.name_zh;
+          return (
+            <Marker
+              key={s.name}
+              position={[s.lat, s.lng]}
+              icon={subwayIcon(displayName)} // ← 아이콘에 번역된 이름
+              zIndexOffset={1000}
+              eventHandlers={{
+                click() {
+                  setSelectedBuilding({ id: s.id, name: displayName }); // ← SidePanel에도 번역된 이름
+                },
+              }}
+            />
+          );
+        })}
       </MapContainer>
 
       {/* 즐겨찾기 버튼 */}
@@ -486,7 +523,7 @@ export default function Map() {
           setFavoritesList(loadFavoritesFromStorage());
           setShowFavorites((v) => !v);
         }}
-        title="즐겨찾기"
+        title={t("favorites")}
         style={{
           position: "absolute",
           top: 16,
@@ -534,8 +571,8 @@ export default function Map() {
               color: "#111",
             }}
           >
-            즐겨찾기{" "}
-            {favoritesList.length > 0 ? `(${favoritesList.length})` : ""}
+            {t("favorites")}
+            {favoritesList.length > 0 ? ` (${favoritesList.length})` : ""}
           </div>
           {favoritesList.length === 0 ? (
             <div
@@ -546,7 +583,7 @@ export default function Map() {
                 textAlign: "center",
               }}
             >
-              즐겨찾기한 건물이 없어요
+              {t("noFavorites")}
             </div>
           ) : (
             favoritesList.map((fav) => (
@@ -580,13 +617,14 @@ export default function Map() {
           )}
         </div>
       )}
+
       {/* 언어 선택 버튼 */}
       <div
         style={{
           position: "absolute",
-          top: 60,
+          top: showFavorites ? 60 + 32 + 8 : 60, // 즐겨찾기 패널 열릴 때 밀리지 않게 고정
           left: 16,
-          zIndex: 1000,
+          zIndex: showFavorites ? 999 : 1000,
           background: "#fff",
           border: "1px solid #ddd",
           borderRadius: 8,
@@ -624,6 +662,7 @@ export default function Map() {
           </button>
         ))}
       </div>
+
       {/* 시설 필터 패널 */}
       <div
         style={{
@@ -639,9 +678,9 @@ export default function Map() {
           minWidth: 160,
         }}
       >
-        {facilityTypes.map((t) => (
+        {facilityTypes.map((ft, i) => (
           <label
-            key={t.code}
+            key={ft.code}
             style={{
               display: "flex",
               alignItems: "center",
@@ -652,18 +691,23 @@ export default function Map() {
           >
             <input
               type="checkbox"
-              checked={activeTypes[t.code]}
+              checked={activeTypes[ft.code] ?? false}
               onChange={() =>
-                setActiveTypes((prev) => ({ ...prev, [t.code]: !prev[t.code] }))
+                setActiveTypes((prev) => ({
+                  ...prev,
+                  [ft.code]: !prev[ft.code],
+                }))
               }
               style={{
-                accentColor: getFacilityColor[t.code],
+                accentColor: getFacilityColor(ft.code, i),
                 width: 14,
                 height: 14,
               }}
             />
-            <span style={{ fontSize: 14 }}>{t.icon}</span>
-            <span style={{ fontSize: 12, color: "#333" }}>{t.label}</span>
+            <span style={{ fontSize: 14 }}>{ft.icon}</span>
+            <span style={{ fontSize: 12, color: "#333" }}>
+              {getFacilityLabel(ft)}
+            </span>
           </label>
         ))}
       </div>
@@ -688,7 +732,7 @@ export default function Map() {
             whiteSpace: "nowrap",
           }}
         >
-          {tooltip.name}
+          {lang === "ko" ? tooltip.name : (tooltip.name_en ?? tooltip.name)}
         </div>
       )}
 

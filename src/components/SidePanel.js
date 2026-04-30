@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const FAVORITES_KEY = "ku_favorites";
 
@@ -13,11 +14,12 @@ function loadFavorites() {
   }
 }
 
-function saveFavorites(ids) {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify(ids));
+function saveFavorites(list) {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(list));
 }
 
 export default function SidePanel({ buildingId, buildingName, onClose }) {
+  const { lang, t } = useLanguage();
   const [facilities, setFacilities] = useState([]);
   const [building, setBuilding] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,8 +39,8 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
 
   // 슬라이드 인
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 10);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setVisible(true), 10);
+    return () => clearTimeout(timer);
   }, []);
 
   // Map.js에서 닫기 요청 시 슬라이드 아웃
@@ -55,7 +57,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     setIsFavorite(favs.some((f) => f.id === buildingId));
   }, [buildingId]);
 
-  // 데이터 fetch
+  // 데이터 fetch — label_en, label_zh 포함
   useEffect(() => {
     if (!buildingId) return;
     setLoading(true);
@@ -66,7 +68,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
           supabase.from("buildings").select("*").eq("id", buildingId).single(),
           supabase
             .from("building_facilities")
-            .select("*, facility_types(label, icon)")
+            .select("*, facility_types(label, label_en, label_zh, icon)")
             .eq("building_id", buildingId),
         ]);
       setBuilding(buildingData);
@@ -77,12 +79,21 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     fetchData();
   }, [buildingId]);
 
+  // 언어에 따른 건물명
+  const displayName =
+    lang === "ko" ? buildingName : (building?.name_en ?? buildingName);
+
+  // 언어에 따른 시설 라벨
+  function getFacilityLabel(facilityTypes) {
+    if (!facilityTypes) return "";
+    if (lang === "en") return facilityTypes.label_en ?? facilityTypes.label;
+    if (lang === "zh") return facilityTypes.label_zh ?? facilityTypes.label;
+    return facilityTypes.label;
+  }
+
   function toggleFavorite() {
     const favs = loadFavorites();
-
-    // 최초 즐겨찾기 등록 시 (키 자체가 없었을 때) 안내
     const isFirstTime = localStorage.getItem(FAVORITES_KEY) === null;
-
     const next = isFavorite
       ? favs.filter((f) => f.id !== buildingId)
       : [...favs, { id: buildingId, name: buildingName }];
@@ -90,20 +101,15 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     window.dispatchEvent(new Event("favoritesUpdated"));
     setIsFavorite(!isFavorite);
 
-    // 첫 즐겨찾기 추가 시에만 안내
     if (isFirstTime && !isFavorite) {
-      // Toast를 SidePanel에서 띄우기 위해 커스텀 이벤트 활용
       window.dispatchEvent(
         new CustomEvent("showToast", {
-          detail: {
-            message:
-              "즐겨찾기는 이 브라우저에 저장돼요. 캐시를 지우면 초기화될 수 있어요.",
-            type: "info",
-          },
+          detail: { message: t("favoriteSavedMsg"), type: "info" },
         }),
       );
     }
   }
+
   const transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
 
   const panelStyle = isMobile
@@ -119,7 +125,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         zIndex: 1000,
         overflowY: "auto",
         boxShadow: "0 -4px 20px rgba(0,0,0,0.12)",
-        transform: visible ? "translateY(0)" : "translateY(100%)", // 아래→위
+        transform: visible ? "translateY(0)" : "translateY(100%)",
         transition,
       }
     : {
@@ -133,7 +139,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         zIndex: 1000,
         overflowY: "auto",
         boxShadow: "-4px 0 12px rgba(0,0,0,0.08)",
-        transform: visible ? "translateX(0)" : "translateX(100%)", // 오른쪽→왼쪽
+        transform: visible ? "translateX(0)" : "translateX(100%)",
         transition,
       };
 
@@ -185,11 +191,12 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         >
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 16, fontWeight: 600, color: "#111" }}>
-              {buildingName}
+              {displayName}
             </div>
-            {building?.name_en && (
+            {/* 한국어가 아닐 때는 한국어 원명을 서브텍스트로 표시 */}
+            {lang !== "ko" && (
               <div style={{ fontSize: 12, color: "#888", marginTop: 3 }}>
-                {building.name_en}
+                {buildingName}
               </div>
             )}
           </div>
@@ -204,7 +211,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
             {/* 즐겨찾기 버튼 */}
             <button
               onClick={toggleFavorite}
-              title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+              title={isFavorite ? t("removeFavorite") : t("addFavorite")}
               style={{
                 background: "none",
                 border: "none",
@@ -237,7 +244,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         {building?.photo_url ? (
           <img
             src={building.photo_url}
-            alt={buildingName}
+            alt={displayName}
             style={{ width: "100%", height: 160, objectFit: "cover" }}
           />
         ) : (
@@ -253,7 +260,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
               fontSize: 13,
             }}
           >
-            사진 없음
+            {t("noPhoto")}
           </div>
         )}
 
@@ -268,7 +275,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                 paddingTop: 20,
               }}
             >
-              불러오는 중...
+              {t("loading")}
             </div>
           ) : facilities.length === 0 ? (
             <div
@@ -279,7 +286,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                 paddingTop: 20,
               }}
             >
-              등록된 접근성 정보가 없어요
+              {t("noFacilityInfo")}
             </div>
           ) : (
             <>
@@ -293,7 +300,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                   letterSpacing: "0.05em",
                 }}
               >
-                시설 현황
+                {t("facilitiesTitle")}
               </div>
               {facilities.map((f) => (
                 <div
@@ -325,7 +332,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                     <div
                       style={{ fontSize: 13, fontWeight: 500, color: "#222" }}
                     >
-                      {f.name ?? f.facility_types?.label}
+                      {f.name ?? getFacilityLabel(f.facility_types)}
                     </div>
                     {f.description && (
                       <div
@@ -351,7 +358,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                       color: f.is_installed ? "#3B6D11" : "#A32D2D",
                     }}
                   >
-                    {f.is_installed ? "설치" : "미설치"}
+                    {f.is_installed ? t("installed") : t("notInstalled")}
                   </span>
                 </div>
               ))}
@@ -359,7 +366,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
           )}
           {building?.last_updated && (
             <div style={{ marginTop: 16, fontSize: 11, color: "#bbb" }}>
-              마지막 업데이트: {building.last_updated}
+              {t("lastUpdated")} {building.last_updated}
             </div>
           )}
         </div>
