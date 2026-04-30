@@ -1,4 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
+
+export const revalidate = 86400;
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -130,6 +133,8 @@ async function handleSync() {
     if (!error) updated++;
     else failed++;
   }
+
+  revalidatePath("/api/buildings");
 
   return Response.json({
     success: true,
