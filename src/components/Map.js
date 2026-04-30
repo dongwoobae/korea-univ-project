@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  GeoJSON,
+  useMap,
+  Marker,
+  Popup,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import SidePanel from "@/components/SidePanel";
@@ -211,6 +218,46 @@ export default function Map() {
     }
   }
 
+  const SUBWAY_STATIONS = [
+    {
+      id: 9000001,
+      name: "고려대역",
+      line: "6호선",
+      lat: 37.5895,
+      lng: 127.0363,
+    },
+    { id: 9000002, name: "안암역", line: "6호선", lat: 37.5862, lng: 127.0294 },
+    { id: 9000003, name: "보문역", line: "6호선", lat: 37.5853, lng: 127.0194 },
+  ];
+
+  const subwayIcon = (name) =>
+    L.divIcon({
+      className: "",
+      html: `
+    <div style="
+      display: flex; flex-direction: column; align-items: center;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
+    ">
+      <div style="
+        background: #B9282D; color: white;
+        border: 2.5px solid white; border-radius: 50%;
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; font-weight: bold;
+      ">🚇</div>
+      <div style="
+        background: #B9282D; color: white;
+        border-radius: 10px; padding: 2px 7px;
+        font-size: 11px; font-weight: 700;
+        margin-top: 3px; white-space: nowrap;
+        border: 1.5px solid white;
+      ">${name}</div>
+    </div>
+  `,
+      iconAnchor: [16, 44],
+      popupAnchor: [0, -46],
+    });
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100vh" }}>
       {/* 로딩 오버레이 */}
@@ -273,6 +320,23 @@ export default function Map() {
             <SearchControl geoData={geoData} />
           </>
         )}
+        {/* 지하철역 마커 */}
+        {SUBWAY_STATIONS.map((s) => (
+          <Marker
+            key={s.name}
+            position={[s.lat, s.lng]}
+            icon={subwayIcon(s.name)}
+            zIndexOffset={1000}
+            eventHandlers={{
+              click() {
+                setSelectedBuilding({
+                  id: s.id,
+                  name: s.name,
+                });
+              },
+            }}
+          ></Marker>
+        ))}
       </MapContainer>
 
       {tooltip.visible && (
