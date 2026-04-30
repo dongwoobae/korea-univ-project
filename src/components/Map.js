@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -30,7 +30,7 @@ function BoundsController() {
   return null;
 }
 
-function SearchControl({ geoData }) {
+function SearchControl({ geoData, isMobile, onBuildingSelect }) {
   const map = useMap();
   const { lang, t } = useLanguage();
   const [query, setQuery] = useState("");
@@ -64,6 +64,7 @@ function SearchControl({ geoData }) {
         : (feature.properties.name_en ?? feature.properties.name),
     );
     setResults([]);
+    onBuildingSelect?.(feature);
   }
 
   return (
@@ -73,7 +74,8 @@ function SearchControl({ geoData }) {
         top: 16,
         left: 56,
         zIndex: 1000,
-        width: 260,
+        // 모바일: 우측 언어버튼(108px) + 우측여백(16px) + 간격(8px) = 132px 확보
+        width: isMobile ? "calc(100vw - 188px)" : 260,
       }}
     >
       <input
@@ -82,16 +84,22 @@ function SearchControl({ geoData }) {
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && results.length > 0) handleSelect(results[0]);
+        }}
         placeholder={t("searchPlaceholder")}
         style={{
           width: "100%",
           padding: "10px 14px",
-          border: "1px solid #ddd",
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: "#ddd",
           borderRadius: results.length > 0 && isFocused ? "8px 8px 0 0" : "8px",
-          fontSize: 14,
+          fontSize: isMobile ? 16 : 14,
           outline: "none",
           boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
           background: "#fff",
+          boxSizing: "border-box",
         }}
       />
       {results.length > 0 && isFocused && (
@@ -101,8 +109,10 @@ function SearchControl({ geoData }) {
             padding: 0,
             listStyle: "none",
             background: "#fff",
-            border: "1px solid #ddd",
-            borderTop: "none",
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: "#ddd",
+            borderTopWidth: 0,
             borderRadius: "0 0 8px 8px",
             boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
             overflow: "hidden",
@@ -113,10 +123,12 @@ function SearchControl({ geoData }) {
               key={f.properties.id}
               onMouseDown={() => handleSelect(f)}
               style={{
-                padding: "9px 14px",
+                padding: isMobile ? "12px 14px" : "9px 14px",
                 fontSize: 13,
                 cursor: "pointer",
-                borderBottom: "1px solid #f0f0f0",
+                borderBottomWidth: 1,
+                borderBottomStyle: "solid",
+                borderBottomColor: "#f0f0f0",
                 color: "#333",
               }}
               onMouseEnter={(e) =>
@@ -160,12 +172,11 @@ function getFacilityColor(code, index) {
   );
 }
 
-// ① 상수에 다국어 추가
 const SUBWAY_STATIONS = [
   {
     id: 9000001,
     name: "고려대역",
-    name_en: "Korea University Station",
+    name_en: "Goryeodae Station",
     name_zh: "高丽大站",
     line: "6호선",
     lat: 37.5895,
@@ -199,12 +210,37 @@ function loadFavoritesFromStorage() {
   }
 }
 
+const LANG_BUTTONS = [
+  { code: "ko", label: "한", title: "한국어" },
+  { code: "en", label: "EN", title: "English" },
+  { code: "zh", label: "中", title: "中文" },
+];
+
+function baseStyle(isFav) {
+  return {
+    color: isFav ? "#FACC15" : "#2563EB",
+    weight: isFav ? 3 : 1.5,
+    fillColor: "#2563EB",
+    fillOpacity: 0.2,
+  };
+}
+
+function hoverStyle(isFav) {
+  return {
+    color: isFav ? "#FACC15" : "#2563EB",
+    weight: isFav ? 3 : 2.5,
+    fillColor: "#2563EB",
+    fillOpacity: 0.5,
+  };
+}
+
 export default function Map() {
   const [geoData, setGeoData] = useState(null);
   const [loadingMap, setLoadingMap] = useState(true);
   const [tooltip, setTooltip] = useState({
     visible: false,
     name: "",
+    name_en: "",
     x: 0,
     y: 0,
   });
@@ -214,7 +250,9 @@ export default function Map() {
   const [facilities, setFacilities] = useState([]);
   const [facilityTypes, setFacilityTypes] = useState([]);
   const [activeTypes, setActiveTypes] = useState({});
+  const [showFilter, setShowFilter] = useState(false);
   const [toast, setToast] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
   const { lang, setLang, t } = useLanguage();
 
   const mapRef = useRef(null);
@@ -224,6 +262,25 @@ export default function Map() {
   const favoriteIdsRef = useRef(
     new Set(loadFavoritesFromStorage().map((f) => f.id)),
   );
+  // ✅ isMobile을 ref로도 관리 — onEachFeature 클로저에서 항상 최신값 참조
+  const isMobileRef = useRef(false);
+
+  const geoJsonStyle = useCallback(
+    (feature) => baseStyle(favoriteIdsRef.current.has(feature.properties.id)),
+    [], // favoriteIdsRef는 ref라 deps 불필요
+  );
+
+  // 모바일 감지 — state + ref 동시 업데이트
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      isMobileRef.current = mobile;
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const facilityMarkerIcon = (code, icon) =>
     L.divIcon({
@@ -241,25 +298,27 @@ export default function Map() {
       popupAnchor: [0, -46],
     });
 
-  function baseStyle(isFav) {
-    return {
-      color: isFav ? "#FACC15" : "#2563EB",
-      weight: isFav ? 3 : 1.5,
-      fillColor: "#2563EB",
-      fillOpacity: 0.2,
-    };
+  function getFacilityLabel(ft) {
+    if (lang === "en") return ft.label_en ?? ft.label;
+    if (lang === "zh") return ft.label_zh ?? ft.label;
+    return ft.label;
   }
 
-  function hoverStyle(isFav) {
-    return {
-      color: isFav ? "#FACC15" : "#2563EB",
-      weight: isFav ? 3 : 2.5,
-      fillOpacity: 0.5,
-    };
-  }
-
-  function showToast(message, type = "success") {
-    setToast({ message, type });
+  // 검색에서 건물 선택 → layer 하이라이트 + SidePanel 열기
+  function handleBuildingSelectFromSearch(feature) {
+    const bId = feature.properties.id;
+    if (activeLayerRef.current && activeBuildingIdRef.current !== bId) {
+      activeLayerRef.current.setStyle(
+        baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+      );
+    }
+    const layer = layerMapRef.current[bId];
+    if (layer) {
+      layer.setStyle(hoverStyle(favoriteIdsRef.current.has(bId)));
+      activeLayerRef.current = layer;
+      activeBuildingIdRef.current = bId;
+    }
+    setSelectedBuilding({ id: bId, name: feature.properties.name });
   }
 
   // 토스트
@@ -311,7 +370,7 @@ export default function Map() {
       .catch(() => {});
   }, []);
 
-  // facility_types DB에서 동적 로드 (label_en, label_zh 포함)
+  // facility_types DB에서 동적 로드
   useEffect(() => {
     supabase
       .from("facility_types")
@@ -323,18 +382,14 @@ export default function Map() {
       });
   }, []);
 
-  function getFacilityLabel(ft) {
-    if (lang === "en") return ft.label_en ?? ft.label;
-    if (lang === "zh") return ft.label_zh ?? ft.label;
-    return ft.label;
-  }
-
   function onEachFeature(feature, layer) {
     const bId = feature.properties.id;
     layerMapRef.current[bId] = layer;
 
     layer.on({
       mouseover(e) {
+        // ✅ isMobileRef.current 사용 — 스테이트 클로저 문제 없음
+        if (isMobileRef.current) return;
         const isFav = favoriteIdsRef.current.has(bId);
         layer.setStyle(hoverStyle(isFav));
         const { clientX, clientY } = e.originalEvent;
@@ -350,6 +405,7 @@ export default function Map() {
         });
       },
       mousemove(e) {
+        if (isMobileRef.current) return;
         const { clientX, clientY } = e.originalEvent;
         const mapEl = mapRef.current?.getContainer();
         if (!mapEl) return;
@@ -361,10 +417,11 @@ export default function Map() {
         }));
       },
       mouseout() {
-        if (activeLayerRef.current !== layer) {
-          const isFav = favoriteIdsRef.current.has(bId);
-          layer.setStyle(baseStyle(isFav));
-        }
+        // ✅ 활성 레이어는 mouseout으로 스타일 리셋하지 않음
+        //    모바일 터치 시 click 전 mouseout이 발생해도 active 레이어 보호
+        if (activeLayerRef.current === layer) return;
+        const isFav = favoriteIdsRef.current.has(bId);
+        layer.setStyle(baseStyle(isFav));
         setTooltip((prev) => ({ ...prev, visible: false }));
       },
       click() {
@@ -386,6 +443,27 @@ export default function Map() {
     });
   }
 
+  function handleSelectById(id, name) {
+    // 기존 active layer 원복
+    if (activeLayerRef.current && activeBuildingIdRef.current !== id) {
+      activeLayerRef.current.setStyle(
+        baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+      );
+    }
+    // layer 하이라이트 + 줌
+    const layer = layerMapRef.current[id];
+    if (layer) {
+      layer.setStyle(hoverStyle(favoriteIdsRef.current.has(id)));
+      activeLayerRef.current = layer;
+      activeBuildingIdRef.current = id;
+      mapRef.current?.fitBounds(layer.getBounds(), {
+        maxZoom: 18,
+        animate: true,
+      });
+    }
+    setSelectedBuilding({ id, name });
+  }
+
   function handleClosePanel() {
     window.dispatchEvent(new Event("sidePanelShouldClose"));
     setTimeout(() => {
@@ -399,6 +477,155 @@ export default function Map() {
         activeBuildingIdRef.current = null;
       }
     }, 280);
+  }
+
+  function renderFilterPanel() {
+    if (!isMobile) {
+      return (
+        <div
+          style={{
+            position: "absolute",
+            bottom: 24,
+            left: 16,
+            zIndex: 1000,
+            background: "#fff",
+            borderRadius: 10,
+            padding: "12px 14px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: "#e5e7eb",
+            minWidth: 160,
+          }}
+        >
+          {facilityTypes.map((ft, i) => (
+            <label
+              key={ft.code}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                cursor: "pointer",
+                marginBottom: i < facilityTypes.length - 1 ? 6 : 0,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={activeTypes[ft.code] ?? false}
+                onChange={() =>
+                  setActiveTypes((prev) => ({
+                    ...prev,
+                    [ft.code]: !prev[ft.code],
+                  }))
+                }
+                style={{
+                  accentColor: getFacilityColor(ft.code, i),
+                  width: 14,
+                  height: 14,
+                }}
+              />
+              <span style={{ fontSize: 14 }}>{ft.icon}</span>
+              <span style={{ fontSize: 12, color: "#333" }}>
+                {getFacilityLabel(ft)}
+              </span>
+            </label>
+          ))}
+        </div>
+      );
+    }
+
+    // 모바일: 토글 버튼 + 가로 스크롤 칩
+    return (
+      <div
+        style={{
+          position: "absolute",
+          bottom: 24,
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          gap: 8,
+          paddingLeft: 16,
+        }}
+      >
+        {showFilter && (
+          <div
+            style={{
+              display: "flex",
+              gap: 8,
+              overflowX: "auto",
+              paddingRight: 16,
+              paddingBottom: 2,
+              msOverflowStyle: "none",
+              scrollbarWidth: "none",
+            }}
+          >
+            {facilityTypes.map((ft, i) => {
+              const active = activeTypes[ft.code] ?? false;
+              const color = getFacilityColor(ft.code, i);
+              return (
+                <button
+                  key={ft.code}
+                  onClick={() =>
+                    setActiveTypes((prev) => ({
+                      ...prev,
+                      [ft.code]: !prev[ft.code],
+                    }))
+                  }
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    padding: "7px 12px",
+                    borderRadius: 20,
+                    borderWidth: "1.5px",
+                    borderStyle: "solid",
+                    borderColor: active ? color : "#ddd",
+                    background: active ? color : "#fff",
+                    color: active ? "#fff" : "#555",
+                    fontSize: 12,
+                    fontWeight: active ? 600 : 400,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  <span>{ft.icon}</span>
+                  <span>{getFacilityLabel(ft)}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+        <button
+          onClick={() => setShowFilter((v) => !v)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 14px",
+            borderRadius: 20,
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: "#ddd",
+            background: showFilter ? "#2563EB" : "#fff",
+            color: showFilter ? "#fff" : "#333",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+            transition: "all 0.15s",
+          }}
+        >
+          <span>🔍</span>
+          <span>{t("filterTitle")}</span>
+          <span style={{ fontSize: 10 }}>{showFilter ? "▲" : "▼"}</span>
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -422,8 +649,10 @@ export default function Map() {
             style={{
               width: 40,
               height: 40,
-              border: "3px solid #e5e7eb",
-              borderTop: "3px solid #2563EB",
+              borderWidth: 3,
+              borderStyle: "solid",
+              borderColor: "#e5e7eb",
+              borderTopColor: "#2563EB",
               borderRadius: "50%",
               animation: "spin 0.8s linear infinite",
             }}
@@ -455,14 +684,17 @@ export default function Map() {
             <GeoJSON
               key={JSON.stringify(geoData)}
               data={geoData}
-              style={(feature) =>
-                baseStyle(favoriteIdsRef.current.has(feature.properties.id))
-              }
+              style={geoJsonStyle}
               onEachFeature={onEachFeature}
             />
-            <SearchControl geoData={geoData} />
+            <SearchControl
+              geoData={geoData}
+              isMobile={isMobile}
+              onBuildingSelect={handleBuildingSelectFromSearch}
+            />
           </>
         )}
+
         {/* 시설 마커 */}
         {facilities
           .filter((f) => activeTypes[f.facility_types?.code])
@@ -496,8 +728,8 @@ export default function Map() {
               </Popup>
             </Marker>
           ))}
+
         {/* 지하철역 마커 */}
-        // ② 마커 렌더링 시 언어별 이름 사용
         {SUBWAY_STATIONS.map((s) => {
           const displayName =
             lang === "ko" ? s.name : lang === "en" ? s.name_en : s.name_zh;
@@ -505,11 +737,11 @@ export default function Map() {
             <Marker
               key={s.name}
               position={[s.lat, s.lng]}
-              icon={subwayIcon(displayName)} // ← 아이콘에 번역된 이름
+              icon={subwayIcon(displayName)}
               zIndexOffset={1000}
               eventHandlers={{
                 click() {
-                  setSelectedBuilding({ id: s.id, name: displayName }); // ← SidePanel에도 번역된 이름
+                  setSelectedBuilding({ id: s.id, name: displayName });
                 },
               }}
             />
@@ -533,7 +765,9 @@ export default function Map() {
           height: 36,
           borderRadius: 8,
           background: showFavorites ? "#FEF08A" : "#fff",
-          border: "1px solid #ddd",
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: "#ddd",
           boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
           cursor: "pointer",
           fontSize: 18,
@@ -545,27 +779,31 @@ export default function Map() {
         ⭐
       </button>
 
-      {/* 즐겨찾기 패널 */}
+      {/* 즐겨찾기 패널 — 모바일: top:64로 검색창과 안 겹치게 */}
       {showFavorites && (
         <div
           style={{
             position: "absolute",
-            top: 60,
+            top: isMobile ? 64 : 60,
             left: 16,
-            zIndex: 1000,
+            zIndex: 1001,
             background: "#fff",
             borderRadius: 10,
             boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
-            border: "1px solid #e5e7eb",
-            width: 220,
-            maxHeight: 320,
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: "#e5e7eb",
+            width: isMobile ? "calc(100vw - 32px)" : 220,
+            maxHeight: isMobile ? 200 : 320,
             overflowY: "auto",
           }}
         >
           <div
             style={{
               padding: "12px 14px",
-              borderBottom: "1px solid #f0f0f0",
+              borderBottomWidth: 1,
+              borderBottomStyle: "solid",
+              borderBottomColor: "#f0f0f0",
               fontSize: 13,
               fontWeight: 600,
               color: "#111",
@@ -590,7 +828,7 @@ export default function Map() {
               <div
                 key={fav.id}
                 onClick={() => {
-                  setSelectedBuilding({ id: fav.id, name: fav.name });
+                  handleSelectById(fav.id, fav.name);
                   setShowFavorites(false);
                 }}
                 style={{
@@ -598,7 +836,9 @@ export default function Map() {
                   fontSize: 13,
                   color: "#333",
                   cursor: "pointer",
-                  borderBottom: "1px solid #f5f5f5",
+                  borderBottomWidth: 1,
+                  borderBottomStyle: "solid",
+                  borderBottomColor: "#f5f5f5",
                   display: "flex",
                   alignItems: "center",
                   gap: 8,
@@ -618,38 +858,38 @@ export default function Map() {
         </div>
       )}
 
-      {/* 언어 선택 버튼 */}
+      {/* 언어 버튼 — 모바일: 우상단 가로 / 데스크탑: 좌측 세로 */}
       <div
         style={{
           position: "absolute",
-          top: showFavorites ? 60 + 32 + 8 : 60, // 즐겨찾기 패널 열릴 때 밀리지 않게 고정
-          left: 16,
-          zIndex: showFavorites ? 999 : 1000,
+          ...(isMobile ? { top: 16, right: 16 } : { top: 60, left: 16 }),
+          zIndex: 1000,
           background: "#fff",
-          border: "1px solid #ddd",
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: "#ddd",
           borderRadius: 8,
           boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
           overflow: "hidden",
           display: "flex",
-          flexDirection: "column",
+          flexDirection: isMobile ? "row" : "column",
         }}
       >
-        {[
-          { code: "ko", label: "한" },
-          { code: "en", label: "EN" },
-          { code: "zh", label: "中" },
-        ].map((l, i) => (
+        {LANG_BUTTONS.map((l, i) => (
           <button
             key={l.code}
             onClick={() => setLang(l.code)}
-            title={
-              l.code === "ko" ? "한국어" : l.code === "en" ? "English" : "中文"
-            }
+            title={l.title}
             style={{
               width: 36,
-              height: 30,
-              border: "none",
-              borderTop: i > 0 ? "1px solid #eee" : "none",
+              height: isMobile ? 36 : 30,
+              borderWidth: 0,
+              borderStyle: "solid",
+              borderColor: "#eee",
+              // shorthand 충돌 방지: 구분선만 개별 속성으로
+              ...(isMobile
+                ? { borderLeftWidth: i > 0 ? 1 : 0 }
+                : { borderTopWidth: i > 0 ? 1 : 0 }),
               background: lang === l.code ? "#2563EB" : "#fff",
               color: lang === l.code ? "#fff" : "#555",
               fontSize: 12,
@@ -663,64 +903,20 @@ export default function Map() {
         ))}
       </div>
 
-      {/* 시설 필터 패널 */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: 24,
-          left: 16,
-          zIndex: 1000,
-          background: "#fff",
-          borderRadius: 10,
-          padding: "12px 14px",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          border: "1px solid #e5e7eb",
-          minWidth: 160,
-        }}
-      >
-        {facilityTypes.map((ft, i) => (
-          <label
-            key={ft.code}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 7,
-              cursor: "pointer",
-              marginBottom: 6,
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={activeTypes[ft.code] ?? false}
-              onChange={() =>
-                setActiveTypes((prev) => ({
-                  ...prev,
-                  [ft.code]: !prev[ft.code],
-                }))
-              }
-              style={{
-                accentColor: getFacilityColor(ft.code, i),
-                width: 14,
-                height: 14,
-              }}
-            />
-            <span style={{ fontSize: 14 }}>{ft.icon}</span>
-            <span style={{ fontSize: 12, color: "#333" }}>
-              {getFacilityLabel(ft)}
-            </span>
-          </label>
-        ))}
-      </div>
+      {/* 시설 필터 */}
+      {renderFilterPanel()}
 
-      {/* 툴팁 */}
-      {tooltip.visible && (
+      {/* 툴팁 — 데스크탑만 */}
+      {!isMobile && tooltip.visible && (
         <div
           style={{
             position: "absolute",
             left: tooltip.x,
             top: tooltip.y,
             background: "#fff",
-            border: "1px solid #ddd",
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: "#ddd",
             borderRadius: 6,
             padding: "6px 10px",
             fontSize: 13,
