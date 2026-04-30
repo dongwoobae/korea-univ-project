@@ -57,7 +57,8 @@ export async function GET(request) {
   const { data, error } = await supabase
     .from("buildings")
     .select("id, name, name_en, geojson")
-    .not("geojson", "is", null);
+    .not("geojson", "is", null)
+    .eq("is_deleted", false);
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
@@ -109,10 +110,12 @@ async function handleSync() {
   // geojson이 없는 건물만 업데이트
   const { data: existing } = await supabase
     .from("buildings")
-    .select("id")
+    .select("id, is_deleted")
     .not("geojson", "is", null);
 
-  const existingWithGeoJSON = new Set(existing.map((b) => b.id));
+  const existingWithGeoJSON = new Set(
+    existing.filter((b) => !b.is_deleted).map((b) => b.id),
+  );
 
   for (const building of buildings) {
     if (existingWithGeoJSON.has(building.id)) {

@@ -27,12 +27,7 @@ export default function Dashboard() {
   }, []);
 
   async function fetchBuildings() {
-    const { data, error } = await supabase
-      .from("buildings")
-      .select("*")
-      .order("name");
-    console.log("건물 데이터:", data);
-    console.log("error:", error);
+    const { data } = await supabase.from("buildings").select("*").order("name");
     setBuildings(data ?? []);
     setLoading(false);
   }
@@ -42,12 +37,16 @@ export default function Dashboard() {
     router.push("/admin");
   }
 
-  // 검색 필터
-  const filtered = buildings.filter(
-    (b) =>
-      b.name?.includes(search) ||
-      b.name_en?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const filtered = buildings
+    .filter(
+      (b) =>
+        b.name?.includes(search) ||
+        b.name_en?.toLowerCase().includes(search.toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (a.is_deleted === b.is_deleted) return 0;
+      return a.is_deleted ? 1 : -1;
+    });
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f5" }}>
@@ -99,6 +98,7 @@ export default function Dashboard() {
       </div>
 
       <div style={{ padding: 24 }}>
+        {/* 타이틀 */}
         <div
           style={{
             display: "flex",
@@ -113,56 +113,85 @@ export default function Dashboard() {
           </span>
         </div>
 
-        {/* 검색창 */}
-        <div style={{ position: "relative", marginBottom: 20 }}>
-          <span
-            style={{
-              position: "absolute",
-              left: 12,
-              top: "50%",
-              transform: "translateY(-50%)",
-              fontSize: 15,
-              color: "#aaa",
-            }}
-          >
-            🔍
-          </span>
-          <input
-            type="text"
-            placeholder="건물명으로 검색..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px 16px 10px 36px",
-              border: "1px solid #e5e7eb",
-              borderRadius: 8,
-              fontSize: 14,
-              outline: "none",
-              background: "#fff",
-              boxSizing: "border-box",
-            }}
-          />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
+        {/* 검색창 + 건물 추가 버튼 */}
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ position: "relative", maxWidth: 700, flex: 1 }}>
+            <span
               style={{
                 position: "absolute",
-                right: 12,
+                left: 12,
                 top: "50%",
                 transform: "translateY(-50%)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
                 fontSize: 15,
                 color: "#aaa",
               }}
             >
-              ✕
-            </button>
-          )}
+              🔍
+            </span>
+            <input
+              type="text"
+              placeholder="건물명으로 검색..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 16px 10px 36px",
+                border: "1px solid #e5e7eb",
+                borderRadius: 8,
+                fontSize: 14,
+                outline: "none",
+                background: "#fff",
+                boxSizing: "border-box",
+              }}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 15,
+                  color: "#aaa",
+                }}
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* 건물 추가 버튼 */}
+          <button
+            onClick={() => router.push("/admin/buildings/new")}
+            style={{
+              flexShrink: 0,
+              padding: "10px 18px",
+              background: "#2563EB",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            + 건물 추가
+          </button>
         </div>
 
+        {/* 목록 */}
         {loading ? (
           <div style={{ textAlign: "center", color: "#aaa", paddingTop: 40 }}>
             불러오는 중...
@@ -227,17 +256,34 @@ export default function Dashboard() {
                       alignItems: "center",
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: "#2563EB",
-                        background: "#EFF6FF",
-                        padding: "3px 8px",
-                        borderRadius: 20,
-                      }}
+                    <div
+                      style={{ display: "flex", gap: 6, alignItems: "center" }}
                     >
-                      {b.campus}
-                    </span>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: "#2563EB",
+                          background: "#EFF6FF",
+                          padding: "3px 8px",
+                          borderRadius: 20,
+                        }}
+                      >
+                        {b.campus}
+                      </span>
+                      {b.is_deleted && (
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: "#fff",
+                            background: "#DC2626",
+                            padding: "3px 8px",
+                            borderRadius: 20,
+                          }}
+                        >
+                          삭제됨
+                        </span>
+                      )}
+                    </div>
                     {b.last_updated && (
                       <span style={{ fontSize: 11, color: "#bbb" }}>
                         {b.last_updated}
