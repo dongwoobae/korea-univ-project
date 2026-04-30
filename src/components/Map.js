@@ -14,6 +14,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
+import { supabase } from "@/lib/supabaseClient";
+import { useLanguage } from "@/lib/LanguageContext";
 
 const KU_CENTER = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
@@ -128,6 +130,23 @@ const FACILITY_COLORS = {
   parking: "#7C3AED",
   braille: "#CA8A04",
 };
+const FALLBACK_PALETTE = [
+  "#0891B2",
+  "#BE185D",
+  "#15803D",
+  "#B45309",
+  "#6D28D9",
+  "#0F766E",
+  "#C2410C",
+  "#1D4ED8",
+  "#7E22CE",
+  "#047857",
+];
+function getFacilityColor(code, index) {
+  return (
+    FACILITY_COLORS[code] ?? FALLBACK_PALETTE[index % FALLBACK_PALETTE.length]
+  );
+}
 
 const FACILITY_TYPES = [
   { code: "elevator", label: "엘리베이터", icon: "🛗" },
@@ -164,13 +183,9 @@ export default function Map() {
   const [showFavorites, setShowFavorites] = useState(false);
   const [favoritesList, setFavoritesList] = useState([]);
   const [facilities, setFacilities] = useState([]);
-  const [activeTypes, setActiveTypes] = useState({
-    elevator: false,
-    restroom: false,
-    ramp: false,
-    parking: false,
-    braille: false,
-  });
+  const [facilityTypes, setFacilityTypes] = useState([]); // ← 추가
+  const [activeTypes, setActiveTypes] = useState({}); // ← 빈 객체로 변경
+  const { lang, setLang, t } = useLanguage();
 
   const mapRef = useRef(null);
   const activeLayerRef = useRef(null);
@@ -264,7 +279,19 @@ export default function Map() {
     fetch("/api/facilities")
       .then((r) => r.json())
       .then((data) => setFacilities(data ?? []))
-      .catch(console.error);
+      .catch(() => {});
+  }, []);
+  // facility_types DB에서 동적 로드
+  useEffect(() => {
+    supabase
+      .from("facility_types")
+      .select("code, label, icon")
+      .then(({ data }) => {
+        if (!data) return;
+        setFacilityTypes(data);
+        // activeTypes를 DB에서 가져온 타입으로 초기화 (전부 false)
+        setActiveTypes(Object.fromEntries(data.map((t) => [t.code, false])));
+      });
   }, []);
 
   function onEachFeature(feature, layer) {
@@ -553,7 +580,50 @@ export default function Map() {
           )}
         </div>
       )}
-
+      {/* 언어 선택 버튼 */}
+      <div
+        style={{
+          position: "absolute",
+          top: 60,
+          left: 16,
+          zIndex: 1000,
+          background: "#fff",
+          border: "1px solid #ddd",
+          borderRadius: 8,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {[
+          { code: "ko", label: "한" },
+          { code: "en", label: "EN" },
+          { code: "zh", label: "中" },
+        ].map((l, i) => (
+          <button
+            key={l.code}
+            onClick={() => setLang(l.code)}
+            title={
+              l.code === "ko" ? "한국어" : l.code === "en" ? "English" : "中文"
+            }
+            style={{
+              width: 36,
+              height: 30,
+              border: "none",
+              borderTop: i > 0 ? "1px solid #eee" : "none",
+              background: lang === l.code ? "#2563EB" : "#fff",
+              color: lang === l.code ? "#fff" : "#555",
+              fontSize: 12,
+              fontWeight: lang === l.code ? 700 : 400,
+              cursor: "pointer",
+              transition: "background 0.15s",
+            }}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
       {/* 시설 필터 패널 */}
       <div
         style={{
@@ -569,7 +639,7 @@ export default function Map() {
           minWidth: 160,
         }}
       >
-        {FACILITY_TYPES.map((t) => (
+        {facilityTypes.map((t) => (
           <label
             key={t.code}
             style={{
@@ -587,7 +657,7 @@ export default function Map() {
                 setActiveTypes((prev) => ({ ...prev, [t.code]: !prev[t.code] }))
               }
               style={{
-                accentColor: FACILITY_COLORS[t.code],
+                accentColor: getFacilityColor[t.code],
                 width: 14,
                 height: 14,
               }}
