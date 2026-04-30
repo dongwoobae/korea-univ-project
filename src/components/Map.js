@@ -16,8 +16,6 @@ import SidePanel from "@/components/SidePanel";
 const KU_CENTER = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
 
-
-
 function BoundsController() {
   const map = useMap();
   useEffect(() => {
@@ -133,6 +131,51 @@ export default function Map() {
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const mapRef = useRef(null);
   const activeLayerRef = useRef(null);
+  const [facilities, setFacilities] = useState([]);
+  const [activeTypes, setActiveTypes] = useState({
+    elevator: false,
+    restroom: false,
+    ramp: false,
+    parking: false,
+    braille: false,
+  });
+
+  const FACILITY_COLORS = {
+    elevator: "#2563EB",
+    restroom: "#16A34A",
+    ramp: "#EA580C",
+    parking: "#7C3AED",
+    braille: "#CA8A04",
+  };
+
+  const FACILITY_TYPES = [
+    { code: "elevator", label: "엘리베이터", icon: "🛗" },
+    { code: "restroom", label: "장애인 화장실", icon: "🚻" },
+    { code: "ramp", label: "경사로", icon: "♿" },
+    { code: "parking", label: "장애인 주차", icon: "🅿️" },
+    { code: "braille", label: "점자 안내판", icon: "👁️" },
+  ];
+
+  const facilityMarkerIcon = (code, icon) =>
+    L.divIcon({
+      className: "",
+      html: `<div style="
+        width:30px;height:30px;
+        background:${FACILITY_COLORS[code] ?? "#666"};
+        border:2.5px solid white;border-radius:50%;
+        display:flex;align-items:center;justify-content:center;
+        font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.25);
+      ">${icon}</div>`,
+      iconAnchor: [15, 15],
+      popupAnchor: [0, -18],
+    });
+
+  useEffect(() => {
+    fetch("/api/facilities")
+      .then((r) => r.json())
+      .then((data) => setFacilities(data ?? []))
+      .catch(console.error);
+  }, []);
 
   useEffect(() => {
     setLoadingMap(true);
@@ -140,7 +183,7 @@ export default function Map() {
       .then((res) => res.json())
       .then((data) => {
         if (!data.features) return;
-        setGeoData(data); // Supabase에서 이미 FeatureCollection으로 반환
+        setGeoData(data);
       })
       .catch((err) => console.error("buildings fetch 실패:", err))
       .finally(() => setLoadingMap(false));
@@ -290,6 +333,7 @@ export default function Map() {
         {geoData && (
           <>
             <GeoJSON
+              key={JSON.stringify(geoData)}
               data={geoData}
               style={{
                 color: "#2563EB",
@@ -302,6 +346,40 @@ export default function Map() {
             <SearchControl geoData={geoData} />
           </>
         )}
+        {/* 시설 마커 */}
+        {facilities
+          .filter((f) => activeTypes[f.facility_types?.code])
+          .map((f) => (
+            <Marker
+              key={f.id}
+              position={[f.lat, f.lng]}
+              icon={facilityMarkerIcon(
+                f.facility_types?.code,
+                f.facility_types?.icon,
+              )}
+              zIndexOffset={500}
+            >
+              <Popup>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>
+                  {f.name ?? f.facility_types?.label}
+                </div>
+                {f.description && (
+                  <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
+                    {f.description}
+                  </div>
+                )}
+                {f.floor_info && (
+                  <div style={{ fontSize: 12, color: "#888" }}>
+                    {f.floor_info}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>
+                  {f.buildings?.name}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+
         {/* 지하철역 마커 */}
         {SUBWAY_STATIONS.map((s) => (
           <Marker
@@ -320,6 +398,62 @@ export default function Map() {
           ></Marker>
         ))}
       </MapContainer>
+
+      {/* 시설 토글 패널 */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 24,
+          left: 16,
+          zIndex: 1000,
+          background: "#fff",
+          borderRadius: 10,
+          padding: "12px 14px",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          border: "1px solid #e5e7eb",
+          minWidth: 160,
+        }}
+      >
+        {/* <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "#888",
+            marginBottom: 8,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
+          시설 필터
+        </div> */}
+        {FACILITY_TYPES.map((t) => (
+          <label
+            key={t.code}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+              cursor: "pointer",
+              marginBottom: 6,
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={activeTypes[t.code]}
+              onChange={() =>
+                setActiveTypes((prev) => ({ ...prev, [t.code]: !prev[t.code] }))
+              }
+              style={{
+                accentColor: FACILITY_COLORS[t.code],
+                width: 14,
+                height: 14,
+              }}
+            />
+            <span style={{ fontSize: 14 }}>{t.icon}</span>
+            <span style={{ fontSize: 12, color: "#333" }}>{t.label}</span>
+          </label>
+        ))}
+      </div>
 
       {tooltip.visible && (
         <div
