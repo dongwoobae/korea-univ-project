@@ -326,15 +326,18 @@ export default function Map() {
   }
 
   function handleClosePanel() {
-    setSelectedBuilding(null);
-    if (activeLayerRef.current) {
-      const prevId = activeBuildingIdRef.current;
-      activeLayerRef.current.setStyle(
-        baseStyle(favoriteIdsRef.current.has(prevId)),
-      );
-      activeLayerRef.current = null;
-      activeBuildingIdRef.current = null;
-    }
+    window.dispatchEvent(new Event("sidePanelShouldClose")); // 슬라이드 아웃 트리거
+    setTimeout(() => {
+      setSelectedBuilding(null);
+      if (activeLayerRef.current) {
+        const prevId = activeBuildingIdRef.current;
+        activeLayerRef.current.setStyle(
+          baseStyle(favoriteIdsRef.current.has(prevId)),
+        );
+        activeLayerRef.current = null;
+        activeBuildingIdRef.current = null;
+      }
+    }, 280); // transition 300ms보다 약간 짧게
   }
 
   return (
