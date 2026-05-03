@@ -21,6 +21,12 @@ export const translations = {
     favoriteSavedMsg:
       "즐겨찾기는 이 브라우저에 저장돼요. 캐시를 지우면 초기화될 수 있어요.",
 
+    // 음성 기능
+    voiceSearch: "음성 검색",
+    voiceNotSupported: "이 브라우저는 음성 인식을 지원하지 않습니다",
+    speakInfo: "음성으로 읽기",
+    stopSpeaking: "읽기 중지",
+
     // 언어 토글
     langLabel: "언어",
   },
@@ -45,6 +51,11 @@ export const translations = {
     favoriteSavedMsg:
       "Favorites are saved in this browser. They may be reset if cache is cleared.",
 
+    voiceSearch: "Voice Search",
+    voiceNotSupported: "Voice recognition is not supported in this browser",
+    speakInfo: "Read aloud",
+    stopSpeaking: "Stop reading",
+
     langLabel: "Language",
   },
 
@@ -66,6 +77,11 @@ export const translations = {
     addFavorite: "添加收藏",
     removeFavorite: "取消收藏",
     favoriteSavedMsg: "收藏保存在此浏览器中，清除缓存后可能会重置。",
+
+    voiceSearch: "语音搜索",
+    voiceNotSupported: "此浏览器不支持语音识别",
+    speakInfo: "朗读信息",
+    stopSpeaking: "停止朗读",
 
     langLabel: "语言",
   },

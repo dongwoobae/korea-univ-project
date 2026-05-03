@@ -18,6 +18,8 @@ function saveFavorites(list) {
   localStorage.setItem(FAVORITES_KEY, JSON.stringify(list));
 }
 
+const TTS_LANG_MAP = { ko: "ko-KR", en: "en-US", zh: "zh-CN" };
+
 export default function SidePanel({ buildingId, buildingName, onClose }) {
   const { lang, t } = useLanguage();
   const [facilities, setFacilities] = useState([]);
@@ -28,6 +30,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
   const [visible, setVisible] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
 
   // 모바일 감지
   useEffect(() => {
@@ -109,6 +112,73 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
       );
     }
   }
+
+  function buildTtsText() {
+    const name =
+      lang === "ko" ? buildingName : (building?.name_en ?? buildingName);
+
+    if (lang === "en") {
+      let text = `This is ${name}. `;
+      if (facilities.length === 0) return text + "No accessibility information available.";
+      text += "Facilities: ";
+      facilities.forEach((f) => {
+        const label = f.name ?? f.facility_types?.label_en ?? f.facility_types?.label ?? "";
+        text += `${label}, ${f.is_installed ? "available" : "unavailable"}. `;
+        if (f.floor_info) text += `Location: ${f.floor_info}. `;
+      });
+      return text;
+    }
+
+    if (lang === "zh") {
+      let text = `这是${name}。`;
+      if (facilities.length === 0) return text + "暂无无障碍设施信息。";
+      text += "设施情况：";
+      facilities.forEach((f) => {
+        const label = f.name ?? f.facility_types?.label_zh ?? f.facility_types?.label ?? "";
+        text += `${label}，${f.is_installed ? "已安装" : "未安装"}。`;
+        if (f.floor_info) text += `位置：${f.floor_info}。`;
+      });
+      return text;
+    }
+
+    // ko
+    let text = `${name}입니다. `;
+    if (facilities.length === 0) return text + "등록된 접근성 정보가 없습니다.";
+    text += "시설 현황: ";
+    facilities.forEach((f) => {
+      const label = f.name ?? f.facility_types?.label ?? "";
+      text += `${label} ${f.is_installed ? "설치됨" : "미설치"}. `;
+      if (f.floor_info) text += `위치 ${f.floor_info}. `;
+    });
+    return text;
+  }
+
+  function handleTts() {
+    if (!window.speechSynthesis) return;
+    if (isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      return;
+    }
+    if (loading) return;
+    const utter = new SpeechSynthesisUtterance(buildTtsText());
+    utter.lang = TTS_LANG_MAP[lang] ?? "ko-KR";
+    utter.rate = 1;
+    utter.onend = () => setIsSpeaking(false);
+    utter.onerror = () => setIsSpeaking(false);
+    window.speechSynthesis.speak(utter);
+    setIsSpeaking(true);
+  }
+
+  // 건물 변경 또는 패널 닫힐 때 TTS 중지
+  useEffect(() => {
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
+  }, [buildingId]);
+
+  useEffect(() => {
+    return () => window.speechSynthesis?.cancel();
+  }, []);
 
   const transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
 
@@ -208,6 +278,25 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
               flexShrink: 0,
             }}
           >
+            {/* TTS 버튼 */}
+            <button
+              onClick={handleTts}
+              title={isSpeaking ? t("stopSpeaking") : t("speakInfo")}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: loading ? "default" : "pointer",
+                fontSize: 18,
+                padding: "2px 6px",
+                lineHeight: 1,
+                opacity: loading ? 0.4 : 1,
+                color: isSpeaking ? "#2563EB" : "#888",
+                animation: isSpeaking ? "speakPulse 1.2s ease-in-out infinite" : "none",
+              }}
+              disabled={loading}
+            >
+              🔊
+            </button>
             {/* 즐겨찾기 버튼 */}
             <button
               onClick={toggleFavorite}
@@ -238,6 +327,12 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
               ✕
             </button>
           </div>
+          <style>{`
+            @keyframes speakPulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.4; }
+            }
+          `}</style>
         </div>
 
         {/* 사진 */}
