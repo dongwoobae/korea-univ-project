@@ -306,7 +306,6 @@ export default function BuildingDetail() {
             <div style={{ fontSize: 15, fontWeight: 600 }}>시설 현황</div>
             <AddFacilityButton
               buildingId={id}
-              building={building}
               facilityTypes={facilityTypes}
               onAdd={fetchData}
               showToast={showToast}
@@ -505,78 +504,62 @@ function PhotoUpload({ buildingId, currentPhotoUrl, onUpload, showToast }) {
   async function handleUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log("[debug] session:", session ? `uid=${session.user.id}` : "null");
-
     setUploading(true);
 
     let blob;
     try {
       blob = await convertToWebP(file);
     } catch (err) {
-      console.error("WebP 변환 오류:", err);
       showToast("이미지 변환에 실패했어요", "error");
       setUploading(false);
       return;
     }
 
-    const fileName = `${buildingId}.webp`;
-    const { error: uploadError } = await supabase.storage
-      .from("building-photos")
-      .upload(fileName, blob, { upsert: true, contentType: "image/webp" });
+    const formData = new FormData();
+    formData.append("file", blob, `${buildingId}.webp`);
+    formData.append("buildingId", buildingId);
 
-    if (uploadError) {
-      console.error("Upload error:", uploadError);
-      showToast(`업로드에 실패했어요: ${uploadError.message}`, "error");
-      setUploading(false);
-      return;
+    try {
+      const res = await fetch("/api/upload-building-photo", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        showToast(`업로드에 실패했어요: ${data.error}`, "error");
+        setUploading(false);
+        return;
+      }
+      onUpload();
+      showToast("사진이 업로드되었어요!");
+    } catch {
+      showToast("네트워크 오류가 발생했어요", "error");
     }
-
-    const { data } = supabase.storage
-      .from("building-photos")
-      .getPublicUrl(fileName);
-
-    // CDN 캐시 우회
-    const photoUrl = `${data.publicUrl}?t=${Date.now()}`;
-    await supabase
-      .from("buildings")
-      .update({ photo_url: photoUrl })
-      .eq("id", buildingId);
-
-    onUpload();
     setUploading(false);
-    showToast("사진이 업로드되었어요!");
   }
 
   async function handleDelete() {
     setDeleting(true);
     setConfirmDelete(false);
 
-    const storagePath = currentPhotoUrl
-      .split("/building-photos/")[1]
-      ?.split("?")[0];
-
-    if (storagePath) {
-      const { error: removeError } = await supabase.storage
-        .from("building-photos")
-        .remove([storagePath]);
-      if (removeError) {
-        console.error("Delete error:", removeError);
-        showToast(`삭제에 실패했어요: ${removeError.message}`, "error");
+    try {
+      const res = await fetch("/api/delete-building-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ buildingId, photoUrl: currentPhotoUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        showToast(`삭제에 실패했어요: ${data.error}`, "error");
         setDeleting(false);
         return;
       }
+      onUpload();
+      showToast("사진이 삭제되었어요");
+    } catch {
+      showToast("네트워크 오류가 발생했어요", "error");
     }
-
-    await supabase
-      .from("buildings")
-      .update({ photo_url: null })
-      .eq("id", buildingId);
-
-    onUpload();
     setDeleting(false);
-    showToast("사진이 삭제되었어요");
   }
 
   return (
@@ -635,13 +618,7 @@ function PhotoUpload({ buildingId, currentPhotoUrl, onUpload, showToast }) {
   );
 }
 
-function AddFacilityButton({
-  buildingId,
-  building,
-  facilityTypes,
-  onAdd,
-  showToast,
-}) {
+function AddFacilityButton({ buildingId, facilityTypes, onAdd, showToast }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     facility_code: "",
