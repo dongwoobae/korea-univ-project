@@ -207,6 +207,7 @@ export default function BuildingDetail() {
           )}
           <PhotoUpload
             buildingId={id}
+            currentPhotoUrl={building.photo_url}
             onUpload={fetchData}
             showToast={showToast}
           />
@@ -457,23 +458,73 @@ export default function BuildingDetail() {
   );
 }
 
-function PhotoUpload({ buildingId, onUpload, showToast }) {
+function PhotoUpload({ buildingId, currentPhotoUrl, onUpload, showToast }) {
   const [uploading, setUploading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  function convertToWebP(file) {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        const MAX = 1920;
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w > MAX || h > MAX) {
+          if (w >= h) {
+            h = Math.round((h * MAX) / w);
+            w = MAX;
+          } else {
+            w = Math.round((w * MAX) / h);
+            h = MAX;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("WebP 변환 실패"));
+          },
+          "image/webp",
+          0.75,
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("이미지 로드 실패"));
+      };
+      img.src = objectUrl;
+    });
+  }
 
   async function handleUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
 
-    const ext = file.name.split(".").pop();
-    const fileName = `${buildingId}.${ext}`;
+    let blob;
+    try {
+      blob = await convertToWebP(file);
+    } catch (err) {
+      console.error("WebP 변환 오류:", err);
+      showToast("이미지 변환에 실패했어요", "error");
+      setUploading(false);
+      return;
+    }
 
+    const fileName = `${buildingId}.webp`;
     const { error: uploadError } = await supabase.storage
       .from("building-photos")
-      .upload(fileName, file, { upsert: true });
+      .upload(fileName, blob, { upsert: true, contentType: "image/webp" });
 
     if (uploadError) {
-      showToast("업로드에 실패했어요", "error");
+      console.error("Upload error:", uploadError);
+      showToast(`업로드에 실패했어요: ${uploadError.message}`, "error");
       setUploading(false);
       return;
     }
@@ -481,9 +532,12 @@ function PhotoUpload({ buildingId, onUpload, showToast }) {
     const { data } = supabase.storage
       .from("building-photos")
       .getPublicUrl(fileName);
+
+    // CDN 캐시 우회
+    const photoUrl = `${data.publicUrl}?t=${Date.now()}`;
     await supabase
       .from("buildings")
-      .update({ photo_url: data.publicUrl })
+      .update({ photo_url: photoUrl })
       .eq("id", buildingId);
 
     onUpload();
@@ -491,27 +545,89 @@ function PhotoUpload({ buildingId, onUpload, showToast }) {
     showToast("사진이 업로드되었어요!");
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    setConfirmDelete(false);
+
+    const storagePath = currentPhotoUrl
+      .split("/building-photos/")[1]
+      ?.split("?")[0];
+
+    if (storagePath) {
+      const { error: removeError } = await supabase.storage
+        .from("building-photos")
+        .remove([storagePath]);
+      if (removeError) {
+        console.error("Delete error:", removeError);
+        showToast(`삭제에 실패했어요: ${removeError.message}`, "error");
+        setDeleting(false);
+        return;
+      }
+    }
+
+    await supabase
+      .from("buildings")
+      .update({ photo_url: null })
+      .eq("id", buildingId);
+
+    onUpload();
+    setDeleting(false);
+    showToast("사진이 삭제되었어요");
+  }
+
   return (
-    <label
-      style={{
-        display: "inline-block",
-        marginTop: 12,
-        padding: "8px 16px",
-        background: "#2563EB",
-        color: "#fff",
-        borderRadius: 8,
-        fontSize: 13,
-        cursor: "pointer",
-      }}
-    >
-      {uploading ? "업로드 중..." : "사진 업로드"}
-      <input
-        type="file"
-        accept="image/*"
-        onChange={handleUpload}
-        style={{ display: "none" }}
-      />
-    </label>
+    <>
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <label
+          style={{
+            display: "inline-block",
+            padding: "8px 16px",
+            background: "#2563EB",
+            color: "#fff",
+            borderRadius: 8,
+            fontSize: 13,
+            cursor: uploading ? "not-allowed" : "pointer",
+            opacity: uploading ? 0.7 : 1,
+          }}
+        >
+          {uploading ? "업로드 중..." : "사진 업로드"}
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleUpload}
+            disabled={uploading}
+            style={{ display: "none" }}
+          />
+        </label>
+        {currentPhotoUrl && (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            disabled={deleting}
+            style={{
+              padding: "8px 16px",
+              background: "none",
+              border: "1px solid #DC2626",
+              color: "#DC2626",
+              borderRadius: 8,
+              fontSize: 13,
+              cursor: deleting ? "not-allowed" : "pointer",
+              opacity: deleting ? 0.7 : 1,
+            }}
+          >
+            {deleting ? "삭제 중..." : "사진 삭제"}
+          </button>
+        )}
+      </div>
+      {confirmDelete && (
+        <ConfirmModal
+          message="사진을 삭제할까요?"
+          description="삭제한 사진은 복구할 수 없어요."
+          confirmLabel="삭제"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
+    </>
   );
 }
 
