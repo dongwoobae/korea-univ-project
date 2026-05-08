@@ -505,6 +505,10 @@ function PhotoUpload({ buildingId, currentPhotoUrl, onUpload, showToast }) {
   async function handleUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log("[debug] session:", session ? `uid=${session.user.id}` : "null");
+
     setUploading(true);
 
     let blob;
