@@ -122,7 +122,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
       if (facilities.length === 0) return text + "No accessibility information available.";
       text += "Facilities: ";
       facilities.forEach((f) => {
-        const label = f.name ?? f.facility_types?.label_en ?? f.facility_types?.label ?? "";
+        const label = f.facility_types?.label_en ?? f.facility_types?.label ?? "";
         text += `${label}, ${f.is_installed ? "available" : "unavailable"}. `;
         if (f.floor_info) text += `Location: ${f.floor_info}. `;
       });
@@ -134,7 +134,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
       if (facilities.length === 0) return text + "暂无无障碍设施信息。";
       text += "设施情况：";
       facilities.forEach((f) => {
-        const label = f.name ?? f.facility_types?.label_zh ?? f.facility_types?.label ?? "";
+        const label = f.facility_types?.label_zh ?? f.facility_types?.label ?? "";
         text += `${label}，${f.is_installed ? "已安装" : "未安装"}。`;
         if (f.floor_info) text += `位置：${f.floor_info}。`;
       });
