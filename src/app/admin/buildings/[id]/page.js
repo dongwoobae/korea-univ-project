@@ -33,6 +33,9 @@ export default function BuildingDetail() {
   const [building, setBuilding] = useState(null);
   const [facilities, setFacilities] = useState([]);
   const [facilityTypes, setFacilityTypes] = useState([]);
+  const [colleges, setColleges] = useState([]);
+  const [selectedCollegeId, setSelectedCollegeId] = useState(null);
+  const [savingCollege, setSavingCollege] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingPolygon, setEditingPolygon] = useState(false);
   const [toast, setToast] = useState(null);
@@ -62,6 +65,7 @@ export default function BuildingDetail() {
       { data: buildingData },
       { data: facilitiesData },
       { data: typesData },
+      { data: collegesData },
     ] = await Promise.all([
       supabase.from("buildings").select("*").eq("id", id).single(),
       supabase
@@ -69,10 +73,13 @@ export default function BuildingDetail() {
         .select("*, facility_types(label, icon)")
         .eq("building_id", id),
       supabase.from("facility_types").select("*"),
+      supabase.from("colleges").select("*").order("name"),
     ]);
     setBuilding(buildingData);
     setFacilities(facilitiesData ?? []);
     setFacilityTypes(typesData ?? []);
+    setColleges(collegesData ?? []);
+    setSelectedCollegeId(buildingData?.college_id ?? null);
     setLoading(false);
   }
 
@@ -107,6 +114,21 @@ export default function BuildingDetail() {
     }
     showToast("건물이 복구되었어요!");
     fetchData();
+  }
+
+  async function handleSaveCollege() {
+    setSavingCollege(true);
+    const { error } = await supabase
+      .from("buildings")
+      .update({ college_id: selectedCollegeId })
+      .eq("id", id);
+    setSavingCollege(false);
+    if (error) {
+      showToast("저장에 실패했어요", "error");
+      return;
+    }
+    fetchData();
+    showToast("소속 단과대학이 저장되었어요!");
   }
 
   async function handleToggleInstalled(facility) {
@@ -192,40 +214,64 @@ export default function BuildingDetail() {
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
             건물 사진
           </div>
-          {building.photo_url ? (
-            <img
-              src={building.photo_url}
-              alt={building.name}
+          <PhotoManager buildingId={id} showToast={showToast} />
+        </div>
+
+        {/* 소속 단과대학 */}
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            padding: 20,
+            border: "1px solid #e5e7eb",
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+            소속 단과대학
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <select
+              value={selectedCollegeId ?? ""}
+              onChange={(e) =>
+                setSelectedCollegeId(
+                  e.target.value ? Number(e.target.value) : null,
+                )
+              }
               style={{
-                width: "100%",
-                height: 200,
-                objectFit: "cover",
-                borderRadius: 8,
-              }}
-            />
-          ) : (
-            <div
-              style={{
-                width: "100%",
-                height: 200,
-                background: "#f5f5f5",
-                borderRadius: 8,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#aaa",
+                flex: 1,
+                padding: "8px 10px",
+                border: "1px solid #ddd",
+                borderRadius: 6,
                 fontSize: 13,
+                outline: "none",
+                background: "#fff",
               }}
             >
-              사진 없음
-            </div>
-          )}
-          <PhotoUpload
-            buildingId={id}
-            currentPhotoUrl={building.photo_url}
-            onUpload={fetchData}
-            showToast={showToast}
-          />
+              <option value="">선택 안 함</option>
+              {colleges.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleSaveCollege}
+              disabled={savingCollege}
+              style={{
+                padding: "8px 16px",
+                background: "#2563EB",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                fontSize: 13,
+                cursor: savingCollege ? "not-allowed" : "pointer",
+                opacity: savingCollege ? 0.7 : 1,
+              }}
+            >
+              {savingCollege ? "저장 중..." : "저장"}
+            </button>
+          </div>
         </div>
 
         {/* 폴리곤 편집 */}
@@ -473,10 +519,21 @@ export default function BuildingDetail() {
   );
 }
 
-function PhotoUpload({ buildingId, currentPhotoUrl, onUpload, showToast }) {
+function PhotoManager({ buildingId, showToast }) {
+  const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
+
+  useEffect(() => { fetchPhotos(); }, []);
+
+  async function fetchPhotos() {
+    const { data } = await supabase
+      .from("building_photos")
+      .select("*")
+      .eq("building_id", buildingId)
+      .order("created_at");
+    setPhotos(data ?? []);
+  }
 
   function convertToWebP(file) {
     return new Promise((resolve, reject) => {
@@ -488,146 +545,114 @@ function PhotoUpload({ buildingId, currentPhotoUrl, onUpload, showToast }) {
         let w = img.naturalWidth;
         let h = img.naturalHeight;
         if (w > MAX || h > MAX) {
-          if (w >= h) {
-            h = Math.round((h * MAX) / w);
-            w = MAX;
-          } else {
-            w = Math.round((w * MAX) / h);
-            h = MAX;
-          }
+          if (w >= h) { h = Math.round((h * MAX) / w); w = MAX; }
+          else { w = Math.round((w * MAX) / h); h = MAX; }
         }
         const canvas = document.createElement("canvas");
         canvas.width = w;
         canvas.height = h;
         canvas.getContext("2d").drawImage(img, 0, 0, w, h);
         canvas.toBlob(
-          (blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error("WebP 변환 실패"));
-          },
+          (blob) => { if (blob) resolve(blob); else reject(new Error("WebP 변환 실패")); },
           "image/webp",
           0.75,
         );
       };
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("이미지 로드 실패"));
-      };
+      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("이미지 로드 실패")); };
       img.src = objectUrl;
     });
   }
 
   async function handleUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
     setUploading(true);
 
-    let blob;
-    try {
-      blob = await convertToWebP(file);
-    } catch (err) {
-      showToast("이미지 변환에 실패했어요", "error");
-      setUploading(false);
-      return;
+    let successCount = 0;
+    for (const file of files) {
+      let blob;
+      try { blob = await convertToWebP(file); }
+      catch { showToast(`${file.name} 변환 실패`, "error"); continue; }
+
+      const formData = new FormData();
+      formData.append("file", blob, "photo.webp");
+      formData.append("buildingId", buildingId);
+
+      try {
+        const res = await fetch("/api/upload-building-photo", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok || data.error) { showToast(`업로드 실패: ${data.error}`, "error"); continue; }
+        successCount++;
+      } catch { showToast("네트워크 오류가 발생했어요", "error"); }
     }
 
-    const formData = new FormData();
-    formData.append("file", blob, `${buildingId}.webp`);
-    formData.append("buildingId", buildingId);
-
-    try {
-      const res = await fetch("/api/upload-building-photo", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        showToast(`업로드에 실패했어요: ${data.error}`, "error");
-        setUploading(false);
-        return;
-      }
-      onUpload();
-      showToast("사진이 업로드되었어요!");
-    } catch {
-      showToast("네트워크 오류가 발생했어요", "error");
-    }
+    await fetchPhotos();
     setUploading(false);
+    e.target.value = "";
+    if (successCount > 0) showToast(`${successCount}장 업로드됐어요!`);
   }
 
-  async function handleDelete() {
-    setDeleting(true);
-    setConfirmDelete(false);
-
-    try {
-      const res = await fetch("/api/delete-building-photo", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ buildingId, photoUrl: currentPhotoUrl }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        showToast(`삭제에 실패했어요: ${data.error}`, "error");
-        setDeleting(false);
-        return;
-      }
-      onUpload();
-      showToast("사진이 삭제되었어요");
-    } catch {
-      showToast("네트워크 오류가 발생했어요", "error");
-    }
-    setDeleting(false);
+  async function handleDelete(photo) {
+    const res = await fetch("/api/delete-building-photo", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photoId: photo.id, url: photo.url }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) { showToast(`삭제 실패: ${data.error}`, "error"); return; }
+    setConfirmDeletePhoto(null);
+    await fetchPhotos();
+    showToast("사진이 삭제되었어요");
   }
 
   return (
     <>
-      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-        <label
-          style={{
-            display: "inline-block",
-            padding: "8px 16px",
-            background: "#2563EB",
-            color: "#fff",
-            borderRadius: 8,
-            fontSize: 13,
-            cursor: uploading ? "not-allowed" : "pointer",
-            opacity: uploading ? 0.7 : 1,
-          }}
-        >
-          {uploading ? "업로드 중..." : "사진 업로드"}
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleUpload}
-            disabled={uploading}
-            style={{ display: "none" }}
-          />
-        </label>
-        {currentPhotoUrl && (
-          <button
-            onClick={() => setConfirmDelete(true)}
-            disabled={deleting}
-            style={{
-              padding: "8px 16px",
-              background: "none",
-              border: "1px solid #DC2626",
-              color: "#DC2626",
-              borderRadius: 8,
-              fontSize: 13,
-              cursor: deleting ? "not-allowed" : "pointer",
-              opacity: deleting ? 0.7 : 1,
-            }}
-          >
-            {deleting ? "삭제 중..." : "사진 삭제"}
-          </button>
-        )}
-      </div>
-      {confirmDelete && (
+      {photos.length === 0 ? (
+        <div style={{ width: "100%", height: 120, background: "#f5f5f5", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: 13 }}>
+          등록된 사진 없음
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+          {photos.map((photo) => (
+            <div key={photo.id} style={{ position: "relative", aspectRatio: "1" }}>
+              <img
+                src={photo.url}
+                alt=""
+                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6 }}
+              />
+              <button
+                onClick={() => setConfirmDeletePhoto(photo)}
+                style={{
+                  position: "absolute", top: 4, right: 4,
+                  width: 22, height: 22, borderRadius: "50%",
+                  background: "rgba(0,0,0,0.55)", color: "#fff",
+                  border: "none", cursor: "pointer", fontSize: 11,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+      <label
+        style={{
+          display: "inline-block", marginTop: 12, padding: "8px 16px",
+          background: "#2563EB", color: "#fff", borderRadius: 8, fontSize: 13,
+          cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.7 : 1,
+        }}
+      >
+        {uploading ? "업로드 중..." : "사진 추가"}
+        <input type="file" accept="image/*" multiple onChange={handleUpload} disabled={uploading} style={{ display: "none" }} />
+      </label>
+      {confirmDeletePhoto && (
         <ConfirmModal
           message="사진을 삭제할까요?"
           description="삭제한 사진은 복구할 수 없어요."
           confirmLabel="삭제"
-          onConfirm={handleDelete}
-          onCancel={() => setConfirmDelete(false)}
+          onConfirm={() => handleDelete(confirmDeletePhoto)}
+          onCancel={() => setConfirmDeletePhoto(null)}
         />
       )}
     </>

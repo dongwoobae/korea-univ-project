@@ -24,6 +24,8 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
   const { lang, t } = useLanguage();
   const [facilities, setFacilities] = useState([]);
   const [building, setBuilding] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
   const [isMobile, setIsMobile] = useState(
@@ -66,16 +68,23 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     setLoading(true);
 
     async function fetchData() {
-      const [{ data: buildingData }, { data: facilitiesData }] =
+      const [{ data: buildingData }, { data: facilitiesData }, { data: photosData }] =
         await Promise.all([
-          supabase.from("buildings").select("*").eq("id", buildingId).single(),
+          supabase.from("buildings").select("*, colleges(name, name_en, name_zh)").eq("id", buildingId).single(),
           supabase
             .from("building_facilities")
             .select("*, facility_types(label, label_en, label_zh, icon)")
             .eq("building_id", buildingId),
+          supabase
+            .from("building_photos")
+            .select("id, url")
+            .eq("building_id", buildingId)
+            .order("created_at"),
         ]);
       setBuilding(buildingData);
       setFacilities(facilitiesData ?? []);
+      setPhotos(photosData ?? []);
+      setPhotoIndex(0);
       setLoading(false);
     }
 
@@ -85,6 +94,15 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
   // 언어에 따른 건물명
   const displayName =
     lang === "ko" ? buildingName : (building?.name_en ?? buildingName);
+
+  // 언어에 따른 단과대명
+  const collegeName = building?.colleges
+    ? lang === "en"
+      ? (building.colleges.name_en ?? building.colleges.name)
+      : lang === "zh"
+        ? (building.colleges.name_zh ?? building.colleges.name)
+        : building.colleges.name
+    : null;
 
   // 언어에 따른 시설 라벨
   function getFacilityLabel(facilityTypes) {
@@ -263,9 +281,14 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
             <div style={{ fontSize: 16, fontWeight: 600, color: "#111" }}>
               {displayName}
             </div>
+            {collegeName && (
+              <div style={{ fontSize: 12, color: "#2563EB", marginTop: 3, fontWeight: 500 }}>
+                {collegeName}
+              </div>
+            )}
             {/* 한국어가 아닐 때는 한국어 원명을 서브텍스트로 표시 */}
             {lang !== "ko" && (
-              <div style={{ fontSize: 12, color: "#888", marginTop: 3 }}>
+              <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
                 {buildingName}
               </div>
             )}
@@ -335,24 +358,60 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
           `}</style>
         </div>
 
-        {/* 사진 */}
-        {building?.photo_url ? (
-          <img
-            src={building.photo_url}
-            alt={displayName}
-            style={{ width: "100%", height: 160, objectFit: "cover" }}
-          />
+        {/* 사진 캐러셀 */}
+        {photos.length > 0 ? (
+          <div style={{ position: "relative", width: "100%", height: 160, background: "#000" }}>
+            <img
+              src={photos[photoIndex]?.url}
+              alt={displayName}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+            {photos.length > 1 && (
+              <>
+                <button
+                  aria-label="이전 사진"
+                  onClick={() => setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)}
+                  style={{
+                    position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+                    background: "rgba(0,0,0,0.45)", color: "#fff", border: "none",
+                    borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 14,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >‹</button>
+                <button
+                  aria-label="다음 사진"
+                  onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)}
+                  style={{
+                    position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                    background: "rgba(0,0,0,0.45)", color: "#fff", border: "none",
+                    borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 14,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >›</button>
+                <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 5 }}>
+                  {photos.map((_, i) => (
+                    <button
+                      key={i}
+                      aria-label={`${i + 1}번째 사진`}
+                      onClick={() => setPhotoIndex(i)}
+                      style={{
+                        width: i === photoIndex ? 16 : 6, height: 6,
+                        borderRadius: 3, border: "none", cursor: "pointer", padding: 0,
+                        background: i === photoIndex ? "#fff" : "rgba(255,255,255,0.5)",
+                        transition: "width 0.2s",
+                      }}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         ) : (
           <div
             style={{
-              width: "100%",
-              height: 160,
-              background: "#f5f5f5",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#aaa",
-              fontSize: 13,
+              width: "100%", height: 160, background: "#f5f5f5",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#aaa", fontSize: 13,
             }}
           >
             {t("noPhoto")}

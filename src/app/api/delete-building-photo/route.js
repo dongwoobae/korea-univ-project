@@ -8,20 +8,19 @@ const supabaseAdmin = createClient(
 
 export async function POST(request) {
   try {
-    const { buildingId, photoUrl } = await request.json();
+    const { photoId, url } = await request.json();
 
-    if (!buildingId || !photoUrl) {
-      return NextResponse.json({ error: "buildingId 또는 photoUrl 누락" }, { status: 400 });
+    if (!photoId || !url) {
+      return NextResponse.json({ error: "photoId 또는 url 누락" }, { status: 400 });
     }
 
-    const storagePath = photoUrl.split("/building-photos/")[1]?.split("?")[0];
-    console.log(`[delete-building-photo] buildingId=${buildingId} path=${storagePath}`);
+    const storagePath = url.split("/building-photos/")[1]?.split("?")[0];
+    console.log(`[delete-building-photo] photoId=${photoId} path=${storagePath}`);
 
     if (storagePath) {
       const { error: removeError } = await supabaseAdmin.storage
         .from("building-photos")
         .remove([storagePath]);
-
       if (removeError) {
         console.error("[delete-building-photo] storage error:", removeError);
         return NextResponse.json({ error: removeError.message }, { status: 500 });
@@ -29,9 +28,9 @@ export async function POST(request) {
     }
 
     const { error: dbError } = await supabaseAdmin
-      .from("buildings")
-      .update({ photo_url: null })
-      .eq("id", buildingId);
+      .from("building_photos")
+      .delete()
+      .eq("id", photoId);
 
     if (dbError) {
       console.error("[delete-building-photo] db error:", dbError);
