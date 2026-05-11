@@ -14,6 +14,19 @@ const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
   ssr: false,
 });
 
+const KU_CENTER = [37.5893, 127.0327];
+
+function getBuildingCenter(building) {
+  const coords = building?.geojson?.geometry?.coordinates?.[0];
+  if (!coords?.length) return KU_CENTER;
+  const lats = coords.map(([, lat]) => lat);
+  const lngs = coords.map(([lng]) => lng);
+  return [
+    (Math.min(...lats) + Math.max(...lats)) / 2,
+    (Math.min(...lngs) + Math.max(...lngs)) / 2,
+  ];
+}
+
 export default function BuildingDetail() {
   const { id } = useParams();
   const router = useRouter();
@@ -113,6 +126,8 @@ export default function BuildingDetail() {
     return (
       <div style={{ padding: 40, color: "#aaa" }}>건물을 찾을 수 없어요</div>
     );
+
+  const buildingCenter = getBuildingCenter(building);
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f5" }}>
@@ -306,6 +321,7 @@ export default function BuildingDetail() {
             <div style={{ fontSize: 15, fontWeight: 600 }}>시설 현황</div>
             <AddFacilityButton
               buildingId={id}
+              buildingCenter={buildingCenter}
               facilityTypes={facilityTypes}
               onAdd={fetchData}
               showToast={showToast}
@@ -618,7 +634,7 @@ function PhotoUpload({ buildingId, currentPhotoUrl, onUpload, showToast }) {
   );
 }
 
-function AddFacilityButton({ buildingId, facilityTypes, onAdd, showToast }) {
+function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, showToast }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     facility_code: "",
@@ -774,7 +790,7 @@ function AddFacilityButton({ buildingId, facilityTypes, onAdd, showToast }) {
               }}
             >
               <FacilityMap
-                center={[37.5893, 127.0327]}
+                center={buildingCenter}
                 markerPosition={
                   form.lat && form.lng
                     ? [parseFloat(form.lat), parseFloat(form.lng)]

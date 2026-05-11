@@ -20,6 +20,19 @@ import { useLanguage } from "@/lib/LanguageContext";
 const KU_CENTER = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
 
+const TILES = {
+  street: {
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    attribution: "&copy; OpenStreetMap &copy; CARTO",
+    subdomains: "abcd",
+  },
+  satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    subdomains: "abc",
+  },
+};
+
 function BoundsController() {
   const map = useMap();
   useEffect(() => {
@@ -310,6 +323,7 @@ export default function Map() {
   const [showFilter, setShowFilter] = useState(false);
   const [toast, setToast] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [tileMode, setTileMode] = useState("street");
   const { lang, setLang, t } = useLanguage();
 
   const mapRef = useRef(null);
@@ -542,7 +556,7 @@ export default function Map() {
         <div
           style={{
             position: "absolute",
-            bottom: 24,
+            bottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
             left: 16,
             zIndex: 1000,
             background: "#fff",
@@ -596,7 +610,7 @@ export default function Map() {
       <div
         style={{
           position: "absolute",
-          bottom: 24,
+          bottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
           left: 0,
           right: 0,
           zIndex: 1000,
@@ -686,7 +700,7 @@ export default function Map() {
   }
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100vh" }}>
+    <div style={{ position: "relative", width: "100%", height: "100dvh" }}>
       {/* 로딩 오버레이 */}
       {loadingMap && (
         <div
@@ -715,7 +729,12 @@ export default function Map() {
             }}
           />
           <div style={{ fontSize: 14, color: "#555" }}>{t("loadingMap")}</div>
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+          <style>{`
+            @keyframes spin { to { transform: rotate(360deg) } }
+            .leaflet-bottom.leaflet-right {
+              bottom: env(safe-area-inset-bottom, 0px) !important;
+            }
+          `}</style>
         </div>
       )}
 
@@ -730,9 +749,10 @@ export default function Map() {
       >
         <ZoomControl position="bottomright" />
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          attribution="&copy; OpenStreetMap &copy; CARTO"
-          subdomains="abcd"
+          key={tileMode}
+          url={TILES[tileMode].url}
+          attribution={TILES[tileMode].attribution}
+          subdomains={TILES[tileMode].subdomains}
           maxZoom={19}
         />
         <BoundsController />
@@ -805,6 +825,31 @@ export default function Map() {
           );
         })}
       </MapContainer>
+
+      {/* 항공/지도 전환 버튼 */}
+      <button
+        onClick={() => setTileMode((m) => (m === "street" ? "satellite" : "street"))}
+        title={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
+        style={{
+          position: "absolute",
+          bottom: "calc(90px + env(safe-area-inset-bottom, 0px))",
+          right: 10,
+          zIndex: 1000,
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+          background: tileMode === "satellite" ? "#1d4ed8" : "#fff",
+          border: "1px solid #ddd",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          cursor: "pointer",
+          fontSize: 18,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {tileMode === "street" ? "🛰️" : "🗺️"}
+      </button>
 
       {/* 즐겨찾기 버튼 */}
       <button
