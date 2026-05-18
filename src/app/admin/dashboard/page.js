@@ -27,8 +27,8 @@ export default function Dashboard() {
   async function fetchData() {
     const [{ data: b }, { data: f }, { data: ft }] = await Promise.all([
       supabase.from("buildings").select("*").order("name"),
-      supabase.from("building_facilities").select("building_id, facility_type_id"),
-      supabase.from("facility_types").select("id, label"),
+      supabase.from("building_facilities").select("building_id, facility_code"),
+      supabase.from("facility_types").select("code, label"),
     ]);
     setBuildings(b ?? []);
     setFacilities(f ?? []);
@@ -49,10 +49,10 @@ export default function Dashboard() {
 
     const typeCounts = {};
     for (const f of facilities) {
-      typeCounts[f.facility_type_id] = (typeCounts[f.facility_type_id] ?? 0) + 1;
+      typeCounts[f.facility_code] = (typeCounts[f.facility_code] ?? 0) + 1;
     }
     const typeBreakdown = facilityTypes
-      .map((ft) => ({ ...ft, count: typeCounts[ft.id] ?? 0 }))
+      .map((ft) => ({ ...ft, count: typeCounts[ft.code] ?? 0 }))
       .filter((ft) => ft.count > 0)
       .sort((a, b) => b.count - a.count);
 
