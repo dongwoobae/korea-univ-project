@@ -9,7 +9,7 @@ export default function Dashboard() {
   const [facilities, setFacilities] = useState([]);
   const [facilityTypes, setFacilityTypes] = useState([]);
   const [search, setSearch] = useState("");
-  const [showUnregistered, setShowUnregistered] = useState(false);
+  const [registrationFilter, setRegistrationFilter] = useState(null); // null | "registered" | "unregistered"
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const router = useRouter();
@@ -67,14 +67,18 @@ export default function Dashboard() {
         const matchSearch =
           b.name?.includes(search) ||
           b.name_en?.toLowerCase().includes(search.toLowerCase());
-        const matchUnreg = !showUnregistered || !stats.registeredIds.has(b.id);
-        return matchSearch && matchUnreg;
+        const isRegistered = stats.registeredIds.has(b.id);
+        const matchFilter =
+          registrationFilter === null ||
+          (registrationFilter === "registered" && isRegistered) ||
+          (registrationFilter === "unregistered" && !isRegistered);
+        return matchSearch && matchFilter;
       })
       .sort((a, b) => {
         if (a.is_deleted === b.is_deleted) return 0;
         return a.is_deleted ? 1 : -1;
       });
-  }, [buildings, search, showUnregistered, stats.registeredIds]);
+  }, [buildings, search, registrationFilter, stats.registeredIds]);
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f5f5" }}>
@@ -102,15 +106,31 @@ export default function Dashboard() {
         {!loading && (
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16, marginBottom: 20 }}>
-              <SummaryCard label="전체 건물" value={stats.activeBuildings.length} unit="개" color="#2563EB" />
-              <SummaryCard label="시설 등록됨" value={stats.registeredCount} unit="개" color="#16A34A" />
+              <SummaryCard
+                label="전체 건물"
+                value={stats.activeBuildings.length}
+                unit="개"
+                color="#2563EB"
+                active={registrationFilter === null}
+                onClick={() => setRegistrationFilter(null)}
+                hint="클릭하여 전체 보기"
+              />
+              <SummaryCard
+                label="시설 등록됨"
+                value={stats.registeredCount}
+                unit="개"
+                color="#16A34A"
+                active={registrationFilter === "registered"}
+                onClick={() => setRegistrationFilter((f) => f === "registered" ? null : "registered")}
+                hint="클릭하여 필터"
+              />
               <SummaryCard
                 label="시설 미등록"
                 value={stats.unregisteredCount}
                 unit="개"
                 color="#DC2626"
-                active={showUnregistered}
-                onClick={() => setShowUnregistered((v) => !v)}
+                active={registrationFilter === "unregistered"}
+                onClick={() => setRegistrationFilter((f) => f === "unregistered" ? null : "unregistered")}
                 hint="클릭하여 필터"
               />
               <SummaryCard label="전체 시설 수" value={facilities.length} unit="개" color="#7C3AED" />
@@ -177,21 +197,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          <button
-            onClick={() => setShowUnregistered((v) => !v)}
-            style={{
-              flexShrink: 0, padding: "10px 16px",
-              background: showUnregistered ? "#FEF2F2" : "#fff",
-              color: showUnregistered ? "#DC2626" : "#666",
-              border: `1px solid ${showUnregistered ? "#DC2626" : "#e5e7eb"}`,
-              borderRadius: 8, fontSize: 14, fontWeight: showUnregistered ? 600 : 400,
-              cursor: "pointer", whiteSpace: "nowrap",
-            }}
-          >
-            {showUnregistered ? "✕ 미등록 필터 해제" : "시설 미등록 건물만 보기"}
-          </button>
-
-          <button onClick={() => router.push("/admin/buildings/new")} style={{
+<button onClick={() => router.push("/admin/buildings/new")} style={{
             flexShrink: 0, padding: "10px 18px", background: "#2563EB", color: "#fff",
             border: "none", borderRadius: 8, fontSize: 14, fontWeight: 500,
             cursor: "pointer", whiteSpace: "nowrap",
@@ -203,11 +209,11 @@ export default function Dashboard() {
           <div style={{ textAlign: "center", color: "#aaa", paddingTop: 40 }}>불러오는 중...</div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", color: "#aaa", paddingTop: 40 }}>
-            {search ? `"${search}" 검색 결과가 없어요` : showUnregistered ? "미등록 건물이 없어요" : "등록된 건물이 없어요"}
+            {search ? `"${search}" 검색 결과가 없어요` : registrationFilter === "unregistered" ? "미등록 건물이 없어요" : registrationFilter === "registered" ? "등록된 건물이 없어요" : "건물이 없어요"}
           </div>
         ) : (
           <>
-            {(search || showUnregistered) && (
+            {(search || registrationFilter) && (
               <div style={{ fontSize: 13, color: "#888", marginBottom: 12 }}>{filtered.length}개</div>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
