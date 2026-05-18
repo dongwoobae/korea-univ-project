@@ -826,6 +826,25 @@ export default function Map() {
         })}
       </MapContainer>
 
+      {/* 항공사진 출처 라벨 */}
+      {tileMode === "satellite" && (
+        <div style={{
+          position: "absolute",
+          bottom: "calc(132px + env(safe-area-inset-bottom, 0px))",
+          right: 10,
+          zIndex: 1000,
+          background: "rgba(0,0,0,0.55)",
+          color: "#fff",
+          fontSize: 10,
+          padding: "3px 7px",
+          borderRadius: 4,
+          pointerEvents: "none",
+          whiteSpace: "nowrap",
+        }}>
+          Esri World Imagery
+        </div>
+      )}
+
       {/* 항공/지도 전환 버튼 */}
       <button
         onClick={() => setTileMode((m) => (m === "street" ? "satellite" : "street"))}

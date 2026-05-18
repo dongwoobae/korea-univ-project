@@ -36,6 +36,8 @@ export default function BuildingDetail() {
   const [colleges, setColleges] = useState([]);
   const [selectedCollegeId, setSelectedCollegeId] = useState(null);
   const [savingCollege, setSavingCollege] = useState(false);
+  const [nameForm, setNameForm] = useState({ name: "", name_en: "" });
+  const [savingName, setSavingName] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingPolygon, setEditingPolygon] = useState(false);
   const [toast, setToast] = useState(null);
@@ -80,6 +82,7 @@ export default function BuildingDetail() {
     setFacilityTypes(typesData ?? []);
     setColleges(collegesData ?? []);
     setSelectedCollegeId(buildingData?.college_id ?? null);
+    setNameForm({ name: buildingData?.name ?? "", name_en: buildingData?.name_en ?? "" });
     setLoading(false);
   }
 
@@ -114,6 +117,25 @@ export default function BuildingDetail() {
     }
     showToast("건물이 복구되었어요!");
     fetchData();
+  }
+
+  async function handleSaveName() {
+    if (!nameForm.name.trim()) {
+      showToast("건물명을 입력해주세요", "warning");
+      return;
+    }
+    setSavingName(true);
+    const { error } = await supabase
+      .from("buildings")
+      .update({ name: nameForm.name.trim(), name_en: nameForm.name_en.trim() || null })
+      .eq("id", id);
+    setSavingName(false);
+    if (error) {
+      showToast("저장에 실패했어요", "error");
+      return;
+    }
+    fetchData();
+    showToast("건물명이 저장되었어요!");
   }
 
   async function handleSaveCollege() {
@@ -215,6 +237,46 @@ export default function BuildingDetail() {
             건물 사진
           </div>
           <PhotoManager buildingId={id} showToast={showToast} />
+        </div>
+
+        {/* 건물명 수정 */}
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            padding: 20,
+            border: "1px solid #e5e7eb",
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>건물명 수정</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div>
+              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>한국어</div>
+              <input
+                type="text"
+                value={nameForm.name}
+                onChange={(e) => setNameForm((f) => ({ ...f, name: e.target.value }))}
+                style={{ width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>영어</div>
+              <input
+                type="text"
+                value={nameForm.name_en}
+                onChange={(e) => setNameForm((f) => ({ ...f, name_en: e.target.value }))}
+                style={{ width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+            <button
+              onClick={handleSaveName}
+              disabled={savingName}
+              style={{ alignSelf: "flex-end", padding: "8px 20px", background: savingName ? "#93c5fd" : "#2563EB", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, cursor: savingName ? "default" : "pointer" }}
+            >
+              {savingName ? "저장 중..." : "저장"}
+            </button>
+          </div>
         </div>
 
         {/* 소속 단과대학 */}
