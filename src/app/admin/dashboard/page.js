@@ -125,7 +125,7 @@ export default function Dashboard() {
                 <div style={{ fontSize: 14, fontWeight: 600, color: "#111", marginBottom: 16 }}>유형별 현황</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {stats.typeBreakdown.map((ft) => (
-                    <div key={ft.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div key={ft.code} style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <div style={{ width: 120, fontSize: 13, color: "#444", flexShrink: 0, textAlign: "right" }}>
                         {ft.label}
                       </div>
