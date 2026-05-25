@@ -50,3 +50,8 @@ a {
 .leaflet-default-icon-path {
   background-image: none;
 }
+
+@keyframes shimmer {
+  0%   { transform: translateX(-150%); }
+  100% { transform: translateX(350%); }
+}

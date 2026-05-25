@@ -1,0 +1,64 @@
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile, toBlobURL } from "@ffmpeg/util";
+
+let ffmpeg = null;
+
+export function terminateFFmpeg() {
+  if (ffmpeg) {
+    ffmpeg.terminate();
+    ffmpeg = null;
+  }
+}
+
+async function getFFmpeg() {
+  if (ffmpeg) return ffmpeg;
+  ffmpeg = new FFmpeg();
+  const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+  await ffmpeg.load({
+    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
+    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
+  });
+  return ffmpeg;
+}
+
+/**
+ * @param {File} file
+ * @param {(progress: number) => void} onProgress  0~100
+ * @param {(phase: "loading" | "compressing") => void} onPhase
+ * @returns {Promise<Blob>}
+ */
+export async function compressVideo(file, onProgress, onPhase) {
+  const needsLoad = ffmpeg === null;
+  if (needsLoad) onPhase?.("loading");
+
+  const ff = await getFFmpeg();
+  onPhase?.("compressing");
+
+  ff.on("progress", ({ progress }) => {
+    onProgress?.(Math.min(99, Math.round(progress * 100)));
+  });
+
+  const inputName = "input" + file.name.slice(file.name.lastIndexOf("."));
+  await ff.writeFile(inputName, await fetchFile(file));
+
+  await ff.exec([
+    "-i", inputName,
+    "-c:v", "libx264",
+    "-crf", "28",
+    "-preset", "ultrafast",
+    "-vf", "scale='min(1280,iw)':-2",
+    "-c:a", "aac",
+    "-b:a", "128k",
+    "-movflags", "+faststart",
+    "output.mp4",
+  ]);
+
+  const data = await ff.readFile("output.mp4");
+
+  await ff.deleteFile(inputName);
+  await ff.deleteFile("output.mp4");
+  ff.off("progress");
+
+  onProgress?.(100);
+  return new Blob([data.buffer], { type: "video/mp4" });
+}

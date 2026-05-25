@@ -77,7 +77,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
             .eq("building_id", buildingId),
           supabase
             .from("building_photos")
-            .select("id, url")
+            .select("id, url, caption")
             .eq("building_id", buildingId)
             .order("created_at"),
         ]);
@@ -417,6 +417,19 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
             {t("noPhoto")}
           </div>
         )}
+        {photos[photoIndex]?.caption && (
+          <div
+            style={{
+              padding: "6px 14px",
+              fontSize: 12,
+              color: "#555",
+              background: "#fafafa",
+              borderBottom: "1px solid #f0f0f0",
+            }}
+          >
+            {photos[photoIndex].caption}
+          </div>
+        )}
 
         {/* 시설 목록 */}
         <div style={{ padding: 16 }}>
@@ -460,60 +473,75 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                 <div
                   key={f.id}
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
                     padding: "10px 0",
                     borderBottom: "1px solid #f5f5f5",
                   }}
                 >
-                  <div
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 16,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {f.facility_types?.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div
-                      style={{ fontSize: 13, fontWeight: 500, color: "#222" }}
+                      style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 16,
+                        flexShrink: 0,
+                      }}
                     >
-                      {f.name ?? getFacilityLabel(f.facility_types)}
+                      {f.facility_types?.icon}
                     </div>
-                    {f.description && (
-                      <div
-                        style={{ fontSize: 12, color: "#888", marginTop: 2 }}
-                      >
-                        {f.description}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "#222" }}>
+                        {f.name ?? getFacilityLabel(f.facility_types)}
                       </div>
-                    )}
-                    {f.floor_info && (
-                      <div style={{ fontSize: 12, color: "#888" }}>
-                        {f.floor_info}
-                      </div>
-                    )}
+                      {f.description && (
+                        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+                          {f.description}
+                        </div>
+                      )}
+                      {f.floor_info && (
+                        <div style={{ fontSize: 12, color: "#888" }}>
+                          {f.floor_info}
+                        </div>
+                      )}
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        padding: "3px 8px",
+                        borderRadius: 20,
+                        fontWeight: 500,
+                        flexShrink: 0,
+                        background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
+                        color: f.is_installed ? "#3B6D11" : "#A32D2D",
+                      }}
+                    >
+                      {f.is_installed ? t("installed") : t("notInstalled")}
+                    </span>
                   </div>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      padding: "3px 8px",
-                      borderRadius: 20,
-                      fontWeight: 500,
-                      flexShrink: 0,
-                      background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
-                      color: f.is_installed ? "#3B6D11" : "#A32D2D",
-                    }}
-                  >
-                    {f.is_installed ? t("installed") : t("notInstalled")}
-                  </span>
+                  {f.video_url && (
+                    <div style={{ marginTop: 8 }}>
+                      <video
+                        src={f.video_url}
+                        controls
+                        playsInline
+                        style={{
+                          width: "100%",
+                          borderRadius: 6,
+                          background: "#000",
+                          maxHeight: 180,
+                        }}
+                      />
+                      {f.video_caption && (
+                        <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
+                          {f.video_caption}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </>

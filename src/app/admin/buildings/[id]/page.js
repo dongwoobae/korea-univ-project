@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter, useParams } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -43,6 +43,7 @@ export default function BuildingDetail() {
   const [toast, setToast] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null); // { facilityId }
   const [confirmDeleteBuilding, setConfirmDeleteBuilding] = useState(false);
+  const [videoModalFacility, setVideoModalFacility] = useState(null);
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -475,6 +476,22 @@ export default function BuildingDetail() {
                   )}
                 </div>
                 <button
+                  onClick={() => setVideoModalFacility(f)}
+                  style={{
+                    fontSize: 11,
+                    padding: "4px 8px",
+                    borderRadius: 6,
+                    border: "1px solid",
+                    cursor: "pointer",
+                    fontWeight: 500,
+                    background: f.video_url ? "#EFF6FF" : "none",
+                    borderColor: f.video_url ? "#2563EB" : "#d1d5db",
+                    color: f.video_url ? "#2563EB" : "#6b7280",
+                  }}
+                >
+                  {f.video_url ? "동영상 ✓" : "동영상"}
+                </button>
+                <button
                   onClick={() => handleToggleInstalled(f)}
                   style={{
                     fontSize: 12,
@@ -577,6 +594,14 @@ export default function BuildingDetail() {
           onCancel={() => setConfirmDeleteBuilding(false)}
         />
       )}
+      {videoModalFacility && (
+        <FacilityVideoModal
+          facility={videoModalFacility}
+          onUpdate={() => { fetchData(); setVideoModalFacility((f) => ({ ...f })); }}
+          showToast={showToast}
+          onClose={() => setVideoModalFacility(null)}
+        />
+      )}
     </div>
   );
 }
@@ -585,6 +610,8 @@ function PhotoManager({ buildingId, showToast }) {
   const [photos, setPhotos] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
+  const [draftCaptions, setDraftCaptions] = useState({});
+  const [savingCaption, setSavingCaption] = useState(null);
 
   useEffect(() => { fetchPhotos(); }, []);
 
@@ -595,6 +622,23 @@ function PhotoManager({ buildingId, showToast }) {
       .eq("building_id", buildingId)
       .order("created_at");
     setPhotos(data ?? []);
+    const initial = {};
+    (data ?? []).forEach((p) => { initial[p.id] = p.caption ?? ""; });
+    setDraftCaptions(initial);
+  }
+
+  async function handleSaveCaption(photoId) {
+    const caption = draftCaptions[photoId] ?? "";
+    const original = photos.find((p) => p.id === photoId)?.caption ?? "";
+    if (caption === original) return;
+    setSavingCaption(photoId);
+    const { error } = await supabase
+      .from("building_photos")
+      .update({ caption: caption || null })
+      .eq("id", photoId);
+    setSavingCaption(null);
+    if (error) { showToast("캡션 저장 실패", "error"); return; }
+    setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, caption: caption || null } : p));
   }
 
   function convertToWebP(file) {
@@ -676,24 +720,43 @@ function PhotoManager({ buildingId, showToast }) {
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
           {photos.map((photo) => (
-            <div key={photo.id} style={{ position: "relative", aspectRatio: "1" }}>
-              <img
-                src={photo.url}
-                alt=""
-                style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6 }}
-              />
-              <button
-                onClick={() => setConfirmDeletePhoto(photo)}
+            <div key={photo.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ position: "relative", aspectRatio: "4/3" }}>
+                <img
+                  src={photo.url}
+                  alt={photo.caption ?? ""}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6 }}
+                />
+                <button
+                  onClick={() => setConfirmDeletePhoto(photo)}
+                  style={{
+                    position: "absolute", top: 4, right: 4,
+                    width: 22, height: 22, borderRadius: "50%",
+                    background: "rgba(0,0,0,0.55)", color: "#fff",
+                    border: "none", cursor: "pointer", fontSize: 11,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <input
+                value={draftCaptions[photo.id] ?? ""}
+                onChange={(e) => setDraftCaptions((prev) => ({ ...prev, [photo.id]: e.target.value }))}
+                onBlur={() => handleSaveCaption(photo.id)}
+                placeholder="설명 추가..."
+                maxLength={100}
                 style={{
-                  position: "absolute", top: 4, right: 4,
-                  width: 22, height: 22, borderRadius: "50%",
-                  background: "rgba(0,0,0,0.55)", color: "#fff",
-                  border: "none", cursor: "pointer", fontSize: 11,
-                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: "100%",
+                  fontSize: 11,
+                  padding: "4px 6px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 4,
+                  outline: "none",
+                  color: "#374151",
+                  background: savingCaption === photo.id ? "#f9fafb" : "#fff",
                 }}
-              >
-                ✕
-              </button>
+              />
             </div>
           ))}
         </div>
@@ -951,6 +1014,306 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
             </div>
           </div>
         </div>
+      )}
+    </>
+  );
+}
+
+function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
+  const [phase, setPhase] = useState(null); // null | "loading" | "compressing" | "uploading"
+  const [progress, setProgress] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [draftCaption, setDraftCaption] = useState(facility.video_caption ?? "");
+  const [savingCaption, setSavingCaption] = useState(false);
+  const [currentVideoUrl, setCurrentVideoUrl] = useState(facility.video_url);
+  const xhrRef = useRef(null);
+
+  const busy = phase !== null;
+
+  function handleCloseRequest() {
+    if (busy) {
+      setConfirmCancel(true);
+    } else {
+      onClose();
+    }
+  }
+
+  async function handleForceClose() {
+    if (xhrRef.current) xhrRef.current.abort();
+    onUpdate();
+    onClose();
+  }
+
+  async function handleSaveCaption() {
+    const caption = draftCaption.trim();
+    if (caption === (facility.video_caption ?? "")) return;
+    setSavingCaption(true);
+    const { error } = await supabase
+      .from("building_facilities")
+      .update({ video_caption: caption || null })
+      .eq("id", facility.id);
+    setSavingCaption(false);
+    if (error) { showToast("캡션 저장 실패", "error"); return; }
+    onUpdate();
+  }
+
+  async function handleUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      // 1. Presigned URL 발급
+      setPhase("preparing");
+      const presignRes = await fetch("/api/facility-video-presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ facilityId: facility.id, contentType: file.type, fileSize: file.size }),
+      });
+      const presignData = await presignRes.json();
+      if (!presignRes.ok || presignData.error) {
+        showToast(`준비 실패: ${presignData.error}`, "error");
+        return;
+      }
+
+      // 2. R2에 직접 업로드
+      setPhase("uploading");
+      setProgress(0);
+      const xhr = new XMLHttpRequest();
+      xhrRef.current = xhr;
+      await new Promise((resolve, reject) => {
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
+        };
+        xhr.onload = () => resolve();
+        xhr.onerror = () => reject(new Error("네트워크 오류"));
+        xhr.onabort = () => reject(new Error("업로드 취소됨"));
+        xhr.open("PUT", presignData.presignedUrl);
+        xhr.setRequestHeader("Content-Type", file.type);
+        xhr.send(file);
+      });
+
+      if (xhr.status !== 200) {
+        showToast("업로드 실패", "error");
+        return;
+      }
+
+      // 3. DB에 URL 저장
+      const confirmRes = await fetch("/api/facility-video-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ facilityId: facility.id, videoUrl: presignData.publicUrl }),
+      });
+      const confirmData = await confirmRes.json();
+      if (!confirmRes.ok || confirmData.error) {
+        showToast(`저장 실패: ${confirmData.error}`, "error");
+        return;
+      }
+
+      setCurrentVideoUrl(presignData.publicUrl);
+      showToast("동영상이 업로드됐어요!");
+      onUpdate();
+    } catch (err) {
+      if (err.message !== "업로드 취소됨") showToast("네트워크 오류가 발생했어요", "error");
+    } finally {
+      setPhase(null);
+      setProgress(0);
+      e.target.value = "";
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/delete-facility-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ facilityId: facility.id, videoUrl: currentVideoUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        showToast(`삭제 실패: ${data.error}`, "error");
+        return;
+      }
+      setCurrentVideoUrl(null);
+      showToast("동영상이 삭제됐어요");
+      onUpdate();
+    } catch {
+      showToast("네트워크 오류가 발생했어요", "error");
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
+
+  const phaseLabel =
+    phase === "preparing" ? "업로드 준비 중..."
+    : phase === "uploading" ? `업로드 중... ${progress}%`
+    : null;
+
+  return (
+    <>
+      {/* 배경 오버레이 */}
+      <div
+        onClick={handleCloseRequest}
+        style={{
+          position: "fixed", inset: 0, zIndex: 1100,
+          background: "rgba(0,0,0,0.5)",
+          cursor: "default",
+        }}
+      />
+      {/* 모달 카드 */}
+      <div
+        style={{
+          position: "fixed", inset: 0, zIndex: 1101,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          pointerEvents: "none",
+        }}
+      >
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 12,
+            width: "min(480px, 92vw)",
+            maxHeight: "90vh",
+            overflowY: "auto",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            pointerEvents: "all",
+          }}
+        >
+          {/* 모달 헤더 */}
+          <div style={{
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            padding: "14px 16px", borderBottom: "1px solid #f0f0f0",
+          }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600 }}>
+                {facility.facility_types?.icon} {facility.name ?? facility.facility_types?.label}
+              </div>
+              <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>동영상 관리</div>
+            </div>
+            <button
+              onClick={handleCloseRequest}
+              style={{
+                background: "none", border: "none", fontSize: 18, color: "#888",
+                cursor: "pointer", padding: "4px 8px",
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* 모달 본문 */}
+          <div style={{ padding: 16 }}>
+            {/* 진행 상태 */}
+            {busy && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, color: "#555", marginBottom: 2 }}>{phaseLabel}</div>
+                {phase === "loading" && (
+                  <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>
+                    브라우저 캐싱되어 다음 업로드부터는 로딩하지 않습니다.
+                  </div>
+                )}
+                <div style={{ height: 6, background: "#e5e7eb", borderRadius: 99, overflow: "hidden" }}>
+                  {phase === "preparing" ? (
+                    <div style={{
+                      height: "100%", width: "40%", background: "#9ca3af",
+                      borderRadius: 99, animation: "shimmer 1.2s ease-in-out infinite",
+                    }} />
+                  ) : (
+                    <div style={{
+                      height: "100%", width: `${progress}%`,
+                      background: "#2563EB",
+                      borderRadius: 99, transition: "width 0.2s",
+                    }} />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {currentVideoUrl ? (
+              <>
+                <video
+                  src={currentVideoUrl}
+                  controls
+                  style={{ width: "100%", borderRadius: 8, background: "#000", maxHeight: 260 }}
+                />
+                <input
+                  value={draftCaption}
+                  onChange={(e) => setDraftCaption(e.target.value)}
+                  onBlur={handleSaveCaption}
+                  placeholder="동영상 설명 추가..."
+                  maxLength={150}
+                  style={{
+                    width: "100%", marginTop: 8, fontSize: 13,
+                    padding: "7px 10px", border: "1px solid #e5e7eb",
+                    borderRadius: 6, outline: "none", color: "#374151",
+                    background: savingCaption ? "#f9fafb" : "#fff",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <label style={{
+                    flex: 1, textAlign: "center", padding: "8px",
+                    border: "1px solid #2563EB", color: "#2563EB",
+                    borderRadius: 6, fontSize: 13,
+                    cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.6 : 1,
+                  }}>
+                    {phaseLabel ?? "동영상 교체"}
+                    <input type="file" accept="video/mp4,video/webm,video/quicktime"
+                      onChange={handleUpload} disabled={busy} style={{ display: "none" }} />
+                  </label>
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={deleting || busy}
+                    style={{
+                      flex: 1, padding: "8px", background: "none",
+                      border: "1px solid #DC2626", color: "#DC2626",
+                      borderRadius: 6, fontSize: 13,
+                      cursor: (deleting || busy) ? "not-allowed" : "pointer",
+                      opacity: (deleting || busy) ? 0.6 : 1,
+                    }}
+                  >
+                    {deleting ? "삭제 중..." : "동영상 삭제"}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <label style={{
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                minHeight: 100, border: "1px dashed #d1d5db",
+                borderRadius: 8, color: "#6b7280", fontSize: 13,
+                cursor: busy ? "not-allowed" : "pointer",
+                opacity: busy ? 0.7 : 1, padding: 16, gap: 6,
+              }}>
+                <span style={{ fontSize: 28 }}>🎬</span>
+                {phaseLabel ?? "동영상 추가 (mp4, webm, mov · 최대 200MB)"}
+                <input type="file" accept="video/mp4,video/webm,video/quicktime"
+                  onChange={handleUpload} disabled={busy} style={{ display: "none" }} />
+              </label>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {confirmDelete && (
+        <ConfirmModal
+          message="동영상을 삭제할까요?"
+          description="삭제한 동영상은 복구할 수 없어요."
+          confirmLabel="삭제"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
+      {confirmCancel && (
+        <ConfirmModal
+          message="지금 나가면 처리가 중단됩니다."
+          description="중단되면 처음부터 다시 해야 해요."
+          confirmLabel="중단하고 나가기"
+          onConfirm={handleForceClose}
+          onCancel={() => setConfirmCancel(false)}
+        />
       )}
     </>
   );

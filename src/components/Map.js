@@ -173,10 +173,12 @@ function SearchControl({ geoData, isMobile, onBuildingSelect }) {
             padding: 0,
             listStyle: "none",
             background: "#fff",
-            borderWidth: 1,
+            borderTopWidth: 0,
+            borderRightWidth: 1,
+            borderBottomWidth: 1,
+            borderLeftWidth: 1,
             borderStyle: "solid",
             borderColor: "#ddd",
-            borderTopWidth: 0,
             borderRadius: "0 0 8px 8px",
             boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
             overflow: "hidden",
@@ -1066,13 +1068,12 @@ export default function Map() {
             style={{
               width: 36,
               height: isMobile ? 36 : 30,
-              borderWidth: 0,
+              borderTopWidth: !isMobile && i > 0 ? 1 : 0,
+              borderRightWidth: 0,
+              borderBottomWidth: 0,
+              borderLeftWidth: isMobile && i > 0 ? 1 : 0,
               borderStyle: "solid",
               borderColor: "#eee",
-              // shorthand 충돌 방지: 구분선만 개별 속성으로
-              ...(isMobile
-                ? { borderLeftWidth: i > 0 ? 1 : 0 }
-                : { borderTopWidth: i > 0 ? 1 : 0 }),
               background: lang === l.code ? "#2563EB" : "#fff",
               color: lang === l.code ? "#fff" : "#555",
               fontSize: 12,

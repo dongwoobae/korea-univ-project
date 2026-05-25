@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(python3 -)",
-      "Bash(python -)"
+      "Bash(python -)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\dw581\\\\project\\\\korea-univ-project\" -Recurse -Depth 2)",
+      "Bash(Select-Object -Property FullName, PSIsContainer)",
+      "Bash(npm install *)",
+      "Bash(npx next *)"
     ]
   }
 }
