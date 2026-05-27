@@ -17,7 +17,10 @@ const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
 const KU_CENTER = [37.5893, 127.0327];
 
 function getBuildingCenter(building) {
-  const coords = building?.geojson?.geometry?.coordinates?.[0];
+  const geom = building?.geojson?.geometry;
+  if (!geom) return KU_CENTER;
+  if (geom.type === "Point") return [geom.coordinates[1], geom.coordinates[0]];
+  const coords = geom.coordinates?.[0];
   if (!coords?.length) return KU_CENTER;
   const lats = coords.map(([, lat]) => lat);
   const lngs = coords.map(([lng]) => lng);

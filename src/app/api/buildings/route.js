@@ -64,15 +64,17 @@ export async function GET(request) {
 
   const featureCollection = {
     type: "FeatureCollection",
-    features: data.map((b) => ({
-      ...b.geojson,
-      properties: {
-        ...b.geojson.properties,
-        id: b.id,
-        name: b.name,
-        name_en: b.name_en,
-      },
-    })),
+    features: data
+      .filter((b) => b.geojson?.geometry?.type === "Polygon")
+      .map((b) => ({
+        ...b.geojson,
+        properties: {
+          ...b.geojson.properties,
+          id: b.id,
+          name: b.name,
+          name_en: b.name_en,
+        },
+      })),
   };
 
   return Response.json(featureCollection);
