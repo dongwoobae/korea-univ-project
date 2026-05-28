@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { getFacilityColor } from "./facilityColors";
 
-export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setActiveTypes }) {
+export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setActiveTypes, showSlope, setShowSlope }) {
   const [showFilter, setShowFilter] = useState(false);
   const { lang, t } = useLanguage();
 
@@ -31,6 +31,14 @@ export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setA
           minWidth: 160,
         }}
       >
+        <button
+          onClick={() => setShowSlope((v) => !v)}
+          title={showSlope ? "경사도 숨기기" : "경사도 표시"}
+          style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", marginBottom: 10, padding: "4px 0", borderRadius: 6, background: showSlope ? "#2563EB" : "transparent", border: "none", cursor: "pointer", fontSize: 12, color: showSlope ? "#fff" : "#555", fontWeight: 500, whiteSpace: "nowrap", justifyContent: "center" }}
+        >
+          📐 경사도
+        </button>
+        <div style={{ borderTop: "1px solid #e5e7eb", marginBottom: 10 }} />
         {facilityTypes.map((ft, i) => (
           <label
             key={ft.code}
@@ -124,6 +132,13 @@ export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setA
           })}
         </div>
       )}
+      <button
+        onClick={() => setShowSlope((v) => !v)}
+        title={showSlope ? "경사도 숨기기" : "경사도 표시"}
+        style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: 20, borderWidth: 1, borderStyle: "solid", borderColor: showSlope ? "#2563EB" : "#ddd", background: showSlope ? "#2563EB" : "#fff", color: showSlope ? "#fff" : "#333", fontSize: 13, fontWeight: 500, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", transition: "all 0.15s", whiteSpace: "nowrap" }}
+      >
+        📐 경사도
+      </button>
       <button
         onClick={() => setShowFilter((v) => !v)}
         style={{

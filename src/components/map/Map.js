@@ -383,15 +383,6 @@ export default function Map() {
 
       <FeedbackButton isMobile={isMobile} />
 
-      {/* 경사도 레이어 토글 버튼 */}
-      <button
-        onClick={() => setShowSlope((v) => !v)}
-        title={showSlope ? "경사도 숨기기" : "경사도 표시"}
-        style={{ position: "absolute", ...(isMobile ? { top: 100, left: 16 } : { top: 200, left: 16 }), zIndex: 1000, height: 28, padding: "0 10px", borderRadius: 8, background: showSlope ? "#2563EB" : "#fff", border: "1px solid #ddd", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", cursor: "pointer", fontSize: 12, color: showSlope ? "#fff" : "#555", fontWeight: 500, display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}
-      >
-        📐 경사도
-      </button>
-
       <SlopeLegend show={showSlope} isMobile={isMobile} />
 
       <FavoritesList
@@ -409,6 +400,8 @@ export default function Map() {
         facilityTypes={facilityTypes}
         activeTypes={activeTypes}
         setActiveTypes={setActiveTypes}
+        showSlope={showSlope}
+        setShowSlope={setShowSlope}
       />
 
       {/* 툴팁 — 데스크탑만 */}
