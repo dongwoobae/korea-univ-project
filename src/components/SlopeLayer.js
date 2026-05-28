@@ -25,9 +25,9 @@ export default function SlopeLayer({ slopes }) {
       group.points.push([segs[i].lat, segs[i].lng]);
     }
 
-    return groups.map((g, idx) => (
+    return groups.map((g) => (
       <Polyline
-        key={`${route.id}-${idx}`}
+        key={`${route.id}-${g.points[0][0]}-${g.points[0][1]}`}
         positions={g.points}
         pathOptions={{ color: g.color, weight: 5, opacity: 0.85 }}
       />
