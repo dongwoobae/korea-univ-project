@@ -16,6 +16,7 @@ import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
 import { supabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/LanguageContext";
+import SlopeLayer from "@/components/SlopeLayer";
 
 const KU_CENTER = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
@@ -327,6 +328,8 @@ export default function Map() {
   const [toast, setToast] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [tileMode, setTileMode] = useState("street");
+  const [showSlope, setShowSlope] = useState(false);
+  const [slopes, setSlopes] = useState([]);
   const { lang, setLang, t } = useLanguage();
 
   const mapRef = useRef(null);
@@ -454,6 +457,14 @@ export default function Map() {
         setFacilityTypes(data);
         setActiveTypes(Object.fromEntries(data.map((ft) => [ft.code, false])));
       });
+  }, []);
+
+  // 경사도 경로 데이터
+  useEffect(() => {
+    fetch("/api/slopes")
+      .then((r) => r.json())
+      .then((data) => setSlopes(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, []);
 
   function onEachFeature(feature, layer) {
@@ -827,6 +838,9 @@ export default function Map() {
             />
           );
         })}
+        {showSlope && slopes.length > 0 && (
+          <SlopeLayer slopes={slopes} />
+        )}
       </MapContainer>
 
       {/* 항공사진 출처 라벨 */}
@@ -963,6 +977,33 @@ export default function Map() {
           </div>
         </div>
       </div>
+
+      {/* 경사도 레이어 토글 버튼 */}
+      <button
+        onClick={() => setShowSlope((v) => !v)}
+        title={showSlope ? "경사도 숨기기" : "경사도 표시"}
+        style={{
+          position: "absolute",
+          ...(isMobile ? { top: 100, left: 16 } : { top: 200, left: 16 }),
+          zIndex: 1000,
+          height: 28,
+          padding: "0 10px",
+          borderRadius: 8,
+          background: showSlope ? "#2563EB" : "#fff",
+          border: "1px solid #ddd",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          cursor: "pointer",
+          fontSize: 12,
+          color: showSlope ? "#fff" : "#555",
+          fontWeight: 500,
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          whiteSpace: "nowrap",
+        }}
+      >
+        📐 경사도
+      </button>
 
       {/* 즐겨찾기 패널 — 모바일: top:64로 검색창과 안 겹치게 */}
       {showFavorites && (
