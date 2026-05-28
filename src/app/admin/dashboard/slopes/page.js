@@ -41,6 +41,9 @@ export default function SlopesPage() {
       const name = selectedFile.name.replace(/\.gpx$/i, "");
       const text = await selectedFile.text();
       const xml = new DOMParser().parseFromString(text, "application/xml");
+      if (xml.querySelectorAll("parsererror").length > 0) {
+        throw new Error("GPX 파일을 파싱할 수 없습니다. 유효한 GPX 형식인지 확인하세요.");
+      }
 
       const trkpts = Array.from(xml.querySelectorAll("trkpt"));
       const points = trkpts
