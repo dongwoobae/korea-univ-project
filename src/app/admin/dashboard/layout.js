@@ -33,6 +33,8 @@ export default function DashboardLayout({ children }) {
   }, []);
 
   async function handleLogout() {
+    setUser(null);
+    setAuthChecked(false);
     await supabase.auth.signOut();
     router.push("/admin");
   }
