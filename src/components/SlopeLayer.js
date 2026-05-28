@@ -1,10 +1,13 @@
 // src/components/SlopeLayer.js
 "use client";
-import { Polyline } from "react-leaflet";
+import { Polyline, Popup } from "react-leaflet";
 
 function slopeColor(slope) {
-  if (slope >= 8) return "#ef4444";
-  if (slope >= 5) return "#facc15";
+  if (slope >= 15) return "#991b1b";
+  if (slope >= 12) return "#ef4444";
+  if (slope >= 8.33) return "#f97316";
+  if (slope >= 5) return "#eab308";
+  if (slope >= 2) return "#84cc16";
   return "#22c55e";
 }
 
@@ -13,24 +16,23 @@ export default function SlopeLayer({ slopes }) {
     const segs = route.segments;
     if (!segs?.length) return [];
 
-    const groups = [];
-    let group = null;
-
-    for (let i = 1; i < segs.length; i++) {
-      const color = slopeColor(segs[i].slope);
-      if (!group || group.color !== color) {
-        group = { color, points: [[segs[i - 1].lat, segs[i - 1].lng]] };
-        groups.push(group);
-      }
-      group.points.push([segs[i].lat, segs[i].lng]);
-    }
-
-    return groups.map((g) => (
-      <Polyline
-        key={`${route.id}-${g.points[0][0]}-${g.points[0][1]}`}
-        positions={g.points}
-        pathOptions={{ color: g.color, weight: 5, opacity: 0.85 }}
-      />
-    ));
+    return segs.slice(1).map((seg, i) => {
+      const prev = segs[i];
+      return (
+        <Polyline
+          key={`${route.id}-${i}`}
+          positions={[[prev.lat, prev.lng], [seg.lat, seg.lng]]}
+          pathOptions={{ color: slopeColor(seg.slope), weight: 5, opacity: 0.85 }}
+        >
+          <Popup>
+            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ fontWeight: 600, marginBottom: 2 }}>{route.name}</div>
+              <div>경사도 <strong>{seg.slope}%</strong></div>
+              <div style={{ color: "#888", fontSize: 11 }}>구간 거리 {seg.distance}m</div>
+            </div>
+          </Popup>
+        </Polyline>
+      );
+    });
   });
 }
