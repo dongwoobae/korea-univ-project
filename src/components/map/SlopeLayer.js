@@ -1,4 +1,3 @@
-// src/components/SlopeLayer.js
 "use client";
 import { Polyline, Popup } from "react-leaflet";
 

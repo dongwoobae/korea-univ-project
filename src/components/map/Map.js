@@ -1,0 +1,427 @@
+"use client";
+
+import { useEffect, useState, useRef, useCallback } from "react";
+import {
+  MapContainer,
+  TileLayer,
+  GeoJSON,
+  useMap,
+  Marker,
+  Popup,
+  ZoomControl,
+} from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import SidePanel from "@/components/SidePanel";
+import Toast from "@/components/Toast";
+import { supabase } from "@/lib/supabaseClient";
+import { useLanguage } from "@/lib/LanguageContext";
+import SearchControl from "./SearchControl";
+import FilterPanel from "./FilterPanel";
+import FeedbackButton from "./FeedbackButton";
+import FavoritesList from "./FavoritesList";
+import LanguageSwitcher from "./LanguageSwitcher";
+import SlopeLegend from "./SlopeLegend";
+import SlopeLayer from "./SlopeLayer";
+import { SUBWAY_STATIONS } from "./subwayStations";
+import { FACILITY_COLORS } from "./facilityColors";
+
+const KU_CENTER = [37.5893, 127.0327];
+const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
+
+const TILES = {
+  street: {
+    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+    attribution: "&copy; OpenStreetMap &copy; CARTO",
+    subdomains: "abcd",
+  },
+  satellite: {
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    attribution: "Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    subdomains: "abc",
+  },
+};
+
+function BoundsController() {
+  const map = useMap();
+  useEffect(() => {
+    map.setMaxBounds(KU_BOUNDS);
+    map.setMinZoom(15);
+    map.setMaxZoom(19);
+  }, [map]);
+  return null;
+}
+
+function loadFavoritesFromStorage() {
+  try {
+    return JSON.parse(localStorage.getItem("ku_favorites") ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function baseStyle(isFav) {
+  return {
+    color: isFav ? "#FACC15" : "#2563EB",
+    weight: isFav ? 3 : 1.5,
+    fillColor: "#2563EB",
+    fillOpacity: 0.2,
+  };
+}
+
+function hoverStyle(isFav) {
+  return {
+    color: isFav ? "#FACC15" : "#2563EB",
+    weight: isFav ? 3 : 2.5,
+    fillColor: "#2563EB",
+    fillOpacity: 0.5,
+  };
+}
+
+export default function Map() {
+  const [geoData, setGeoData] = useState(null);
+  const [loadingMap, setLoadingMap] = useState(true);
+  const [tooltip, setTooltip] = useState({ visible: false, name: "", name_en: "", x: 0, y: 0 });
+  const [selectedBuilding, setSelectedBuilding] = useState(null);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [favoritesList, setFavoritesList] = useState([]);
+  const [facilities, setFacilities] = useState([]);
+  const [facilityTypes, setFacilityTypes] = useState([]);
+  const [activeTypes, setActiveTypes] = useState({});
+  const [toast, setToast] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const [tileMode, setTileMode] = useState("street");
+  const [showSlope, setShowSlope] = useState(false);
+  const [slopes, setSlopes] = useState([]);
+  const { lang, setLang, t } = useLanguage();
+
+  const mapRef = useRef(null);
+  const activeLayerRef = useRef(null);
+  const activeBuildingIdRef = useRef(null);
+  const layerMapRef = useRef({});
+  const favoriteIdsRef = useRef(new Set(loadFavoritesFromStorage().map((f) => f.id)));
+  // isMobile을 ref로도 관리 — onEachFeature 클로저에서 항상 최신값 참조
+  const isMobileRef = useRef(false);
+
+  const geoJsonStyle = useCallback(
+    (feature) => baseStyle(favoriteIdsRef.current.has(feature.properties.id)),
+    [],
+  );
+
+  // 모바일 감지
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      isMobileRef.current = mobile;
+    };
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  const facilityMarkerIcon = (code, icon) =>
+    L.divIcon({
+      className: "",
+      html: `<div style="width:30px;height:30px;background:${FACILITY_COLORS[code] ?? "#666"};border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.25);">${icon}</div>`,
+      iconAnchor: [15, 15],
+      popupAnchor: [0, -18],
+    });
+
+  const subwayIcon = (name) =>
+    L.divIcon({
+      className: "",
+      html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35))"><div style="background:#B9282D;color:white;border:2.5px solid white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;">🚇</div><div style="background:#B9282D;color:white;border-radius:10px;padding:2px 7px;font-size:11px;font-weight:700;margin-top:3px;white-space:nowrap;border:1.5px solid white;">${name}</div></div>`,
+      iconAnchor: [16, 44],
+      popupAnchor: [0, -46],
+    });
+
+  function handleBuildingSelectFromSearch(feature) {
+    const bId = feature.properties.id;
+    if (activeLayerRef.current && activeBuildingIdRef.current !== bId) {
+      activeLayerRef.current.setStyle(baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)));
+    }
+    const layer = layerMapRef.current[bId];
+    if (layer) {
+      layer.setStyle(hoverStyle(favoriteIdsRef.current.has(bId)));
+      activeLayerRef.current = layer;
+      activeBuildingIdRef.current = bId;
+    }
+    setSelectedBuilding({ id: bId, name: feature.properties.name });
+  }
+
+  useEffect(() => {
+    const handler = (e) => setToast(e.detail);
+    window.addEventListener("showToast", handler);
+    return () => window.removeEventListener("showToast", handler);
+  }, []);
+
+  useEffect(() => {
+    const initial = loadFavoritesFromStorage();
+    setFavoritesList(initial);
+    favoriteIdsRef.current = new Set(initial.map((f) => f.id));
+    const handler = () => {
+      const updated = loadFavoritesFromStorage();
+      setFavoritesList(updated);
+      favoriteIdsRef.current = new Set(updated.map((f) => f.id));
+      Object.entries(layerMapRef.current).forEach(([id, layer]) => {
+        const numId = Number(id);
+        const isFav = favoriteIdsRef.current.has(numId);
+        const isActive = activeBuildingIdRef.current === numId;
+        layer.setStyle(isActive ? hoverStyle(isFav) : baseStyle(isFav));
+      });
+    };
+    window.addEventListener("favoritesUpdated", handler);
+    return () => window.removeEventListener("favoritesUpdated", handler);
+  }, []);
+
+  useEffect(() => {
+    setLoadingMap(true);
+    fetch("/api/buildings")
+      .then((res) => res.json())
+      .then((data) => { if (!data.features) return; setGeoData(data); })
+      .catch((err) => console.error("buildings fetch 실패:", err))
+      .finally(() => setLoadingMap(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/facilities")
+      .then((r) => r.json())
+      .then((data) => setFacilities(data ?? []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    supabase
+      .from("facility_types")
+      .select("code, label, label_en, label_zh, icon")
+      .then(({ data }) => {
+        if (!data) return;
+        setFacilityTypes(data);
+        setActiveTypes(Object.fromEntries(data.map((ft) => [ft.code, false])));
+      });
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/slopes")
+      .then((r) => r.json())
+      .then((data) => setSlopes(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  function onEachFeature(feature, layer) {
+    const bId = feature.properties.id;
+    layerMapRef.current[bId] = layer;
+    layer.on({
+      mouseover(e) {
+        if (isMobileRef.current) return;
+        const isFav = favoriteIdsRef.current.has(bId);
+        layer.setStyle(hoverStyle(isFav));
+        const { clientX, clientY } = e.originalEvent;
+        const mapEl = mapRef.current?.getContainer();
+        if (!mapEl) return;
+        const rect = mapEl.getBoundingClientRect();
+        setTooltip({ visible: true, name: feature.properties.name, name_en: feature.properties.name_en, x: clientX - rect.left + 12, y: clientY - rect.top - 36 });
+      },
+      mousemove(e) {
+        if (isMobileRef.current) return;
+        const { clientX, clientY } = e.originalEvent;
+        const mapEl = mapRef.current?.getContainer();
+        if (!mapEl) return;
+        const rect = mapEl.getBoundingClientRect();
+        setTooltip((prev) => ({ ...prev, x: clientX - rect.left + 12, y: clientY - rect.top - 36 }));
+      },
+      mouseout() {
+        if (activeLayerRef.current === layer) return;
+        layer.setStyle(baseStyle(favoriteIdsRef.current.has(bId)));
+        setTooltip((prev) => ({ ...prev, visible: false }));
+      },
+      click() {
+        if (activeBuildingIdRef.current === bId) { handleClosePanel(); return; }
+        if (activeLayerRef.current && activeLayerRef.current !== layer) {
+          activeLayerRef.current.setStyle(baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)));
+        }
+        layer.setStyle(hoverStyle(favoriteIdsRef.current.has(bId)));
+        activeLayerRef.current = layer;
+        activeBuildingIdRef.current = bId;
+        setSelectedBuilding({ id: bId, name: feature.properties.name });
+      },
+    });
+  }
+
+  function handleSelectById(id, name) {
+    if (activeLayerRef.current && activeBuildingIdRef.current !== id) {
+      activeLayerRef.current.setStyle(baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)));
+    }
+    const layer = layerMapRef.current[id];
+    if (layer) {
+      layer.setStyle(hoverStyle(favoriteIdsRef.current.has(id)));
+      activeLayerRef.current = layer;
+      activeBuildingIdRef.current = id;
+      mapRef.current?.fitBounds(layer.getBounds(), { maxZoom: 18, animate: true });
+    }
+    setSelectedBuilding({ id, name });
+  }
+
+  function handleClosePanel() {
+    window.dispatchEvent(new Event("sidePanelShouldClose"));
+    setTimeout(() => {
+      setSelectedBuilding(null);
+      if (activeLayerRef.current) {
+        activeLayerRef.current.setStyle(baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)));
+        activeLayerRef.current = null;
+        activeBuildingIdRef.current = null;
+      }
+    }, 280);
+  }
+
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100dvh" }}>
+      {/* 로딩 오버레이 */}
+      {loadingMap && (
+        <div style={{ position: "absolute", inset: 0, zIndex: 2000, background: "rgba(255,255,255,0.85)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
+          <div style={{ width: 40, height: 40, borderWidth: 3, borderStyle: "solid", borderColor: "#e5e7eb", borderTopColor: "#2563EB", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+          <div style={{ fontSize: 14, color: "#555" }}>{t("loadingMap")}</div>
+          <style>{`
+            @keyframes spin { to { transform: rotate(360deg) } }
+            .leaflet-bottom.leaflet-right {
+              bottom: env(safe-area-inset-bottom, 0px) !important;
+            }
+          `}</style>
+        </div>
+      )}
+
+      <MapContainer
+        center={KU_CENTER}
+        zoom={16}
+        style={{ width: "100%", height: "100%" }}
+        maxBounds={KU_BOUNDS}
+        maxBoundsViscosity={0.7}
+        ref={mapRef}
+        zoomControl={false}
+      >
+        <ZoomControl position="bottomright" />
+        <TileLayer
+          key={tileMode}
+          url={TILES[tileMode].url}
+          attribution={TILES[tileMode].attribution}
+          subdomains={TILES[tileMode].subdomains}
+          maxZoom={19}
+        />
+        <BoundsController />
+        {geoData && (
+          <>
+            <GeoJSON
+              key={JSON.stringify(geoData)}
+              data={geoData}
+              style={geoJsonStyle}
+              onEachFeature={onEachFeature}
+            />
+            <SearchControl
+              geoData={geoData}
+              isMobile={isMobile}
+              onBuildingSelect={handleBuildingSelectFromSearch}
+            />
+          </>
+        )}
+        {facilities
+          .filter((f) => activeTypes[f.facility_types?.code])
+          .map((f) => (
+            <Marker
+              key={f.id}
+              position={[f.lat, f.lng]}
+              icon={facilityMarkerIcon(f.facility_types?.code, f.facility_types?.icon)}
+              zIndexOffset={500}
+            >
+              <Popup>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{f.name ?? f.facility_types?.label}</div>
+                {f.description && <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{f.description}</div>}
+                {f.floor_info && <div style={{ fontSize: 12, color: "#888" }}>{f.floor_info}</div>}
+                <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{f.buildings?.name}</div>
+              </Popup>
+            </Marker>
+          ))}
+        {SUBWAY_STATIONS.map((s) => {
+          const displayName = lang === "ko" ? s.name : lang === "en" ? s.name_en : s.name_zh;
+          return (
+            <Marker
+              key={s.name}
+              position={[s.lat, s.lng]}
+              icon={subwayIcon(displayName)}
+              zIndexOffset={1000}
+              eventHandlers={{ click() { setSelectedBuilding({ id: s.id, name: displayName }); } }}
+            />
+          );
+        })}
+        {showSlope && slopes.length > 0 && <SlopeLayer slopes={slopes} />}
+      </MapContainer>
+
+      {/* 항공사진 출처 라벨 */}
+      {tileMode === "satellite" && (
+        <div style={{ position: "absolute", bottom: "calc(132px + env(safe-area-inset-bottom, 0px))", right: 10, zIndex: 1000, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 10, padding: "3px 7px", borderRadius: 4, pointerEvents: "none", whiteSpace: "nowrap" }}>
+          Esri World Imagery
+        </div>
+      )}
+
+      {/* 항공/지도 전환 버튼 */}
+      <button
+        onClick={() => setTileMode((m) => (m === "street" ? "satellite" : "street"))}
+        title={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
+        style={{ position: "absolute", bottom: "calc(90px + env(safe-area-inset-bottom, 0px))", right: 10, zIndex: 1000, width: 36, height: 36, borderRadius: 8, background: tileMode === "satellite" ? "#1d4ed8" : "#fff", border: "1px solid #ddd", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
+        {tileMode === "street" ? "🛰️" : "🗺️"}
+      </button>
+
+      {/* 즐겨찾기 버튼 */}
+      <button
+        onClick={() => { setFavoritesList(loadFavoritesFromStorage()); setShowFavorites((v) => !v); }}
+        title={t("favorites")}
+        style={{ position: "absolute", top: 16, left: 16, zIndex: 1000, width: 36, height: 36, borderRadius: 8, background: showFavorites ? "#FEF08A" : "#fff", borderWidth: 1, borderStyle: "solid", borderColor: "#ddd", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
+      >
+        ⭐
+      </button>
+
+      <FeedbackButton isMobile={isMobile} />
+
+      {/* 경사도 레이어 토글 버튼 */}
+      <button
+        onClick={() => setShowSlope((v) => !v)}
+        title={showSlope ? "경사도 숨기기" : "경사도 표시"}
+        style={{ position: "absolute", ...(isMobile ? { top: 100, left: 16 } : { top: 200, left: 16 }), zIndex: 1000, height: 28, padding: "0 10px", borderRadius: 8, background: showSlope ? "#2563EB" : "#fff", border: "1px solid #ddd", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", cursor: "pointer", fontSize: 12, color: showSlope ? "#fff" : "#555", fontWeight: 500, display: "flex", alignItems: "center", gap: 4, whiteSpace: "nowrap" }}
+      >
+        📐 경사도
+      </button>
+
+      <SlopeLegend show={showSlope} isMobile={isMobile} />
+
+      <FavoritesList
+        show={showFavorites}
+        favorites={favoritesList}
+        isMobile={isMobile}
+        onSelect={(id, name) => { handleSelectById(id, name); setShowFavorites(false); }}
+        onClose={() => setShowFavorites(false)}
+      />
+
+      <LanguageSwitcher isMobile={isMobile} lang={lang} setLang={setLang} />
+
+      <FilterPanel
+        isMobile={isMobile}
+        facilityTypes={facilityTypes}
+        activeTypes={activeTypes}
+        setActiveTypes={setActiveTypes}
+      />
+
+      {/* 툴팁 — 데스크탑만 */}
+      {!isMobile && tooltip.visible && (
+        <div style={{ position: "absolute", left: tooltip.x, top: tooltip.y, background: "#fff", borderWidth: 1, borderStyle: "solid", borderColor: "#ddd", borderRadius: 6, padding: "6px 10px", fontSize: 13, fontWeight: 500, color: "#333", pointerEvents: "none", zIndex: 1000, boxShadow: "0 2px 6px rgba(0,0,0,0.1)", whiteSpace: "nowrap" }}>
+          {lang === "ko" ? tooltip.name : (tooltip.name_en ?? tooltip.name)}
+        </div>
+      )}
+
+      {selectedBuilding && (
+        <SidePanel buildingId={selectedBuilding.id} buildingName={selectedBuilding.name} onClose={handleClosePanel} />
+      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+    </div>
+  );
+}
