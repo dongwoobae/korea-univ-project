@@ -139,7 +139,7 @@ export default function SlopesPage() {
           </div>
         )}
         <div style={{ fontSize: 12, color: "#aaa" }}>
-          Strava에서 GPX 내보내기 전 파일명을 경로명으로 변경하세요 (예: 정문-중앙광장.gpx)
+          파일명이 경로명으로 사용됩니다. 업로드 전 파일명을 원하는 경로명으로 변경하세요 (예: 정문-중앙광장.gpx)
         </div>
       </div>
 
