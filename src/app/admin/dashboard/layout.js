@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { FEEDBACK_EMAILS_FALLBACK, getSetting } from "@/lib/settings";
+import FeedbackEmailModal from "@/components/admin/FeedbackEmailModal";
 
 const NAV = [
   { label: "🏢 건물 관리", href: "/admin/dashboard/buildings" },
@@ -14,8 +16,18 @@ export default function DashboardLayout({ children }) {
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [feedbackEmails, setFeedbackEmails] = useState(FEEDBACK_EMAILS_FALLBACK);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  useEffect(() => {
+    let cancelled = false;
+    getSetting("feedback_emails", FEEDBACK_EMAILS_FALLBACK).then((value) => {
+      if (!cancelled && value) setFeedbackEmails(value);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -92,6 +104,16 @@ export default function DashboardLayout({ children }) {
             <span style={{ fontSize: 13, color: "#888" }}>{user?.email}</span>
           )}
           <button
+            onClick={() => setShowFeedbackModal(true)}
+            style={{
+              fontSize: 12, color: "#666", background: "none",
+              border: "none", padding: "4px 6px", cursor: "pointer",
+              textDecoration: "underline", textUnderlineOffset: 2,
+            }}
+          >
+            ✉️ 피드백 이메일 변경
+          </button>
+          <button
             onClick={() => router.push("/")}
             style={{
               fontSize: 13, color: "#2563EB", background: "none",
@@ -148,6 +170,14 @@ export default function DashboardLayout({ children }) {
           </div>
         </div>
       </div>
+
+      {showFeedbackModal && (
+        <FeedbackEmailModal
+          initialEmails={feedbackEmails}
+          onClose={() => setShowFeedbackModal(false)}
+          onSaved={(value) => setFeedbackEmails(value)}
+        />
+      )}
     </div>
   );
 }

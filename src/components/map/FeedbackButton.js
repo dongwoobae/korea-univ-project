@@ -1,8 +1,20 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { FEEDBACK_EMAILS_FALLBACK, getSetting } from "@/lib/settings";
 
 export default function FeedbackButton({ isMobile }) {
   const [showFeedback, setShowFeedback] = useState(false);
+  const [emails, setEmails] = useState(FEEDBACK_EMAILS_FALLBACK);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSetting("feedback_emails", FEEDBACK_EMAILS_FALLBACK).then((value) => {
+      if (!cancelled && value) setEmails(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div
@@ -51,9 +63,9 @@ export default function FeedbackButton({ isMobile }) {
       }}>
         <div style={{ padding: 14 }}>
           <div style={{ fontSize: 11, color: "#888", marginBottom: 8, lineHeight: 1.8 }}>
-            <div><span style={{ color: "#555", fontWeight: 600 }}>수신</span> hnsn9716@korea.ac.kr</div>
-            <div><span style={{ color: "#555", fontWeight: 600 }}>참조</span> dw5817@naver.com</div>
-            <div><span style={{ color: "#555", fontWeight: 600 }}>제목</span> [모두의 캠퍼스] 피드백</div>
+            <div><span style={{ color: "#555", fontWeight: 600 }}>수신</span> {emails.to}</div>
+            <div><span style={{ color: "#555", fontWeight: 600 }}>참조</span> {Array.isArray(emails.cc) ? emails.cc.join(", ") : emails.cc}</div>
+            <div><span style={{ color: "#555", fontWeight: 600 }}>제목</span> {emails.subject}</div>
           </div>
           <div style={{
             fontSize: 11, color: "#888", background: "#f9fafb",
