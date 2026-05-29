@@ -93,6 +93,13 @@ export default function Map() {
   const [tileMode, setTileMode] = useState("street");
   const [showSlope, setShowSlope] = useState(false);
   const [slopes, setSlopes] = useState([]);
+  const [campusBoundaries, setCampusBoundaries] = useState(null);
+  const [activeCampuses, setActiveCampuses] = useState({
+    "의료원": false,
+    "녹지캠퍼스": false,
+    "인문사회계": false,
+    "자연계": false,
+  });
   const { lang, setLang, t } = useLanguage();
 
   const mapRef = useRef(null);
@@ -206,6 +213,13 @@ export default function Map() {
     fetch("/api/slopes")
       .then((r) => r.json())
       .then((data) => setSlopes(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch("/campus-boundaries.geojson")
+      .then((r) => r.json())
+      .then((data) => setCampusBoundaries(data))
       .catch(() => {});
   }, []);
 
@@ -354,6 +368,23 @@ export default function Map() {
           );
         })}
         {showSlope && slopes.length > 0 && <SlopeLayer slopes={slopes} />}
+        {campusBoundaries && (
+          <GeoJSON
+            key={JSON.stringify(activeCampuses)}
+            data={{
+              type: "FeatureCollection",
+              features: campusBoundaries.features.filter((f) => activeCampuses[f.properties.campus]),
+            }}
+            style={(feature) => ({
+              color: feature.properties.color,
+              weight: 2,
+              fillColor: feature.properties.color,
+              fillOpacity: 0.18,
+              dashArray: "5 4",
+            })}
+            interactive={false}
+          />
+        )}
       </MapContainer>
 
       {/* 항공사진 출처 라벨 */}
@@ -402,6 +433,8 @@ export default function Map() {
         setActiveTypes={setActiveTypes}
         showSlope={showSlope}
         setShowSlope={setShowSlope}
+        activeCampuses={activeCampuses}
+        setActiveCampuses={setActiveCampuses}
       />
 
       {/* 툴팁 — 데스크탑만 */}

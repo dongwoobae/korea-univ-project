@@ -3,7 +3,14 @@ import { useState } from "react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { getFacilityColor } from "./facilityColors";
 
-export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setActiveTypes, showSlope, setShowSlope }) {
+const CAMPUS_LIST = [
+  { campus: "인문사회계", label: "인문·사회계", color: "#2563EB", lightBg: false },
+  { campus: "자연계", label: "자연계", color: "#DC143C", lightBg: false },
+  { campus: "녹지캠퍼스", label: "녹지캠퍼스", color: "#86EFAC", lightBg: true },
+  { campus: "의료원", label: "의료원", color: "#F9A8D4", lightBg: true },
+];
+
+export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setActiveTypes, showSlope, setShowSlope, activeCampuses, setActiveCampuses }) {
   const [showFilter, setShowFilter] = useState(false);
   const { lang, t } = useLanguage();
 
@@ -39,6 +46,23 @@ export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setA
           📐 경사도
         </button>
         <div style={{ borderTop: "1px solid #e5e7eb", marginBottom: 10 }} />
+        <div style={{ fontSize: 11, color: "#888", fontWeight: 600, marginBottom: 6 }}>캠퍼스</div>
+        {CAMPUS_LIST.map((c) => (
+          <label
+            key={c.campus}
+            style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", marginBottom: 6 }}
+          >
+            <input
+              type="checkbox"
+              checked={activeCampuses?.[c.campus] ?? false}
+              onChange={() => setActiveCampuses((prev) => ({ ...prev, [c.campus]: !prev[c.campus] }))}
+              style={{ accentColor: c.color, width: 14, height: 14 }}
+            />
+            <span style={{ width: 10, height: 10, borderRadius: 2, background: c.color, display: "inline-block", flexShrink: 0 }} />
+            <span style={{ fontSize: 12, color: "#333" }}>{c.label}</span>
+          </label>
+        ))}
+        <div style={{ borderTop: "1px solid #e5e7eb", marginBottom: 10, marginTop: 4 }} />
         {facilityTypes.map((ft, i) => (
           <label
             key={ft.code}
@@ -97,6 +121,36 @@ export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setA
             scrollbarWidth: "none",
           }}
         >
+          {CAMPUS_LIST.map((c) => {
+            const active = activeCampuses?.[c.campus] ?? false;
+            return (
+              <button
+                key={c.campus}
+                onClick={() => setActiveCampuses((prev) => ({ ...prev, [c.campus]: !prev[c.campus] }))}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "7px 12px",
+                  borderRadius: 20,
+                  borderWidth: "1.5px",
+                  borderStyle: "solid",
+                  borderColor: active ? c.color : "#ddd",
+                  background: active ? c.color : "#fff",
+                  color: active ? (c.lightBg ? "#333" : "#fff") : "#555",
+                  fontSize: 12,
+                  fontWeight: active ? 600 : 400,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+                  transition: "all 0.15s",
+                }}
+              >
+                {c.label}
+              </button>
+            );
+          })}
+          <div style={{ width: 1, background: "#e5e7eb", flexShrink: 0, margin: "4px 0" }} />
           {facilityTypes.map((ft, i) => {
             const active = activeTypes[ft.code] ?? false;
             const color = getFacilityColor(ft.code, i);
