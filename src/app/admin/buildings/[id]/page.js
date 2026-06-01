@@ -1109,9 +1109,28 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
     const caption = draftCaption.trim();
     if (caption === (facility.video_caption ?? "")) return;
     setSavingCaption(true);
+
+    const updateData = { video_caption: caption || null, video_caption_en: null, video_caption_zh: null };
+
+    if (caption) {
+      try {
+        const res = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ texts: { video_caption: caption } }),
+        });
+        if (!res.ok) throw new Error("translate failed");
+        const { en, zh } = await res.json();
+        updateData.video_caption_en = en.video_caption ?? null;
+        updateData.video_caption_zh = zh.video_caption ?? null;
+      } catch {
+        // 번역 실패해도 캡션 저장은 진행
+      }
+    }
+
     const { error } = await supabase
       .from("building_facilities")
-      .update({ video_caption: caption || null })
+      .update(updateData)
       .eq("id", facility.id);
     setSavingCaption(false);
     if (error) { showToast("캡션 저장 실패", "error"); return; }

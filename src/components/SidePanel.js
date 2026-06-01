@@ -545,7 +545,9 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                       />
                       {f.video_caption && (
                         <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
-                          {f.video_caption}
+                          {lang === "ko"
+                            ? f.video_caption
+                            : (f[`video_caption_${lang}`] ?? f.video_caption)}
                         </div>
                       )}
                     </div>
