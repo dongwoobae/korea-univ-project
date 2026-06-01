@@ -77,7 +77,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
             .eq("building_id", buildingId),
           supabase
             .from("building_photos")
-            .select("id, url, caption")
+            .select("id, url, caption, caption_en, caption_zh")
             .eq("building_id", buildingId)
             .order("created_at"),
         ]);
@@ -141,8 +141,10 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
       text += "Facilities: ";
       facilities.forEach((f) => {
         const label = f.facility_types?.label_en ?? f.facility_types?.label ?? "";
-        text += `${label}, ${f.is_installed ? "available" : "unavailable"}. `;
-        if (f.floor_info) text += `Location: ${f.floor_info}. `;
+        const facilityName = f.name_en ?? f.name ?? label;
+        text += `${facilityName}, ${f.is_installed ? "available" : "unavailable"}. `;
+        const location = f.floor_info_en ?? f.floor_info;
+        if (location) text += `Location: ${location}. `;
       });
       return text;
     }
@@ -153,8 +155,10 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
       text += "设施情况：";
       facilities.forEach((f) => {
         const label = f.facility_types?.label_zh ?? f.facility_types?.label ?? "";
-        text += `${label}，${f.is_installed ? "已安装" : "未安装"}。`;
-        if (f.floor_info) text += `位置：${f.floor_info}。`;
+        const facilityName = f.name_zh ?? f.name ?? label;
+        text += `${facilityName}，${f.is_installed ? "已安装" : "未安装"}。`;
+        const location = f.floor_info_zh ?? f.floor_info;
+        if (location) text += `位置：${location}。`;
       });
       return text;
     }
@@ -427,7 +431,9 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
               borderBottom: "1px solid #f0f0f0",
             }}
           >
-            {photos[photoIndex].caption}
+            {lang === "ko"
+              ? photos[photoIndex].caption
+              : (photos[photoIndex][`caption_${lang}`] ?? photos[photoIndex].caption)}
           </div>
         )}
 
@@ -495,16 +501,18 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "#222" }}>
-                        {f.name ?? getFacilityLabel(f.facility_types)}
+                        {lang === "ko"
+                          ? (f.name ?? getFacilityLabel(f.facility_types))
+                          : (f[`name_${lang}`] ?? f.name ?? getFacilityLabel(f.facility_types))}
                       </div>
                       {f.description && (
                         <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                          {f.description}
+                          {lang === "ko" ? f.description : (f[`description_${lang}`] ?? f.description)}
                         </div>
                       )}
                       {f.floor_info && (
                         <div style={{ fontSize: 12, color: "#888" }}>
-                          {f.floor_info}
+                          {lang === "ko" ? f.floor_info : (f[`floor_info_${lang}`] ?? f.floor_info)}
                         </div>
                       )}
                     </div>
