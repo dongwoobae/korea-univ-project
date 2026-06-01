@@ -27,16 +27,21 @@
 - 📍 **현 위치 버튼** — 사용자 현재 위치 표시
 - 🏢 **건물 클릭 사이드패널** — 건물별 접근성 시설 정보(엘리베이터, 경사로 등) 표시
 - 📌 **시설 마커** — 지도 위 시설 위치 아이콘 표시, 유형별 필터링
+- 🏫 **캠퍼스 필터** — 인문·사회계 / 자연계 / 녹지캠퍼스 / 의료원 별 건물·마커 필터링
+- 📐 **경사도 오버레이** — 경로 구간별 경사도 색상 시각화 + 범례 (법적 기준 1/12 표시)
 - ⭐ **즐겨찾기** — 자주 찾는 건물 북마크 (localStorage 저장)
 - 🌐 **다국어 지원** — 한국어 / English / 中文 전환
 - 📱 **모바일 반응형** — 스마트폰 현장 조사 대응
+- 💬 **피드백 버튼** — 오류 제보·시설 정보 수정 요청 이메일 템플릿 제공
 
 ### 관리자
 - 🔒 **로그인 + 세션 유지** — Supabase Auth
 - 🏗️ **건물 추가** — 지도에서 직접 폴리곤 그려 신규 건물 등록
-- ✏️ **건물 상세 관리** — 시설 추가/수정/삭제, 사진 업로드, 폴리곤 편집
+- ✏️ **건물 상세 관리** — 시설 추가/수정/삭제, 사진 업로드, 영상 업로드, 폴리곤 편집
 - 🗑️ **건물 소프트 삭제/복구** — 철거 건물 비활성화 (sync 재추가 방지)
 - 🔄 **Overpass API 동기화** — 3개 서버 순차 시도 방어 로직
+- 📐 **경사도 데이터 관리** — 경사도 구간 등록·수정
+- ⚙️ **앱 설정 관리** — 피드백 수신 이메일 등 동적 설정
 
 ---
 
@@ -59,25 +64,55 @@
 src/
   app/
     page.js                        # 메인 지도 페이지
+    sitemap.js                     # Next.js 동적 사이트맵
     admin/
       page.js                      # 관리자 로그인
       dashboard/
-        page.js                    # 관리자 대시보드 (건물 목록)
+        layout.js                  # 관리자 대시보드 공통 레이아웃
+        page.js                    # 관리자 대시보드 홈
+        buildings/
+          page.js                  # 건물 목록 관리
+        slopes/
+          page.js                  # 경사도 구간 관리
       buildings/
         new/
           page.js                  # 신규 건물 추가 (폴리곤 직접 그리기)
         [id]/
-          page.js                  # 건물 상세 (시설 관리, 사진 업로드)
+          page.js                  # 건물 상세 (시설 관리, 사진·영상 업로드)
     api/
       buildings/
         route.js                   # Overpass API 호출 + 캐싱
       facilities/
         route.js                   # 시설 마커 데이터 API
-    auth/
-      confirm/
-        page.js                    # 초대 수락 후 비밀번호 설정
+      slopes/
+        route.js                   # 경사도 구간 데이터 API
+      upload-building-photo/
+        route.js                   # 건물 사진 업로드
+      delete-building-photo/
+        route.js                   # 건물 사진 삭제
+      facility-video-presign/
+        route.js                   # 시설 영상 S3 presigned URL 발급
+      facility-video-confirm/
+        route.js                   # 시설 영상 업로드 완료 확인
+      delete-facility-video/
+        route.js                   # 시설 영상 삭제
+      settings/
+        feedback-emails/
+          route.js                 # 피드백 수신 이메일 설정 API
   components/
-    Map.js                         # Leaflet 지도 메인 컴포넌트
+    map/
+      Map.js                       # Leaflet 지도 메인 컴포넌트
+      FilterPanel.js               # 캠퍼스·시설 유형·경사도 필터 패널
+      SearchControl.js             # 건물 검색 컨트롤
+      FavoritesList.js             # 즐겨찾기 목록
+      LanguageSwitcher.js          # 언어 전환 버튼
+      SlopeLayer.js                # 경사도 오버레이 레이어
+      SlopeLegend.js               # 경사도 범례
+      FeedbackButton.js            # 피드백 버튼 + 이메일 템플릿
+      facilityColors.js            # 시설 유형별 색상 매핑
+      subwayStations.js            # 지하철역 좌표 데이터
+    admin/
+      FeedbackEmailModal.js        # 피드백 이메일 설정 모달
     MapWrapper.js                  # dynamic import SSR 방지
     SidePanel.js                   # 건물 클릭 시 접근성 정보 패널
     FacilityMap.js                 # 시설 위치 찍는 미니 지도
@@ -88,6 +123,8 @@ src/
     supabaseClient.js              # Supabase 클라이언트
     LanguageContext.js             # 다국어 Context (KO/EN/ZH)
     translations.js                # UI 문자열 번역 딕셔너리
+    settings.js                    # 앱 설정 조회 헬퍼 (app_settings 테이블)
+    compressVideo.js               # 영상 업로드 전 압축 유틸
   scripts/
     syncBuildings.js               # Overpass → Supabase 건물 동기화 스크립트
 ```
@@ -102,7 +139,7 @@ buildings
   id           bigint primary key   -- OSM way id (수동 추가는 음수)
   name         text
   name_en      text
-  campus       text default '서울'
+  campus       text default '서울'  -- '인문사회계' | '자연계' | '녹지캠퍼스' | '의료원'
   photo_url    text
   geojson      jsonb                -- GeoJSON Feature (폴리곤)
   is_deleted   boolean default false
@@ -129,15 +166,27 @@ building_facilities
   name          text
   lat           double precision
   lng           double precision
+  video_url     text                -- 시설 영상 URL (S3)
   created_at    timestamptz
+
+-- 경사도 구간
+slope_segments
+  id        bigint primary key
+  name      text                    -- 구간 식별명
+  segments  jsonb                   -- GeoJSON LineString 배열 + 경사도 값
+
+-- 앱 동적 설정
+app_settings
+  key    text primary key
+  value  jsonb                      -- 예) feedback_emails: { to, cc, subject }
 ```
 
 ### RLS 정책
 
 | 역할 | 테이블 | 권한 |
 |---|---|---|
-| anon | buildings, building_facilities, facility_types | SELECT |
-| authenticated | buildings, building_facilities, facility_types | ALL |
+| anon | buildings, building_facilities, facility_types, slope_segments, app_settings | SELECT |
+| authenticated | buildings, building_facilities, facility_types, slope_segments, app_settings | ALL |
 
 ---
 
@@ -213,17 +262,22 @@ UI 고정 문자열은 `src/lib/translations.js`에서 관리합니다.
 - 현 위치 버튼
 - 건물 클릭 → SidePanel (접근성 정보, 사진, 즐겨찾기)
 - 시설 마커 지도 표시 + 유형별 필터 (DB 동적)
+- 캠퍼스 필터 (인문·사회계 / 자연계 / 녹지캠퍼스 / 의료원)
+- 경사도 오버레이 + 범례 (법적 기준 1/12 구분선)
 - 즐겨찾기 (클릭 시 줌 + 하이라이트)
 - 다국어 지원 KO / EN / ZH
 - 모바일 반응형 (검색창, 필터 칩, 언어버튼 위치 최적화)
 - 지하철역 마커 (고려대역, 안암역, 보문역)
+- 피드백 버튼 (이메일 템플릿 제공, 수신 주소 DB 동적 설정)
 
 **관리자**
 - 로그인 + 세션 유지
 - 대시보드 (건물 목록, 검색, 삭제됨 뱃지)
 - 건물 추가 (이름/영문명/캠퍼스 + 폴리곤 직접 그리기)
-- 건물 상세 (시설 추가/수정/삭제, 사진 업로드, 폴리곤 편집)
+- 건물 상세 (시설 추가/수정/삭제, 사진 업로드, 시설 영상 업로드, 폴리곤 편집)
 - 건물 소프트 삭제 / 복구 (`is_deleted` 플래그)
+- 경사도 구간 관리 (등록·수정)
+- 피드백 수신 이메일 동적 설정
 
 ### 🚧 남은 작업
 
