@@ -635,13 +635,34 @@ function PhotoManager({ buildingId, showToast }) {
     const original = photos.find((p) => p.id === photoId)?.caption ?? "";
     if (caption === original) return;
     setSavingCaption(photoId);
+
+    const updateData = { caption: caption || null, caption_en: null, caption_zh: null };
+
+    if (caption) {
+      try {
+        const res = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ texts: { caption } }),
+        });
+        if (!res.ok) throw new Error("translate failed");
+        const { en, zh } = await res.json();
+        updateData.caption_en = en.caption ?? null;
+        updateData.caption_zh = zh.caption ?? null;
+      } catch {
+        // 번역 실패해도 캡션 저장은 진행
+      }
+    }
+
     const { error } = await supabase
       .from("building_photos")
-      .update({ caption: caption || null })
+      .update(updateData)
       .eq("id", photoId);
     setSavingCaption(null);
     if (error) { showToast("캡션 저장 실패", "error"); return; }
-    setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, caption: caption || null } : p));
+    setPhotos((prev) =>
+      prev.map((p) => (p.id === photoId ? { ...p, ...updateData } : p)),
+    );
   }
 
   function convertToWebP(file) {
@@ -835,6 +856,7 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ texts }),
           });
+          if (!res.ok) throw new Error("translate failed");
           const { en, zh } = await res.json();
           await supabase.from("building_facilities").update({
             name_en: en.name ?? null,
