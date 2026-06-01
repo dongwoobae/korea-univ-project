@@ -806,16 +806,50 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
       return;
     }
     setSaving(true);
-    await supabase.from("building_facilities").insert({
-      building_id: buildingId,
-      facility_code: form.facility_code,
-      name: form.name || null,
-      description: form.description || null,
-      floor_info: form.floor_info || null,
-      is_installed: form.is_installed,
-      lat: form.lat ? parseFloat(form.lat) : null,
-      lng: form.lng ? parseFloat(form.lng) : null,
-    });
+
+    const { data: inserted } = await supabase
+      .from("building_facilities")
+      .insert({
+        building_id: buildingId,
+        facility_code: form.facility_code,
+        name: form.name || null,
+        description: form.description || null,
+        floor_info: form.floor_info || null,
+        is_installed: form.is_installed,
+        lat: form.lat ? parseFloat(form.lat) : null,
+        lng: form.lng ? parseFloat(form.lng) : null,
+      })
+      .select("id")
+      .single();
+
+    if (inserted) {
+      const texts = {};
+      if (form.name) texts.name = form.name;
+      if (form.description) texts.description = form.description;
+      if (form.floor_info) texts.floor_info = form.floor_info;
+
+      if (Object.keys(texts).length > 0) {
+        try {
+          const res = await fetch("/api/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ texts }),
+          });
+          const { en, zh } = await res.json();
+          await supabase.from("building_facilities").update({
+            name_en: en.name ?? null,
+            name_zh: zh.name ?? null,
+            description_en: en.description ?? null,
+            description_zh: zh.description ?? null,
+            floor_info_en: en.floor_info ?? null,
+            floor_info_zh: zh.floor_info ?? null,
+          }).eq("id", inserted.id);
+        } catch {
+          // 번역 실패해도 시설 저장은 완료
+        }
+      }
+    }
+
     setSaving(false);
     setOpen(false);
     setForm({
