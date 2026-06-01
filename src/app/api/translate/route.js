@@ -7,15 +7,15 @@ async function translateOne(text, target) {
   if (!text?.trim()) return text;
   try {
     const res = await fetch(
-      "https://naveropenapi.apigw.ntruss.com/nmt/v1/translation",
+      "https://papago.apigw.ntruss.com/nmt/v1/translation",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
+          "Content-Type": "application/json",
           "X-NCP-APIGW-API-KEY-ID": CLIENT_ID,
           "X-NCP-APIGW-API-KEY": CLIENT_SECRET,
         },
-        body: new URLSearchParams({ source: "ko", target, text }),
+        body: JSON.stringify({ source: "ko", target, text }),
         cache: "no-store",
       },
     );
