@@ -30,48 +30,53 @@ export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setA
           zIndex: 1000,
           background: "#fff",
           borderRadius: 10,
-          padding: "12px 14px",
+          padding: "14px 17px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
           borderWidth: 1,
           borderStyle: "solid",
           borderColor: "#e5e7eb",
-          minWidth: 160,
+          minWidth: 192,
         }}
       >
-        <button
-          onClick={() => setShowSlope((v) => !v)}
-          title={showSlope ? "경사도 숨기기" : "경사도 표시"}
-          style={{ display: "flex", alignItems: "center", gap: 4, width: "100%", marginBottom: 10, padding: "4px 0", borderRadius: 6, background: showSlope ? "#2563EB" : "transparent", border: "none", cursor: "pointer", fontSize: 12, color: showSlope ? "#fff" : "#555", fontWeight: 500, whiteSpace: "nowrap", justifyContent: "center" }}
+        <label
+          style={{ display: "flex", alignItems: "center", gap: 8, width: "100%", marginBottom: 12, cursor: "pointer" }}
         >
-          📐 경사도
-        </button>
-        <div style={{ borderTop: "1px solid #e5e7eb", marginBottom: 10 }} />
-        <div style={{ fontSize: 11, color: "#888", fontWeight: 600, marginBottom: 6 }}>캠퍼스</div>
+          <input
+            type="checkbox"
+            checked={showSlope}
+            onChange={() => setShowSlope((v) => !v)}
+            style={{ accentColor: "#2563EB", width: 17, height: 17 }}
+          />
+          <span style={{ fontSize: 17 }}>📐</span>
+          <span style={{ fontSize: 14, color: "#333", fontWeight: 500 }}>경사도</span>
+        </label>
+        <div style={{ borderTop: "1px solid #e5e7eb", marginBottom: 12 }} />
+        <div style={{ fontSize: 13, color: "#888", fontWeight: 600, marginBottom: 7 }}>캠퍼스</div>
         {CAMPUS_LIST.map((c) => (
           <label
             key={c.campus}
-            style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer", marginBottom: 6 }}
+            style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", marginBottom: 7 }}
           >
             <input
               type="checkbox"
               checked={activeCampuses?.[c.campus] ?? false}
               onChange={() => setActiveCampuses((prev) => ({ ...prev, [c.campus]: !prev[c.campus] }))}
-              style={{ accentColor: c.color, width: 14, height: 14 }}
+              style={{ accentColor: c.color, width: 17, height: 17 }}
             />
-            <span style={{ width: 10, height: 10, borderRadius: 2, background: c.color, display: "inline-block", flexShrink: 0 }} />
-            <span style={{ fontSize: 12, color: "#333" }}>{c.label}</span>
+            <span style={{ width: 12, height: 12, borderRadius: 2, background: c.color, display: "inline-block", flexShrink: 0 }} />
+            <span style={{ fontSize: 14, color: "#333" }}>{c.label}</span>
           </label>
         ))}
-        <div style={{ borderTop: "1px solid #e5e7eb", marginBottom: 10, marginTop: 4 }} />
+        <div style={{ borderTop: "1px solid #e5e7eb", marginBottom: 12, marginTop: 4 }} />
         {facilityTypes.map((ft, i) => (
           <label
             key={ft.code}
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 7,
+              gap: 8,
               cursor: "pointer",
-              marginBottom: i < facilityTypes.length - 1 ? 6 : 0,
+              marginBottom: i < facilityTypes.length - 1 ? 7 : 0,
             }}
           >
             <input
@@ -82,12 +87,12 @@ export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setA
               }
               style={{
                 accentColor: getFacilityColor(ft.code, i),
-                width: 14,
-                height: 14,
+                width: 17,
+                height: 17,
               }}
             />
-            <span style={{ fontSize: 14 }}>{ft.icon}</span>
-            <span style={{ fontSize: 12, color: "#333" }}>{getFacilityLabel(ft)}</span>
+            <span style={{ fontSize: 17 }}>{ft.icon}</span>
+            <span style={{ fontSize: 14, color: "#333" }}>{getFacilityLabel(ft)}</span>
           </label>
         ))}
       </div>
