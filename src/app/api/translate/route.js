@@ -1,20 +1,27 @@
 import { NextResponse } from "next/server";
 
-const EMAIL = process.env.TRANSLATE_EMAIL ?? "";
+const CLIENT_ID = process.env.PAPAGO_CLIENT_ID ?? "";
+const CLIENT_SECRET = process.env.PAPAGO_CLIENT_SECRET ?? "";
 
 async function translateOne(text, target) {
-  if (!text?.trim()) return "";
-  const url =
-    `https://api.mymemory.translated.net/get` +
-    `?q=${encodeURIComponent(text)}` +
-    `&langpair=ko|${target}` +
-    (EMAIL ? `&de=${encodeURIComponent(EMAIL)}` : "");
+  if (!text?.trim()) return text;
   try {
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(
+      "https://naveropenapi.apigw.ntruss.com/nmt/v1/translation",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-NCP-APIGW-API-KEY-ID": CLIENT_ID,
+          "X-NCP-APIGW-API-KEY": CLIENT_SECRET,
+        },
+        body: new URLSearchParams({ source: "ko", target, text }),
+        cache: "no-store",
+      },
+    );
     if (!res.ok) return text;
     const data = await res.json();
-    if (data.responseStatus !== 200) return text;
-    return data.responseData?.translatedText ?? text;
+    return data.message?.result?.translatedText ?? text;
   } catch {
     return text;
   }
@@ -33,7 +40,7 @@ export async function POST(request) {
     if (!value?.trim()) continue;
     [en[key], zh[key]] = await Promise.all([
       translateOne(value, "en"),
-      translateOne(value, "zh"),
+      translateOne(value, "zh-CN"),
     ]);
   }
 
