@@ -3,16 +3,30 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) *
-    Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+function buildGpx(name, points) {
+  const trkpts = points.map(p =>
+    `      <trkpt lat="${p.lat}" lon="${p.lng}"><ele>${p.ele}</ele></trkpt>`
+  ).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="KU Barrier-Free Map">
+  <trk>
+    <name>${name}</name>
+    <trkseg>
+${trkpts}
+    </trkseg>
+  </trk>
+</gpx>`;
+}
+
+function downloadGpx(route) {
+  const content = buildGpx(route.name, route.segments);
+  const blob = new Blob([content], { type: "application/gpx+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = route.gpx_file ?? `${route.name}.gpx`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function SlopesPage() {
@@ -59,20 +73,8 @@ export default function SlopesPage() {
         return;
       }
 
-      const segments = points.map((p, i) => {
-        if (i === 0) return { lat: p.lat, lng: p.lng, ele: p.ele, slope: 0, distance: 0 };
-        const prev = points[i - 1];
-        const dist = haversine(prev.lat, prev.lng, p.lat, p.lng);
-        const rawSlope = dist > 0 ? Math.abs((p.ele - prev.ele) / dist) * 100 : 0;
-        const slope = rawSlope > 30 ? 0 : rawSlope;
-        return {
-          lat: p.lat,
-          lng: p.lng,
-          ele: p.ele,
-          slope: Math.round(slope * 10) / 10,
-          distance: Math.round(dist * 10) / 10,
-        };
-      });
+      // 원본 포인트를 그대로 저장 — 경사도 계산은 렌더링 시 클라이언트에서 수행
+      const segments = points.map(p => ({ lat: p.lat, lng: p.lng, ele: p.ele }));
 
       const { error } = await supabase.from("slope_segments").insert({
         name,
@@ -178,20 +180,36 @@ export default function SlopesPage() {
                     )}
                   </div>
                 </div>
-                <button
-                  onClick={() => handleDelete(s.id, s.name)}
-                  style={{
-                    fontSize: 13,
-                    color: "#DC2626",
-                    background: "none",
-                    border: "1px solid #DC2626",
-                    borderRadius: 6,
-                    padding: "6px 12px",
-                    cursor: "pointer",
-                  }}
-                >
-                  삭제
-                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => downloadGpx(s)}
+                    style={{
+                      fontSize: 13,
+                      color: "#2563EB",
+                      background: "none",
+                      border: "1px solid #2563EB",
+                      borderRadius: 6,
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    다운로드
+                  </button>
+                  <button
+                    onClick={() => handleDelete(s.id, s.name)}
+                    style={{
+                      fontSize: 13,
+                      color: "#DC2626",
+                      background: "none",
+                      border: "1px solid #DC2626",
+                      borderRadius: 6,
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    삭제
+                  </button>
+                </div>
               </div>
             ))}
           </div>
