@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 const CLIENT_ID = process.env.PAPAGO_CLIENT_ID ?? "";
 const CLIENT_SECRET = process.env.PAPAGO_CLIENT_SECRET ?? "";
@@ -28,6 +29,9 @@ async function translateOne(text, target) {
 }
 
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
+
   const body = await request.json().catch(() => null);
   if (!body?.texts || typeof body.texts !== "object") {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });

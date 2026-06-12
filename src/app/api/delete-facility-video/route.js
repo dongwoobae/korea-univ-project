@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/requireAdmin";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -20,6 +21,9 @@ const BUCKET = process.env.CLOUDFLARE_R2_BUCKET_NAME;
 const PUBLIC_URL = process.env.CLOUDFLARE_R2_PUBLIC_URL;
 
 export async function POST(request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
+
   try {
     const { facilityId, videoUrl } = await request.json();
 

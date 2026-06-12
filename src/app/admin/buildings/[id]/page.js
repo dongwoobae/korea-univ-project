@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { authedFetch } from "@/lib/authedFetch";
 import { useRouter, useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
@@ -640,7 +641,7 @@ function PhotoManager({ buildingId, showToast }) {
 
     if (caption) {
       try {
-        const res = await fetch("/api/translate", {
+        const res = await authedFetch("/api/translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ texts: { caption } }),
@@ -709,7 +710,7 @@ function PhotoManager({ buildingId, showToast }) {
       formData.append("buildingId", buildingId);
 
       try {
-        const res = await fetch("/api/upload-building-photo", { method: "POST", body: formData });
+        const res = await authedFetch("/api/upload-building-photo", { method: "POST", body: formData });
         const data = await res.json();
         if (!res.ok || data.error) { showToast(`업로드 실패: ${data.error}`, "error"); continue; }
         successCount++;
@@ -723,7 +724,7 @@ function PhotoManager({ buildingId, showToast }) {
   }
 
   async function handleDelete(photo) {
-    const res = await fetch("/api/delete-building-photo", {
+    const res = await authedFetch("/api/delete-building-photo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ photoId: photo.id, url: photo.url }),
@@ -851,7 +852,7 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
 
       if (Object.keys(texts).length > 0) {
         try {
-          const res = await fetch("/api/translate", {
+          const res = await authedFetch("/api/translate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ texts }),
@@ -1114,7 +1115,7 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
 
     if (caption) {
       try {
-        const res = await fetch("/api/translate", {
+        const res = await authedFetch("/api/translate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ texts: { video_caption: caption } }),
@@ -1144,7 +1145,7 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
     try {
       // 1. Presigned URL 발급
       setPhase("preparing");
-      const presignRes = await fetch("/api/facility-video-presign", {
+      const presignRes = await authedFetch("/api/facility-video-presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ facilityId: facility.id, contentType: file.type, fileSize: file.size }),
@@ -1178,7 +1179,7 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       }
 
       // 3. DB에 URL 저장
-      const confirmRes = await fetch("/api/facility-video-confirm", {
+      const confirmRes = await authedFetch("/api/facility-video-confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ facilityId: facility.id, videoUrl: presignData.publicUrl }),
@@ -1204,7 +1205,7 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
   async function handleDelete() {
     setDeleting(true);
     try {
-      const res = await fetch("/api/delete-facility-video", {
+      const res = await authedFetch("/api/delete-facility-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ facilityId: facility.id, videoUrl: currentVideoUrl }),
