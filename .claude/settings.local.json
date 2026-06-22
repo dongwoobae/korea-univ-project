@@ -1,12 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3 -)",
-      "Bash(python -)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\dw581\\\\project\\\\korea-univ-project\" -Recurse -Depth 2)",
       "Bash(Select-Object -Property FullName, PSIsContainer)",
-      "Bash(npm install *)",
-      "Bash(npx next *)"
+      "Bash(node -e \"require\\('dotenv'\\).config\\({path:'.env.local'}\\); const {neon}=require\\('@neondatabase/serverless'\\); const sql=neon\\(process.env.DATABASE_URL\\); sql\\\\`SELECT column_name FROM information_schema.columns WHERE table_name='sermons' AND column_name IN \\('youtube_video_id','summary_status','summary_attempts','chapters','quick_summary'\\)\\\\`.then\\(r=>console.log\\('new cols in DB:', r.map\\(x=>x.column_name\\)\\)\\).catch\\(e=>console.log\\('ERR',e.message\\)\\)\")",
+      "Bash(npx vitest *)",
+      "Bash(git reset *)",
+      "Bash(git restore *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git add *)",
+      "Bash(npx tsc *)",
+      "Read(//c/Users/dw581/**)",
+      "Read(//c/Users/dw581/.claude/**)",
+      "Bash(codex --version)",
+      "PowerShell(& \"$env:USERPROFILE\\\\.claude\\\\scripts\\\\codex-ask.ps1\" -Write -PromptFile \"$env:TEMP\\\\codex-sermon-batch1.md\")",
+      "PowerShell(& \"$env:USERPROFILE\\\\.claude\\\\scripts\\\\codex-ask.ps1\" -Write -PromptFile \"$env:TEMP\\\\codex-sermon-batch2.md\")"
     ]
   }
 }
