@@ -396,6 +396,7 @@ export default function BuildingDetail() {
           {editingPolygon && (
             <PolygonEditor
               geojson={building?.geojson ?? null}
+              excludeId={id}
               onSave={async (newGeojson) => {
                 const { error } = await supabase
                   .from("buildings")
@@ -1001,6 +1002,7 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
             >
               <FacilityMap
                 center={buildingCenter}
+                highlightId={id}
                 markerPosition={
                   form.lat && form.lng
                     ? [parseFloat(form.lat), parseFloat(form.lng)]

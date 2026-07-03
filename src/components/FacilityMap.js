@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, GeoJSON, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { supabase } from "@/lib/supabaseClient";
 
 const markerIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -29,9 +30,31 @@ function MapInstanceCapture({ onReady }) {
   return null;
 }
 
-export default function FacilityMap({ center, markerPosition, onMapClick }) {
+export default function FacilityMap({ center, markerPosition, onMapClick, highlightId }) {
   const [map, setMap] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [buildingFeatures, setBuildingFeatures] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase
+      .from("buildings")
+      .select("id, name, geojson")
+      .eq("is_deleted", false)
+      .not("geojson", "is", null)
+      .then(({ data }) => {
+        if (cancelled) return;
+        setBuildingFeatures(
+          (data ?? [])
+            .filter((b) => b.geojson?.geometry)
+            .map((b) => ({
+              ...b.geojson,
+              properties: { ...(b.geojson.properties ?? {}), bid: b.id, name: b.name },
+            })),
+        );
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   function handleLocate() {
     if (!navigator.geolocation) return;
@@ -60,6 +83,27 @@ export default function FacilityMap({ center, markerPosition, onMapClick }) {
           attribution="&copy; OpenStreetMap &copy; CARTO"
           subdomains="abcd"
         />
+        {buildingFeatures && (
+          <GeoJSON
+            key={buildingFeatures.length}
+            data={{ type: "FeatureCollection", features: buildingFeatures }}
+            style={(f) =>
+              String(f.properties.bid) === String(highlightId ?? "")
+                ? { color: "#2563EB", weight: 2, fillColor: "#2563EB", fillOpacity: 0.15 }
+                : { color: "#9ca3af", weight: 1, fillColor: "#9ca3af", fillOpacity: 0.2 }
+            }
+            interactive={false}
+            onEachFeature={(f, layer) => {
+              if (f.properties?.name) {
+                layer.bindTooltip(f.properties.name, {
+                  permanent: true,
+                  direction: "center",
+                  className: "bldg-label",
+                });
+              }
+            }}
+          />
+        )}
         <MapInstanceCapture onReady={setMap} />
         <ClickHandler onMapClick={onMapClick} />
         {markerPosition && <Marker position={markerPosition} icon={markerIcon} />}

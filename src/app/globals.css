@@ -51,6 +51,19 @@ a {
   background-image: none;
 }
 
+/* admin 지도 배경 건물명 라벨 */
+.bldg-label {
+  background: none;
+  border: none;
+  box-shadow: none;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+}
+.bldg-label::before {
+  display: none;
+}
+
 @keyframes shimmer {
   0%   { transform: translateX(-150%); }
   100% { transform: translateX(350%); }

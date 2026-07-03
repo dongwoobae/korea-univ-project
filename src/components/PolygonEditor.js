@@ -5,8 +5,9 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
+import { supabase } from "@/lib/supabaseClient";
 
-export default function PolygonEditor({ geojson, onSave, onCancel }) {
+export default function PolygonEditor({ geojson, onSave, onCancel, excludeId }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const drawnItemsRef = useRef(null);
@@ -35,6 +36,39 @@ export default function PolygonEditor({ geojson, onSave, onCancel }) {
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
     drawnItemsRef.current = drawnItems;
+
+    // 기존 건물들을 회색 배경 레이어로 표시 (편집 대상 제외, 클릭 통과)
+    let cancelled = false;
+    supabase
+      .from("buildings")
+      .select("id, name, geojson")
+      .eq("is_deleted", false)
+      .not("geojson", "is", null)
+      .then(({ data }) => {
+        if (cancelled || !mapRef.current) return;
+        const features = (data ?? [])
+          .filter((b) => b.geojson?.geometry && String(b.id) !== String(excludeId ?? ""))
+          .map((b) => ({
+            ...b.geojson,
+            properties: { ...(b.geojson.properties ?? {}), name: b.name },
+          }));
+        L.geoJSON(
+          { type: "FeatureCollection", features },
+          {
+            style: { color: "#9ca3af", weight: 1, fillColor: "#9ca3af", fillOpacity: 0.25 },
+            interactive: false,
+            onEachFeature: (f, layer) => {
+              if (f.properties?.name) {
+                layer.bindTooltip(f.properties.name, {
+                  permanent: true,
+                  direction: "center",
+                  className: "bldg-label",
+                });
+              }
+            },
+          },
+        ).addTo(map);
+      });
 
     if (geojson) {
       const layer = L.geoJSON(geojson, {
@@ -68,6 +102,7 @@ export default function PolygonEditor({ geojson, onSave, onCancel }) {
     });
 
     return () => {
+      cancelled = true;
       map.remove();
       mapRef.current = null;
     };
