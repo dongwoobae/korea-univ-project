@@ -387,6 +387,11 @@ export default function Map() {
         )}
       </MapContainer>
 
+      {/* 고려대학교 사회공헌원 로고 */}
+      <div style={{ position: "absolute", bottom: "calc(22px + env(safe-area-inset-bottom, 0px))", right: 10, zIndex: 1000, background: "rgba(255,255,255,0.85)", borderRadius: 6, padding: "4px 8px", pointerEvents: "none", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", display: "flex", alignItems: "center" }}>
+        <img src="/kuis-logo.png" alt="고려대학교 사회공헌원 KU Institute for Sustainability" style={{ height: isMobile ? 20 : 28, display: "block" }} />
+      </div>
+
       {/* 항공사진 출처 라벨 */}
       {tileMode === "satellite" && (
         <div style={{ position: "absolute", bottom: "calc(132px + env(safe-area-inset-bottom, 0px))", right: 10, zIndex: 1000, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 10, padding: "3px 7px", borderRadius: 4, pointerEvents: "none", whiteSpace: "nowrap" }}>
