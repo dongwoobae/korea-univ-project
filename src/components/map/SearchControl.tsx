@@ -2,18 +2,35 @@
 import { useEffect, useState, useRef } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
+import type { Feature } from "geojson";
 import { useLanguage } from "@/lib/LanguageContext";
 
 const VOICE_LANG_MAP = { ko: "ko-KR", en: "en-US", zh: "zh-CN" };
+
+/** 브라우저 SpeechRecognition API 최소 형상 (표준 DOM 타입에 없음) */
+interface SpeechRecognitionLike {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+  onresult: (ev: {
+    results: ArrayLike<ArrayLike<{ transcript: string }>>;
+  }) => void;
+  start(): void;
+  stop(): void;
+}
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 
 export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
   const map = useMap();
   const { lang, t } = useLanguage();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Feature[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
     if (!geoData || query.trim() === "") {
@@ -47,9 +64,11 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
 
   function handleVoiceSearch(e) {
     e.preventDefault();
-    const SpeechRecognition =
-      (window as any).SpeechRecognition ||
-      (window as any).webkitSpeechRecognition;
+    const w = window as unknown as {
+      SpeechRecognition?: SpeechRecognitionCtor;
+      webkitSpeechRecognition?: SpeechRecognitionCtor;
+    };
+    const SpeechRecognition = w.SpeechRecognition || w.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert(t("voiceNotSupported"));
       return;
@@ -152,7 +171,7 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
         >
           {results.map((f) => (
             <li
-              key={f.properties.id}
+              key={f.properties?.id}
               onMouseDown={() => handleSelect(f)}
               style={{
                 padding: isMobile ? "12px 14px" : "9px 14px",
@@ -169,8 +188,8 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
             >
               {lang === "ko"
-                ? f.properties.name
-                : (f.properties.name_en ?? f.properties.name)}
+                ? f.properties?.name
+                : (f.properties?.name_en ?? f.properties?.name)}
             </li>
           ))}
         </ul>

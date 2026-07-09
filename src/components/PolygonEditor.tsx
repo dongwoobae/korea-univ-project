@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
+import type { Feature, FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
@@ -54,34 +55,37 @@ export default function PolygonEditor({
         const features = (data ?? [])
           .filter(
             (b) =>
-              (b.geojson as any)?.geometry &&
+              (b.geojson as unknown as Feature | null)?.geometry &&
               String(b.id) !== String(excludeId ?? ""),
           )
           .map((b) => {
-            const g = b.geojson as any;
+            const g = b.geojson as unknown as Feature;
             return {
               ...g,
               properties: { ...(g.properties ?? {}), name: b.name },
             };
           });
-        L.geoJSON({ type: "FeatureCollection", features } as any, {
-          style: {
-            color: "#9ca3af",
-            weight: 1,
-            fillColor: "#9ca3af",
-            fillOpacity: 0.25,
+        L.geoJSON(
+          { type: "FeatureCollection", features } as FeatureCollection,
+          {
+            style: {
+              color: "#9ca3af",
+              weight: 1,
+              fillColor: "#9ca3af",
+              fillOpacity: 0.25,
+            },
+            interactive: false,
+            onEachFeature: (f, layer) => {
+              if (f.properties?.name) {
+                layer.bindTooltip(f.properties.name, {
+                  permanent: true,
+                  direction: "center",
+                  className: "bldg-label",
+                });
+              }
+            },
           },
-          interactive: false,
-          onEachFeature: (f, layer) => {
-            if (f.properties?.name) {
-              layer.bindTooltip(f.properties.name, {
-                permanent: true,
-                direction: "center",
-                className: "bldg-label",
-              });
-            }
-          },
-        }).addTo(map);
+        ).addTo(map);
       });
 
     if (geojson) {
@@ -90,8 +94,8 @@ export default function PolygonEditor({
       });
       layer.eachLayer((l) => {
         drawnItems.addLayer(l);
-        (l as any).pm.enable({ allowSelfIntersection: false });
-        (l as any).pm.disable();
+        (l as L.Path).pm.enable({ allowSelfIntersection: false });
+        (l as L.Path).pm.disable();
       });
     }
 
@@ -128,7 +132,7 @@ export default function PolygonEditor({
       alert("폴리곤을 그려주세요");
       return;
     }
-    onSave((layers[0] as any).toGeoJSON());
+    onSave((layers[0] as L.Polygon).toGeoJSON());
   }
 
   return (

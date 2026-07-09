@@ -2,6 +2,7 @@
 
 import { Marker, Popup } from "react-leaflet";
 import L from "leaflet";
+import type { MapFacility } from "@/types/domain";
 import { FACILITY_COLORS } from "./facilityColors";
 
 const facilityMarkerIcon = (code: string, icon: string) =>
@@ -13,7 +14,7 @@ const facilityMarkerIcon = (code: string, icon: string) =>
   });
 
 interface FacilityMarkersProps {
-  facilities: any[];
+  facilities: MapFacility[];
   activeTypes: Record<string, boolean>;
 }
 
@@ -24,14 +25,15 @@ export default function FacilityMarkers({
   return (
     <>
       {facilities
-        .filter((f) => activeTypes[f.facility_types?.code])
+        .filter((f) => activeTypes[f.facility_types?.code ?? ""])
         .map((f) => (
           <Marker
             key={f.id}
-            position={[f.lat, f.lng]}
+            // lat/lng는 /api/facilities에서 not-null 필터를 거쳐 항상 존재
+            position={[f.lat!, f.lng!]}
             icon={facilityMarkerIcon(
-              f.facility_types?.code,
-              f.facility_types?.icon,
+              f.facility_types?.code ?? "",
+              f.facility_types?.icon ?? "",
             )}
             zIndexOffset={500}
           >

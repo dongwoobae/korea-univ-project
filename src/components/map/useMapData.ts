@@ -1,21 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { FeatureCollection } from "geojson";
 import { supabase } from "@/lib/supabaseClient";
-import type { FacilityType } from "@/types/domain";
+import type { FacilityType, MapFacility, SlopeSegment } from "@/types/domain";
 
 /**
  * 지도에 필요한 원격 데이터(건물 GeoJSON·시설·시설유형·경사·캠퍼스 경계)를
  * 로드하는 훅. 지도 상호작용 로직(refs/이벤트)과 분리하기 위해 추출.
  */
 export function useMapData() {
-  const [geoData, setGeoData] = useState<any>(null);
+  const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
   const [loadingMap, setLoadingMap] = useState(true);
-  const [facilities, setFacilities] = useState<any[]>([]);
+  const [facilities, setFacilities] = useState<MapFacility[]>([]);
   const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
   const [activeTypes, setActiveTypes] = useState<Record<string, boolean>>({});
-  const [slopes, setSlopes] = useState<any[]>([]);
-  const [campusBoundaries, setCampusBoundaries] = useState<any>(null);
+  const [slopes, setSlopes] = useState<SlopeSegment[]>([]);
+  const [campusBoundaries, setCampusBoundaries] =
+    useState<FeatureCollection | null>(null);
 
   useEffect(() => {
     setLoadingMap(true);

@@ -9,7 +9,9 @@ import {
   ZoomControl,
 } from "react-leaflet";
 import L from "leaflet";
+import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
+import type { Favorite } from "@/types/domain";
 import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -100,7 +102,7 @@ export default function Map() {
     name: string;
   } | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
-  const [favoritesList, setFavoritesList] = useState<any[]>([]);
+  const [favoritesList, setFavoritesList] = useState<Favorite[]>([]);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -116,9 +118,9 @@ export default function Map() {
   const { lang, setLang, t } = useLanguage();
 
   const mapRef = useRef<L.Map | null>(null);
-  const activeLayerRef = useRef<any>(null);
+  const activeLayerRef = useRef<L.Polygon | null>(null);
   const activeBuildingIdRef = useRef<number | null>(null);
-  const layerMapRef = useRef<Record<number, any>>({});
+  const layerMapRef = useRef<Record<number, L.Polygon>>({});
   const favoriteIdsRef = useRef(
     new Set(loadFavoritesFromStorage().map((f) => f.id)),
   );
@@ -176,9 +178,7 @@ export default function Map() {
         const numId = Number(id);
         const isFav = favoriteIdsRef.current.has(numId);
         const isActive = activeBuildingIdRef.current === numId;
-        (layer as any).setStyle(
-          isActive ? hoverStyle(isFav) : baseStyle(isFav),
-        );
+        layer.setStyle(isActive ? hoverStyle(isFav) : baseStyle(isFav));
       });
     };
     window.addEventListener("favoritesUpdated", handler);
@@ -359,10 +359,13 @@ export default function Map() {
             data={
               {
                 type: "FeatureCollection",
-                features: (campusBoundaries as any).features.filter(
-                  (f) => activeCampuses[f.properties.campus],
+                features: campusBoundaries.features.filter(
+                  (f) =>
+                    activeCampuses[
+                      f.properties?.campus as keyof typeof activeCampuses
+                    ],
                 ),
-              } as any
+              } as FeatureCollection
             }
             style={(feature) => ({
               color: feature?.properties?.color,

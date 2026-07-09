@@ -8,11 +8,10 @@ const eslintConfig = defineConfig([
   ...nextTs,
   // Prettier와 충돌하는 포맷 관련 규칙 비활성화 (포맷은 Prettier가 담당).
   prettier,
-  // tsx 마이그레이션 직후 대량 발생하는 규칙은 warn으로 완화(CI 차단 방지, 가시성 유지).
-  // 추후 점진적으로 error 복원 예정.
+  // React 19의 새 엄격 규칙은 동작하는 기존 코드를 다수 지적 → warn으로 완화
+  // (CI 차단 방지, 가시성 유지). no-explicit-any는 전부 제거 완료하여 error 유지.
   {
     rules: {
-      "@typescript-eslint/no-explicit-any": "warn",
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/immutability": "warn",
     },

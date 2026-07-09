@@ -35,9 +35,10 @@ export async function compressVideo(file, onProgress, onPhase) {
   const ff = await getFFmpeg();
   onPhase?.("compressing");
 
-  ff.on("progress", ({ progress }) => {
+  const handleProgress = ({ progress }: { progress: number }) => {
     onProgress?.(Math.min(99, Math.round(progress * 100)));
-  });
+  };
+  ff.on("progress", handleProgress);
 
   const inputName = "input" + file.name.slice(file.name.lastIndexOf("."));
   await ff.writeFile(inputName, await fetchFile(file));
@@ -66,7 +67,7 @@ export async function compressVideo(file, onProgress, onPhase) {
 
   await ff.deleteFile(inputName);
   await ff.deleteFile("output.mp4");
-  (ff as any).off("progress");
+  ff.off("progress", handleProgress);
 
   onProgress?.(100);
   return new Blob([data as unknown as BlobPart], { type: "video/mp4" });

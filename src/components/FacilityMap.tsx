@@ -10,6 +10,7 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
+import type { Feature, FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -47,7 +48,9 @@ export default function FacilityMap({
 }) {
   const [map, setMap] = useState<L.Map | null>(null);
   const [locating, setLocating] = useState(false);
-  const [buildingFeatures, setBuildingFeatures] = useState<any[] | null>(null);
+  const [buildingFeatures, setBuildingFeatures] = useState<Feature[] | null>(
+    null,
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -60,9 +63,9 @@ export default function FacilityMap({
         if (cancelled) return;
         setBuildingFeatures(
           (data ?? [])
-            .filter((b) => (b.geojson as any)?.geometry)
+            .filter((b) => (b.geojson as unknown as Feature | null)?.geometry)
             .map((b) => {
-              const g = b.geojson as any;
+              const g = b.geojson as unknown as Feature;
               return {
                 ...g,
                 properties: {
@@ -110,7 +113,10 @@ export default function FacilityMap({
           <GeoJSON
             key={buildingFeatures.length}
             data={
-              { type: "FeatureCollection", features: buildingFeatures } as any
+              {
+                type: "FeatureCollection",
+                features: buildingFeatures,
+              } as FeatureCollection
             }
             style={(f) =>
               String(f?.properties?.bid) === String(highlightId ?? "")

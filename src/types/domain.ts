@@ -37,3 +37,14 @@ export type FacilityWithType = Facility & {
 export type BuildingWithCollege = Building & {
   colleges: Partial<Pick<College, "name" | "name_en" | "name_zh">> | null;
 };
+
+/** /api/facilities 응답 — 시설 Row + 조인된 유형/건물명 */
+export type MapFacility = FacilityWithType & {
+  buildings: Partial<Pick<Building, "name">> | null;
+};
+
+/** localStorage("ku_favorites")에 저장되는 즐겨찾기 항목 */
+export interface Favorite {
+  id: number;
+  name: string;
+}

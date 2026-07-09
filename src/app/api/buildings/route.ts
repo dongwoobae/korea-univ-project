@@ -80,8 +80,18 @@ export async function GET(request) {
   return Response.json(featureCollection);
 }
 
+interface OverpassElement {
+  id: number;
+  tags: Record<string, string>;
+  geometry: { lat: number; lon: number }[];
+}
+
+interface OverpassResponse {
+  elements: OverpassElement[];
+}
+
 async function handleSync() {
-  let data: any = null;
+  let data: OverpassResponse | null = null;
 
   for (const server of OVERPASS_SERVERS) {
     try {

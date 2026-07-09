@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import type {
   Building,
+  BuildingPhoto,
   FacilityWithType,
   FacilityType,
   College,
@@ -56,9 +57,12 @@ export default function BuildingDetail() {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
-  const [confirmModal, setConfirmModal] = useState<any>(null); // { facilityId }
+  const [confirmModal, setConfirmModal] = useState<{
+    facilityId: string;
+  } | null>(null);
   const [confirmDeleteBuilding, setConfirmDeleteBuilding] = useState(false);
-  const [videoModalFacility, setVideoModalFacility] = useState<any>(null);
+  const [videoModalFacility, setVideoModalFacility] =
+    useState<FacilityWithType | null>(null);
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -656,7 +660,7 @@ export default function BuildingDetail() {
           facility={videoModalFacility}
           onUpdate={() => {
             fetchData();
-            setVideoModalFacility((f) => ({ ...f }));
+            setVideoModalFacility((f) => (f ? { ...f } : null));
           }}
           showToast={showToast}
           onClose={() => setVideoModalFacility(null)}
@@ -667,13 +671,14 @@ export default function BuildingDetail() {
 }
 
 function PhotoManager({ buildingId, showToast }) {
-  const [photos, setPhotos] = useState<any[]>([]);
+  const [photos, setPhotos] = useState<BuildingPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState<any>(null);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] =
+    useState<BuildingPhoto | null>(null);
   const [draftCaptions, setDraftCaptions] = useState<Record<string, string>>(
     {},
   );
-  const [savingCaption, setSavingCaption] = useState<any>(null);
+  const [savingCaption, setSavingCaption] = useState<number | null>(null);
 
   useEffect(() => {
     fetchPhotos();
