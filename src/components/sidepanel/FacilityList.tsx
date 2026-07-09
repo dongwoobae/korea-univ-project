@@ -7,7 +7,9 @@ interface FacilityListProps {
   loading: boolean;
   facilities: FacilityWithType[];
   lang: LangCode;
-  getFacilityLabel: (facilityTypes: FacilityWithType["facility_types"]) => string;
+  getFacilityLabel: (
+    facilityTypes: FacilityWithType["facility_types"],
+  ) => string;
   lastUpdated: string | null | undefined;
   t: (key: string) => string;
 }
@@ -86,16 +88,22 @@ export default function FacilityList({
                   <div style={{ fontSize: 13, fontWeight: 500, color: "#222" }}>
                     {lang === "ko"
                       ? (f.name ?? getFacilityLabel(f.facility_types))
-                      : (f[`name_${lang}`] ?? f.name ?? getFacilityLabel(f.facility_types))}
+                      : (f[`name_${lang}`] ??
+                        f.name ??
+                        getFacilityLabel(f.facility_types))}
                   </div>
                   {f.description && (
                     <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                      {lang === "ko" ? f.description : (f[`description_${lang}`] ?? f.description)}
+                      {lang === "ko"
+                        ? f.description
+                        : (f[`description_${lang}`] ?? f.description)}
                     </div>
                   )}
                   {f.floor_info && (
                     <div style={{ fontSize: 12, color: "#888" }}>
-                      {lang === "ko" ? f.floor_info : (f[`floor_info_${lang}`] ?? f.floor_info)}
+                      {lang === "ko"
+                        ? f.floor_info
+                        : (f[`floor_info_${lang}`] ?? f.floor_info)}
                     </div>
                   )}
                 </div>

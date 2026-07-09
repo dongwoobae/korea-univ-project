@@ -33,23 +33,39 @@ export async function POST(request) {
     const facilityId = formData.get("facilityId");
 
     if (!file || !facilityId) {
-      return NextResponse.json({ error: "파일 또는 시설 ID 누락" }, { status: 400 });
+      return NextResponse.json(
+        { error: "파일 또는 시설 ID 누락" },
+        { status: 400 },
+      );
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json({ error: "mp4, webm, mov 형식만 업로드 가능해요" }, { status: 400 });
+      return NextResponse.json(
+        { error: "mp4, webm, mov 형식만 업로드 가능해요" },
+        { status: 400 },
+      );
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
     if (buffer.length > MAX_SIZE) {
-      return NextResponse.json({ error: "파일 크기는 200MB 이하여야 해요" }, { status: 400 });
+      return NextResponse.json(
+        { error: "파일 크기는 200MB 이하여야 해요" },
+        { status: 400 },
+      );
     }
 
-    const ext = file.type === "video/webm" ? "webm" : file.type === "video/quicktime" ? "mov" : "mp4";
+    const ext =
+      file.type === "video/webm"
+        ? "webm"
+        : file.type === "video/quicktime"
+          ? "mov"
+          : "mp4";
     const key = `facility-videos/${facilityId}/${Date.now()}.${ext}`;
 
-    console.log(`[upload-facility-video] facilityId=${facilityId} size=${buffer.length} key=${key}`);
+    console.log(
+      `[upload-facility-video] facilityId=${facilityId} size=${buffer.length} key=${key}`,
+    );
 
     await r2.send(
       new PutObjectCommand({

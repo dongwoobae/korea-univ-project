@@ -9,10 +9,21 @@ export const FACILITY_COLORS: Record<FacilityCode, string> = {
 };
 
 const FALLBACK_PALETTE = [
-  "#0891B2", "#BE185D", "#15803D", "#B45309", "#6D28D9",
-  "#0F766E", "#C2410C", "#1D4ED8", "#7E22CE", "#047857",
+  "#0891B2",
+  "#BE185D",
+  "#15803D",
+  "#B45309",
+  "#6D28D9",
+  "#0F766E",
+  "#C2410C",
+  "#1D4ED8",
+  "#7E22CE",
+  "#047857",
 ];
 
 export function getFacilityColor(code: string, index: number): string {
-  return FACILITY_COLORS[code as FacilityCode] ?? FALLBACK_PALETTE[index % FALLBACK_PALETTE.length];
+  return (
+    FACILITY_COLORS[code as FacilityCode] ??
+    FALLBACK_PALETTE[index % FALLBACK_PALETTE.length]
+  );
 }

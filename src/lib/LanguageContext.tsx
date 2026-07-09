@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  type ReactNode,
+} from "react";
 import { translations, type LangCode } from "@/lib/translations";
 
 interface LanguageContextValue {
@@ -31,7 +37,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, newLang);
   }
 
-  const t = (key: string) => translations[lang]?.[key] ?? translations.ko[key] ?? key;
+  const t = (key: string) =>
+    translations[lang]?.[key] ?? translations.ko[key] ?? key;
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t }}>

@@ -17,13 +17,18 @@ export async function POST(request) {
     const buildingId = formData.get("buildingId");
 
     if (!file || !buildingId) {
-      return NextResponse.json({ error: "파일 또는 건물 ID 누락" }, { status: 400 });
+      return NextResponse.json(
+        { error: "파일 또는 건물 ID 누락" },
+        { status: 400 },
+      );
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `${buildingId}/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
 
-    console.log(`[upload-building-photo] buildingId=${buildingId} size=${buffer.length}`);
+    console.log(
+      `[upload-building-photo] buildingId=${buildingId} size=${buffer.length}`,
+    );
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from("building-photos")

@@ -36,21 +36,22 @@ create policy "auth all" on slope_segments
 
 ## 파일 구조
 
-| 동작 | 파일 | 역할 |
-|------|------|------|
-| 생성 | `src/app/api/slopes/route.js` | GET `/api/slopes` — slope_segments 전체 조회 |
-| 생성 | `src/components/SlopeLayer.js` | Leaflet Polyline 경사도 레이어 컴포넌트 |
-| 생성 | `src/app/admin/dashboard/layout.js` | 대시보드 공통 헤더 + 사이드바 레이아웃 |
+| 동작 | 파일                                        | 역할                                                         |
+| ---- | ------------------------------------------- | ------------------------------------------------------------ |
+| 생성 | `src/app/api/slopes/route.js`               | GET `/api/slopes` — slope_segments 전체 조회                 |
+| 생성 | `src/components/SlopeLayer.js`              | Leaflet Polyline 경사도 레이어 컴포넌트                      |
+| 생성 | `src/app/admin/dashboard/layout.js`         | 대시보드 공통 헤더 + 사이드바 레이아웃                       |
 | 생성 | `src/app/admin/dashboard/buildings/page.js` | 건물 관리 (기존 dashboard/page.js 내용 이동, 헤더·인증 제거) |
-| 수정 | `src/app/admin/dashboard/page.js` | `/admin/dashboard/buildings` redirect로 교체 |
-| 생성 | `src/app/admin/dashboard/slopes/page.js` | GPX 업로드 + 경사도 경로 목록 관리 |
-| 수정 | `src/components/Map.js` | 경사도 토글 버튼 + SlopeLayer 렌더 추가 |
+| 수정 | `src/app/admin/dashboard/page.js`           | `/admin/dashboard/buildings` redirect로 교체                 |
+| 생성 | `src/app/admin/dashboard/slopes/page.js`    | GPX 업로드 + 경사도 경로 목록 관리                           |
+| 수정 | `src/components/Map.js`                     | 경사도 토글 버튼 + SlopeLayer 렌더 추가                      |
 
 ---
 
 ## Task 1: GET /api/slopes API 라우트
 
 **Files:**
+
 - Create: `src/app/api/slopes/route.js`
 
 - [ ] **Step 1: 파일 생성**
@@ -64,7 +65,8 @@ export async function GET() {
   const { data, error } = await supabase
     .from("slope_segments")
     .select("id, name, segments");
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data ?? []);
 }
 ```
@@ -90,9 +92,11 @@ git commit -m "feat: add GET /api/slopes route"
 ## Task 2: SlopeLayer 컴포넌트
 
 **Files:**
+
 - Create: `src/components/SlopeLayer.js`
 
 경사도 기준:
+
 - `slope < 5%` → `#22c55e` (녹색, 통행 가능)
 - `5% ≤ slope < 8%` → `#facc15` (노란색, 주의)
 - `slope ≥ 8%` → `#ef4444` (빨간색, 통행 어려움)
@@ -153,9 +157,11 @@ git commit -m "feat: add SlopeLayer polyline component"
 ## Task 3: 대시보드 공통 layout.js
 
 **Files:**
+
 - Create: `src/app/admin/dashboard/layout.js`
 
 layout.js가 담당:
+
 - Supabase 인증 체크 (미인증 시 `/admin` redirect)
 - 공통 헤더 (타이틀, 이메일, 지도 보기, 로그아웃)
 - 사이드바/탭 내비게이션
@@ -194,7 +200,10 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { router.push("/admin"); return; }
+      if (!user) {
+        router.push("/admin");
+        return;
+      }
       setUser(user);
       setAuthChecked(true);
     });
@@ -207,17 +216,24 @@ export default function DashboardLayout({ children }) {
 
   if (!authChecked) {
     return (
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        minHeight: "100vh", color: "#aaa", fontSize: 14,
-      }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "100vh",
+          color: "#aaa",
+          fontSize: 14,
+        }}
+      >
         불러오는 중...
       </div>
     );
   }
 
   const navItems = NAV.map((item) => {
-    const active = pathname === item.href || pathname.startsWith(item.href + "/");
+    const active =
+      pathname === item.href || pathname.startsWith(item.href + "/");
     return (
       <Link
         key={item.href}
@@ -241,18 +257,24 @@ export default function DashboardLayout({ children }) {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+    <div
+      style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+    >
       {/* 헤더 */}
-      <div style={{
-        background: "#fff",
-        borderBottom: "1px solid #e5e7eb",
-        padding: "16px 24px",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        flexShrink: 0,
-      }}>
-        <div style={{ fontSize: 18, fontWeight: 600 }}>모두의 캠퍼스 — 관리자</div>
+      <div
+        style={{
+          background: "#fff",
+          borderBottom: "1px solid #e5e7eb",
+          padding: "16px 24px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexShrink: 0,
+        }}
+      >
+        <div style={{ fontSize: 18, fontWeight: 600 }}>
+          모두의 캠퍼스 — 관리자
+        </div>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           {!isMobile && (
             <span style={{ fontSize: 13, color: "#888" }}>{user?.email}</span>
@@ -260,9 +282,13 @@ export default function DashboardLayout({ children }) {
           <button
             onClick={() => router.push("/")}
             style={{
-              fontSize: 13, color: "#2563EB", background: "none",
-              border: "1px solid #2563EB", borderRadius: 6,
-              padding: "6px 12px", cursor: "pointer",
+              fontSize: 13,
+              color: "#2563EB",
+              background: "none",
+              border: "1px solid #2563EB",
+              borderRadius: 6,
+              padding: "6px 12px",
+              cursor: "pointer",
             }}
           >
             ← 지도 보기
@@ -270,9 +296,13 @@ export default function DashboardLayout({ children }) {
           <button
             onClick={handleLogout}
             style={{
-              fontSize: 13, color: "#DC2626", background: "none",
-              border: "1px solid #DC2626", borderRadius: 6,
-              padding: "6px 12px", cursor: "pointer",
+              fontSize: 13,
+              color: "#DC2626",
+              background: "none",
+              border: "1px solid #DC2626",
+              borderRadius: 6,
+              padding: "6px 12px",
+              cursor: "pointer",
             }}
           >
             로그아웃
@@ -283,13 +313,15 @@ export default function DashboardLayout({ children }) {
       <div style={{ display: "flex", flex: 1 }}>
         {/* 데스크탑: 사이드바 */}
         {!isMobile && (
-          <div style={{
-            width: 200,
-            background: "#fff",
-            borderRight: "1px solid #e5e7eb",
-            padding: 16,
-            flexShrink: 0,
-          }}>
+          <div
+            style={{
+              width: 200,
+              background: "#fff",
+              borderRight: "1px solid #e5e7eb",
+              padding: 16,
+              flexShrink: 0,
+            }}
+          >
             {navItems}
           </div>
         )}
@@ -297,21 +329,21 @@ export default function DashboardLayout({ children }) {
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           {/* 모바일: 탭바 */}
           {isMobile && (
-            <div style={{
-              background: "#fff",
-              borderBottom: "1px solid #e5e7eb",
-              padding: "8px 16px",
-              display: "flex",
-              gap: 8,
-            }}>
+            <div
+              style={{
+                background: "#fff",
+                borderBottom: "1px solid #e5e7eb",
+                padding: "8px 16px",
+                display: "flex",
+                gap: 8,
+              }}
+            >
               {navItems}
             </div>
           )}
 
           {/* 콘텐츠 */}
-          <div style={{ flex: 1, background: "#f5f5f5" }}>
-            {children}
-          </div>
+          <div style={{ flex: 1, background: "#f5f5f5" }}>{children}</div>
         </div>
       </div>
     </div>
@@ -337,6 +369,7 @@ git commit -m "feat: add admin dashboard layout with sidebar nav"
 기존 `dashboard/page.js`에서 헤더 JSX(lines 84-102)와 `user` 상태, auth 체크 제거. `SummaryCard` 컴포넌트 함께 이동. `handleLogout` 제거 (layout이 처리).
 
 **Files:**
+
 - Create: `src/app/admin/dashboard/buildings/page.js`
 
 - [ ] **Step 1: 파일 생성**
@@ -377,8 +410,12 @@ export default function BuildingsPage() {
   const stats = useMemo(() => {
     const activeBuildings = buildings.filter((b) => !b.is_deleted);
     const registeredIds = new Set(facilities.map((f) => f.building_id));
-    const registeredCount = activeBuildings.filter((b) => registeredIds.has(b.id)).length;
-    const unregisteredCount = activeBuildings.filter((b) => !registeredIds.has(b.id)).length;
+    const registeredCount = activeBuildings.filter((b) =>
+      registeredIds.has(b.id),
+    ).length;
+    const unregisteredCount = activeBuildings.filter(
+      (b) => !registeredIds.has(b.id),
+    ).length;
 
     const typeCounts = {};
     for (const f of facilities) {
@@ -391,7 +428,14 @@ export default function BuildingsPage() {
 
     const maxCount = typeBreakdown[0]?.count ?? 1;
 
-    return { activeBuildings, registeredIds, registeredCount, unregisteredCount, typeBreakdown, maxCount };
+    return {
+      activeBuildings,
+      registeredIds,
+      registeredCount,
+      unregisteredCount,
+      typeBreakdown,
+      maxCount,
+    };
   }, [buildings, facilities, facilityTypes]);
 
   const filtered = useMemo(() => {
@@ -417,7 +461,14 @@ export default function BuildingsPage() {
     <div style={{ padding: 24 }}>
       {!loading && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16, marginBottom: 20 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+              gap: 16,
+              marginBottom: 20,
+            }}
+          >
             <SummaryCard
               label="전체 건물"
               value={stats.activeBuildings.length}
@@ -433,7 +484,11 @@ export default function BuildingsPage() {
               unit="개"
               color="#16A34A"
               active={registrationFilter === "registered"}
-              onClick={() => setRegistrationFilter((f) => f === "registered" ? null : "registered")}
+              onClick={() =>
+                setRegistrationFilter((f) =>
+                  f === "registered" ? null : "registered",
+                )
+              }
               hint="클릭하여 필터"
             />
             <SummaryCard
@@ -442,32 +497,89 @@ export default function BuildingsPage() {
               unit="개"
               color="#DC2626"
               active={registrationFilter === "unregistered"}
-              onClick={() => setRegistrationFilter((f) => f === "unregistered" ? null : "unregistered")}
+              onClick={() =>
+                setRegistrationFilter((f) =>
+                  f === "unregistered" ? null : "unregistered",
+                )
+              }
               hint="클릭하여 필터"
             />
-            <SummaryCard label="전체 시설 수" value={facilities.length} unit="개" color="#7C3AED" />
+            <SummaryCard
+              label="전체 시설 수"
+              value={facilities.length}
+              unit="개"
+              color="#7C3AED"
+            />
           </div>
 
           {stats.typeBreakdown.length > 0 && (
-            <div style={{
-              background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb",
-              padding: 20, marginBottom: 24,
-            }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "#111", marginBottom: 16 }}>유형별 현황</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div
+              style={{
+                background: "#fff",
+                borderRadius: 10,
+                border: "1px solid #e5e7eb",
+                padding: 20,
+                marginBottom: 24,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "#111",
+                  marginBottom: 16,
+                }}
+              >
+                유형별 현황
+              </div>
+              <div
+                style={{ display: "flex", flexDirection: "column", gap: 10 }}
+              >
                 {stats.typeBreakdown.map((ft) => (
-                  <div key={ft.code} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ width: 120, fontSize: 13, color: "#444", flexShrink: 0, textAlign: "right" }}>
+                  <div
+                    key={ft.code}
+                    style={{ display: "flex", alignItems: "center", gap: 12 }}
+                  >
+                    <div
+                      style={{
+                        width: 120,
+                        fontSize: 13,
+                        color: "#444",
+                        flexShrink: 0,
+                        textAlign: "right",
+                      }}
+                    >
                       {ft.label}
                     </div>
-                    <div style={{ flex: 1, background: "#f3f4f6", borderRadius: 4, height: 14, overflow: "hidden" }}>
-                      <div style={{
-                        width: `${(ft.count / stats.maxCount) * 100}%`,
-                        background: "#2563EB", height: "100%", borderRadius: 4,
-                        transition: "width 0.4s ease",
-                      }} />
+                    <div
+                      style={{
+                        flex: 1,
+                        background: "#f3f4f6",
+                        borderRadius: 4,
+                        height: 14,
+                        overflow: "hidden",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: `${(ft.count / stats.maxCount) * 100}%`,
+                          background: "#2563EB",
+                          height: "100%",
+                          borderRadius: 4,
+                          transition: "width 0.4s ease",
+                        }}
+                      />
                     </div>
-                    <div style={{ width: 32, fontSize: 13, color: "#666", flexShrink: 0 }}>{ft.count}</div>
+                    <div
+                      style={{
+                        width: 32,
+                        fontSize: 13,
+                        color: "#666",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {ft.count}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -476,44 +588,90 @@ export default function BuildingsPage() {
         </>
       )}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 16,
+        }}
+      >
         <div style={{ fontSize: 16, fontWeight: 600 }}>건물 목록</div>
-        <span style={{ fontSize: 13, color: "#888" }}>총 {buildings.length}개</span>
+        <span style={{ fontSize: 13, color: "#888" }}>
+          총 {buildings.length}개
+        </span>
       </div>
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 20, flexWrap: "wrap" }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+          marginBottom: 20,
+          flexWrap: "wrap",
+        }}
+      >
         <div style={{ position: "relative", maxWidth: 700, flex: 1 }}>
-          <span style={{
-            position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
-            fontSize: 15, color: "#aaa",
-          }}>🔍</span>
+          <span
+            style={{
+              position: "absolute",
+              left: 12,
+              top: "50%",
+              transform: "translateY(-50%)",
+              fontSize: 15,
+              color: "#aaa",
+            }}
+          >
+            🔍
+          </span>
           <input
             type="text"
             placeholder="건물명으로 검색..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
-              width: "100%", padding: "10px 16px 10px 36px",
-              border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 14,
-              outline: "none", background: "#fff", boxSizing: "border-box",
+              width: "100%",
+              padding: "10px 16px 10px 36px",
+              border: "1px solid #e5e7eb",
+              borderRadius: 8,
+              fontSize: 14,
+              outline: "none",
+              background: "#fff",
+              boxSizing: "border-box",
             }}
           />
           {search && (
             <button
               onClick={() => setSearch("")}
               style={{
-                position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-                background: "none", border: "none", cursor: "pointer", fontSize: 15, color: "#aaa",
+                position: "absolute",
+                right: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: 15,
+                color: "#aaa",
               }}
-            >✕</button>
+            >
+              ✕
+            </button>
           )}
         </div>
         <button
           onClick={() => router.push("/admin/buildings/new")}
           style={{
-            flexShrink: 0, padding: "10px 18px", background: "#2563EB", color: "#fff",
-            border: "none", borderRadius: 8, fontSize: 14, fontWeight: 500,
-            cursor: "pointer", whiteSpace: "nowrap",
+            flexShrink: 0,
+            padding: "10px 18px",
+            background: "#2563EB",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 500,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
           }}
         >
           + 건물 추가
@@ -521,23 +679,33 @@ export default function BuildingsPage() {
       </div>
 
       {loading ? (
-        <div style={{ textAlign: "center", color: "#aaa", paddingTop: 40 }}>불러오는 중...</div>
+        <div style={{ textAlign: "center", color: "#aaa", paddingTop: 40 }}>
+          불러오는 중...
+        </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: "center", color: "#aaa", paddingTop: 40 }}>
           {search
             ? `"${search}" 검색 결과가 없어요`
             : registrationFilter === "unregistered"
-            ? "미등록 건물이 없어요"
-            : registrationFilter === "registered"
-            ? "등록된 건물이 없어요"
-            : "건물이 없어요"}
+              ? "미등록 건물이 없어요"
+              : registrationFilter === "registered"
+                ? "등록된 건물이 없어요"
+                : "건물이 없어요"}
         </div>
       ) : (
         <>
           {(search || registrationFilter) && (
-            <div style={{ fontSize: 13, color: "#888", marginBottom: 12 }}>{filtered.length}개</div>
+            <div style={{ fontSize: 13, color: "#888", marginBottom: 12 }}>
+              {filtered.length}개
+            </div>
           )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+              gap: 16,
+            }}
+          >
             {filtered.map((b) => {
               const hasNoFacility = !stats.registeredIds.has(b.id);
               return (
@@ -545,36 +713,93 @@ export default function BuildingsPage() {
                   key={b.id}
                   onClick={() => router.push(`/admin/buildings/${b.id}`)}
                   style={{
-                    background: "#fff", borderRadius: 10, padding: 20,
+                    background: "#fff",
+                    borderRadius: 10,
+                    padding: 20,
                     border: `1px solid ${hasNoFacility && !b.is_deleted ? "#FECACA" : "#e5e7eb"}`,
-                    cursor: "pointer", transition: "box-shadow 0.15s",
+                    cursor: "pointer",
+                    transition: "box-shadow 0.15s",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "none")}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.boxShadow =
+                      "0 4px 12px rgba(0,0,0,0.1)")
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.boxShadow = "none")
+                  }
                 >
-                  <div style={{ fontSize: 15, fontWeight: 600, color: "#111", marginBottom: 4 }}>{b.name}</div>
-                  <div style={{ fontSize: 12, color: "#888", marginBottom: 12 }}>{b.name_en ?? "—"}</div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-                      <span style={{
-                        fontSize: 12, color: "#2563EB", background: "#EFF6FF",
-                        padding: "3px 8px", borderRadius: 20,
-                      }}>{b.campus}</span>
+                  <div
+                    style={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: "#111",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {b.name}
+                  </div>
+                  <div
+                    style={{ fontSize: 12, color: "#888", marginBottom: 12 }}
+                  >
+                    {b.name_en ?? "—"}
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: "#2563EB",
+                          background: "#EFF6FF",
+                          padding: "3px 8px",
+                          borderRadius: 20,
+                        }}
+                      >
+                        {b.campus}
+                      </span>
                       {hasNoFacility && !b.is_deleted && (
-                        <span style={{
-                          fontSize: 12, color: "#DC2626", background: "#FEF2F2",
-                          padding: "3px 8px", borderRadius: 20,
-                        }}>시설 미등록</span>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: "#DC2626",
+                            background: "#FEF2F2",
+                            padding: "3px 8px",
+                            borderRadius: 20,
+                          }}
+                        >
+                          시설 미등록
+                        </span>
                       )}
                       {b.is_deleted && (
-                        <span style={{
-                          fontSize: 12, color: "#fff", background: "#DC2626",
-                          padding: "3px 8px", borderRadius: 20,
-                        }}>삭제됨</span>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            color: "#fff",
+                            background: "#DC2626",
+                            padding: "3px 8px",
+                            borderRadius: 20,
+                          }}
+                        >
+                          삭제됨
+                        </span>
                       )}
                     </div>
                     {b.last_updated && (
-                      <span style={{ fontSize: 11, color: "#bbb" }}>{b.last_updated}</span>
+                      <span style={{ fontSize: 11, color: "#bbb" }}>
+                        {b.last_updated}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -593,21 +818,31 @@ function SummaryCard({ label, value, unit, color, active, onClick, hint }) {
       onClick={onClick}
       style={{
         background: active ? `${color}10` : "#fff",
-        borderRadius: 10, padding: "18px 20px",
+        borderRadius: 10,
+        padding: "18px 20px",
         border: `1.5px solid ${active ? color : "#e5e7eb"}`,
         cursor: onClick ? "pointer" : "default",
         transition: "box-shadow 0.15s, border-color 0.15s",
         userSelect: "none",
       }}
-      onMouseEnter={(e) => { if (onClick) e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; }}
-      onMouseLeave={(e) => { if (onClick) e.currentTarget.style.boxShadow = "none"; }}
+      onMouseEnter={(e) => {
+        if (onClick)
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
+      }}
+      onMouseLeave={(e) => {
+        if (onClick) e.currentTarget.style.boxShadow = "none";
+      }}
     >
-      <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>{label}</div>
+      <div style={{ fontSize: 12, color: "#888", marginBottom: 8 }}>
+        {label}
+      </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
         <span style={{ fontSize: 28, fontWeight: 700, color }}>{value}</span>
         <span style={{ fontSize: 13, color: "#aaa" }}>{unit}</span>
       </div>
-      {hint && <div style={{ fontSize: 11, color: "#bbb", marginTop: 6 }}>{hint}</div>}
+      {hint && (
+        <div style={{ fontSize: 11, color: "#bbb", marginTop: 6 }}>{hint}</div>
+      )}
     </div>
   );
 }
@@ -627,6 +862,7 @@ git commit -m "feat: add buildings management page under dashboard"
 기존 `dashboard/page.js`의 모든 내용을 redirect로 교체. "use client" 제거 → 서버 컴포넌트로 변경.
 
 **Files:**
+
 - Modify: `src/app/admin/dashboard/page.js` (전체 교체)
 
 - [ ] **Step 1: 파일 전체 교체**
@@ -663,6 +899,7 @@ git commit -m "refactor: dashboard page redirects to /buildings, layout handles 
 경사도 > 30%는 GPS 오류로 간주, 0으로 클램프.
 
 **Files:**
+
 - Create: `src/app/admin/dashboard/slopes/page.js`
 
 - [ ] **Step 1: 파일 생성**
@@ -676,13 +913,13 @@ import { supabase } from "@/lib/supabaseClient";
 
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371000;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) *
-    Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLng / 2) ** 2;
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -723,15 +960,19 @@ export default function SlopesPage() {
         .filter((p) => !isNaN(p.lat) && !isNaN(p.lng) && !isNaN(p.ele));
 
       if (points.length < 2) {
-        alert("유효한 GPS 포인트가 부족합니다 (고도 데이터 포함 최소 2개 필요).");
+        alert(
+          "유효한 GPS 포인트가 부족합니다 (고도 데이터 포함 최소 2개 필요).",
+        );
         return;
       }
 
       const segments = points.map((p, i) => {
-        if (i === 0) return { lat: p.lat, lng: p.lng, ele: p.ele, slope: 0, distance: 0 };
+        if (i === 0)
+          return { lat: p.lat, lng: p.lng, ele: p.ele, slope: 0, distance: 0 };
         const prev = points[i - 1];
         const dist = haversine(prev.lat, prev.lng, p.lat, p.lng);
-        const rawSlope = dist > 0 ? Math.abs((p.ele - prev.ele) / dist) * 100 : 0;
+        const rawSlope =
+          dist > 0 ? Math.abs((p.ele - prev.ele) / dist) * 100 : 0;
         const slope = rawSlope > 30 ? 0 : rawSlope;
         return {
           lat: p.lat,
@@ -761,22 +1002,45 @@ export default function SlopesPage() {
 
   async function handleDelete(id, name) {
     if (!confirm(`"${name}" 경로를 삭제하시겠습니까?`)) return;
-    const { error } = await supabase.from("slope_segments").delete().eq("id", id);
-    if (error) { alert("삭제 실패: " + error.message); return; }
+    const { error } = await supabase
+      .from("slope_segments")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      alert("삭제 실패: " + error.message);
+      return;
+    }
     await fetchSlopes();
   }
 
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>경사도 경로 관리</div>
+      <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
+        경사도 경로 관리
+      </div>
 
       {/* 업로드 섹션 */}
-      <div style={{
-        background: "#fff", borderRadius: 10,
-        border: "1px solid #e5e7eb", padding: 24, marginBottom: 24,
-      }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>GPX 파일 업로드</div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 10,
+          border: "1px solid #e5e7eb",
+          padding: 24,
+          marginBottom: 24,
+        }}
+      >
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
+          GPX 파일 업로드
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: 8,
+          }}
+        >
           <input
             id="gpx-input"
             type="file"
@@ -807,22 +1071,29 @@ export default function SlopesPage() {
           </div>
         )}
         <div style={{ fontSize: 12, color: "#aaa" }}>
-          Strava에서 GPX 내보내기 전 파일명을 경로명으로 변경하세요 (예: 정문-중앙광장.gpx)
+          Strava에서 GPX 내보내기 전 파일명을 경로명으로 변경하세요 (예:
+          정문-중앙광장.gpx)
         </div>
       </div>
 
       {/* 경로 목록 */}
-      <div style={{
-        background: "#fff", borderRadius: 10,
-        border: "1px solid #e5e7eb", padding: 24,
-      }}>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 10,
+          border: "1px solid #e5e7eb",
+          padding: 24,
+        }}
+      >
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
           등록된 경로 ({slopes.length}개)
         </div>
         {loading ? (
           <div style={{ color: "#aaa", fontSize: 13 }}>불러오는 중...</div>
         ) : slopes.length === 0 ? (
-          <div style={{ color: "#aaa", fontSize: 13 }}>등록된 경로가 없습니다.</div>
+          <div style={{ color: "#aaa", fontSize: 13 }}>
+            등록된 경로가 없습니다.
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {slopes.map((s) => (
@@ -838,11 +1109,16 @@ export default function SlopesPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{s.name}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>
+                    {s.name}
+                  </div>
                   <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                    {s.segments?.length ?? 0}개 포인트 · {new Date(s.created_at).toLocaleDateString("ko-KR")}
+                    {s.segments?.length ?? 0}개 포인트 ·{" "}
+                    {new Date(s.created_at).toLocaleDateString("ko-KR")}
                     {s.gpx_file && (
-                      <span style={{ marginLeft: 8, color: "#bbb" }}>({s.gpx_file})</span>
+                      <span style={{ marginLeft: 8, color: "#bbb" }}>
+                        ({s.gpx_file})
+                      </span>
                     )}
                   </div>
                 </div>
@@ -890,9 +1166,11 @@ git commit -m "feat: add slopes admin page with GPX upload and segment calculati
 ## Task 7: Map.js — 경사도 토글 버튼 + SlopeLayer 렌더
 
 **Files:**
+
 - Modify: `src/components/Map.js`
 
 변경 사항:
+
 1. `SlopeLayer` import 추가 (line 19 이후)
 2. `showSlope`, `slopes` state 추가 (line 329 `tileMode` 아래)
 3. `/api/slopes` fetch useEffect 추가 (facility_types useEffect 아래 ~line 457)
@@ -900,6 +1178,7 @@ git commit -m "feat: add slopes admin page with GPX upload and segment calculati
 5. 경사도 토글 버튼 추가 (피드백 div 닫힘 ~line 965 이후)
 
 버튼 위치: 좌측, 피드백 버튼 아래
+
 - 데스크탑: `top: 200px, left: 16px`
 - 모바일: `top: 100px, left: 16px`
 
@@ -915,10 +1194,13 @@ import SlopeLayer from "@/components/SlopeLayer";
 ```
 
 Edit `old_string`:
+
 ```
 import { useLanguage } from "@/lib/LanguageContext";
 ```
+
 `new_string`:
+
 ```
 import { useLanguage } from "@/lib/LanguageContext";
 import SlopeLayer from "@/components/SlopeLayer";
@@ -929,11 +1211,14 @@ import SlopeLayer from "@/components/SlopeLayer";
 line 329 `const [tileMode, setTileMode] = useState("street");` 다음에 추가:
 
 Edit `old_string`:
+
 ```
   const [tileMode, setTileMode] = useState("street");
   const { lang, setLang, t } = useLanguage();
 ```
+
 `new_string`:
+
 ```
   const [tileMode, setTileMode] = useState("street");
   const [showSlope, setShowSlope] = useState(false);
@@ -946,6 +1231,7 @@ Edit `old_string`:
 facility_types useEffect 블록(line ~447-457) 다음에 추가:
 
 Edit `old_string`:
+
 ```
   // facility_types DB에서 동적 로드
   useEffect(() => {
@@ -959,7 +1245,9 @@ Edit `old_string`:
       });
   }, []);
 ```
+
 `new_string`:
+
 ```
   // facility_types DB에서 동적 로드
   useEffect(() => {
@@ -987,12 +1275,15 @@ Edit `old_string`:
 지하철역 마커 뒤, `</MapContainer>` 앞에 추가:
 
 Edit `old_string`:
+
 ```
       </MapContainer>
 
       {/* 항공사진 출처 라벨 */}
 ```
+
 `new_string`:
+
 ```
         {showSlope && slopes.length > 0 && (
           <SlopeLayer slopes={slopes} />
@@ -1007,10 +1298,13 @@ Edit `old_string`:
 피드백 div 닫힘(`</div>` 블록 — `onMouseLeave` div 닫힘 line ~965) 다음에 추가:
 
 Edit `old_string`:
+
 ```
       {/* 즐겨찾기 패널 — 모바일: top:64로 검색창과 안 겹치게 */}
 ```
+
 `new_string`:
+
 ```
       {/* 경사도 레이어 토글 버튼 */}
       <button
@@ -1053,6 +1347,7 @@ Expected: 에러 없이 빌드 성공
 - [ ] **Step 7: 수동 검증**
 
 `npm run dev` 실행 후:
+
 1. `http://localhost:3000` — 지도 로드 확인
 2. 좌측 피드백 버튼 아래 "📐 경사도" 버튼 존재 확인
 3. (slope_segments 데이터 없으면 버튼 클릭해도 폴리라인 없음 — 정상)
@@ -1073,8 +1368,8 @@ git commit -m "feat: add slope layer toggle button and SlopeLayer render to main
 
 지도에 별도 범례 UI는 MVP 범위 밖. 필요 시 추후 추가.
 
-| 색상 | 경사도 | 의미 |
-|------|--------|------|
-| 🟢 `#22c55e` | 0~5% 미만 | 통행 가능 |
-| 🟡 `#facc15` | 5~8% | 주의 구간 |
-| 🔴 `#ef4444` | 8% 이상 | 통행 어려움 |
+| 색상         | 경사도    | 의미        |
+| ------------ | --------- | ----------- |
+| 🟢 `#22c55e` | 0~5% 미만 | 통행 가능   |
+| 🟡 `#facc15` | 5~8%      | 주의 구간   |
+| 🔴 `#ef4444` | 8% 이상   | 통행 어려움 |

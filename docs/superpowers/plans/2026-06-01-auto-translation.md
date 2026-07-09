@@ -9,6 +9,7 @@
 **Tech Stack:** Next.js App Router API Route, MyMemory Translation API (무료, 이메일 파라미터만 필요), Supabase
 
 **Prerequisites:**
+
 - `supabase/migrations/20260601000000_add_i18n_columns.sql` 을 Supabase SQL Editor에서 실행 완료
 - `.env.local`에 `TRANSLATE_EMAIL=본인이메일` 추가
 
@@ -16,17 +17,18 @@
 
 ## File Map
 
-| 파일 | 작업 |
-|------|------|
-| `src/app/api/translate/route.js` | 신규 — MyMemory 호출 서버 route |
+| 파일                                   | 작업                                                                    |
+| -------------------------------------- | ----------------------------------------------------------------------- |
+| `src/app/api/translate/route.js`       | 신규 — MyMemory 호출 서버 route                                         |
 | `src/app/admin/buildings/[id]/page.js` | 수정 — `AddFacilityButton.handleSave`, `PhotoManager.handleSaveCaption` |
-| `src/components/SidePanel.js` | 수정 — 번역 컬럼 사용, photos select 쿼리 |
+| `src/components/SidePanel.js`          | 수정 — 번역 컬럼 사용, photos select 쿼리                               |
 
 ---
 
 ## Task 1: Translation API Route 생성
 
 **Files:**
+
 - Create: `src/app/api/translate/route.js`
 
 - [ ] **Step 1: 파일 생성**
@@ -84,6 +86,7 @@ curl -X POST http://localhost:3000/api/translate \
 ```
 
 Expected response:
+
 ```json
 {
   "en": { "name": "Main Gate Elevator", "floor_info": "1st to 4th floor" },
@@ -103,11 +106,13 @@ git commit -m "feat: MyMemory 자동번역 API route 추가"
 ## Task 2: AddFacilityButton — 시설 추가 시 번역
 
 **Files:**
+
 - Modify: `src/app/admin/buildings/[id]/page.js` (`AddFacilityButton` 컴포넌트의 `handleSave` 함수, 약 803~831번째 줄)
 
 - [ ] **Step 1: `handleSave` 수정 — insert 후 번역 호출**
 
 기존:
+
 ```js
 async function handleSave() {
   if (!form.facility_code) {
@@ -142,6 +147,7 @@ async function handleSave() {
 ```
 
 변경 후:
+
 ```js
 async function handleSave() {
   if (!form.facility_code) {
@@ -179,14 +185,17 @@ async function handleSave() {
           body: JSON.stringify({ texts }),
         });
         const { en, zh } = await res.json();
-        await supabase.from("building_facilities").update({
-          name_en: en.name ?? null,
-          name_zh: zh.name ?? null,
-          description_en: en.description ?? null,
-          description_zh: zh.description ?? null,
-          floor_info_en: en.floor_info ?? null,
-          floor_info_zh: zh.floor_info ?? null,
-        }).eq("id", inserted.id);
+        await supabase
+          .from("building_facilities")
+          .update({
+            name_en: en.name ?? null,
+            name_zh: zh.name ?? null,
+            description_en: en.description ?? null,
+            description_zh: zh.description ?? null,
+            floor_info_en: en.floor_info ?? null,
+            floor_info_zh: zh.floor_info ?? null,
+          })
+          .eq("id", inserted.id);
       } catch {
         // 번역 실패해도 시설 저장은 완료
       }
@@ -225,11 +234,13 @@ git commit -m "feat: 시설 추가 시 name/description/floor_info 자동번역 
 ## Task 3: PhotoManager — 사진 캡션 저장 시 번역
 
 **Files:**
+
 - Modify: `src/app/admin/buildings/[id]/page.js` (`PhotoManager` 컴포넌트의 `handleSaveCaption` 함수, 약 633~645번째 줄)
 
 - [ ] **Step 1: `handleSaveCaption` 수정**
 
 기존:
+
 ```js
 async function handleSaveCaption(photoId) {
   const caption = draftCaptions[photoId] ?? "";
@@ -241,12 +252,20 @@ async function handleSaveCaption(photoId) {
     .update({ caption: caption || null })
     .eq("id", photoId);
   setSavingCaption(null);
-  if (error) { showToast("캡션 저장 실패", "error"); return; }
-  setPhotos((prev) => prev.map((p) => p.id === photoId ? { ...p, caption: caption || null } : p));
+  if (error) {
+    showToast("캡션 저장 실패", "error");
+    return;
+  }
+  setPhotos((prev) =>
+    prev.map((p) =>
+      p.id === photoId ? { ...p, caption: caption || null } : p,
+    ),
+  );
 }
 ```
 
 변경 후:
+
 ```js
 async function handleSaveCaption(photoId) {
   const caption = draftCaptions[photoId] ?? "";
@@ -254,7 +273,11 @@ async function handleSaveCaption(photoId) {
   if (caption === original) return;
   setSavingCaption(photoId);
 
-  const updateData = { caption: caption || null, caption_en: null, caption_zh: null };
+  const updateData = {
+    caption: caption || null,
+    caption_en: null,
+    caption_zh: null,
+  };
 
   if (caption) {
     try {
@@ -276,7 +299,10 @@ async function handleSaveCaption(photoId) {
     .update(updateData)
     .eq("id", photoId);
   setSavingCaption(null);
-  if (error) { showToast("캡션 저장 실패", "error"); return; }
+  if (error) {
+    showToast("캡션 저장 실패", "error");
+    return;
+  }
   setPhotos((prev) =>
     prev.map((p) => (p.id === photoId ? { ...p, ...updateData } : p)),
   );
@@ -299,6 +325,7 @@ git commit -m "feat: 사진 캡션 저장 시 자동번역 저장"
 ## Task 4: SidePanel — 번역 컬럼 표시
 
 **Files:**
+
 - Modify: `src/components/SidePanel.js`
   - `fetchData` 내 `building_photos` select 쿼리 (약 80번째 줄)
   - 시설 표시 블록 (약 497~509번째 줄)
@@ -308,6 +335,7 @@ git commit -m "feat: 사진 캡션 저장 시 자동번역 저장"
 - [ ] **Step 1: building_photos 쿼리에 번역 컬럼 추가**
 
 기존:
+
 ```js
 supabase
   .from("building_photos")
@@ -317,6 +345,7 @@ supabase
 ```
 
 변경 후:
+
 ```js
 supabase
   .from("building_photos")
@@ -328,86 +357,104 @@ supabase
 - [ ] **Step 2: 시설 텍스트 표시 — 번역 컬럼 우선**
 
 기존 (약 497~509번째 줄):
+
 ```jsx
 <div style={{ fontSize: 13, fontWeight: 500, color: "#222" }}>
   {f.name ?? getFacilityLabel(f.facility_types)}
-</div>
-{f.description && (
-  <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-    {f.description}
-  </div>
-)}
-{f.floor_info && (
-  <div style={{ fontSize: 12, color: "#888" }}>
-    {f.floor_info}
-  </div>
-)}
+</div>;
+{
+  f.description && (
+    <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+      {f.description}
+    </div>
+  );
+}
+{
+  f.floor_info && (
+    <div style={{ fontSize: 12, color: "#888" }}>{f.floor_info}</div>
+  );
+}
 ```
 
 변경 후:
+
 ```jsx
 <div style={{ fontSize: 13, fontWeight: 500, color: "#222" }}>
   {lang === "ko"
     ? (f.name ?? getFacilityLabel(f.facility_types))
     : (f[`name_${lang}`] ?? f.name ?? getFacilityLabel(f.facility_types))}
-</div>
-{f.description && (
-  <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-    {lang === "ko" ? f.description : (f[`description_${lang}`] ?? f.description)}
-  </div>
-)}
-{f.floor_info && (
-  <div style={{ fontSize: 12, color: "#888" }}>
-    {lang === "ko" ? f.floor_info : (f[`floor_info_${lang}`] ?? f.floor_info)}
-  </div>
-)}
+</div>;
+{
+  f.description && (
+    <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+      {lang === "ko"
+        ? f.description
+        : (f[`description_${lang}`] ?? f.description)}
+    </div>
+  );
+}
+{
+  f.floor_info && (
+    <div style={{ fontSize: 12, color: "#888" }}>
+      {lang === "ko" ? f.floor_info : (f[`floor_info_${lang}`] ?? f.floor_info)}
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 3: 사진 캡션 표시 — 번역 컬럼 우선**
 
 기존 (약 420번째 줄):
+
 ```jsx
-{photos[photoIndex]?.caption && (
-  <div
-    style={{
-      padding: "6px 14px",
-      fontSize: 12,
-      color: "#555",
-      background: "#fafafa",
-      borderBottom: "1px solid #f0f0f0",
-    }}
-  >
-    {photos[photoIndex].caption}
-  </div>
-)}
+{
+  photos[photoIndex]?.caption && (
+    <div
+      style={{
+        padding: "6px 14px",
+        fontSize: 12,
+        color: "#555",
+        background: "#fafafa",
+        borderBottom: "1px solid #f0f0f0",
+      }}
+    >
+      {photos[photoIndex].caption}
+    </div>
+  );
+}
 ```
 
 변경 후:
+
 ```jsx
-{photos[photoIndex]?.caption && (
-  <div
-    style={{
-      padding: "6px 14px",
-      fontSize: 12,
-      color: "#555",
-      background: "#fafafa",
-      borderBottom: "1px solid #f0f0f0",
-    }}
-  >
-    {lang === "ko"
-      ? photos[photoIndex].caption
-      : (photos[photoIndex][`caption_${lang}`] ?? photos[photoIndex].caption)}
-  </div>
-)}
+{
+  photos[photoIndex]?.caption && (
+    <div
+      style={{
+        padding: "6px 14px",
+        fontSize: 12,
+        color: "#555",
+        background: "#fafafa",
+        borderBottom: "1px solid #f0f0f0",
+      }}
+    >
+      {lang === "ko"
+        ? photos[photoIndex].caption
+        : (photos[photoIndex][`caption_${lang}`] ?? photos[photoIndex].caption)}
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 4: TTS buildTtsText — EN/ZH에서 번역 텍스트 사용**
 
 기존 EN 블록 (약 138~148번째 줄):
+
 ```js
 if (lang === "en") {
   let text = `This is ${name}. `;
-  if (facilities.length === 0) return text + "No accessibility information available.";
+  if (facilities.length === 0)
+    return text + "No accessibility information available.";
   text += "Facilities: ";
   facilities.forEach((f) => {
     const label = f.facility_types?.label_en ?? f.facility_types?.label ?? "";
@@ -419,10 +466,12 @@ if (lang === "en") {
 ```
 
 변경 후:
+
 ```js
 if (lang === "en") {
   let text = `This is ${name}. `;
-  if (facilities.length === 0) return text + "No accessibility information available.";
+  if (facilities.length === 0)
+    return text + "No accessibility information available.";
   text += "Facilities: ";
   facilities.forEach((f) => {
     const label = f.facility_types?.label_en ?? f.facility_types?.label ?? "";
@@ -436,6 +485,7 @@ if (lang === "en") {
 ```
 
 기존 ZH 블록 (약 150~160번째 줄):
+
 ```js
 if (lang === "zh") {
   let text = `这是${name}。`;
@@ -451,6 +501,7 @@ if (lang === "zh") {
 ```
 
 변경 후:
+
 ```js
 if (lang === "zh") {
   let text = `这是${name}。`;

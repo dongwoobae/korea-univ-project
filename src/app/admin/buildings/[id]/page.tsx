@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
-import type { Building, FacilityWithType, FacilityType, College } from "@/types/domain";
+import type {
+  Building,
+  FacilityWithType,
+  FacilityType,
+  College,
+} from "@/types/domain";
 import { useRouter, useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
@@ -40,13 +45,17 @@ export default function BuildingDetail() {
   const [facilities, setFacilities] = useState<FacilityWithType[]>([]);
   const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
   const [colleges, setColleges] = useState<College[]>([]);
-  const [selectedCollegeId, setSelectedCollegeId] = useState<number | null>(null);
+  const [selectedCollegeId, setSelectedCollegeId] = useState<number | null>(
+    null,
+  );
   const [savingCollege, setSavingCollege] = useState(false);
   const [nameForm, setNameForm] = useState({ name: "", name_en: "" });
   const [savingName, setSavingName] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingPolygon, setEditingPolygon] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(
+    null,
+  );
   const [confirmModal, setConfirmModal] = useState<any>(null); // { facilityId }
   const [confirmDeleteBuilding, setConfirmDeleteBuilding] = useState(false);
   const [videoModalFacility, setVideoModalFacility] = useState<any>(null);
@@ -89,7 +98,10 @@ export default function BuildingDetail() {
     setFacilityTypes(typesData ?? []);
     setColleges(collegesData ?? []);
     setSelectedCollegeId(buildingData?.college_id ?? null);
-    setNameForm({ name: buildingData?.name ?? "", name_en: buildingData?.name_en ?? "" });
+    setNameForm({
+      name: buildingData?.name ?? "",
+      name_en: buildingData?.name_en ?? "",
+    });
     setLoading(false);
   }
 
@@ -134,7 +146,10 @@ export default function BuildingDetail() {
     setSavingName(true);
     const { error } = await supabase
       .from("buildings")
-      .update({ name: nameForm.name.trim(), name_en: nameForm.name_en.trim() || null })
+      .update({
+        name: nameForm.name.trim(),
+        name_en: nameForm.name_en.trim() || null,
+      })
       .eq("id", id);
     setSavingName(false);
     if (error) {
@@ -256,30 +271,65 @@ export default function BuildingDetail() {
             marginBottom: 20,
           }}
         >
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>건물명 수정</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+            건물명 수정
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>한국어</div>
+              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
+                한국어
+              </div>
               <input
                 type="text"
                 value={nameForm.name}
-                onChange={(e) => setNameForm((f) => ({ ...f, name: e.target.value }))}
-                style={{ width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                onChange={(e) =>
+                  setNameForm((f) => ({ ...f, name: e.target.value }))
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
               />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>영어</div>
+              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
+                영어
+              </div>
               <input
                 type="text"
                 value={nameForm.name_en}
-                onChange={(e) => setNameForm((f) => ({ ...f, name_en: e.target.value }))}
-                style={{ width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box" }}
+                onChange={(e) =>
+                  setNameForm((f) => ({ ...f, name_en: e.target.value }))
+                }
+                style={{
+                  width: "100%",
+                  padding: "8px 10px",
+                  border: "1px solid #ddd",
+                  borderRadius: 6,
+                  fontSize: 13,
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
               />
             </div>
             <button
               onClick={handleSaveName}
               disabled={savingName}
-              style={{ alignSelf: "flex-end", padding: "8px 20px", background: savingName ? "#93c5fd" : "#2563EB", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, cursor: savingName ? "default" : "pointer" }}
+              style={{
+                alignSelf: "flex-end",
+                padding: "8px 20px",
+                background: savingName ? "#93c5fd" : "#2563EB",
+                color: "#fff",
+                border: "none",
+                borderRadius: 6,
+                fontSize: 13,
+                cursor: savingName ? "default" : "pointer",
+              }}
             >
               {savingName ? "저장 중..." : "저장"}
             </button>
@@ -604,7 +654,10 @@ export default function BuildingDetail() {
       {videoModalFacility && (
         <FacilityVideoModal
           facility={videoModalFacility}
-          onUpdate={() => { fetchData(); setVideoModalFacility((f) => ({ ...f })); }}
+          onUpdate={() => {
+            fetchData();
+            setVideoModalFacility((f) => ({ ...f }));
+          }}
           showToast={showToast}
           onClose={() => setVideoModalFacility(null)}
         />
@@ -617,10 +670,14 @@ function PhotoManager({ buildingId, showToast }) {
   const [photos, setPhotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [confirmDeletePhoto, setConfirmDeletePhoto] = useState<any>(null);
-  const [draftCaptions, setDraftCaptions] = useState<Record<string, string>>({});
+  const [draftCaptions, setDraftCaptions] = useState<Record<string, string>>(
+    {},
+  );
   const [savingCaption, setSavingCaption] = useState<any>(null);
 
-  useEffect(() => { fetchPhotos(); }, []);
+  useEffect(() => {
+    fetchPhotos();
+  }, []);
 
   async function fetchPhotos() {
     const { data } = await supabase
@@ -630,7 +687,9 @@ function PhotoManager({ buildingId, showToast }) {
       .order("created_at");
     setPhotos(data ?? []);
     const initial = {};
-    (data ?? []).forEach((p) => { initial[p.id] = p.caption ?? ""; });
+    (data ?? []).forEach((p) => {
+      initial[p.id] = p.caption ?? "";
+    });
     setDraftCaptions(initial);
   }
 
@@ -640,7 +699,11 @@ function PhotoManager({ buildingId, showToast }) {
     if (caption === original) return;
     setSavingCaption(photoId);
 
-    const updateData = { caption: caption || null, caption_en: null, caption_zh: null };
+    const updateData = {
+      caption: caption || null,
+      caption_en: null,
+      caption_zh: null,
+    };
 
     if (caption) {
       try {
@@ -663,7 +726,10 @@ function PhotoManager({ buildingId, showToast }) {
       .update(updateData)
       .eq("id", photoId);
     setSavingCaption(null);
-    if (error) { showToast("캡션 저장 실패", "error"); return; }
+    if (error) {
+      showToast("캡션 저장 실패", "error");
+      return;
+    }
     setPhotos((prev) =>
       prev.map((p) => (p.id === photoId ? { ...p, ...updateData } : p)),
     );
@@ -679,20 +745,31 @@ function PhotoManager({ buildingId, showToast }) {
         let w = img.naturalWidth;
         let h = img.naturalHeight;
         if (w > MAX || h > MAX) {
-          if (w >= h) { h = Math.round((h * MAX) / w); w = MAX; }
-          else { w = Math.round((w * MAX) / h); h = MAX; }
+          if (w >= h) {
+            h = Math.round((h * MAX) / w);
+            w = MAX;
+          } else {
+            w = Math.round((w * MAX) / h);
+            h = MAX;
+          }
         }
         const canvas = document.createElement("canvas");
         canvas.width = w;
         canvas.height = h;
         canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
         canvas.toBlob(
-          (blob) => { if (blob) resolve(blob); else reject(new Error("WebP 변환 실패")); },
+          (blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error("WebP 변환 실패"));
+          },
           "image/webp",
           0.75,
         );
       };
-      img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("이미지 로드 실패")); };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("이미지 로드 실패"));
+      };
       img.src = objectUrl;
     });
   }
@@ -705,19 +782,31 @@ function PhotoManager({ buildingId, showToast }) {
     let successCount = 0;
     for (const file of files) {
       let blob;
-      try { blob = await convertToWebP(file); }
-      catch { showToast(`${file.name} 변환 실패`, "error"); continue; }
+      try {
+        blob = await convertToWebP(file);
+      } catch {
+        showToast(`${file.name} 변환 실패`, "error");
+        continue;
+      }
 
       const formData = new FormData();
       formData.append("file", blob, "photo.webp");
       formData.append("buildingId", buildingId);
 
       try {
-        const res = await authedFetch("/api/upload-building-photo", { method: "POST", body: formData });
+        const res = await authedFetch("/api/upload-building-photo", {
+          method: "POST",
+          body: formData,
+        });
         const data = await res.json();
-        if (!res.ok || data.error) { showToast(`업로드 실패: ${data.error}`, "error"); continue; }
+        if (!res.ok || data.error) {
+          showToast(`업로드 실패: ${data.error}`, "error");
+          continue;
+        }
         successCount++;
-      } catch { showToast("네트워크 오류가 발생했어요", "error"); }
+      } catch {
+        showToast("네트워크 오류가 발생했어요", "error");
+      }
     }
 
     await fetchPhotos();
@@ -733,7 +822,10 @@ function PhotoManager({ buildingId, showToast }) {
       body: JSON.stringify({ photoId: photo.id, url: photo.url }),
     });
     const data = await res.json();
-    if (!res.ok || data.error) { showToast(`삭제 실패: ${data.error}`, "error"); return; }
+    if (!res.ok || data.error) {
+      showToast(`삭제 실패: ${data.error}`, "error");
+      return;
+    }
     setConfirmDeletePhoto(null);
     await fetchPhotos();
     showToast("사진이 삭제되었어요");
@@ -742,27 +834,62 @@ function PhotoManager({ buildingId, showToast }) {
   return (
     <>
       {photos.length === 0 ? (
-        <div style={{ width: "100%", height: 120, background: "#f5f5f5", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontSize: 13 }}>
+        <div
+          style={{
+            width: "100%",
+            height: 120,
+            background: "#f5f5f5",
+            borderRadius: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#aaa",
+            fontSize: 13,
+          }}
+        >
           등록된 사진 없음
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 8,
+          }}
+        >
           {photos.map((photo) => (
-            <div key={photo.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div
+              key={photo.id}
+              style={{ display: "flex", flexDirection: "column", gap: 4 }}
+            >
               <div style={{ position: "relative", aspectRatio: "4/3" }}>
                 <img
                   src={photo.url}
                   alt={photo.caption ?? ""}
-                  style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 6 }}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    borderRadius: 6,
+                  }}
                 />
                 <button
                   onClick={() => setConfirmDeletePhoto(photo)}
                   style={{
-                    position: "absolute", top: 4, right: 4,
-                    width: 22, height: 22, borderRadius: "50%",
-                    background: "rgba(0,0,0,0.55)", color: "#fff",
-                    border: "none", cursor: "pointer", fontSize: 11,
-                    display: "flex", alignItems: "center", justifyContent: "center",
+                    position: "absolute",
+                    top: 4,
+                    right: 4,
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.55)",
+                    color: "#fff",
+                    border: "none",
+                    cursor: "pointer",
+                    fontSize: 11,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   ✕
@@ -770,7 +897,12 @@ function PhotoManager({ buildingId, showToast }) {
               </div>
               <input
                 value={draftCaptions[photo.id] ?? ""}
-                onChange={(e) => setDraftCaptions((prev) => ({ ...prev, [photo.id]: e.target.value }))}
+                onChange={(e) =>
+                  setDraftCaptions((prev) => ({
+                    ...prev,
+                    [photo.id]: e.target.value,
+                  }))
+                }
                 onBlur={() => handleSaveCaption(photo.id)}
                 placeholder="설명 추가..."
                 maxLength={100}
@@ -791,13 +923,26 @@ function PhotoManager({ buildingId, showToast }) {
       )}
       <label
         style={{
-          display: "inline-block", marginTop: 12, padding: "8px 16px",
-          background: "#2563EB", color: "#fff", borderRadius: 8, fontSize: 13,
-          cursor: uploading ? "not-allowed" : "pointer", opacity: uploading ? 0.7 : 1,
+          display: "inline-block",
+          marginTop: 12,
+          padding: "8px 16px",
+          background: "#2563EB",
+          color: "#fff",
+          borderRadius: 8,
+          fontSize: 13,
+          cursor: uploading ? "not-allowed" : "pointer",
+          opacity: uploading ? 0.7 : 1,
         }}
       >
         {uploading ? "업로드 중..." : "사진 추가"}
-        <input type="file" accept="image/*" multiple onChange={handleUpload} disabled={uploading} style={{ display: "none" }} />
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleUpload}
+          disabled={uploading}
+          style={{ display: "none" }}
+        />
       </label>
       {confirmDeletePhoto && (
         <ConfirmModal
@@ -812,7 +957,13 @@ function PhotoManager({ buildingId, showToast }) {
   );
 }
 
-function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, showToast }) {
+function AddFacilityButton({
+  buildingId,
+  buildingCenter,
+  facilityTypes,
+  onAdd,
+  showToast,
+}) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     facility_code: "",
@@ -862,14 +1013,17 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
           });
           if (!res.ok) throw new Error("translate failed");
           const { en, zh } = await res.json();
-          await supabase.from("building_facilities").update({
-            name_en: en.name ?? null,
-            name_zh: zh.name ?? null,
-            description_en: en.description ?? null,
-            description_zh: zh.description ?? null,
-            floor_info_en: en.floor_info ?? null,
-            floor_info_zh: zh.floor_info ?? null,
-          }).eq("id", inserted.id);
+          await supabase
+            .from("building_facilities")
+            .update({
+              name_en: en.name ?? null,
+              name_zh: zh.name ?? null,
+              description_en: en.description ?? null,
+              description_zh: zh.description ?? null,
+              floor_info_en: en.floor_info ?? null,
+              floor_info_zh: zh.floor_info ?? null,
+            })
+            .eq("id", inserted.id);
         } catch {
           // 번역 실패해도 시설 저장은 완료
         }
@@ -1089,7 +1243,9 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [draftCaption, setDraftCaption] = useState(facility.video_caption ?? "");
+  const [draftCaption, setDraftCaption] = useState(
+    facility.video_caption ?? "",
+  );
   const [savingCaption, setSavingCaption] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(facility.video_url);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
@@ -1115,7 +1271,11 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
     if (caption === (facility.video_caption ?? "")) return;
     setSavingCaption(true);
 
-    const updateData = { video_caption: caption || null, video_caption_en: null, video_caption_zh: null };
+    const updateData = {
+      video_caption: caption || null,
+      video_caption_en: null,
+      video_caption_zh: null,
+    };
 
     if (caption) {
       try {
@@ -1138,7 +1298,10 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       .update(updateData)
       .eq("id", facility.id);
     setSavingCaption(false);
-    if (error) { showToast("캡션 저장 실패", "error"); return; }
+    if (error) {
+      showToast("캡션 저장 실패", "error");
+      return;
+    }
     onUpdate();
   }
 
@@ -1152,7 +1315,11 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       const presignRes = await authedFetch("/api/facility-video-presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ facilityId: facility.id, contentType: file.type, fileSize: file.size }),
+        body: JSON.stringify({
+          facilityId: facility.id,
+          contentType: file.type,
+          fileSize: file.size,
+        }),
       });
       const presignData = await presignRes.json();
       if (!presignRes.ok || presignData.error) {
@@ -1167,7 +1334,8 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       xhrRef.current = xhr;
       await new Promise<void>((resolve, reject) => {
         xhr.upload.onprogress = (ev) => {
-          if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
+          if (ev.lengthComputable)
+            setProgress(Math.round((ev.loaded / ev.total) * 100));
         };
         xhr.onload = () => resolve();
         xhr.onerror = () => reject(new Error("네트워크 오류"));
@@ -1186,7 +1354,10 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       const confirmRes = await authedFetch("/api/facility-video-confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ facilityId: facility.id, videoUrl: presignData.publicUrl }),
+        body: JSON.stringify({
+          facilityId: facility.id,
+          videoUrl: presignData.publicUrl,
+        }),
       });
       const confirmData = await confirmRes.json();
       if (!confirmRes.ok || confirmData.error) {
@@ -1198,7 +1369,8 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       showToast("동영상이 업로드됐어요!");
       onUpdate();
     } catch (err) {
-      if ((err as Error).message !== "업로드 취소됨") showToast("네트워크 오류가 발생했어요", "error");
+      if ((err as Error).message !== "업로드 취소됨")
+        showToast("네트워크 오류가 발생했어요", "error");
     } finally {
       setPhase(null);
       setProgress(0);
@@ -1212,7 +1384,10 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       const res = await authedFetch("/api/delete-facility-video", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ facilityId: facility.id, videoUrl: currentVideoUrl }),
+        body: JSON.stringify({
+          facilityId: facility.id,
+          videoUrl: currentVideoUrl,
+        }),
       });
       const data = await res.json();
       if (!res.ok || data.error) {
@@ -1231,9 +1406,11 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
   }
 
   const phaseLabel =
-    phase === "preparing" ? "업로드 준비 중..."
-    : phase === "uploading" ? `업로드 중... ${progress}%`
-    : null;
+    phase === "preparing"
+      ? "업로드 준비 중..."
+      : phase === "uploading"
+        ? `업로드 중... ${progress}%`
+        : null;
 
   return (
     <>
@@ -1241,7 +1418,9 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       <div
         onClick={handleCloseRequest}
         style={{
-          position: "fixed", inset: 0, zIndex: 1100,
+          position: "fixed",
+          inset: 0,
+          zIndex: 1100,
           background: "rgba(0,0,0,0.5)",
           cursor: "default",
         }}
@@ -1249,8 +1428,12 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       {/* 모달 카드 */}
       <div
         style={{
-          position: "fixed", inset: 0, zIndex: 1101,
-          display: "flex", alignItems: "center", justifyContent: "center",
+          position: "fixed",
+          inset: 0,
+          zIndex: 1101,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           pointerEvents: "none",
         }}
       >
@@ -1266,21 +1449,33 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
           }}
         >
           {/* 모달 헤더 */}
-          <div style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "14px 16px", borderBottom: "1px solid #f0f0f0",
-          }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "14px 16px",
+              borderBottom: "1px solid #f0f0f0",
+            }}
+          >
             <div>
               <div style={{ fontSize: 14, fontWeight: 600 }}>
-                {facility.facility_types?.icon} {facility.name ?? facility.facility_types?.label}
+                {facility.facility_types?.icon}{" "}
+                {facility.name ?? facility.facility_types?.label}
               </div>
-              <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>동영상 관리</div>
+              <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+                동영상 관리
+              </div>
             </div>
             <button
               onClick={handleCloseRequest}
               style={{
-                background: "none", border: "none", fontSize: 18, color: "#888",
-                cursor: "pointer", padding: "4px 8px",
+                background: "none",
+                border: "none",
+                fontSize: 18,
+                color: "#888",
+                cursor: "pointer",
+                padding: "4px 8px",
               }}
             >
               ✕
@@ -1292,24 +1487,44 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
             {/* 진행 상태 */}
             {busy && (
               <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, color: "#555", marginBottom: 2 }}>{phaseLabel}</div>
+                <div style={{ fontSize: 12, color: "#555", marginBottom: 2 }}>
+                  {phaseLabel}
+                </div>
                 {phase === "loading" && (
-                  <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}>
+                  <div
+                    style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}
+                  >
                     브라우저 캐싱되어 다음 업로드부터는 로딩하지 않습니다.
                   </div>
                 )}
-                <div style={{ height: 6, background: "#e5e7eb", borderRadius: 99, overflow: "hidden" }}>
+                <div
+                  style={{
+                    height: 6,
+                    background: "#e5e7eb",
+                    borderRadius: 99,
+                    overflow: "hidden",
+                  }}
+                >
                   {phase === "preparing" ? (
-                    <div style={{
-                      height: "100%", width: "40%", background: "#9ca3af",
-                      borderRadius: 99, animation: "shimmer 1.2s ease-in-out infinite",
-                    }} />
+                    <div
+                      style={{
+                        height: "100%",
+                        width: "40%",
+                        background: "#9ca3af",
+                        borderRadius: 99,
+                        animation: "shimmer 1.2s ease-in-out infinite",
+                      }}
+                    />
                   ) : (
-                    <div style={{
-                      height: "100%", width: `${progress}%`,
-                      background: "#2563EB",
-                      borderRadius: 99, transition: "width 0.2s",
-                    }} />
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${progress}%`,
+                        background: "#2563EB",
+                        borderRadius: 99,
+                        transition: "width 0.2s",
+                      }}
+                    />
                   )}
                 </div>
               </div>
@@ -1320,7 +1535,12 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
                 <video
                   src={currentVideoUrl}
                   controls
-                  style={{ width: "100%", borderRadius: 8, background: "#000", maxHeight: 260 }}
+                  style={{
+                    width: "100%",
+                    borderRadius: 8,
+                    background: "#000",
+                    maxHeight: 260,
+                  }}
                 />
                 <input
                   value={draftCaption}
@@ -1329,32 +1549,53 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
                   placeholder="동영상 설명 추가..."
                   maxLength={150}
                   style={{
-                    width: "100%", marginTop: 8, fontSize: 13,
-                    padding: "7px 10px", border: "1px solid #e5e7eb",
-                    borderRadius: 6, outline: "none", color: "#374151",
+                    width: "100%",
+                    marginTop: 8,
+                    fontSize: 13,
+                    padding: "7px 10px",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: 6,
+                    outline: "none",
+                    color: "#374151",
                     background: savingCaption ? "#f9fafb" : "#fff",
                   }}
                 />
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <label style={{
-                    flex: 1, textAlign: "center", padding: "8px",
-                    border: "1px solid #2563EB", color: "#2563EB",
-                    borderRadius: 6, fontSize: 13,
-                    cursor: busy ? "not-allowed" : "pointer", opacity: busy ? 0.6 : 1,
-                  }}>
+                  <label
+                    style={{
+                      flex: 1,
+                      textAlign: "center",
+                      padding: "8px",
+                      border: "1px solid #2563EB",
+                      color: "#2563EB",
+                      borderRadius: 6,
+                      fontSize: 13,
+                      cursor: busy ? "not-allowed" : "pointer",
+                      opacity: busy ? 0.6 : 1,
+                    }}
+                  >
                     {phaseLabel ?? "동영상 교체"}
-                    <input type="file" accept="video/mp4,video/webm,video/quicktime"
-                      onChange={handleUpload} disabled={busy} style={{ display: "none" }} />
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/quicktime"
+                      onChange={handleUpload}
+                      disabled={busy}
+                      style={{ display: "none" }}
+                    />
                   </label>
                   <button
                     onClick={() => setConfirmDelete(true)}
                     disabled={deleting || busy}
                     style={{
-                      flex: 1, padding: "8px", background: "none",
-                      border: "1px solid #DC2626", color: "#DC2626",
-                      borderRadius: 6, fontSize: 13,
-                      cursor: (deleting || busy) ? "not-allowed" : "pointer",
-                      opacity: (deleting || busy) ? 0.6 : 1,
+                      flex: 1,
+                      padding: "8px",
+                      background: "none",
+                      border: "1px solid #DC2626",
+                      color: "#DC2626",
+                      borderRadius: 6,
+                      fontSize: 13,
+                      cursor: deleting || busy ? "not-allowed" : "pointer",
+                      opacity: deleting || busy ? 0.6 : 1,
                     }}
                   >
                     {deleting ? "삭제 중..." : "동영상 삭제"}
@@ -1362,18 +1603,32 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
                 </div>
               </>
             ) : (
-              <label style={{
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                minHeight: 100, border: "1px dashed #d1d5db",
-                borderRadius: 8, color: "#6b7280", fontSize: 13,
-                cursor: busy ? "not-allowed" : "pointer",
-                opacity: busy ? 0.7 : 1, padding: 16, gap: 6,
-              }}>
+              <label
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 100,
+                  border: "1px dashed #d1d5db",
+                  borderRadius: 8,
+                  color: "#6b7280",
+                  fontSize: 13,
+                  cursor: busy ? "not-allowed" : "pointer",
+                  opacity: busy ? 0.7 : 1,
+                  padding: 16,
+                  gap: 6,
+                }}
+              >
                 <span style={{ fontSize: 28 }}>🎬</span>
                 {phaseLabel ?? "동영상 추가 (mp4, webm, mov · 최대 200MB)"}
-                <input type="file" accept="video/mp4,video/webm,video/quicktime"
-                  onChange={handleUpload} disabled={busy} style={{ display: "none" }} />
+                <input
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime"
+                  onChange={handleUpload}
+                  disabled={busy}
+                  style={{ display: "none" }}
+                />
               </label>
             )}
           </div>

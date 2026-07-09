@@ -4,308 +4,311 @@ export type Json =
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[]
+  | Json[];
 
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
+    PostgrestVersion: "14.5";
+  };
   public: {
     Tables: {
       app_settings: {
         Row: {
-          key: string
-          updated_at: string
-          value: Json
-        }
+          key: string;
+          updated_at: string;
+          value: Json;
+        };
         Insert: {
-          key: string
-          updated_at?: string
-          value: Json
-        }
+          key: string;
+          updated_at?: string;
+          value: Json;
+        };
         Update: {
-          key?: string
-          updated_at?: string
-          value?: Json
-        }
-        Relationships: []
-      }
+          key?: string;
+          updated_at?: string;
+          value?: Json;
+        };
+        Relationships: [];
+      };
       building_facilities: {
         Row: {
-          building_id: number | null
-          created_at: string | null
-          description: string | null
-          description_en: string | null
-          description_zh: string | null
-          facility_code: string | null
-          floor_info: string | null
-          floor_info_en: string | null
-          floor_info_zh: string | null
-          id: string
-          is_installed: boolean | null
-          lat: number | null
-          lng: number | null
-          name: string | null
-          name_en: string | null
-          name_zh: string | null
-          video_caption: string | null
-          video_caption_en: string | null
-          video_caption_zh: string | null
-          video_url: string | null
-        }
+          building_id: number | null;
+          created_at: string | null;
+          description: string | null;
+          description_en: string | null;
+          description_zh: string | null;
+          facility_code: string | null;
+          floor_info: string | null;
+          floor_info_en: string | null;
+          floor_info_zh: string | null;
+          id: string;
+          is_installed: boolean | null;
+          lat: number | null;
+          lng: number | null;
+          name: string | null;
+          name_en: string | null;
+          name_zh: string | null;
+          video_caption: string | null;
+          video_caption_en: string | null;
+          video_caption_zh: string | null;
+          video_url: string | null;
+        };
         Insert: {
-          building_id?: number | null
-          created_at?: string | null
-          description?: string | null
-          description_en?: string | null
-          description_zh?: string | null
-          facility_code?: string | null
-          floor_info?: string | null
-          floor_info_en?: string | null
-          floor_info_zh?: string | null
-          id?: string
-          is_installed?: boolean | null
-          lat?: number | null
-          lng?: number | null
-          name?: string | null
-          name_en?: string | null
-          name_zh?: string | null
-          video_caption?: string | null
-          video_caption_en?: string | null
-          video_caption_zh?: string | null
-          video_url?: string | null
-        }
+          building_id?: number | null;
+          created_at?: string | null;
+          description?: string | null;
+          description_en?: string | null;
+          description_zh?: string | null;
+          facility_code?: string | null;
+          floor_info?: string | null;
+          floor_info_en?: string | null;
+          floor_info_zh?: string | null;
+          id?: string;
+          is_installed?: boolean | null;
+          lat?: number | null;
+          lng?: number | null;
+          name?: string | null;
+          name_en?: string | null;
+          name_zh?: string | null;
+          video_caption?: string | null;
+          video_caption_en?: string | null;
+          video_caption_zh?: string | null;
+          video_url?: string | null;
+        };
         Update: {
-          building_id?: number | null
-          created_at?: string | null
-          description?: string | null
-          description_en?: string | null
-          description_zh?: string | null
-          facility_code?: string | null
-          floor_info?: string | null
-          floor_info_en?: string | null
-          floor_info_zh?: string | null
-          id?: string
-          is_installed?: boolean | null
-          lat?: number | null
-          lng?: number | null
-          name?: string | null
-          name_en?: string | null
-          name_zh?: string | null
-          video_caption?: string | null
-          video_caption_en?: string | null
-          video_caption_zh?: string | null
-          video_url?: string | null
-        }
+          building_id?: number | null;
+          created_at?: string | null;
+          description?: string | null;
+          description_en?: string | null;
+          description_zh?: string | null;
+          facility_code?: string | null;
+          floor_info?: string | null;
+          floor_info_en?: string | null;
+          floor_info_zh?: string | null;
+          id?: string;
+          is_installed?: boolean | null;
+          lat?: number | null;
+          lng?: number | null;
+          name?: string | null;
+          name_en?: string | null;
+          name_zh?: string | null;
+          video_caption?: string | null;
+          video_caption_en?: string | null;
+          video_caption_zh?: string | null;
+          video_url?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "building_facilities_building_id_fkey"
-            columns: ["building_id"]
-            isOneToOne: false
-            referencedRelation: "buildings"
-            referencedColumns: ["id"]
+            foreignKeyName: "building_facilities_building_id_fkey";
+            columns: ["building_id"];
+            isOneToOne: false;
+            referencedRelation: "buildings";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "building_facilities_facility_code_fkey"
-            columns: ["facility_code"]
-            isOneToOne: false
-            referencedRelation: "facility_types"
-            referencedColumns: ["code"]
+            foreignKeyName: "building_facilities_facility_code_fkey";
+            columns: ["facility_code"];
+            isOneToOne: false;
+            referencedRelation: "facility_types";
+            referencedColumns: ["code"];
           },
-        ]
-      }
+        ];
+      };
       building_photos: {
         Row: {
-          building_id: number
-          caption: string | null
-          caption_en: string | null
-          caption_zh: string | null
-          created_at: string | null
-          id: number
-          url: string
-        }
+          building_id: number;
+          caption: string | null;
+          caption_en: string | null;
+          caption_zh: string | null;
+          created_at: string | null;
+          id: number;
+          url: string;
+        };
         Insert: {
-          building_id: number
-          caption?: string | null
-          caption_en?: string | null
-          caption_zh?: string | null
-          created_at?: string | null
-          id?: number
-          url: string
-        }
+          building_id: number;
+          caption?: string | null;
+          caption_en?: string | null;
+          caption_zh?: string | null;
+          created_at?: string | null;
+          id?: number;
+          url: string;
+        };
         Update: {
-          building_id?: number
-          caption?: string | null
-          caption_en?: string | null
-          caption_zh?: string | null
-          created_at?: string | null
-          id?: number
-          url?: string
-        }
+          building_id?: number;
+          caption?: string | null;
+          caption_en?: string | null;
+          caption_zh?: string | null;
+          created_at?: string | null;
+          id?: number;
+          url?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "building_photos_building_id_fkey"
-            columns: ["building_id"]
-            isOneToOne: false
-            referencedRelation: "buildings"
-            referencedColumns: ["id"]
+            foreignKeyName: "building_photos_building_id_fkey";
+            columns: ["building_id"];
+            isOneToOne: false;
+            referencedRelation: "buildings";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       buildings: {
         Row: {
-          campus: string | null
-          college_id: number | null
-          created_at: string | null
-          deleted_at: string | null
-          geojson: Json | null
-          id: number
-          is_deleted: boolean | null
-          last_updated: string | null
-          name: string | null
-          name_en: string | null
-        }
+          campus: string | null;
+          college_id: number | null;
+          created_at: string | null;
+          deleted_at: string | null;
+          geojson: Json | null;
+          id: number;
+          is_deleted: boolean | null;
+          last_updated: string | null;
+          name: string | null;
+          name_en: string | null;
+        };
         Insert: {
-          campus?: string | null
-          college_id?: number | null
-          created_at?: string | null
-          deleted_at?: string | null
-          geojson?: Json | null
-          id: number
-          is_deleted?: boolean | null
-          last_updated?: string | null
-          name?: string | null
-          name_en?: string | null
-        }
+          campus?: string | null;
+          college_id?: number | null;
+          created_at?: string | null;
+          deleted_at?: string | null;
+          geojson?: Json | null;
+          id: number;
+          is_deleted?: boolean | null;
+          last_updated?: string | null;
+          name?: string | null;
+          name_en?: string | null;
+        };
         Update: {
-          campus?: string | null
-          college_id?: number | null
-          created_at?: string | null
-          deleted_at?: string | null
-          geojson?: Json | null
-          id?: number
-          is_deleted?: boolean | null
-          last_updated?: string | null
-          name?: string | null
-          name_en?: string | null
-        }
+          campus?: string | null;
+          college_id?: number | null;
+          created_at?: string | null;
+          deleted_at?: string | null;
+          geojson?: Json | null;
+          id?: number;
+          is_deleted?: boolean | null;
+          last_updated?: string | null;
+          name?: string | null;
+          name_en?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "buildings_college_id_fkey"
-            columns: ["college_id"]
-            isOneToOne: false
-            referencedRelation: "colleges"
-            referencedColumns: ["id"]
+            foreignKeyName: "buildings_college_id_fkey";
+            columns: ["college_id"];
+            isOneToOne: false;
+            referencedRelation: "colleges";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       colleges: {
         Row: {
-          id: number
-          name: string
-          name_en: string | null
-          name_zh: string | null
-        }
+          id: number;
+          name: string;
+          name_en: string | null;
+          name_zh: string | null;
+        };
         Insert: {
-          id?: number
-          name: string
-          name_en?: string | null
-          name_zh?: string | null
-        }
+          id?: number;
+          name: string;
+          name_en?: string | null;
+          name_zh?: string | null;
+        };
         Update: {
-          id?: number
-          name?: string
-          name_en?: string | null
-          name_zh?: string | null
-        }
-        Relationships: []
-      }
+          id?: number;
+          name?: string;
+          name_en?: string | null;
+          name_zh?: string | null;
+        };
+        Relationships: [];
+      };
       facility_types: {
         Row: {
-          code: string
-          icon: string | null
-          label: string | null
-          label_en: string | null
-          label_zh: string | null
-        }
+          code: string;
+          icon: string | null;
+          label: string | null;
+          label_en: string | null;
+          label_zh: string | null;
+        };
         Insert: {
-          code: string
-          icon?: string | null
-          label?: string | null
-          label_en?: string | null
-          label_zh?: string | null
-        }
+          code: string;
+          icon?: string | null;
+          label?: string | null;
+          label_en?: string | null;
+          label_zh?: string | null;
+        };
         Update: {
-          code?: string
-          icon?: string | null
-          label?: string | null
-          label_en?: string | null
-          label_zh?: string | null
-        }
-        Relationships: []
-      }
+          code?: string;
+          icon?: string | null;
+          label?: string | null;
+          label_en?: string | null;
+          label_zh?: string | null;
+        };
+        Relationships: [];
+      };
       slope_segments: {
         Row: {
-          created_at: string | null
-          gpx_file: string | null
-          id: string
-          name: string
-          segments: Json
-        }
+          created_at: string | null;
+          gpx_file: string | null;
+          id: string;
+          name: string;
+          segments: Json;
+        };
         Insert: {
-          created_at?: string | null
-          gpx_file?: string | null
-          id?: string
-          name: string
-          segments: Json
-        }
+          created_at?: string | null;
+          gpx_file?: string | null;
+          id?: string;
+          name: string;
+          segments: Json;
+        };
         Update: {
-          created_at?: string | null
-          gpx_file?: string | null
-          id?: string
-          name?: string
-          segments?: Json
-        }
-        Relationships: []
-      }
-    }
+          created_at?: string | null;
+          gpx_file?: string | null;
+          id?: string;
+          name?: string;
+          segments?: Json;
+        };
+        Relationships: [];
+      };
+    };
     Views: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Functions: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     Enums: {
-      [_ in never]: never
-    }
+      [_ in never]: never;
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<
+  keyof Database,
+  "public"
+>];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
@@ -313,98 +316,95 @@ export type Tables<
         DefaultSchema["Views"])
     ? (DefaultSchema["Tables"] &
         DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
     Enums: {},
   },
-} as const
+} as const;

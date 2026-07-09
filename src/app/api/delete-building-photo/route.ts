@@ -15,11 +15,16 @@ export async function POST(request) {
     const { photoId, url } = await request.json();
 
     if (!photoId || !url) {
-      return NextResponse.json({ error: "photoId 또는 url 누락" }, { status: 400 });
+      return NextResponse.json(
+        { error: "photoId 또는 url 누락" },
+        { status: 400 },
+      );
     }
 
     const storagePath = url.split("/building-photos/")[1]?.split("?")[0];
-    console.log(`[delete-building-photo] photoId=${photoId} path=${storagePath}`);
+    console.log(
+      `[delete-building-photo] photoId=${photoId} path=${storagePath}`,
+    );
 
     if (storagePath) {
       const { error: removeError } = await supabaseAdmin.storage
@@ -27,7 +32,10 @@ export async function POST(request) {
         .remove([storagePath]);
       if (removeError) {
         console.error("[delete-building-photo] storage error:", removeError);
-        return NextResponse.json({ error: removeError.message }, { status: 500 });
+        return NextResponse.json(
+          { error: removeError.message },
+          { status: 500 },
+        );
       }
     }
 

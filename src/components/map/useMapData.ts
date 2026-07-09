@@ -21,7 +21,10 @@ export function useMapData() {
     setLoadingMap(true);
     fetch("/api/buildings")
       .then((res) => res.json())
-      .then((data) => { if (!data.features) return; setGeoData(data); })
+      .then((data) => {
+        if (!data.features) return;
+        setGeoData(data);
+      })
       .catch((err) => console.error("buildings fetch 실패:", err))
       .finally(() => setLoadingMap(false));
   }, []);

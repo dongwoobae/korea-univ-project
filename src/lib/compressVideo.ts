@@ -43,14 +43,22 @@ export async function compressVideo(file, onProgress, onPhase) {
   await ff.writeFile(inputName, await fetchFile(file));
 
   await ff.exec([
-    "-i", inputName,
-    "-c:v", "libx264",
-    "-crf", "28",
-    "-preset", "ultrafast",
-    "-vf", "scale='min(1280,iw)':-2",
-    "-c:a", "aac",
-    "-b:a", "128k",
-    "-movflags", "+faststart",
+    "-i",
+    inputName,
+    "-c:v",
+    "libx264",
+    "-crf",
+    "28",
+    "-preset",
+    "ultrafast",
+    "-vf",
+    "scale='min(1280,iw)':-2",
+    "-c:a",
+    "aac",
+    "-b:a",
+    "128k",
+    "-movflags",
+    "+faststart",
     "output.mp4",
   ]);
 

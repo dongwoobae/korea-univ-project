@@ -56,7 +56,8 @@ export const translations = {
     feedbackTo: "To",
     feedbackCc: "Cc",
     feedbackSubject: "Subject",
-    feedbackTypeLine: "Type: (Bug report / Facility info correction / Feature suggestion / Other)",
+    feedbackTypeLine:
+      "Type: (Bug report / Facility info correction / Feature suggestion / Other)",
     feedbackContentLine: "Details:",
 
     noPhoto: "No photo",

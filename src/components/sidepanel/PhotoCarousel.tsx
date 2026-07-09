@@ -3,7 +3,10 @@
 import type { LangCode } from "@/lib/translations";
 import type { BuildingPhoto } from "@/types/domain";
 
-type PhotoRow = Pick<BuildingPhoto, "id" | "url" | "caption" | "caption_en" | "caption_zh">;
+type PhotoRow = Pick<
+  BuildingPhoto,
+  "id" | "url" | "caption" | "caption_en" | "caption_zh"
+>;
 
 interface PhotoCarouselProps {
   photos: PhotoRow[];
@@ -25,44 +28,99 @@ export default function PhotoCarousel({
   return (
     <>
       {photos.length > 0 ? (
-        <div style={{ position: "relative", width: "100%", height: 160, background: "#000" }}>
+        <div
+          style={{
+            position: "relative",
+            width: "100%",
+            height: 160,
+            background: "#000",
+          }}
+        >
           <img
             src={photos[photoIndex]?.url}
             alt={displayName}
-            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+            }}
           />
           {photos.length > 1 && (
             <>
               <button
                 aria-label="이전 사진"
-                onClick={() => setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)}
+                onClick={() =>
+                  setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)
+                }
                 style={{
-                  position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
-                  background: "rgba(0,0,0,0.45)", color: "#fff", border: "none",
-                  borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 14,
-                  display: "flex", alignItems: "center", justifyContent: "center",
+                  position: "absolute",
+                  left: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "rgba(0,0,0,0.45)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 28,
+                  height: 28,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-              >‹</button>
+              >
+                ‹
+              </button>
               <button
                 aria-label="다음 사진"
                 onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)}
                 style={{
-                  position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-                  background: "rgba(0,0,0,0.45)", color: "#fff", border: "none",
-                  borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 14,
-                  display: "flex", alignItems: "center", justifyContent: "center",
+                  position: "absolute",
+                  right: 8,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "rgba(0,0,0,0.45)",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: 28,
+                  height: 28,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
-              >›</button>
-              <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 5 }}>
+              >
+                ›
+              </button>
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 8,
+                  left: 0,
+                  right: 0,
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: 5,
+                }}
+              >
                 {photos.map((_, i) => (
                   <button
                     key={i}
                     aria-label={`${i + 1}번째 사진`}
                     onClick={() => setPhotoIndex(i)}
                     style={{
-                      width: i === photoIndex ? 16 : 6, height: 6,
-                      borderRadius: 3, border: "none", cursor: "pointer", padding: 0,
-                      background: i === photoIndex ? "#fff" : "rgba(255,255,255,0.5)",
+                      width: i === photoIndex ? 16 : 6,
+                      height: 6,
+                      borderRadius: 3,
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      background:
+                        i === photoIndex ? "#fff" : "rgba(255,255,255,0.5)",
                       transition: "width 0.2s",
                     }}
                   />
@@ -74,9 +132,14 @@ export default function PhotoCarousel({
       ) : (
         <div
           style={{
-            width: "100%", height: 160, background: "#f5f5f5",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            color: "#aaa", fontSize: 13,
+            width: "100%",
+            height: 160,
+            background: "#f5f5f5",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#aaa",
+            fontSize: 13,
           }}
         >
           {t("noPhoto")}
@@ -94,7 +157,8 @@ export default function PhotoCarousel({
         >
           {lang === "ko"
             ? photos[photoIndex].caption
-            : (photos[photoIndex][`caption_${lang}`] ?? photos[photoIndex].caption)}
+            : (photos[photoIndex][`caption_${lang}`] ??
+              photos[photoIndex].caption)}
         </div>
       )}
     </>

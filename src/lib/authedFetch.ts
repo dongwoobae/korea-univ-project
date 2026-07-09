@@ -1,6 +1,9 @@
 import { supabase } from "@/lib/supabaseClient";
 
-export async function authedFetch(input: RequestInfo | URL, options: RequestInit = {}) {
+export async function authedFetch(
+  input: RequestInfo | URL,
+  options: RequestInit = {},
+) {
   const { data } = await supabase.auth.getSession();
 
   const headers = new Headers(options.headers);

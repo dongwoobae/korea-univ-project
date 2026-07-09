@@ -44,7 +44,14 @@ export default function SidePanelHeader({
           {displayName}
         </div>
         {collegeName && (
-          <div style={{ fontSize: 12, color: "#2563EB", marginTop: 3, fontWeight: 500 }}>
+          <div
+            style={{
+              fontSize: 12,
+              color: "#2563EB",
+              marginTop: 3,
+              fontWeight: 500,
+            }}
+          >
             {collegeName}
           </div>
         )}
@@ -76,7 +83,9 @@ export default function SidePanelHeader({
             lineHeight: 1,
             opacity: loading ? 0.4 : 1,
             color: isSpeaking ? "#2563EB" : "#888",
-            animation: isSpeaking ? "speakPulse 1.2s ease-in-out infinite" : "none",
+            animation: isSpeaking
+              ? "speakPulse 1.2s ease-in-out infinite"
+              : "none",
           }}
           disabled={loading}
         >

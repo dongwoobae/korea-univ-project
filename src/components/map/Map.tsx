@@ -35,7 +35,8 @@ const TILES = {
   },
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    attribution: "Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+    attribution:
+      "Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
     subdomains: "abc",
   },
 };
@@ -87,19 +88,30 @@ export default function Map() {
     slopes,
     campusBoundaries,
   } = useMapData();
-  const [tooltip, setTooltip] = useState({ visible: false, name: "", name_en: "", x: 0, y: 0 });
-  const [selectedBuilding, setSelectedBuilding] = useState<{ id: number; name: string } | null>(null);
+  const [tooltip, setTooltip] = useState({
+    visible: false,
+    name: "",
+    name_en: "",
+    x: 0,
+    y: 0,
+  });
+  const [selectedBuilding, setSelectedBuilding] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
   const [favoritesList, setFavoritesList] = useState<any[]>([]);
-  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(
+    null,
+  );
   const [isMobile, setIsMobile] = useState(false);
   const [tileMode, setTileMode] = useState("street");
   const [showSlope, setShowSlope] = useState(false);
   const [activeCampuses, setActiveCampuses] = useState({
-    "의료원": false,
-    "녹지캠퍼스": false,
-    "인문사회계": false,
-    "자연계": false,
+    의료원: false,
+    녹지캠퍼스: false,
+    인문사회계: false,
+    자연계: false,
   });
   const { lang, setLang, t } = useLanguage();
 
@@ -107,7 +119,9 @@ export default function Map() {
   const activeLayerRef = useRef<any>(null);
   const activeBuildingIdRef = useRef<number | null>(null);
   const layerMapRef = useRef<Record<number, any>>({});
-  const favoriteIdsRef = useRef(new Set(loadFavoritesFromStorage().map((f) => f.id)));
+  const favoriteIdsRef = useRef(
+    new Set(loadFavoritesFromStorage().map((f) => f.id)),
+  );
   // isMobile을 ref로도 관리 — onEachFeature 클로저에서 항상 최신값 참조
   const isMobileRef = useRef(false);
 
@@ -131,7 +145,9 @@ export default function Map() {
   function handleBuildingSelectFromSearch(feature) {
     const bId = feature.properties.id;
     if (activeLayerRef.current && activeBuildingIdRef.current !== bId) {
-      activeLayerRef.current.setStyle(baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)));
+      activeLayerRef.current.setStyle(
+        baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+      );
     }
     const layer = layerMapRef.current[bId];
     if (layer) {
@@ -160,7 +176,9 @@ export default function Map() {
         const numId = Number(id);
         const isFav = favoriteIdsRef.current.has(numId);
         const isActive = activeBuildingIdRef.current === numId;
-        (layer as any).setStyle(isActive ? hoverStyle(isFav) : baseStyle(isFav));
+        (layer as any).setStyle(
+          isActive ? hoverStyle(isFav) : baseStyle(isFav),
+        );
       });
     };
     window.addEventListener("favoritesUpdated", handler);
@@ -179,7 +197,13 @@ export default function Map() {
         const mapEl = mapRef.current?.getContainer();
         if (!mapEl) return;
         const rect = mapEl.getBoundingClientRect();
-        setTooltip({ visible: true, name: feature.properties.name, name_en: feature.properties.name_en, x: clientX - rect.left + 12, y: clientY - rect.top - 36 });
+        setTooltip({
+          visible: true,
+          name: feature.properties.name,
+          name_en: feature.properties.name_en,
+          x: clientX - rect.left + 12,
+          y: clientY - rect.top - 36,
+        });
       },
       mousemove(e) {
         if (isMobileRef.current) return;
@@ -187,7 +211,11 @@ export default function Map() {
         const mapEl = mapRef.current?.getContainer();
         if (!mapEl) return;
         const rect = mapEl.getBoundingClientRect();
-        setTooltip((prev) => ({ ...prev, x: clientX - rect.left + 12, y: clientY - rect.top - 36 }));
+        setTooltip((prev) => ({
+          ...prev,
+          x: clientX - rect.left + 12,
+          y: clientY - rect.top - 36,
+        }));
       },
       mouseout() {
         if (activeLayerRef.current === layer) return;
@@ -195,9 +223,14 @@ export default function Map() {
         setTooltip((prev) => ({ ...prev, visible: false }));
       },
       click() {
-        if (activeBuildingIdRef.current === bId) { handleClosePanel(); return; }
+        if (activeBuildingIdRef.current === bId) {
+          handleClosePanel();
+          return;
+        }
         if (activeLayerRef.current && activeLayerRef.current !== layer) {
-          activeLayerRef.current.setStyle(baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)));
+          activeLayerRef.current.setStyle(
+            baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+          );
         }
         layer.setStyle(hoverStyle(favoriteIdsRef.current.has(bId)));
         activeLayerRef.current = layer;
@@ -209,14 +242,19 @@ export default function Map() {
 
   function handleSelectById(id, name) {
     if (activeLayerRef.current && activeBuildingIdRef.current !== id) {
-      activeLayerRef.current.setStyle(baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)));
+      activeLayerRef.current.setStyle(
+        baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+      );
     }
     const layer = layerMapRef.current[id];
     if (layer) {
       layer.setStyle(hoverStyle(favoriteIdsRef.current.has(id)));
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = id;
-      mapRef.current?.fitBounds(layer.getBounds(), { maxZoom: 18, animate: true });
+      mapRef.current?.fitBounds(layer.getBounds(), {
+        maxZoom: 18,
+        animate: true,
+      });
     }
     setSelectedBuilding({ id, name });
   }
@@ -226,7 +264,9 @@ export default function Map() {
     setTimeout(() => {
       setSelectedBuilding(null);
       if (activeLayerRef.current) {
-        activeLayerRef.current.setStyle(baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)));
+        activeLayerRef.current.setStyle(
+          baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+        );
         activeLayerRef.current = null;
         activeBuildingIdRef.current = null;
       }
@@ -237,8 +277,31 @@ export default function Map() {
     <div style={{ position: "relative", width: "100%", height: "100dvh" }}>
       {/* 로딩 오버레이 */}
       {loadingMap && (
-        <div style={{ position: "absolute", inset: 0, zIndex: 2000, background: "rgba(255,255,255,0.85)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16 }}>
-          <div style={{ width: 40, height: 40, borderWidth: 3, borderStyle: "solid", borderColor: "#e5e7eb", borderTopColor: "#2563EB", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 2000,
+            background: "rgba(255,255,255,0.85)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 16,
+          }}
+        >
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              borderWidth: 3,
+              borderStyle: "solid",
+              borderColor: "#e5e7eb",
+              borderTopColor: "#2563EB",
+              borderRadius: "50%",
+              animation: "spin 0.8s linear infinite",
+            }}
+          />
           <div style={{ fontSize: 14, color: "#555" }}>{t("loadingMap")}</div>
           <style>{`
             @keyframes spin { to { transform: rotate(360deg) } }
@@ -285,15 +348,22 @@ export default function Map() {
           </>
         )}
         <FacilityMarkers facilities={facilities} activeTypes={activeTypes} />
-        <SubwayMarkers lang={lang} onSelect={(station) => setSelectedBuilding(station)} />
+        <SubwayMarkers
+          lang={lang}
+          onSelect={(station) => setSelectedBuilding(station)}
+        />
         {showSlope && slopes.length > 0 && <SlopeLayer slopes={slopes} />}
         {campusBoundaries && (
           <GeoJSON
             key={JSON.stringify(activeCampuses)}
-            data={{
-              type: "FeatureCollection",
-              features: (campusBoundaries as any).features.filter((f) => activeCampuses[f.properties.campus]),
-            } as any}
+            data={
+              {
+                type: "FeatureCollection",
+                features: (campusBoundaries as any).features.filter(
+                  (f) => activeCampuses[f.properties.campus],
+                ),
+              } as any
+            }
             style={(feature) => ({
               color: feature?.properties?.color,
               weight: 2,
@@ -307,31 +377,102 @@ export default function Map() {
       </MapContainer>
 
       {/* 고려대학교 사회공헌원 로고 */}
-      <div style={{ position: "absolute", bottom: "calc(22px + env(safe-area-inset-bottom, 0px))", right: 10, zIndex: 1000, background: "rgba(255,255,255,0.85)", borderRadius: 6, padding: "4px 8px", pointerEvents: "none", boxShadow: "0 1px 4px rgba(0,0,0,0.08)", display: "flex", alignItems: "center" }}>
-        <img src="/kuis-logo.png" alt="고려대학교 사회공헌원 KU Institute for Sustainability" style={{ height: isMobile ? 20 : 28, display: "block" }} />
+      <div
+        style={{
+          position: "absolute",
+          bottom: "calc(22px + env(safe-area-inset-bottom, 0px))",
+          right: 10,
+          zIndex: 1000,
+          background: "rgba(255,255,255,0.85)",
+          borderRadius: 6,
+          padding: "4px 8px",
+          pointerEvents: "none",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <img
+          src="/kuis-logo.png"
+          alt="고려대학교 사회공헌원 KU Institute for Sustainability"
+          style={{ height: isMobile ? 20 : 28, display: "block" }}
+        />
       </div>
 
       {/* 항공사진 출처 라벨 */}
       {tileMode === "satellite" && (
-        <div style={{ position: "absolute", bottom: "calc(56px + env(safe-area-inset-bottom, 0px))", right: 10, zIndex: 1000, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 10, padding: "3px 7px", borderRadius: 4, pointerEvents: "none", whiteSpace: "nowrap" }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: "calc(56px + env(safe-area-inset-bottom, 0px))",
+            right: 10,
+            zIndex: 1000,
+            background: "rgba(0,0,0,0.55)",
+            color: "#fff",
+            fontSize: 10,
+            padding: "3px 7px",
+            borderRadius: 4,
+            pointerEvents: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
           Esri World Imagery
         </div>
       )}
 
       {/* 항공/지도 전환 버튼 */}
       <button
-        onClick={() => setTileMode((m) => (m === "street" ? "satellite" : "street"))}
+        onClick={() =>
+          setTileMode((m) => (m === "street" ? "satellite" : "street"))
+        }
         title={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
-        style={{ position: "absolute", top: isMobile ? 130 : 82, right: 10, zIndex: 1000, width: 36, height: 36, borderRadius: 8, background: tileMode === "satellite" ? "#1d4ed8" : "#fff", border: "1px solid #ddd", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
+        style={{
+          position: "absolute",
+          top: isMobile ? 130 : 82,
+          right: 10,
+          zIndex: 1000,
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+          background: tileMode === "satellite" ? "#1d4ed8" : "#fff",
+          border: "1px solid #ddd",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          cursor: "pointer",
+          fontSize: 18,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         {tileMode === "street" ? "🛰️" : "🗺️"}
       </button>
 
       {/* 즐겨찾기 버튼 */}
       <button
-        onClick={() => { setFavoritesList(loadFavoritesFromStorage()); setShowFavorites((v) => !v); }}
+        onClick={() => {
+          setFavoritesList(loadFavoritesFromStorage());
+          setShowFavorites((v) => !v);
+        }}
         title={t("favorites")}
-        style={{ position: "absolute", top: 16, left: 16, zIndex: 1000, width: 36, height: 36, borderRadius: 8, background: showFavorites ? "#FEF08A" : "#fff", borderWidth: 1, borderStyle: "solid", borderColor: "#ddd", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
+        style={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          zIndex: 1000,
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+          background: showFavorites ? "#FEF08A" : "#fff",
+          borderWidth: 1,
+          borderStyle: "solid",
+          borderColor: "#ddd",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+          cursor: "pointer",
+          fontSize: 18,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
       >
         ⭐
       </button>
@@ -344,7 +485,10 @@ export default function Map() {
         show={showFavorites}
         favorites={favoritesList}
         isMobile={isMobile}
-        onSelect={(id, name) => { handleSelectById(id, name); setShowFavorites(false); }}
+        onSelect={(id, name) => {
+          handleSelectById(id, name);
+          setShowFavorites(false);
+        }}
         onClose={() => setShowFavorites(false)}
       />
 
@@ -363,15 +507,44 @@ export default function Map() {
 
       {/* 툴팁 — 데스크탑만 */}
       {!isMobile && tooltip.visible && (
-        <div style={{ position: "absolute", left: tooltip.x, top: tooltip.y, background: "#fff", borderWidth: 1, borderStyle: "solid", borderColor: "#ddd", borderRadius: 6, padding: "6px 10px", fontSize: 13, fontWeight: 500, color: "#333", pointerEvents: "none", zIndex: 1000, boxShadow: "0 2px 6px rgba(0,0,0,0.1)", whiteSpace: "nowrap" }}>
+        <div
+          style={{
+            position: "absolute",
+            left: tooltip.x,
+            top: tooltip.y,
+            background: "#fff",
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: "#ddd",
+            borderRadius: 6,
+            padding: "6px 10px",
+            fontSize: 13,
+            fontWeight: 500,
+            color: "#333",
+            pointerEvents: "none",
+            zIndex: 1000,
+            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+            whiteSpace: "nowrap",
+          }}
+        >
           {lang === "ko" ? tooltip.name : (tooltip.name_en ?? tooltip.name)}
         </div>
       )}
 
       {selectedBuilding && (
-        <SidePanel buildingId={selectedBuilding.id} buildingName={selectedBuilding.name} onClose={handleClosePanel} />
+        <SidePanel
+          buildingId={selectedBuilding.id}
+          buildingName={selectedBuilding.name}
+          onClose={handleClosePanel}
+        />
       )}
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

@@ -22,14 +22,19 @@ export default function SubwayMarkers({ lang, onSelect }: SubwayMarkersProps) {
   return (
     <>
       {SUBWAY_STATIONS.map((s) => {
-        const displayName = lang === "ko" ? s.name : lang === "en" ? s.name_en : s.name_zh;
+        const displayName =
+          lang === "ko" ? s.name : lang === "en" ? s.name_en : s.name_zh;
         return (
           <Marker
             key={s.name}
             position={[s.lat, s.lng]}
             icon={subwayIcon(displayName)}
             zIndexOffset={1000}
-            eventHandlers={{ click() { onSelect({ id: s.id, name: displayName }); } }}
+            eventHandlers={{
+              click() {
+                onSelect({ id: s.id, name: displayName });
+              },
+            }}
           />
         );
       })}

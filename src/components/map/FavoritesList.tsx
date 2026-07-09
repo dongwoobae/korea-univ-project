@@ -1,7 +1,13 @@
 "use client";
 import { useLanguage } from "@/lib/LanguageContext";
 
-export default function FavoritesList({ show, favorites, isMobile, onSelect, onClose }) {
+export default function FavoritesList({
+  show,
+  favorites,
+  isMobile,
+  onSelect,
+  onClose,
+}) {
   const { t } = useLanguage();
 
   if (!show) return null;
@@ -39,7 +45,14 @@ export default function FavoritesList({ show, favorites, isMobile, onSelect, onC
         {favorites.length > 0 ? ` (${favorites.length})` : ""}
       </div>
       {favorites.length === 0 ? (
-        <div style={{ padding: "20px 14px", fontSize: 13, color: "#aaa", textAlign: "center" }}>
+        <div
+          style={{
+            padding: "20px 14px",
+            fontSize: 13,
+            color: "#aaa",
+            textAlign: "center",
+          }}
+        >
           {t("noFavorites")}
         </div>
       ) : (

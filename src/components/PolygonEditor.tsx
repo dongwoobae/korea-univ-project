@@ -7,7 +7,12 @@ import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { supabase } from "@/lib/supabaseClient";
 
-export default function PolygonEditor({ geojson, onSave, onCancel, excludeId }) {
+export default function PolygonEditor({
+  geojson,
+  onSave,
+  onCancel,
+  excludeId,
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
@@ -47,27 +52,36 @@ export default function PolygonEditor({ geojson, onSave, onCancel, excludeId }) 
       .then(({ data }) => {
         if (cancelled || !mapRef.current) return;
         const features = (data ?? [])
-          .filter((b) => (b.geojson as any)?.geometry && String(b.id) !== String(excludeId ?? ""))
+          .filter(
+            (b) =>
+              (b.geojson as any)?.geometry &&
+              String(b.id) !== String(excludeId ?? ""),
+          )
           .map((b) => {
             const g = b.geojson as any;
-            return { ...g, properties: { ...(g.properties ?? {}), name: b.name } };
+            return {
+              ...g,
+              properties: { ...(g.properties ?? {}), name: b.name },
+            };
           });
-        L.geoJSON(
-          { type: "FeatureCollection", features } as any,
-          {
-            style: { color: "#9ca3af", weight: 1, fillColor: "#9ca3af", fillOpacity: 0.25 },
-            interactive: false,
-            onEachFeature: (f, layer) => {
-              if (f.properties?.name) {
-                layer.bindTooltip(f.properties.name, {
-                  permanent: true,
-                  direction: "center",
-                  className: "bldg-label",
-                });
-              }
-            },
+        L.geoJSON({ type: "FeatureCollection", features } as any, {
+          style: {
+            color: "#9ca3af",
+            weight: 1,
+            fillColor: "#9ca3af",
+            fillOpacity: 0.25,
           },
-        ).addTo(map);
+          interactive: false,
+          onEachFeature: (f, layer) => {
+            if (f.properties?.name) {
+              layer.bindTooltip(f.properties.name, {
+                permanent: true,
+                direction: "center",
+                className: "bldg-label",
+              });
+            }
+          },
+        }).addTo(map);
       });
 
     if (geojson) {

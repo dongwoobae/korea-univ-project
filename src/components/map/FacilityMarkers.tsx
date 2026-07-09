@@ -17,7 +17,10 @@ interface FacilityMarkersProps {
   activeTypes: Record<string, boolean>;
 }
 
-export default function FacilityMarkers({ facilities, activeTypes }: FacilityMarkersProps) {
+export default function FacilityMarkers({
+  facilities,
+  activeTypes,
+}: FacilityMarkersProps) {
   return (
     <>
       {facilities
@@ -26,14 +29,29 @@ export default function FacilityMarkers({ facilities, activeTypes }: FacilityMar
           <Marker
             key={f.id}
             position={[f.lat, f.lng]}
-            icon={facilityMarkerIcon(f.facility_types?.code, f.facility_types?.icon)}
+            icon={facilityMarkerIcon(
+              f.facility_types?.code,
+              f.facility_types?.icon,
+            )}
             zIndexOffset={500}
           >
             <Popup>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{f.name ?? f.facility_types?.label}</div>
-              {f.description && <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{f.description}</div>}
-              {f.floor_info && <div style={{ fontSize: 12, color: "#888" }}>{f.floor_info}</div>}
-              <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{f.buildings?.name}</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>
+                {f.name ?? f.facility_types?.label}
+              </div>
+              {f.description && (
+                <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
+                  {f.description}
+                </div>
+              )}
+              {f.floor_info && (
+                <div style={{ fontSize: 12, color: "#888" }}>
+                  {f.floor_info}
+                </div>
+              )}
+              <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>
+                {f.buildings?.name}
+              </div>
             </Popup>
           </Marker>
         ))}

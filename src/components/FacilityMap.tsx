@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, GeoJSON, useMapEvents, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  GeoJSON,
+  useMapEvents,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "@/lib/supabaseClient";
@@ -26,11 +33,18 @@ function ClickHandler({ onMapClick }) {
 
 function MapInstanceCapture({ onReady }) {
   const map = useMap();
-  useEffect(() => { onReady(map); }, [map, onReady]);
+  useEffect(() => {
+    onReady(map);
+  }, [map, onReady]);
   return null;
 }
 
-export default function FacilityMap({ center, markerPosition, onMapClick, highlightId }) {
+export default function FacilityMap({
+  center,
+  markerPosition,
+  onMapClick,
+  highlightId,
+}) {
   const [map, setMap] = useState<L.Map | null>(null);
   const [locating, setLocating] = useState(false);
   const [buildingFeatures, setBuildingFeatures] = useState<any[] | null>(null);
@@ -49,11 +63,20 @@ export default function FacilityMap({ center, markerPosition, onMapClick, highli
             .filter((b) => (b.geojson as any)?.geometry)
             .map((b) => {
               const g = b.geojson as any;
-              return { ...g, properties: { ...(g.properties ?? {}), bid: b.id, name: b.name } };
+              return {
+                ...g,
+                properties: {
+                  ...(g.properties ?? {}),
+                  bid: b.id,
+                  name: b.name,
+                },
+              };
             }),
         );
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function handleLocate() {
@@ -86,11 +109,23 @@ export default function FacilityMap({ center, markerPosition, onMapClick, highli
         {buildingFeatures && (
           <GeoJSON
             key={buildingFeatures.length}
-            data={{ type: "FeatureCollection", features: buildingFeatures } as any}
+            data={
+              { type: "FeatureCollection", features: buildingFeatures } as any
+            }
             style={(f) =>
               String(f?.properties?.bid) === String(highlightId ?? "")
-                ? { color: "#2563EB", weight: 2, fillColor: "#2563EB", fillOpacity: 0.15 }
-                : { color: "#9ca3af", weight: 1, fillColor: "#9ca3af", fillOpacity: 0.2 }
+                ? {
+                    color: "#2563EB",
+                    weight: 2,
+                    fillColor: "#2563EB",
+                    fillOpacity: 0.15,
+                  }
+                : {
+                    color: "#9ca3af",
+                    weight: 1,
+                    fillColor: "#9ca3af",
+                    fillOpacity: 0.2,
+                  }
             }
             interactive={false}
             onEachFeature={(f, layer) => {
@@ -106,7 +141,9 @@ export default function FacilityMap({ center, markerPosition, onMapClick, highli
         )}
         <MapInstanceCapture onReady={setMap} />
         <ClickHandler onMapClick={onMapClick} />
-        {markerPosition && <Marker position={markerPosition} icon={markerIcon} />}
+        {markerPosition && (
+          <Marker position={markerPosition} icon={markerIcon} />
+        )}
       </MapContainer>
       <button
         onClick={handleLocate}

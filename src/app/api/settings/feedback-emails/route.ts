@@ -17,7 +17,9 @@ async function verifyAdmin(request) {
   const client = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
-  const { data: { user } } = await client.auth.getUser();
+  const {
+    data: { user },
+  } = await client.auth.getUser();
   return user;
 }
 
@@ -33,17 +35,25 @@ export async function POST(request) {
   const ccRaw = Array.isArray(body.cc) ? body.cc : [];
   const cc = ccRaw.map((s) => s?.trim()).filter(Boolean);
 
-  if (!isEmail(to)) return Response.json({ error: "수신 이메일 형식 오류" }, { status: 400 });
+  if (!isEmail(to))
+    return Response.json({ error: "수신 이메일 형식 오류" }, { status: 400 });
   if (!subject) return Response.json({ error: "제목 필수" }, { status: 400 });
   for (const addr of cc) {
-    if (!isEmail(addr)) return Response.json({ error: `참조 이메일 형식 오류: ${addr}` }, { status: 400 });
+    if (!isEmail(addr))
+      return Response.json(
+        { error: `참조 이메일 형식 오류: ${addr}` },
+        { status: 400 },
+      );
   }
 
   const value = { to, cc, subject };
 
   const { error } = await admin
     .from("app_settings")
-    .upsert({ key: "feedback_emails", value, updated_at: new Date().toISOString() }, { onConflict: "key" });
+    .upsert(
+      { key: "feedback_emails", value, updated_at: new Date().toISOString() },
+      { onConflict: "key" },
+    );
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 

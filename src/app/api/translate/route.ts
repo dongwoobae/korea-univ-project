@@ -40,7 +40,9 @@ export async function POST(request) {
   const en: Record<string, string> = {};
   const zh: Record<string, string> = {};
 
-  for (const [key, value] of Object.entries(body.texts as Record<string, string>)) {
+  for (const [key, value] of Object.entries(
+    body.texts as Record<string, string>,
+  )) {
     if (!value?.trim()) continue;
     [en[key], zh[key]] = await Promise.all([
       translateOne(value, "en"),

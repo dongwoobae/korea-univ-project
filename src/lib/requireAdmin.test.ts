@@ -20,17 +20,24 @@ describe("requireAdmin", () => {
   it("returns 401 when authorization header is missing", async () => {
     const { requireAdmin } = await loadRequireAdmin();
 
-    const result = (await requireAdmin(new Request("https://local.test/api"))) as {
+    const result = (await requireAdmin(
+      new Request("https://local.test/api"),
+    )) as {
       response: Response;
     };
 
     expect(result.response.status).toBe(401);
-    await expect(result.response.json()).resolves.toEqual({ error: "인증 필요" });
+    await expect(result.response.json()).resolves.toEqual({
+      error: "인증 필요",
+    });
     expect(getUser).not.toHaveBeenCalled();
   });
 
   it("returns 401 when getUser rejects the token", async () => {
-    getUser.mockResolvedValueOnce({ data: { user: null }, error: new Error("expired") });
+    getUser.mockResolvedValueOnce({
+      data: { user: null },
+      error: new Error("expired"),
+    });
     const { requireAdmin } = await loadRequireAdmin();
 
     const result = (await requireAdmin(

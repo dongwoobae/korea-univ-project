@@ -22,7 +22,9 @@ function getBearerToken(request: Request): string | null {
   return match?.[1]?.trim() || null;
 }
 
-export async function requireAdmin(request: Request): Promise<RequireAdminResult> {
+export async function requireAdmin(
+  request: Request,
+): Promise<RequireAdminResult> {
   const token = getBearerToken(request);
   if (!token) {
     return unauthorized();

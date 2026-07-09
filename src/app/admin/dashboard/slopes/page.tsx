@@ -5,9 +5,12 @@ import { supabase } from "@/lib/supabaseClient";
 import type { SlopeSegment } from "@/types/domain";
 
 function buildGpx(name, points) {
-  const trkpts = points.map(p =>
-    `      <trkpt lat="${p.lat}" lon="${p.lng}"><ele>${p.ele}</ele></trkpt>`
-  ).join("\n");
+  const trkpts = points
+    .map(
+      (p) =>
+        `      <trkpt lat="${p.lat}" lon="${p.lng}"><ele>${p.ele}</ele></trkpt>`,
+    )
+    .join("\n");
   return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="KU Barrier-Free Map">
   <trk>
@@ -57,7 +60,9 @@ export default function SlopesPage() {
       const text = await selectedFile.text();
       const xml = new DOMParser().parseFromString(text, "application/xml");
       if (xml.querySelectorAll("parsererror").length > 0) {
-        throw new Error("GPX 파일을 파싱할 수 없습니다. 유효한 GPX 형식인지 확인하세요.");
+        throw new Error(
+          "GPX 파일을 파싱할 수 없습니다. 유효한 GPX 형식인지 확인하세요.",
+        );
       }
 
       const trkpts = Array.from(xml.querySelectorAll("trkpt"));
@@ -70,12 +75,18 @@ export default function SlopesPage() {
         .filter((p) => !isNaN(p.lat) && !isNaN(p.lng) && !isNaN(p.ele));
 
       if (points.length < 2) {
-        alert("유효한 GPS 포인트가 부족합니다 (고도 데이터 포함 최소 2개 필요).");
+        alert(
+          "유효한 GPS 포인트가 부족합니다 (고도 데이터 포함 최소 2개 필요).",
+        );
         return;
       }
 
       // 원본 포인트를 그대로 저장 — 경사도 계산은 렌더링 시 클라이언트에서 수행
-      const segments = points.map(p => ({ lat: p.lat, lng: p.lng, ele: p.ele }));
+      const segments = points.map((p) => ({
+        lat: p.lat,
+        lng: p.lng,
+        ele: p.ele,
+      }));
 
       const { error } = await supabase.from("slope_segments").insert({
         name,
@@ -96,22 +107,45 @@ export default function SlopesPage() {
 
   async function handleDelete(id, name) {
     if (!confirm(`"${name}" 경로를 삭제하시겠습니까?`)) return;
-    const { error } = await supabase.from("slope_segments").delete().eq("id", id);
-    if (error) { alert("삭제 실패: " + error.message); return; }
+    const { error } = await supabase
+      .from("slope_segments")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      alert("삭제 실패: " + error.message);
+      return;
+    }
     await fetchSlopes();
   }
 
   return (
     <div style={{ padding: 24 }}>
-      <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>경사도 경로 관리</div>
+      <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
+        경사도 경로 관리
+      </div>
 
       {/* 업로드 섹션 */}
-      <div style={{
-        background: "#fff", borderRadius: 10,
-        border: "1px solid #e5e7eb", padding: 24, marginBottom: 24,
-      }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>GPX 파일 업로드</div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 10,
+          border: "1px solid #e5e7eb",
+          padding: 24,
+          marginBottom: 24,
+        }}
+      >
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
+          GPX 파일 업로드
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
+            flexWrap: "wrap",
+            marginBottom: 8,
+          }}
+        >
           <input
             id="gpx-input"
             type="file"
@@ -142,22 +176,29 @@ export default function SlopesPage() {
           </div>
         )}
         <div style={{ fontSize: 12, color: "#aaa" }}>
-          파일명이 경로명으로 사용됩니다. 업로드 전 파일명을 원하는 경로명으로 변경하세요 (예: 정문-중앙광장.gpx)
+          파일명이 경로명으로 사용됩니다. 업로드 전 파일명을 원하는 경로명으로
+          변경하세요 (예: 정문-중앙광장.gpx)
         </div>
       </div>
 
       {/* 경로 목록 */}
-      <div style={{
-        background: "#fff", borderRadius: 10,
-        border: "1px solid #e5e7eb", padding: 24,
-      }}>
+      <div
+        style={{
+          background: "#fff",
+          borderRadius: 10,
+          border: "1px solid #e5e7eb",
+          padding: 24,
+        }}
+      >
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
           등록된 경로 ({slopes.length}개)
         </div>
         {loading ? (
           <div style={{ color: "#aaa", fontSize: 13 }}>불러오는 중...</div>
         ) : slopes.length === 0 ? (
-          <div style={{ color: "#aaa", fontSize: 13 }}>등록된 경로가 없습니다.</div>
+          <div style={{ color: "#aaa", fontSize: 13 }}>
+            등록된 경로가 없습니다.
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {slopes.map((s) => (
@@ -173,11 +214,18 @@ export default function SlopesPage() {
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{s.name}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>
+                    {s.name}
+                  </div>
                   <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                    {s.segments?.length ?? 0}개 포인트 · {s.created_at ? new Date(s.created_at).toLocaleDateString("ko-KR") : ""}
+                    {s.segments?.length ?? 0}개 포인트 ·{" "}
+                    {s.created_at
+                      ? new Date(s.created_at).toLocaleDateString("ko-KR")
+                      : ""}
                     {s.gpx_file && (
-                      <span style={{ marginLeft: 8, color: "#bbb" }}>({s.gpx_file})</span>
+                      <span style={{ marginLeft: 8, color: "#bbb" }}>
+                        ({s.gpx_file})
+                      </span>
                     )}
                   </div>
                 </div>

@@ -3,12 +3,19 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/LanguageContext";
-import type { BuildingWithCollege, FacilityWithType, BuildingPhoto } from "@/types/domain";
+import type {
+  BuildingWithCollege,
+  FacilityWithType,
+  BuildingPhoto,
+} from "@/types/domain";
 import SidePanelHeader from "@/components/sidepanel/SidePanelHeader";
 import PhotoCarousel from "@/components/sidepanel/PhotoCarousel";
 import FacilityList from "@/components/sidepanel/FacilityList";
 
-export type SidePanelPhoto = Pick<BuildingPhoto, "id" | "url" | "caption" | "caption_en" | "caption_zh">;
+export type SidePanelPhoto = Pick<
+  BuildingPhoto,
+  "id" | "url" | "caption" | "caption_en" | "caption_zh"
+>;
 
 const FAVORITES_KEY = "ku_favorites";
 
@@ -74,19 +81,26 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     setLoading(true);
 
     async function fetchData() {
-      const [{ data: buildingData }, { data: facilitiesData }, { data: photosData }] =
-        await Promise.all([
-          supabase.from("buildings").select("*, colleges(name, name_en, name_zh)").eq("id", buildingId).single(),
-          supabase
-            .from("building_facilities")
-            .select("*, facility_types(label, label_en, label_zh, icon)")
-            .eq("building_id", buildingId),
-          supabase
-            .from("building_photos")
-            .select("id, url, caption, caption_en, caption_zh")
-            .eq("building_id", buildingId)
-            .order("created_at"),
-        ]);
+      const [
+        { data: buildingData },
+        { data: facilitiesData },
+        { data: photosData },
+      ] = await Promise.all([
+        supabase
+          .from("buildings")
+          .select("*, colleges(name, name_en, name_zh)")
+          .eq("id", buildingId)
+          .single(),
+        supabase
+          .from("building_facilities")
+          .select("*, facility_types(label, label_en, label_zh, icon)")
+          .eq("building_id", buildingId),
+        supabase
+          .from("building_photos")
+          .select("id, url, caption, caption_en, caption_zh")
+          .eq("building_id", buildingId)
+          .order("created_at"),
+      ]);
       setBuilding(buildingData);
       setFacilities(facilitiesData ?? []);
       setPhotos(photosData ?? []);
@@ -143,10 +157,12 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
 
     if (lang === "en") {
       let text = `This is ${name}. `;
-      if (facilities.length === 0) return text + "No accessibility information available.";
+      if (facilities.length === 0)
+        return text + "No accessibility information available.";
       text += "Facilities: ";
       facilities.forEach((f) => {
-        const label = f.facility_types?.label_en ?? f.facility_types?.label ?? "";
+        const label =
+          f.facility_types?.label_en ?? f.facility_types?.label ?? "";
         const facilityName = f.name_en ?? f.name ?? label;
         text += `${facilityName}, ${f.is_installed ? "available" : "unavailable"}. `;
         const location = f.floor_info_en ?? f.floor_info;
@@ -160,7 +176,8 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
       if (facilities.length === 0) return text + "暂无无障碍设施信息。";
       text += "设施情况：";
       facilities.forEach((f) => {
-        const label = f.facility_types?.label_zh ?? f.facility_types?.label ?? "";
+        const label =
+          f.facility_types?.label_zh ?? f.facility_types?.label ?? "";
         const facilityName = f.name_zh ?? f.name ?? label;
         text += `${facilityName}，${f.is_installed ? "已安装" : "未安装"}。`;
         const location = f.floor_info_zh ?? f.floor_info;

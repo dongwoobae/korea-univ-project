@@ -48,7 +48,8 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
   function handleVoiceSearch(e) {
     e.preventDefault();
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      (window as any).SpeechRecognition ||
+      (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert(t("voiceNotSupported"));
       return;
@@ -89,7 +90,8 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
           onFocus={() => setIsFocused(true)}
           onBlur={() => setTimeout(() => setIsFocused(false), 150)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && results.length > 0) handleSelect(results[0]);
+            if (e.key === "Enter" && results.length > 0)
+              handleSelect(results[0]);
           }}
           placeholder={t("searchPlaceholder")}
           style={{
@@ -98,7 +100,8 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
             borderWidth: 1,
             borderStyle: "solid",
             borderColor: "#ddd",
-            borderRadius: results.length > 0 && isFocused ? "8px 8px 0 0" : "8px",
+            borderRadius:
+              results.length > 0 && isFocused ? "8px 8px 0 0" : "8px",
             fontSize: isMobile ? 16 : 14,
             outline: "none",
             boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
@@ -121,7 +124,9 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
             padding: "0 2px",
             lineHeight: 1,
             color: isListening ? "#ef4444" : "#999",
-            animation: isListening ? "micPulse 1s ease-in-out infinite" : "none",
+            animation: isListening
+              ? "micPulse 1s ease-in-out infinite"
+              : "none",
           }}
         >
           🎤
@@ -158,7 +163,9 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
                 borderBottomColor: "#f0f0f0",
                 color: "#333",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#f5f5f5")}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.background = "#f5f5f5")
+              }
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
             >
               {lang === "ko"

@@ -13,7 +13,10 @@ export const FEEDBACK_EMAILS_FALLBACK: FeedbackEmails = {
   subject: "[모두의 캠퍼스] 피드백",
 };
 
-export async function getSetting<T = Json>(key: string, fallback: T | null = null): Promise<T | null> {
+export async function getSetting<T = Json>(
+  key: string,
+  fallback: T | null = null,
+): Promise<T | null> {
   const { data, error } = await supabase
     .from("app_settings")
     .select("value")

@@ -19,14 +19,14 @@
 
 ## 결정 사항 (확정)
 
-| 항목 | 결정 |
-|---|---|
-| 범위 | 전체 점진 마이그레이션 (48개 파일 전부) |
-| 엄격성 | 증분적 강화 — 초기 `strict:false`, 완료 후 승격 |
-| 전환 순서 | 잎(leaf)→뿌리(root): 의존성 낮은 순수 파일부터 |
-| 도메인 타입 | 기존 `supabase/database.types.ts` 재사용 |
-| 거대 컴포넌트 분할 | `SidePanel`, `Map` 확정. TS 전환 후 **별도 커밋**으로 분할 |
-| auto mode | 하이브리드 — 기계적 전환은 auto, 페이즈 경계·분할은 체크포인트 리뷰 |
+| 항목               | 결정                                                                |
+| ------------------ | ------------------------------------------------------------------- |
+| 범위               | 전체 점진 마이그레이션 (48개 파일 전부)                             |
+| 엄격성             | 증분적 강화 — 초기 `strict:false`, 완료 후 승격                     |
+| 전환 순서          | 잎(leaf)→뿌리(root): 의존성 낮은 순수 파일부터                      |
+| 도메인 타입        | 기존 `supabase/database.types.ts` 재사용                            |
+| 거대 컴포넌트 분할 | `SidePanel`, `Map` 확정. TS 전환 후 **별도 커밋**으로 분할          |
+| auto mode          | 하이브리드 — 기계적 전환은 auto, 페이즈 경계·분할은 체크포인트 리뷰 |
 
 ## 아키텍처 / 설정
 
@@ -69,7 +69,7 @@ export type BuildingPhoto = Tables["building_photos"]["Row"];
 - **P0 셋업**: 툴체인 + `tsconfig.json` + 첫 `build` 통과
 - **P1 순수 유틸/데이터**: `facilityColors`, `subwayStations`, `translations`, `lib/*`
   (supabaseClient, authedFetch, requireAdmin, settings, LanguageContext, compressVideo)
-  + `.test.js` → `.test.ts` + `src/types/domain.ts` 신설
+  - `.test.js` → `.test.ts` + `src/types/domain.ts` 신설
 - **P2 지도 로직**: `SlopeLayer`, `SlopeLegend`, `PolygonEditor`, `FacilityMap`,
   `SearchControl`, `FilterPanel`, `MapWrapper`, `Map` — Leaflet 타입 모델링 집중
 - **P3 컴포넌트**: `SidePanel`, `ConfirmModal`, `Toast`, `admin/*`, `map/` 나머지

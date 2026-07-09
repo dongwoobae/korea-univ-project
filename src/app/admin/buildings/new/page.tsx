@@ -6,7 +6,9 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 
-const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), { ssr: false });
+const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
+  ssr: false,
+});
 
 const inputStyle: CSSProperties = {
   width: "100%",
@@ -34,7 +36,9 @@ export default function NewBuilding() {
   const [campus, setCampus] = useState("서울");
   const [geojson, setGeojson] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(
+    null,
+  );
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -43,7 +47,9 @@ export default function NewBuilding() {
   // 인증 확인
   useEffect(() => {
     async function check() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) router.push("/admin");
     }
     check();
@@ -99,7 +105,13 @@ export default function NewBuilding() {
         <div style={{ fontSize: 18, fontWeight: 600 }}>새 건물 추가</div>
         <button
           onClick={() => router.push("/admin/dashboard")}
-          style={{ fontSize: 13, color: "#888", background: "none", border: "none", cursor: "pointer" }}
+          style={{
+            fontSize: 13,
+            color: "#888",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+          }}
         >
           ← 대시보드
         </button>
@@ -107,8 +119,18 @@ export default function NewBuilding() {
 
       <div style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
         {/* 기본 정보 */}
-        <div style={{ background: "#fff", borderRadius: 10, padding: 24, border: "1px solid #e5e7eb", marginBottom: 20 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 20 }}>기본 정보</div>
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            padding: 24,
+            border: "1px solid #e5e7eb",
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 20 }}>
+            기본 정보
+          </div>
 
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>건물 이름 *</label>
@@ -147,8 +169,18 @@ export default function NewBuilding() {
         </div>
 
         {/* 폴리곤 */}
-        <div style={{ background: "#fff", borderRadius: 10, padding: 24, border: "1px solid #e5e7eb", marginBottom: 20 }}>
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>건물 폴리곤 *</div>
+        <div
+          style={{
+            background: "#fff",
+            borderRadius: 10,
+            padding: 24,
+            border: "1px solid #e5e7eb",
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
+            건물 폴리곤 *
+          </div>
           <div style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>
             지도에서 건물 외곽선을 따라 폴리곤을 그려주세요.
           </div>
@@ -157,12 +189,22 @@ export default function NewBuilding() {
             excludeId={null}
             onSave={(newGeojson) => {
               setGeojson(newGeojson);
-              showToast("폴리곤이 저장되었어요. 아래 저장 버튼을 눌러 완료하세요.", "info");
+              showToast(
+                "폴리곤이 저장되었어요. 아래 저장 버튼을 눌러 완료하세요.",
+                "info",
+              );
             }}
             onCancel={() => router.push("/admin/dashboard")}
           />
           {geojson && (
-            <div style={{ marginTop: 12, fontSize: 13, color: "#3B6D11", fontWeight: 500 }}>
+            <div
+              style={{
+                marginTop: 12,
+                fontSize: 13,
+                color: "#3B6D11",
+                fontWeight: 500,
+              }}
+            >
               ✅ 폴리곤 준비 완료
             </div>
           )}
@@ -207,7 +249,11 @@ export default function NewBuilding() {
       </div>
 
       {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </div>
   );

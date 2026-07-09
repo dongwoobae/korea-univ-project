@@ -15,7 +15,10 @@ export async function POST(request) {
     const { facilityId, videoUrl } = await request.json();
 
     if (!facilityId || !videoUrl) {
-      return NextResponse.json({ error: "facilityId 또는 videoUrl 누락" }, { status: 400 });
+      return NextResponse.json(
+        { error: "facilityId 또는 videoUrl 누락" },
+        { status: 400 },
+      );
     }
 
     const { error } = await supabaseAdmin

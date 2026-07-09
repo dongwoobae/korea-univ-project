@@ -22,6 +22,7 @@
 ## ✨ 주요 기능
 
 ### 사용자
+
 - 🗺️ **캠퍼스 건물 폴리곤 지도** — OpenStreetMap 기반 고려대 건물 시각화
 - 🔍 **건물 검색** — 한국어·영문명 검색, 엔터/클릭 시 해당 건물 줌 이동 및 사이드패널 오픈
 - 📍 **현 위치 버튼** — 사용자 현재 위치 표시
@@ -35,6 +36,7 @@
 - 💬 **피드백 버튼** — 오류 제보·시설 정보 수정 요청 이메일 템플릿 제공
 
 ### 관리자
+
 - 🔒 **로그인 + 세션 유지** — Supabase Auth
 - 🏗️ **건물 추가** — 지도에서 직접 폴리곤 그려 신규 건물 등록
 - ✏️ **건물 상세 관리** — 시설 추가/수정/삭제, 사진 업로드, 영상 업로드, 폴리곤 편집
@@ -47,14 +49,14 @@
 
 ## 🛠️ 기술 스택
 
-| 구분 | 기술 |
-|---|---|
-| Frontend | Next.js 16 (App Router, JavaScript) |
-| 지도 | Leaflet + react-leaflet, CartoDB Positron 타일 |
-| Backend | Next.js API Route |
-| DB / Storage / Auth | Supabase |
-| 배포 | Vercel |
-| 스타일 | 인라인 style |
+| 구분                | 기술                                           |
+| ------------------- | ---------------------------------------------- |
+| Frontend            | Next.js 16 (App Router, JavaScript)            |
+| 지도                | Leaflet + react-leaflet, CartoDB Positron 타일 |
+| Backend             | Next.js API Route                              |
+| DB / Storage / Auth | Supabase                                       |
+| 배포                | Vercel                                         |
+| 스타일              | 인라인 style                                   |
 
 ---
 
@@ -183,10 +185,10 @@ app_settings
 
 ### RLS 정책
 
-| 역할 | 테이블 | 권한 |
-|---|---|---|
-| anon | buildings, building_facilities, facility_types, slope_segments, app_settings | SELECT |
-| authenticated | buildings, building_facilities, facility_types, slope_segments, app_settings | ALL |
+| 역할          | 테이블                                                                       | 권한   |
+| ------------- | ---------------------------------------------------------------------------- | ------ |
+| anon          | buildings, building_facilities, facility_types, slope_segments, app_settings | SELECT |
+| authenticated | buildings, building_facilities, facility_types, slope_segments, app_settings | ALL    |
 
 ---
 
@@ -218,6 +220,7 @@ node src/scripts/syncBuildings.js
 Overpass API를 통해 고려대 캠퍼스 건물 데이터를 Supabase에 동기화합니다.
 
 관리자 페이지에서 수동 실행도 가능합니다:
+
 ```
 GET /api/buildings?sync=true&secret={SYNC_SECRET}
 ```
@@ -226,13 +229,13 @@ GET /api/buildings?sync=true&secret={SYNC_SECRET}
 
 ## 🗺️ 지도 설정
 
-| 항목 | 값 |
-|---|---|
+| 항목      | 값                |
+| --------- | ----------------- |
 | 중심 좌표 | 37.5893, 127.0327 |
-| Bounds SW | 37.578, 127.018 |
-| Bounds NE | 37.600, 127.048 |
-| minZoom | 15 |
-| maxZoom | 19 |
+| Bounds SW | 37.578, 127.018   |
+| Bounds NE | 37.600, 127.048   |
+| minZoom   | 15                |
+| maxZoom   | 19                |
 
 ---
 
@@ -257,6 +260,7 @@ UI 고정 문자열은 `src/lib/translations.js`에서 관리합니다.
 ### ✅ 완성된 기능
 
 **사용자 지도**
+
 - 건물 폴리곤 + hover 툴팁 (데스크탑)
 - 건물 검색 (한/영, 엔터 선택, SidePanel 연동)
 - 현 위치 버튼
@@ -271,6 +275,7 @@ UI 고정 문자열은 `src/lib/translations.js`에서 관리합니다.
 - 피드백 버튼 (이메일 템플릿 제공, 수신 주소 DB 동적 설정)
 
 **관리자**
+
 - 로그인 + 세션 유지
 - 대시보드 (건물 목록, 검색, 삭제됨 뱃지)
 - 건물 추가 (이름/영문명/캠퍼스 + 폴리곤 직접 그리기)
@@ -289,12 +294,12 @@ UI 고정 문자열은 `src/lib/translations.js`에서 관리합니다.
 
 ## 🙋 프로젝트 정보
 
-| 항목 | 내용 |
-|---|---|
-| 팀명 | The짱돌 |
-| 소속 | 고려대학교 에너지환경대학원 |
-| 운영기간 | 2026.05 ~ 2027.12 |
-| 주관 | 고려대학교 지속가능원 |
+| 항목     | 내용                        |
+| -------- | --------------------------- |
+| 팀명     | The짱돌                     |
+| 소속     | 고려대학교 에너지환경대학원 |
+| 운영기간 | 2026.05 ~ 2027.12           |
+| 주관     | 고려대학교 지속가능원       |
 
 ---
 

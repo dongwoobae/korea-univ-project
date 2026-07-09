@@ -9,7 +9,8 @@ export type College = Tables["colleges"]["Row"];
 export type BuildingPhoto = Tables["building_photos"]["Row"];
 
 /** facilityColors의 알려진 시설 코드 */
-export type FacilityCode = "elevator" | "restroom" | "ramp" | "parking" | "braille";
+export type FacilityCode =
+  "elevator" | "restroom" | "ramp" | "parking" | "braille";
 
 /** slope_segments.segments(jsonb) 내부 포인트 */
 export interface SlopePoint {
@@ -28,7 +29,9 @@ export type SlopeSegment = Omit<Tables["slope_segments"]["Row"], "segments"> & {
  * 서브셋 select 결과도 할당 가능하게 한다.
  */
 export type FacilityWithType = Facility & {
-  facility_types: Partial<Pick<FacilityType, "code" | "label" | "label_en" | "label_zh" | "icon">> | null;
+  facility_types: Partial<
+    Pick<FacilityType, "code" | "label" | "label_en" | "label_zh" | "icon">
+  > | null;
 };
 
 export type BuildingWithCollege = Building & {
