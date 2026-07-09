@@ -31,9 +31,9 @@ function MapInstanceCapture({ onReady }) {
 }
 
 export default function FacilityMap({ center, markerPosition, onMapClick, highlightId }) {
-  const [map, setMap] = useState(null);
+  const [map, setMap] = useState<L.Map | null>(null);
   const [locating, setLocating] = useState(false);
-  const [buildingFeatures, setBuildingFeatures] = useState(null);
+  const [buildingFeatures, setBuildingFeatures] = useState<any[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,7 +88,7 @@ export default function FacilityMap({ center, markerPosition, onMapClick, highli
             key={buildingFeatures.length}
             data={{ type: "FeatureCollection", features: buildingFeatures } as any}
             style={(f) =>
-              String(f.properties.bid) === String(highlightId ?? "")
+              String(f?.properties?.bid) === String(highlightId ?? "")
                 ? { color: "#2563EB", weight: 2, fillColor: "#2563EB", fillOpacity: 0.15 }
                 : { color: "#9ca3af", weight: 1, fillColor: "#9ca3af", fillOpacity: 0.2 }
             }

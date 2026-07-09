@@ -4,21 +4,21 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 const r2 = new S3Client({
   region: "auto",
-  endpoint: process.env.CLOUDFLARE_R2_ENDPOINT,
+  endpoint: process.env.CLOUDFLARE_R2_ENDPOINT!,
   credentials: {
-    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
   },
 });
 
 const BUCKET = process.env.CLOUDFLARE_R2_BUCKET_NAME;
-const PUBLIC_URL = process.env.CLOUDFLARE_R2_PUBLIC_URL;
+const PUBLIC_URL = process.env.CLOUDFLARE_R2_PUBLIC_URL!;
 
 export async function POST(request) {
   const auth = await requireAdmin(request);

@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 export const revalidate = 86400;
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
 const OVERPASS_SERVERS = [
@@ -81,7 +81,7 @@ export async function GET(request) {
 }
 
 async function handleSync() {
-  let data = null;
+  let data: any = null;
 
   for (const server of OVERPASS_SERVERS) {
     try {
@@ -116,7 +116,7 @@ async function handleSync() {
     .not("geojson", "is", null);
 
   const existingWithGeoJSON = new Set(
-    existing.filter((b) => !b.is_deleted).map((b) => b.id),
+    (existing ?? []).filter((b) => !b.is_deleted).map((b) => b.id),
   );
 
   for (const building of buildings) {

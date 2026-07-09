@@ -1,7 +1,7 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
 
-let ffmpeg = null;
+let ffmpeg: FFmpeg | null = null;
 
 export function terminateFFmpeg() {
   if (ffmpeg) {
@@ -10,15 +10,16 @@ export function terminateFFmpeg() {
   }
 }
 
-async function getFFmpeg() {
+async function getFFmpeg(): Promise<FFmpeg> {
   if (ffmpeg) return ffmpeg;
-  ffmpeg = new FFmpeg();
+  const instance = new FFmpeg();
   const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
-  await ffmpeg.load({
+  await instance.load({
     coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
     wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
   });
-  return ffmpeg;
+  ffmpeg = instance;
+  return instance;
 }
 
 /**
@@ -57,8 +58,8 @@ export async function compressVideo(file, onProgress, onPhase) {
 
   await ff.deleteFile(inputName);
   await ff.deleteFile("output.mp4");
-  ff.off("progress");
+  (ff as any).off("progress");
 
   onProgress?.(100);
-  return new Blob([data.buffer], { type: "video/mp4" });
+  return new Blob([data as unknown as BlobPart], { type: "video/mp4" });
 }

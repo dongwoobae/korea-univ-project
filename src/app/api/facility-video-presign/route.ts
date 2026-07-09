@@ -5,10 +5,10 @@ import { requireAdmin } from "@/lib/requireAdmin";
 
 const r2 = new S3Client({
   region: "auto",
-  endpoint: process.env.CLOUDFLARE_R2_ENDPOINT,
+  endpoint: process.env.CLOUDFLARE_R2_ENDPOINT!,
   credentials: {
-    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY,
+    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true,
   requestChecksumCalculation: "WHEN_REQUIRED",

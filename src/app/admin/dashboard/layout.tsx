@@ -1,6 +1,6 @@
-// src/app/admin/dashboard/layout.js
 "use client";
 import { useEffect, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
@@ -13,7 +13,7 @@ const NAV = [
 ];
 
 export default function DashboardLayout({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [feedbackEmails, setFeedbackEmails] = useState(FEEDBACK_EMAILS_FALLBACK);

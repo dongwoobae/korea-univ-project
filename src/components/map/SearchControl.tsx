@@ -10,10 +10,10 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
   const map = useMap();
   const { lang, t } = useLanguage();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState([]);
+  const [results, setResults] = useState<any[]>([]);
   const [isFocused, setIsFocused] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     if (!geoData || query.trim() === "") {

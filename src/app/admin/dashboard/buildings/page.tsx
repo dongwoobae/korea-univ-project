@@ -5,11 +5,11 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
 export default function BuildingsPage() {
-  const [buildings, setBuildings] = useState([]);
-  const [facilities, setFacilities] = useState([]);
-  const [facilityTypes, setFacilityTypes] = useState([]);
+  const [buildings, setBuildings] = useState<any[]>([]);
+  const [facilities, setFacilities] = useState<any[]>([]);
+  const [facilityTypes, setFacilityTypes] = useState<any[]>([]);
   const [search, setSearch] = useState("");
-  const [registrationFilter, setRegistrationFilter] = useState(null); // null | "registered" | "unregistered"
+  const [registrationFilter, setRegistrationFilter] = useState<string | null>(null); // null | "registered" | "unregistered"
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -234,7 +234,17 @@ export default function BuildingsPage() {
   );
 }
 
-function SummaryCard({ label, value, unit, color, active = false, onClick = undefined, hint = undefined }) {
+interface SummaryCardProps {
+  label: string;
+  value: number | string;
+  unit: string;
+  color: string;
+  active?: boolean;
+  onClick?: () => void;
+  hint?: string;
+}
+
+function SummaryCard({ label, value, unit, color, active = false, onClick, hint }: SummaryCardProps) {
   return (
     <div
       onClick={onClick}

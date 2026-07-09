@@ -8,9 +8,9 @@ import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function PolygonEditor({ geojson, onSave, onCancel, excludeId }) {
-  const containerRef = useRef(null);
-  const mapRef = useRef(null);
-  const drawnItemsRef = useRef(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
 
   useEffect(() => {
     if (mapRef.current) return;
@@ -23,7 +23,7 @@ export default function PolygonEditor({ geojson, onSave, onCancel, excludeId }) 
       center = [avgLat, avgLng];
     }
 
-    const map = L.map(containerRef.current, {
+    const map = L.map(containerRef.current!, {
       scrollWheelZoom: true,
     }).setView(center, 18);
     mapRef.current = map;
@@ -114,7 +114,7 @@ export default function PolygonEditor({ geojson, onSave, onCancel, excludeId }) 
       alert("폴리곤을 그려주세요");
       return;
     }
-    onSave(layers[0].toGeoJSON());
+    onSave((layers[0] as any).toGeoJSON());
   }
 
   return (

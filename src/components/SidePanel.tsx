@@ -23,11 +23,19 @@ function saveFavorites(list) {
 
 const TTS_LANG_MAP = { ko: "ko-KR", en: "en-US", zh: "zh-CN" };
 
+/** 건물 상세 — 조인/다국어 컬럼이 동적이라 인덱스 시그니처로 유연화하되 null 안전성은 유지 */
+interface BuildingDetail {
+  name_en?: string | null;
+  last_updated?: string | null;
+  colleges?: { name?: string | null; name_en?: string | null; name_zh?: string | null } | null;
+  [key: string]: any;
+}
+
 export default function SidePanel({ buildingId, buildingName, onClose }) {
   const { lang, t } = useLanguage();
-  const [facilities, setFacilities] = useState([]);
-  const [building, setBuilding] = useState(null);
-  const [photos, setPhotos] = useState([]);
+  const [facilities, setFacilities] = useState<any[]>([]);
+  const [building, setBuilding] = useState<BuildingDetail | null>(null);
+  const [photos, setPhotos] = useState<any[]>([]);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);

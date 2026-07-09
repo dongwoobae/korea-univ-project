@@ -30,10 +30,10 @@ function downloadGpx(route) {
 }
 
 export default function SlopesPage() {
-  const [slopes, setSlopes] = useState([]);
+  const [slopes, setSlopes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchSlopes();
@@ -62,8 +62,8 @@ export default function SlopesPage() {
       const trkpts = Array.from(xml.querySelectorAll("trkpt"));
       const points = trkpts
         .map((pt) => ({
-          lat: parseFloat(pt.getAttribute("lat")),
-          lng: parseFloat(pt.getAttribute("lon")),
+          lat: parseFloat(pt.getAttribute("lat") ?? "NaN"),
+          lng: parseFloat(pt.getAttribute("lon") ?? "NaN"),
           ele: parseFloat(pt.querySelector("ele")?.textContent ?? "NaN"),
         }))
         .filter((p) => !isNaN(p.lat) && !isNaN(p.lng) && !isNaN(p.ele));
@@ -87,7 +87,7 @@ export default function SlopesPage() {
       (document.getElementById("gpx-input") as HTMLInputElement).value = "";
       await fetchSlopes();
     } catch (err) {
-      alert("업로드 실패: " + err.message);
+      alert("업로드 실패: " + (err as Error).message);
     } finally {
       setUploading(false);
     }
@@ -115,7 +115,7 @@ export default function SlopesPage() {
             id="gpx-input"
             type="file"
             accept=".gpx"
-            onChange={(e) => setSelectedFile(e.target.files[0] ?? null)}
+            onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
             style={{ fontSize: 13 }}
           />
           <button

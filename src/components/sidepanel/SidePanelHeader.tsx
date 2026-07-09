@@ -4,7 +4,7 @@ import type { LangCode } from "@/lib/translations";
 
 interface SidePanelHeaderProps {
   displayName: string;
-  collegeName: string | null;
+  collegeName: string | null | undefined;
   buildingName: string;
   lang: LangCode;
   isSpeaking: boolean;

@@ -12,7 +12,7 @@ export default function FeedbackEmailModal({ initialEmails, onClose, onSaved }) 
   });
   const [subject, setSubject] = useState(initialEmails?.subject ?? "");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const onKey = (e) => { if (e.key === "Escape") onClose(); };
@@ -50,7 +50,7 @@ export default function FeedbackEmailModal({ initialEmails, onClose, onSaved }) 
       onSaved?.(json.value);
       onClose();
     } catch (e) {
-      setError(e.message);
+      setError((e as Error).message);
     } finally {
       setSaving(false);
     }

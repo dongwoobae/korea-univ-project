@@ -35,20 +35,20 @@ export default function BuildingDetail() {
   const { id: idParam } = useParams();
   const id = Number(idParam);
   const router = useRouter();
-  const [building, setBuilding] = useState(null);
-  const [facilities, setFacilities] = useState([]);
-  const [facilityTypes, setFacilityTypes] = useState([]);
-  const [colleges, setColleges] = useState([]);
-  const [selectedCollegeId, setSelectedCollegeId] = useState(null);
+  const [building, setBuilding] = useState<any>(null);
+  const [facilities, setFacilities] = useState<any[]>([]);
+  const [facilityTypes, setFacilityTypes] = useState<any[]>([]);
+  const [colleges, setColleges] = useState<any[]>([]);
+  const [selectedCollegeId, setSelectedCollegeId] = useState<number | null>(null);
   const [savingCollege, setSavingCollege] = useState(false);
   const [nameForm, setNameForm] = useState({ name: "", name_en: "" });
   const [savingName, setSavingName] = useState(false);
   const [loading, setLoading] = useState(true);
   const [editingPolygon, setEditingPolygon] = useState(false);
-  const [toast, setToast] = useState(null);
-  const [confirmModal, setConfirmModal] = useState(null); // { facilityId }
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<any>(null); // { facilityId }
   const [confirmDeleteBuilding, setConfirmDeleteBuilding] = useState(false);
-  const [videoModalFacility, setVideoModalFacility] = useState(null);
+  const [videoModalFacility, setVideoModalFacility] = useState<any>(null);
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -613,11 +613,11 @@ export default function BuildingDetail() {
 }
 
 function PhotoManager({ buildingId, showToast }) {
-  const [photos, setPhotos] = useState([]);
+  const [photos, setPhotos] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState(null);
-  const [draftCaptions, setDraftCaptions] = useState({});
-  const [savingCaption, setSavingCaption] = useState(null);
+  const [confirmDeletePhoto, setConfirmDeletePhoto] = useState<any>(null);
+  const [draftCaptions, setDraftCaptions] = useState<Record<string, string>>({});
+  const [savingCaption, setSavingCaption] = useState<any>(null);
 
   useEffect(() => { fetchPhotos(); }, []);
 
@@ -684,7 +684,7 @@ function PhotoManager({ buildingId, showToast }) {
         const canvas = document.createElement("canvas");
         canvas.width = w;
         canvas.height = h;
-        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
         canvas.toBlob(
           (blob) => { if (blob) resolve(blob); else reject(new Error("WebP 변환 실패")); },
           "image/webp",
@@ -1083,7 +1083,7 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
 }
 
 function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
-  const [phase, setPhase] = useState(null); // null | "loading" | "compressing" | "uploading"
+  const [phase, setPhase] = useState<string | null>(null); // null | "loading" | "compressing" | "uploading"
   const [progress, setProgress] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -1091,7 +1091,7 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
   const [draftCaption, setDraftCaption] = useState(facility.video_caption ?? "");
   const [savingCaption, setSavingCaption] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(facility.video_url);
-  const xhrRef = useRef(null);
+  const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const busy = phase !== null;
 
@@ -1197,7 +1197,7 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       showToast("동영상이 업로드됐어요!");
       onUpdate();
     } catch (err) {
-      if (err.message !== "업로드 취소됨") showToast("네트워크 오류가 발생했어요", "error");
+      if ((err as Error).message !== "업로드 취소됨") showToast("네트워크 오류가 발생했어요", "error");
     } finally {
       setPhase(null);
       setProgress(0);

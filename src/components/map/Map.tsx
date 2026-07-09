@@ -88,10 +88,10 @@ export default function Map() {
     campusBoundaries,
   } = useMapData();
   const [tooltip, setTooltip] = useState({ visible: false, name: "", name_en: "", x: 0, y: 0 });
-  const [selectedBuilding, setSelectedBuilding] = useState(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<{ id: number; name: string } | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
-  const [favoritesList, setFavoritesList] = useState([]);
-  const [toast, setToast] = useState(null);
+  const [favoritesList, setFavoritesList] = useState<any[]>([]);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [tileMode, setTileMode] = useState("street");
   const [showSlope, setShowSlope] = useState(false);
@@ -103,10 +103,10 @@ export default function Map() {
   });
   const { lang, setLang, t } = useLanguage();
 
-  const mapRef = useRef(null);
-  const activeLayerRef = useRef(null);
-  const activeBuildingIdRef = useRef(null);
-  const layerMapRef = useRef({});
+  const mapRef = useRef<L.Map | null>(null);
+  const activeLayerRef = useRef<any>(null);
+  const activeBuildingIdRef = useRef<number | null>(null);
+  const layerMapRef = useRef<Record<number, any>>({});
   const favoriteIdsRef = useRef(new Set(loadFavoritesFromStorage().map((f) => f.id)));
   // isMobile을 ref로도 관리 — onEachFeature 클로저에서 항상 최신값 참조
   const isMobileRef = useRef(false);
@@ -293,9 +293,9 @@ export default function Map() {
               features: (campusBoundaries as any).features.filter((f) => activeCampuses[f.properties.campus]),
             } as any}
             style={(feature) => ({
-              color: feature.properties.color,
+              color: feature?.properties?.color,
               weight: 2,
-              fillColor: feature.properties.color,
+              fillColor: feature?.properties?.color,
               fillOpacity: 0.18,
               dashArray: "5 4",
             })}

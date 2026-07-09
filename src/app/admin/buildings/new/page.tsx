@@ -34,7 +34,7 @@ export default function NewBuilding() {
   const [campus, setCampus] = useState("서울");
   const [geojson, setGeojson] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
   function showToast(message, type = "success") {
     setToast({ message, type });
