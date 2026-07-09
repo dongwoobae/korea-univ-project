@@ -1,10 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { FEEDBACK_EMAILS_FALLBACK, getSetting } from "@/lib/settings";
+import { useLanguage } from "@/lib/LanguageContext";
 
 export default function FeedbackButton({ isMobile }) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [emails, setEmails] = useState(FEEDBACK_EMAILS_FALLBACK);
+  const { t } = useLanguage();
 
   useEffect(() => {
     let cancelled = false;
@@ -44,7 +46,7 @@ export default function FeedbackButton({ isMobile }) {
         userSelect: "none",
         width: "fit-content",
       }}>
-        피드백
+        {t("feedback")}
       </div>
       <div style={{
         overflow: "hidden",
@@ -63,15 +65,15 @@ export default function FeedbackButton({ isMobile }) {
       }}>
         <div style={{ padding: 14 }}>
           <div style={{ fontSize: 11, color: "#888", marginBottom: 8, lineHeight: 1.8 }}>
-            <div><span style={{ color: "#555", fontWeight: 600 }}>수신</span> {emails.to}</div>
-            <div><span style={{ color: "#555", fontWeight: 600 }}>참조</span> {Array.isArray(emails.cc) ? emails.cc.join(", ") : emails.cc}</div>
-            <div><span style={{ color: "#555", fontWeight: 600 }}>제목</span> {emails.subject}</div>
+            <div><span style={{ color: "#555", fontWeight: 600 }}>{t("feedbackTo")}</span> {emails.to}</div>
+            <div><span style={{ color: "#555", fontWeight: 600 }}>{t("feedbackCc")}</span> {Array.isArray(emails.cc) ? emails.cc.join(", ") : emails.cc}</div>
+            <div><span style={{ color: "#555", fontWeight: 600 }}>{t("feedbackSubject")}</span> {emails.subject}</div>
           </div>
           <div style={{
             fontSize: 11, color: "#888", background: "#f9fafb",
             borderRadius: 5, padding: "7px 9px", lineHeight: 1.8,
           }}>
-            유형: (오류 제보 / 시설 정보 수정<br />/ 기능 제안 / 기타)<br /><br />내용:
+            {t("feedbackTypeLine")}<br /><br />{t("feedbackContentLine")}
           </div>
         </div>
       </div>
