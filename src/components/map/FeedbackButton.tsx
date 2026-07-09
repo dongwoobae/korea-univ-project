@@ -23,7 +23,7 @@ export default function FeedbackButton({ isMobile }) {
       style={{
         position: "absolute",
         ...(isMobile ? { top: 60, left: 16 } : { top: 160, left: 16 }),
-        zIndex: 1000,
+        zIndex: showFeedback ? 1100 : 1000,
       }}
     >
       <div style={{

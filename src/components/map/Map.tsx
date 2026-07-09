@@ -249,6 +249,8 @@ export default function Map() {
         </div>
       )}
 
+      <style>{`.leaflet-top.leaflet-right { top: ${isMobile ? "46px" : "6px"}; }`}</style>
+
       <MapContainer
         center={KU_CENTER}
         zoom={16}
@@ -258,7 +260,7 @@ export default function Map() {
         ref={mapRef}
         zoomControl={false}
       >
-        <ZoomControl position="bottomright" />
+        <ZoomControl position="topright" />
         <TileLayer
           key={tileMode}
           url={TILES[tileMode].url}
@@ -311,7 +313,7 @@ export default function Map() {
 
       {/* 항공사진 출처 라벨 */}
       {tileMode === "satellite" && (
-        <div style={{ position: "absolute", bottom: "calc(132px + env(safe-area-inset-bottom, 0px))", right: 10, zIndex: 1000, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 10, padding: "3px 7px", borderRadius: 4, pointerEvents: "none", whiteSpace: "nowrap" }}>
+        <div style={{ position: "absolute", bottom: "calc(56px + env(safe-area-inset-bottom, 0px))", right: 10, zIndex: 1000, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 10, padding: "3px 7px", borderRadius: 4, pointerEvents: "none", whiteSpace: "nowrap" }}>
           Esri World Imagery
         </div>
       )}
@@ -320,7 +322,7 @@ export default function Map() {
       <button
         onClick={() => setTileMode((m) => (m === "street" ? "satellite" : "street"))}
         title={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
-        style={{ position: "absolute", bottom: "calc(90px + env(safe-area-inset-bottom, 0px))", right: 10, zIndex: 1000, width: 36, height: 36, borderRadius: 8, background: tileMode === "satellite" ? "#1d4ed8" : "#fff", border: "1px solid #ddd", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
+        style={{ position: "absolute", top: isMobile ? 130 : 82, right: 10, zIndex: 1000, width: 36, height: 36, borderRadius: 8, background: tileMode === "satellite" ? "#1d4ed8" : "#fff", border: "1px solid #ddd", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center" }}
       >
         {tileMode === "street" ? "🛰️" : "🗺️"}
       </button>
