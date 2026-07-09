@@ -6,15 +6,12 @@ import {
   TileLayer,
   GeoJSON,
   useMap,
-  Marker,
-  Popup,
   ZoomControl,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
-import { supabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/LanguageContext";
 import SearchControl from "./SearchControl";
 import FilterPanel from "./FilterPanel";
@@ -23,8 +20,9 @@ import FavoritesList from "./FavoritesList";
 import LanguageSwitcher from "./LanguageSwitcher";
 import SlopeLegend from "./SlopeLegend";
 import SlopeLayer from "./SlopeLayer";
-import { SUBWAY_STATIONS } from "./subwayStations";
-import { FACILITY_COLORS } from "./facilityColors";
+import FacilityMarkers from "./FacilityMarkers";
+import SubwayMarkers from "./SubwayMarkers";
+import { useMapData } from "./useMapData";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
@@ -79,21 +77,24 @@ function hoverStyle(isFav) {
 }
 
 export default function Map() {
-  const [geoData, setGeoData] = useState(null);
-  const [loadingMap, setLoadingMap] = useState(true);
+  const {
+    geoData,
+    loadingMap,
+    facilities,
+    facilityTypes,
+    activeTypes,
+    setActiveTypes,
+    slopes,
+    campusBoundaries,
+  } = useMapData();
   const [tooltip, setTooltip] = useState({ visible: false, name: "", name_en: "", x: 0, y: 0 });
   const [selectedBuilding, setSelectedBuilding] = useState(null);
   const [showFavorites, setShowFavorites] = useState(false);
   const [favoritesList, setFavoritesList] = useState([]);
-  const [facilities, setFacilities] = useState([]);
-  const [facilityTypes, setFacilityTypes] = useState([]);
-  const [activeTypes, setActiveTypes] = useState({});
   const [toast, setToast] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [tileMode, setTileMode] = useState("street");
   const [showSlope, setShowSlope] = useState(false);
-  const [slopes, setSlopes] = useState([]);
-  const [campusBoundaries, setCampusBoundaries] = useState(null);
   const [activeCampuses, setActiveCampuses] = useState({
     "의료원": false,
     "녹지캠퍼스": false,
@@ -126,22 +127,6 @@ export default function Map() {
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
-
-  const facilityMarkerIcon = (code, icon) =>
-    L.divIcon({
-      className: "",
-      html: `<div style="width:30px;height:30px;background:${FACILITY_COLORS[code] ?? "#666"};border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.25);">${icon}</div>`,
-      iconAnchor: [15, 15],
-      popupAnchor: [0, -18],
-    });
-
-  const subwayIcon = (name) =>
-    L.divIcon({
-      className: "",
-      html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35))"><div style="background:#B9282D;color:white;border:2.5px solid white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;">🚇</div><div style="background:#B9282D;color:white;border-radius:10px;padding:2px 7px;font-size:11px;font-weight:700;margin-top:3px;white-space:nowrap;border:1.5px solid white;">${name}</div></div>`,
-      iconAnchor: [16, 44],
-      popupAnchor: [0, -46],
-    });
 
   function handleBuildingSelectFromSearch(feature) {
     const bId = feature.properties.id;
@@ -180,47 +165,6 @@ export default function Map() {
     };
     window.addEventListener("favoritesUpdated", handler);
     return () => window.removeEventListener("favoritesUpdated", handler);
-  }, []);
-
-  useEffect(() => {
-    setLoadingMap(true);
-    fetch("/api/buildings")
-      .then((res) => res.json())
-      .then((data) => { if (!data.features) return; setGeoData(data); })
-      .catch((err) => console.error("buildings fetch 실패:", err))
-      .finally(() => setLoadingMap(false));
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/facilities")
-      .then((r) => r.json())
-      .then((data) => setFacilities(data ?? []))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    supabase
-      .from("facility_types")
-      .select("code, label, label_en, label_zh, icon")
-      .then(({ data }) => {
-        if (!data) return;
-        setFacilityTypes(data);
-        setActiveTypes(Object.fromEntries(data.map((ft) => [ft.code, false])));
-      });
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/slopes")
-      .then((r) => r.json())
-      .then((data) => setSlopes(Array.isArray(data) ? data : []))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetch("/campus-boundaries.geojson")
-      .then((r) => r.json())
-      .then((data) => setCampusBoundaries(data))
-      .catch(() => {});
   }, []);
 
   function onEachFeature(feature, layer) {
@@ -338,35 +282,8 @@ export default function Map() {
             />
           </>
         )}
-        {facilities
-          .filter((f) => activeTypes[f.facility_types?.code])
-          .map((f) => (
-            <Marker
-              key={f.id}
-              position={[f.lat, f.lng]}
-              icon={facilityMarkerIcon(f.facility_types?.code, f.facility_types?.icon)}
-              zIndexOffset={500}
-            >
-              <Popup>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{f.name ?? f.facility_types?.label}</div>
-                {f.description && <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{f.description}</div>}
-                {f.floor_info && <div style={{ fontSize: 12, color: "#888" }}>{f.floor_info}</div>}
-                <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>{f.buildings?.name}</div>
-              </Popup>
-            </Marker>
-          ))}
-        {SUBWAY_STATIONS.map((s) => {
-          const displayName = lang === "ko" ? s.name : lang === "en" ? s.name_en : s.name_zh;
-          return (
-            <Marker
-              key={s.name}
-              position={[s.lat, s.lng]}
-              icon={subwayIcon(displayName)}
-              zIndexOffset={1000}
-              eventHandlers={{ click() { setSelectedBuilding({ id: s.id, name: displayName }); } }}
-            />
-          );
-        })}
+        <FacilityMarkers facilities={facilities} activeTypes={activeTypes} />
+        <SubwayMarkers lang={lang} onSelect={(station) => setSelectedBuilding(station)} />
         {showSlope && slopes.length > 0 && <SlopeLayer slopes={slopes} />}
         {campusBoundaries && (
           <GeoJSON
