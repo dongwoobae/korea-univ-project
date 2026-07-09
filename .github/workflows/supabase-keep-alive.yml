@@ -1,0 +1,21 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # 월·목 21:00 UTC = 화·금 06:00 KST (7일 비활성 정지 방지, 주 2회로 여유 확보)
+    - cron: "0 21 * * 1,4"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /api/buildings (Supabase query)
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 30 --retry 3 --retry-delay 10 \
+            "https://korea-univ-project.vercel.app/api/buildings")
+          echo "HTTP $status"
+          if [ "$status" != "200" ]; then
+            echo "Keep-alive ping failed — Supabase 프로젝트가 이미 정지됐거나 배포에 문제가 있을 수 있음"
+            exit 1
+          fi
