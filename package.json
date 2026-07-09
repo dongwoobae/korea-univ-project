@@ -7,6 +7,9 @@
     "build": "next build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "start": "next start",
     "sync-buildings": "node --env-file=.env.local src/scripts/syncBuildings.ts"
   },
@@ -32,6 +35,10 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "babel-plugin-react-compiler": "1.0.0",
+    "eslint": "^9.39.4",
+    "eslint-config-next": "^16.2.4",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.9.4",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
