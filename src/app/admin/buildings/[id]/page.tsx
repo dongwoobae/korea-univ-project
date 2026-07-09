@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { useRouter, useParams } from "next/navigation";
@@ -32,7 +32,8 @@ function getBuildingCenter(building) {
 }
 
 export default function BuildingDetail() {
-  const { id } = useParams();
+  const { id: idParam } = useParams();
+  const id = Number(idParam);
   const router = useRouter();
   const [building, setBuilding] = useState(null);
   const [facilities, setFacilities] = useState([]);
@@ -696,7 +697,7 @@ function PhotoManager({ buildingId, showToast }) {
   }
 
   async function handleUpload(e) {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files as FileList);
     if (!files.length) return;
     setUploading(true);
 
@@ -846,7 +847,7 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
       .single();
 
     if (inserted) {
-      const texts = {};
+      const texts: Record<string, string> = {};
       if (form.name) texts.name = form.name;
       if (form.description) texts.description = form.description;
       if (form.floor_info) texts.floor_info = form.floor_info;
@@ -889,7 +890,7 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
     showToast("시설이 추가되었어요!");
   }
 
-  const inputStyle = {
+  const inputStyle: CSSProperties = {
     width: "100%",
     padding: "8px 10px",
     border: "1px solid #ddd",
@@ -1002,7 +1003,7 @@ function AddFacilityButton({ buildingId, buildingCenter, facilityTypes, onAdd, s
             >
               <FacilityMap
                 center={buildingCenter}
-                highlightId={id}
+                highlightId={buildingId}
                 markerPosition={
                   form.lat && form.lng
                     ? [parseFloat(form.lat), parseFloat(form.lng)]
@@ -1163,7 +1164,7 @@ function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
       setProgress(0);
       const xhr = new XMLHttpRequest();
       xhrRef.current = xhr;
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         xhr.upload.onprogress = (ev) => {
           if (ev.lengthComputable) setProgress(Math.round((ev.loaded / ev.total) * 100));
         };

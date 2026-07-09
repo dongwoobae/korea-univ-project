@@ -234,7 +234,7 @@ export default function BuildingsPage() {
   );
 }
 
-function SummaryCard({ label, value, unit, color, active, onClick, hint }) {
+function SummaryCard({ label, value, unit, color, active = false, onClick = undefined, hint = undefined }) {
   return (
     <div
       onClick={onClick}

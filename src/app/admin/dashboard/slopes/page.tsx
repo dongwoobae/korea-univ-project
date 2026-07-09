@@ -84,7 +84,7 @@ export default function SlopesPage() {
       if (error) throw error;
 
       setSelectedFile(null);
-      document.getElementById("gpx-input").value = "";
+      (document.getElementById("gpx-input") as HTMLInputElement).value = "";
       await fetchSlopes();
     } catch (err) {
       alert("업로드 실패: " + err.message);

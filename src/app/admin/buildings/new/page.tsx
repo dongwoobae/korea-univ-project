@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -8,7 +8,7 @@ import Toast from "@/components/Toast";
 
 const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), { ssr: false });
 
-const inputStyle = {
+const inputStyle: CSSProperties = {
   width: "100%",
   padding: "10px 12px",
   border: "1px solid #e5e7eb",
@@ -154,6 +154,7 @@ export default function NewBuilding() {
           </div>
           <PolygonEditor
             geojson={null}
+            excludeId={null}
             onSave={(newGeojson) => {
               setGeojson(newGeojson);
               showToast("폴리곤이 저장되었어요. 아래 저장 버튼을 눌러 완료하세요.", "info");
