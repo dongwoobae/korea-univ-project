@@ -20,7 +20,9 @@ describe("requireAdmin", () => {
   it("returns 401 when authorization header is missing", async () => {
     const { requireAdmin } = await loadRequireAdmin();
 
-    const result = await requireAdmin(new Request("https://local.test/api"));
+    const result = (await requireAdmin(new Request("https://local.test/api"))) as {
+      response: Response;
+    };
 
     expect(result.response.status).toBe(401);
     await expect(result.response.json()).resolves.toEqual({ error: "인증 필요" });
@@ -31,11 +33,11 @@ describe("requireAdmin", () => {
     getUser.mockResolvedValueOnce({ data: { user: null }, error: new Error("expired") });
     const { requireAdmin } = await loadRequireAdmin();
 
-    const result = await requireAdmin(
+    const result = (await requireAdmin(
       new Request("https://local.test/api", {
         headers: { authorization: "Bearer expired-token" },
       }),
-    );
+    )) as { response: Response };
 
     expect(result.response.status).toBe(401);
     expect(getUser).toHaveBeenCalledWith("expired-token");
@@ -45,16 +47,16 @@ describe("requireAdmin", () => {
     getUser.mockResolvedValue({ data: { user: null }, error: null });
     const { requireAdmin } = await loadRequireAdmin();
 
-    const anonResult = await requireAdmin(
+    const anonResult = (await requireAdmin(
       new Request("https://local.test/api", {
         headers: { authorization: "Bearer anon-key" },
       }),
-    );
-    const serviceRoleResult = await requireAdmin(
+    )) as { response: Response };
+    const serviceRoleResult = (await requireAdmin(
       new Request("https://local.test/api", {
         headers: { authorization: "Bearer service-role-key" },
       }),
-    );
+    )) as { response: Response };
 
     expect(anonResult.response.status).toBe(401);
     expect(serviceRoleResult.response.status).toBe(401);

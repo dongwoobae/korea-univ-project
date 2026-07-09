@@ -1,4 +1,14 @@
-export const SUBWAY_STATIONS = [
+export interface SubwayStation {
+  id: number;
+  name: string;
+  name_en: string;
+  name_zh: string;
+  line: string;
+  lat: number;
+  lng: number;
+}
+
+export const SUBWAY_STATIONS: SubwayStation[] = [
   {
     id: 9000001,
     name: "고려대역",

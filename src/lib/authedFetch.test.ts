@@ -20,7 +20,7 @@ describe("authedFetch", () => {
 
     await authedFetch("/api/translate", { method: "POST" });
 
-    const [, options] = global.fetch.mock.calls[0];
+    const [, options] = vi.mocked(global.fetch).mock.calls[0];
     expect(new Headers(options.headers).get("Authorization")).toBe("Bearer token-1");
   });
 
@@ -33,7 +33,7 @@ describe("authedFetch", () => {
       body: new FormData(),
     });
 
-    const [, options] = global.fetch.mock.calls[0];
+    const [, options] = vi.mocked(global.fetch).mock.calls[0];
     expect(new Headers(options.headers).has("Content-Type")).toBe(false);
   });
 
@@ -46,7 +46,7 @@ describe("authedFetch", () => {
       headers: { "Content-Type": "application/json", "X-Request-ID": "abc" },
     });
 
-    const headers = new Headers(global.fetch.mock.calls[0][1].headers);
+    const headers = new Headers(vi.mocked(global.fetch).mock.calls[0][1].headers);
     expect(headers.get("Content-Type")).toBe("application/json");
     expect(headers.get("X-Request-ID")).toBe("abc");
     expect(headers.get("Authorization")).toBe("Bearer token-1");

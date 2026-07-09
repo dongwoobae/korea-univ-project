@@ -1,3 +1,5 @@
+export type LangCode = "ko" | "en" | "zh";
+
 export const translations = {
   ko: {
     // Map.js
