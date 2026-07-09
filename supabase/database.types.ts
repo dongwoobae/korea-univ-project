@@ -14,42 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       building_facilities: {
         Row: {
           building_id: number | null
           created_at: string | null
           description: string | null
+          description_en: string | null
+          description_zh: string | null
           facility_code: string | null
           floor_info: string | null
+          floor_info_en: string | null
+          floor_info_zh: string | null
           id: string
           is_installed: boolean | null
           lat: number | null
           lng: number | null
           name: string | null
+          name_en: string | null
+          name_zh: string | null
+          video_caption: string | null
+          video_caption_en: string | null
+          video_caption_zh: string | null
+          video_url: string | null
         }
         Insert: {
           building_id?: number | null
           created_at?: string | null
           description?: string | null
+          description_en?: string | null
+          description_zh?: string | null
           facility_code?: string | null
           floor_info?: string | null
+          floor_info_en?: string | null
+          floor_info_zh?: string | null
           id?: string
           is_installed?: boolean | null
           lat?: number | null
           lng?: number | null
           name?: string | null
+          name_en?: string | null
+          name_zh?: string | null
+          video_caption?: string | null
+          video_caption_en?: string | null
+          video_caption_zh?: string | null
+          video_url?: string | null
         }
         Update: {
           building_id?: number | null
           created_at?: string | null
           description?: string | null
+          description_en?: string | null
+          description_zh?: string | null
           facility_code?: string | null
           floor_info?: string | null
+          floor_info_en?: string | null
+          floor_info_zh?: string | null
           id?: string
           is_installed?: boolean | null
           lat?: number | null
           lng?: number | null
           name?: string | null
+          name_en?: string | null
+          name_zh?: string | null
+          video_caption?: string | null
+          video_caption_en?: string | null
+          video_caption_zh?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -71,18 +119,27 @@ export type Database = {
       building_photos: {
         Row: {
           building_id: number
+          caption: string | null
+          caption_en: string | null
+          caption_zh: string | null
           created_at: string | null
           id: number
           url: string
         }
         Insert: {
           building_id: number
+          caption?: string | null
+          caption_en?: string | null
+          caption_zh?: string | null
           created_at?: string | null
           id?: number
           url: string
         }
         Update: {
           building_id?: number
+          caption?: string | null
+          caption_en?: string | null
+          caption_zh?: string | null
           created_at?: string | null
           id?: number
           url?: string
@@ -186,6 +243,30 @@ export type Database = {
           label?: string | null
           label_en?: string | null
           label_zh?: string | null
+        }
+        Relationships: []
+      }
+      slope_segments: {
+        Row: {
+          created_at: string | null
+          gpx_file: string | null
+          id: string
+          name: string
+          segments: Json
+        }
+        Insert: {
+          created_at?: string | null
+          gpx_file?: string | null
+          id?: string
+          name: string
+          segments: Json
+        }
+        Update: {
+          created_at?: string | null
+          gpx_file?: string | null
+          id?: string
+          name?: string
+          segments?: Json
         }
         Relationships: []
       }
