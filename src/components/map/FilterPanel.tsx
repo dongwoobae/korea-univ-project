@@ -10,6 +10,106 @@ const CAMPUS_LIST = [
   { campus: "의료원", label: "의료원", color: "#F9A8D4", lightBg: true },
 ];
 
+function Chip({ active, color, activeTextColor = "#fff", onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "7px 12px",
+        borderRadius: 20,
+        borderWidth: "1.5px",
+        borderStyle: "solid",
+        borderColor: active ? color : "#ddd",
+        background: active ? color : "#fff",
+        color: active ? activeTextColor : "#555",
+        fontSize: 12,
+        fontWeight: active ? 600 : 400,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
+        transition: "all 0.15s",
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function MobileFilterSheet({ facilityTypes, activeTypes, setActiveTypes, activeCampuses, setActiveCampuses, getFacilityLabel, onClose, title }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1200,
+        background: "#fff",
+        borderRadius: "16px 16px 0 0",
+        boxShadow: "0 -4px 20px rgba(0,0,0,0.18)",
+        maxHeight: "45vh",
+        display: "flex",
+        flexDirection: "column",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
+      }}
+    >
+      <div style={{ padding: "10px 16px 0", flexShrink: 0 }}>
+        <div style={{ width: 36, height: 4, borderRadius: 2, background: "#e5e7eb", margin: "0 auto 10px" }} />
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{title}</span>
+          <button
+            onClick={onClose}
+            aria-label="닫기"
+            style={{ border: "none", background: "none", fontSize: 18, color: "#888", cursor: "pointer", padding: 4, lineHeight: 1 }}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      <div style={{ overflowY: "auto", padding: "8px 16px 16px" }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 8 }}>캠퍼스</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {CAMPUS_LIST.map((c) => {
+            const active = activeCampuses?.[c.campus] ?? false;
+            return (
+              <Chip
+                key={c.campus}
+                active={active}
+                color={c.color}
+                activeTextColor={c.lightBg ? "#333" : "#fff"}
+                onClick={() => setActiveCampuses((prev) => ({ ...prev, [c.campus]: !prev[c.campus] }))}
+              >
+                {c.label}
+              </Chip>
+            );
+          })}
+        </div>
+        <div style={{ borderTop: "1px solid #e5e7eb", margin: "14px 0" }} />
+        <div style={{ fontSize: 12, fontWeight: 600, color: "#888", marginBottom: 8 }}>시설</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {facilityTypes.map((ft, i) => {
+            const active = activeTypes[ft.code] ?? false;
+            return (
+              <Chip
+                key={ft.code}
+                active={active}
+                color={getFacilityColor(ft.code, i)}
+                onClick={() => setActiveTypes((prev) => ({ ...prev, [ft.code]: !prev[ft.code] }))}
+              >
+                <span>{ft.icon}</span>
+                <span>{getFacilityLabel(ft)}</span>
+              </Chip>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setActiveTypes, showSlope, setShowSlope, activeCampuses, setActiveCampuses }) {
   const [showFilter, setShowFilter] = useState(false);
   const { lang, t } = useLanguage();
@@ -100,128 +200,67 @@ export default function FilterPanel({ isMobile, facilityTypes, activeTypes, setA
   }
 
   return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-start",
-        gap: 8,
-        paddingLeft: 16,
-      }}
-    >
-      {showFilter && (
-        <div
-          style={{
-            display: "flex",
-            gap: 8,
-            overflowX: "auto",
-            paddingRight: 16,
-            paddingBottom: 2,
-            msOverflowStyle: "none",
-            scrollbarWidth: "none",
-          }}
-        >
-          {CAMPUS_LIST.map((c) => {
-            const active = activeCampuses?.[c.campus] ?? false;
-            return (
-              <button
-                key={c.campus}
-                onClick={() => setActiveCampuses((prev) => ({ ...prev, [c.campus]: !prev[c.campus] }))}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "7px 12px",
-                  borderRadius: 20,
-                  borderWidth: "1.5px",
-                  borderStyle: "solid",
-                  borderColor: active ? c.color : "#ddd",
-                  background: active ? c.color : "#fff",
-                  color: active ? (c.lightBg ? "#333" : "#fff") : "#555",
-                  fontSize: 12,
-                  fontWeight: active ? 600 : 400,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-                  transition: "all 0.15s",
-                }}
-              >
-                {c.label}
-              </button>
-            );
-          })}
-          <div style={{ width: 1, background: "#e5e7eb", flexShrink: 0, margin: "4px 0" }} />
-          {facilityTypes.map((ft, i) => {
-            const active = activeTypes[ft.code] ?? false;
-            const color = getFacilityColor(ft.code, i);
-            return (
-              <button
-                key={ft.code}
-                onClick={() =>
-                  setActiveTypes((prev) => ({ ...prev, [ft.code]: !prev[ft.code] }))
-                }
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  padding: "7px 12px",
-                  borderRadius: 20,
-                  borderWidth: "1.5px",
-                  borderStyle: "solid",
-                  borderColor: active ? color : "#ddd",
-                  background: active ? color : "#fff",
-                  color: active ? "#fff" : "#555",
-                  fontSize: 12,
-                  fontWeight: active ? 600 : 400,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.1)",
-                  transition: "all 0.15s",
-                }}
-              >
-                <span>{ft.icon}</span>
-                <span>{getFacilityLabel(ft)}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-      <button
-        onClick={() => setShowSlope((v) => !v)}
-        title={showSlope ? "경사도 숨기기" : "경사도 표시"}
-        style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: 20, borderWidth: 1, borderStyle: "solid", borderColor: showSlope ? "#2563EB" : "#ddd", background: showSlope ? "#2563EB" : "#fff", color: showSlope ? "#fff" : "#333", fontSize: 13, fontWeight: 500, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", transition: "all 0.15s", whiteSpace: "nowrap" }}
-      >
-        📐 경사도
-      </button>
-      <button
-        onClick={() => setShowFilter((v) => !v)}
+    <>
+      <div
         style={{
+          position: "absolute",
+          bottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
+          left: 0,
+          right: 0,
+          zIndex: 1000,
           display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "8px 14px",
-          borderRadius: 20,
-          borderWidth: 1,
-          borderStyle: "solid",
-          borderColor: "#ddd",
-          background: showFilter ? "#2563EB" : "#fff",
-          color: showFilter ? "#fff" : "#333",
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: "pointer",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          transition: "all 0.15s",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          gap: 8,
+          paddingLeft: 16,
+          pointerEvents: "none",
         }}
       >
-        <span>🔍</span>
-        <span>{t("filterTitle")}</span>
-        <span style={{ fontSize: 10 }}>{showFilter ? "▲" : "▼"}</span>
-      </button>
-    </div>
+        <button
+          onClick={() => setShowSlope((v) => !v)}
+          title={showSlope ? "경사도 숨기기" : "경사도 표시"}
+          style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: 20, borderWidth: 1, borderStyle: "solid", borderColor: showSlope ? "#2563EB" : "#ddd", background: showSlope ? "#2563EB" : "#fff", color: showSlope ? "#fff" : "#333", fontSize: 13, fontWeight: 500, cursor: "pointer", boxShadow: "0 2px 8px rgba(0,0,0,0.12)", transition: "all 0.15s", whiteSpace: "nowrap", pointerEvents: "auto" }}
+        >
+          📐 경사도
+        </button>
+        <button
+          onClick={() => setShowFilter((v) => !v)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "8px 14px",
+            borderRadius: 20,
+            borderWidth: 1,
+            borderStyle: "solid",
+            borderColor: "#ddd",
+            background: showFilter ? "#2563EB" : "#fff",
+            color: showFilter ? "#fff" : "#333",
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: "pointer",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+            transition: "all 0.15s",
+            pointerEvents: "auto",
+          }}
+        >
+          <span>🔍</span>
+          <span>{t("filterTitle")}</span>
+          <span style={{ fontSize: 10 }}>{showFilter ? "▲" : "▼"}</span>
+        </button>
+      </div>
+      {showFilter && (
+        <MobileFilterSheet
+          facilityTypes={facilityTypes}
+          activeTypes={activeTypes}
+          setActiveTypes={setActiveTypes}
+          activeCampuses={activeCampuses}
+          setActiveCampuses={setActiveCampuses}
+          getFacilityLabel={getFacilityLabel}
+          onClose={() => setShowFilter(false)}
+          title={t("filterTitle")}
+        />
+      )}
+    </>
   );
 }
