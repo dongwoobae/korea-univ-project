@@ -32,30 +32,6 @@ export type Database = {
         }
         Relationships: []
       }
-      slope_segments: {
-        Row: {
-          created_at: string
-          gpx_file: string | null
-          id: string
-          name: string
-          segments: Json
-        }
-        Insert: {
-          created_at?: string
-          gpx_file?: string | null
-          id?: string
-          name: string
-          segments: Json
-        }
-        Update: {
-          created_at?: string
-          gpx_file?: string | null
-          id?: string
-          name?: string
-          segments?: Json
-        }
-        Relationships: []
-      }
       building_facilities: {
         Row: {
           building_id: number | null
@@ -267,6 +243,30 @@ export type Database = {
           label?: string | null
           label_en?: string | null
           label_zh?: string | null
+        }
+        Relationships: []
+      }
+      slope_segments: {
+        Row: {
+          created_at: string | null
+          gpx_file: string | null
+          id: string
+          name: string
+          segments: Json
+        }
+        Insert: {
+          created_at?: string | null
+          gpx_file?: string | null
+          id?: string
+          name: string
+          segments: Json
+        }
+        Update: {
+          created_at?: string | null
+          gpx_file?: string | null
+          id?: string
+          name?: string
+          segments?: Json
         }
         Relationships: []
       }
