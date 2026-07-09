@@ -3,6 +3,9 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/LanguageContext";
+import SidePanelHeader from "@/components/sidepanel/SidePanelHeader";
+import PhotoCarousel from "@/components/sidepanel/PhotoCarousel";
+import FacilityList from "@/components/sidepanel/FacilityList";
 
 const FAVORITES_KEY = "ku_favorites";
 
@@ -272,296 +275,39 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         )}
 
         {/* 헤더 */}
-        <div
-          style={{
-            padding: "14px 16px",
-            borderBottom: "1px solid #f0f0f0",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 16, fontWeight: 600, color: "#111" }}>
-              {displayName}
-            </div>
-            {collegeName && (
-              <div style={{ fontSize: 12, color: "#2563EB", marginTop: 3, fontWeight: 500 }}>
-                {collegeName}
-              </div>
-            )}
-            {/* 한국어가 아닐 때는 한국어 원명을 서브텍스트로 표시 */}
-            {lang !== "ko" && (
-              <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                {buildingName}
-              </div>
-            )}
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              flexShrink: 0,
-            }}
-          >
-            {/* TTS 버튼 */}
-            <button
-              onClick={handleTts}
-              title={isSpeaking ? t("stopSpeaking") : t("speakInfo")}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: loading ? "default" : "pointer",
-                fontSize: 18,
-                padding: "2px 6px",
-                lineHeight: 1,
-                opacity: loading ? 0.4 : 1,
-                color: isSpeaking ? "#2563EB" : "#888",
-                animation: isSpeaking ? "speakPulse 1.2s ease-in-out infinite" : "none",
-              }}
-              disabled={loading}
-            >
-              🔊
-            </button>
-            {/* 즐겨찾기 버튼 */}
-            <button
-              onClick={toggleFavorite}
-              title={isFavorite ? t("removeFavorite") : t("addFavorite")}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 20,
-                padding: "2px 6px",
-                lineHeight: 1,
-              }}
-            >
-              {isFavorite ? "⭐" : "☆"}
-            </button>
-            {/* 닫기 버튼 */}
-            <button
-              onClick={onClose}
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontSize: 18,
-                color: "#888",
-                padding: "2px 6px",
-              }}
-            >
-              ✕
-            </button>
-          </div>
-          <style>{`
-            @keyframes speakPulse {
-              0%, 100% { opacity: 1; }
-              50% { opacity: 0.4; }
-            }
-          `}</style>
-        </div>
+        <SidePanelHeader
+          displayName={displayName}
+          collegeName={collegeName}
+          buildingName={buildingName}
+          lang={lang}
+          isSpeaking={isSpeaking}
+          loading={loading}
+          isFavorite={isFavorite}
+          onTts={handleTts}
+          onToggleFavorite={toggleFavorite}
+          onClose={onClose}
+          t={t}
+        />
 
         {/* 사진 캐러셀 */}
-        {photos.length > 0 ? (
-          <div style={{ position: "relative", width: "100%", height: 160, background: "#000" }}>
-            <img
-              src={photos[photoIndex]?.url}
-              alt={displayName}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-            {photos.length > 1 && (
-              <>
-                <button
-                  aria-label="이전 사진"
-                  onClick={() => setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)}
-                  style={{
-                    position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
-                    background: "rgba(0,0,0,0.45)", color: "#fff", border: "none",
-                    borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 14,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >‹</button>
-                <button
-                  aria-label="다음 사진"
-                  onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)}
-                  style={{
-                    position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-                    background: "rgba(0,0,0,0.45)", color: "#fff", border: "none",
-                    borderRadius: "50%", width: 28, height: 28, cursor: "pointer", fontSize: 14,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                  }}
-                >›</button>
-                <div style={{ position: "absolute", bottom: 8, left: 0, right: 0, display: "flex", justifyContent: "center", gap: 5 }}>
-                  {photos.map((_, i) => (
-                    <button
-                      key={i}
-                      aria-label={`${i + 1}번째 사진`}
-                      onClick={() => setPhotoIndex(i)}
-                      style={{
-                        width: i === photoIndex ? 16 : 6, height: 6,
-                        borderRadius: 3, border: "none", cursor: "pointer", padding: 0,
-                        background: i === photoIndex ? "#fff" : "rgba(255,255,255,0.5)",
-                        transition: "width 0.2s",
-                      }}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        ) : (
-          <div
-            style={{
-              width: "100%", height: 160, background: "#f5f5f5",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#aaa", fontSize: 13,
-            }}
-          >
-            {t("noPhoto")}
-          </div>
-        )}
-        {photos[photoIndex]?.caption && (
-          <div
-            style={{
-              padding: "6px 14px",
-              fontSize: 12,
-              color: "#555",
-              background: "#fafafa",
-              borderBottom: "1px solid #f0f0f0",
-            }}
-          >
-            {lang === "ko"
-              ? photos[photoIndex].caption
-              : (photos[photoIndex][`caption_${lang}`] ?? photos[photoIndex].caption)}
-          </div>
-        )}
+        <PhotoCarousel
+          photos={photos}
+          photoIndex={photoIndex}
+          setPhotoIndex={setPhotoIndex}
+          displayName={displayName}
+          lang={lang}
+          t={t}
+        />
 
         {/* 시설 목록 */}
-        <div style={{ padding: 16 }}>
-          {loading ? (
-            <div
-              style={{
-                color: "#aaa",
-                fontSize: 13,
-                textAlign: "center",
-                paddingTop: 20,
-              }}
-            >
-              {t("loading")}
-            </div>
-          ) : facilities.length === 0 ? (
-            <div
-              style={{
-                color: "#aaa",
-                fontSize: 13,
-                textAlign: "center",
-                paddingTop: 20,
-              }}
-            >
-              {t("noFacilityInfo")}
-            </div>
-          ) : (
-            <>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: "#888",
-                  marginBottom: 10,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                {t("facilitiesTitle")}
-              </div>
-              {facilities.map((f) => (
-                <div
-                  key={f.id}
-                  style={{
-                    padding: "10px 0",
-                    borderBottom: "1px solid #f5f5f5",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 8,
-                        background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 16,
-                        flexShrink: 0,
-                      }}
-                    >
-                      {f.facility_types?.icon}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "#222" }}>
-                        {lang === "ko"
-                          ? (f.name ?? getFacilityLabel(f.facility_types))
-                          : (f[`name_${lang}`] ?? f.name ?? getFacilityLabel(f.facility_types))}
-                      </div>
-                      {f.description && (
-                        <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                          {lang === "ko" ? f.description : (f[`description_${lang}`] ?? f.description)}
-                        </div>
-                      )}
-                      {f.floor_info && (
-                        <div style={{ fontSize: 12, color: "#888" }}>
-                          {lang === "ko" ? f.floor_info : (f[`floor_info_${lang}`] ?? f.floor_info)}
-                        </div>
-                      )}
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        padding: "3px 8px",
-                        borderRadius: 20,
-                        fontWeight: 500,
-                        flexShrink: 0,
-                        background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
-                        color: f.is_installed ? "#3B6D11" : "#A32D2D",
-                      }}
-                    >
-                      {f.is_installed ? t("installed") : t("notInstalled")}
-                    </span>
-                  </div>
-                  {f.video_url && (
-                    <div style={{ marginTop: 8 }}>
-                      <video
-                        src={f.video_url}
-                        controls
-                        playsInline
-                        style={{
-                          width: "100%",
-                          borderRadius: 6,
-                          background: "#000",
-                          maxHeight: 180,
-                        }}
-                      />
-                      {f.video_caption && (
-                        <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
-                          {lang === "ko"
-                            ? f.video_caption
-                            : (f[`video_caption_${lang}`] ?? f.video_caption)}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </>
-          )}
-          {building?.last_updated && (
-            <div style={{ marginTop: 16, fontSize: 11, color: "#bbb" }}>
-              {t("lastUpdated")} {building.last_updated}
-            </div>
-          )}
-        </div>
+        <FacilityList
+          loading={loading}
+          facilities={facilities}
+          lang={lang}
+          getFacilityLabel={getFacilityLabel}
+          lastUpdated={building?.last_updated}
+          t={t}
+        />
       </div>
     </>
   );
