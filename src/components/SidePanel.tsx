@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/LanguageContext";
 
@@ -204,7 +204,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
 
   const transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
 
-  const panelStyle = isMobile
+  const panelStyle: CSSProperties = isMobile
     ? {
         position: "absolute",
         bottom: 0,

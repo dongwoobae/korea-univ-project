@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function FeedbackEmailModal({ initialEmails, onClose, onSaved }) {
@@ -56,7 +56,7 @@ export default function FeedbackEmailModal({ initialEmails, onClose, onSaved }) 
     }
   }
 
-  const inputStyle = {
+  const inputStyle: CSSProperties = {
     width: "100%",
     padding: "8px 10px",
     fontSize: 13,
