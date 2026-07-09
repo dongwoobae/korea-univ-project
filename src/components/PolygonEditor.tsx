@@ -15,7 +15,7 @@ export default function PolygonEditor({ geojson, onSave, onCancel, excludeId }) 
   useEffect(() => {
     if (mapRef.current) return;
 
-    let center = [37.5893, 127.0327];
+    let center: [number, number] = [37.5893, 127.0327];
     if (geojson?.geometry?.coordinates?.[0]?.length > 0) {
       const coords = geojson.geometry.coordinates[0];
       const avgLat = coords.reduce((s, c) => s + c[1], 0) / coords.length;
@@ -47,13 +47,13 @@ export default function PolygonEditor({ geojson, onSave, onCancel, excludeId }) 
       .then(({ data }) => {
         if (cancelled || !mapRef.current) return;
         const features = (data ?? [])
-          .filter((b) => b.geojson?.geometry && String(b.id) !== String(excludeId ?? ""))
-          .map((b) => ({
-            ...b.geojson,
-            properties: { ...(b.geojson.properties ?? {}), name: b.name },
-          }));
+          .filter((b) => (b.geojson as any)?.geometry && String(b.id) !== String(excludeId ?? ""))
+          .map((b) => {
+            const g = b.geojson as any;
+            return { ...g, properties: { ...(g.properties ?? {}), name: b.name } };
+          });
         L.geoJSON(
-          { type: "FeatureCollection", features },
+          { type: "FeatureCollection", features } as any,
           {
             style: { color: "#9ca3af", weight: 1, fillColor: "#9ca3af", fillOpacity: 0.25 },
             interactive: false,
@@ -76,8 +76,8 @@ export default function PolygonEditor({ geojson, onSave, onCancel, excludeId }) 
       });
       layer.eachLayer((l) => {
         drawnItems.addLayer(l);
-        l.pm.enable({ allowSelfIntersection: false });
-        l.pm.disable();
+        (l as any).pm.enable({ allowSelfIntersection: false });
+        (l as any).pm.disable();
       });
     }
 

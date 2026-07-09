@@ -48,7 +48,7 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
   function handleVoiceSearch(e) {
     e.preventDefault();
     const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert(t("voiceNotSupported"));
       return;

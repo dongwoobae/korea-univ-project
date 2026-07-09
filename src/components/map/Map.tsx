@@ -26,7 +26,7 @@ import SlopeLayer from "./SlopeLayer";
 import { SUBWAY_STATIONS } from "./subwayStations";
 import { FACILITY_COLORS } from "./facilityColors";
 
-const KU_CENTER = [37.5893, 127.0327];
+const KU_CENTER: [number, number] = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
 
 const TILES = {
@@ -175,7 +175,7 @@ export default function Map() {
         const numId = Number(id);
         const isFav = favoriteIdsRef.current.has(numId);
         const isActive = activeBuildingIdRef.current === numId;
-        layer.setStyle(isActive ? hoverStyle(isFav) : baseStyle(isFav));
+        (layer as any).setStyle(isActive ? hoverStyle(isFav) : baseStyle(isFav));
       });
     };
     window.addEventListener("favoritesUpdated", handler);
@@ -373,8 +373,8 @@ export default function Map() {
             key={JSON.stringify(activeCampuses)}
             data={{
               type: "FeatureCollection",
-              features: campusBoundaries.features.filter((f) => activeCampuses[f.properties.campus]),
-            }}
+              features: (campusBoundaries as any).features.filter((f) => activeCampuses[f.properties.campus]),
+            } as any}
             style={(feature) => ({
               color: feature.properties.color,
               weight: 2,

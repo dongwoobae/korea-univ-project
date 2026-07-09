@@ -46,11 +46,11 @@ export default function FacilityMap({ center, markerPosition, onMapClick, highli
         if (cancelled) return;
         setBuildingFeatures(
           (data ?? [])
-            .filter((b) => b.geojson?.geometry)
-            .map((b) => ({
-              ...b.geojson,
-              properties: { ...(b.geojson.properties ?? {}), bid: b.id, name: b.name },
-            })),
+            .filter((b) => (b.geojson as any)?.geometry)
+            .map((b) => {
+              const g = b.geojson as any;
+              return { ...g, properties: { ...(g.properties ?? {}), bid: b.id, name: b.name } };
+            }),
         );
       });
     return () => { cancelled = true; };
@@ -86,7 +86,7 @@ export default function FacilityMap({ center, markerPosition, onMapClick, highli
         {buildingFeatures && (
           <GeoJSON
             key={buildingFeatures.length}
-            data={{ type: "FeatureCollection", features: buildingFeatures }}
+            data={{ type: "FeatureCollection", features: buildingFeatures } as any}
             style={(f) =>
               String(f.properties.bid) === String(highlightId ?? "")
                 ? { color: "#2563EB", weight: 2, fillColor: "#2563EB", fillOpacity: 0.15 }
