@@ -1,12 +1,13 @@
 "use client";
 
 import type { LangCode } from "@/lib/translations";
+import type { FacilityWithType } from "@/types/domain";
 
 interface FacilityListProps {
   loading: boolean;
-  facilities: any[];
+  facilities: FacilityWithType[];
   lang: LangCode;
-  getFacilityLabel: (facilityTypes: any) => string;
+  getFacilityLabel: (facilityTypes: FacilityWithType["facility_types"]) => string;
   lastUpdated: string | null | undefined;
   t: (key: string) => string;
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import type { FacilityType } from "@/types/domain";
 
 /**
  * 지도에 필요한 원격 데이터(건물 GeoJSON·시설·시설유형·경사·캠퍼스 경계)를
@@ -11,7 +12,7 @@ export function useMapData() {
   const [geoData, setGeoData] = useState<any>(null);
   const [loadingMap, setLoadingMap] = useState(true);
   const [facilities, setFacilities] = useState<any[]>([]);
-  const [facilityTypes, setFacilityTypes] = useState<any[]>([]);
+  const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
   const [activeTypes, setActiveTypes] = useState<Record<string, boolean>>({});
   const [slopes, setSlopes] = useState<any[]>([]);
   const [campusBoundaries, setCampusBoundaries] = useState<any>(null);

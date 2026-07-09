@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
+import type { Building, FacilityWithType, FacilityType, College } from "@/types/domain";
 import { useRouter, useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
@@ -35,10 +36,10 @@ export default function BuildingDetail() {
   const { id: idParam } = useParams();
   const id = Number(idParam);
   const router = useRouter();
-  const [building, setBuilding] = useState<any>(null);
-  const [facilities, setFacilities] = useState<any[]>([]);
-  const [facilityTypes, setFacilityTypes] = useState<any[]>([]);
-  const [colleges, setColleges] = useState<any[]>([]);
+  const [building, setBuilding] = useState<Building | null>(null);
+  const [facilities, setFacilities] = useState<FacilityWithType[]>([]);
+  const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
+  const [colleges, setColleges] = useState<College[]>([]);
   const [selectedCollegeId, setSelectedCollegeId] = useState<number | null>(null);
   const [savingCollege, setSavingCollege] = useState(false);
   const [nameForm, setNameForm] = useState({ name: "", name_en: "" });

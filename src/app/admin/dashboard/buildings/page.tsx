@@ -3,11 +3,12 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import type { Building, Facility, FacilityType } from "@/types/domain";
 
 export default function BuildingsPage() {
-  const [buildings, setBuildings] = useState<any[]>([]);
-  const [facilities, setFacilities] = useState<any[]>([]);
-  const [facilityTypes, setFacilityTypes] = useState<any[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
+  const [facilities, setFacilities] = useState<Pick<Facility, "building_id" | "facility_code">[]>([]);
+  const [facilityTypes, setFacilityTypes] = useState<Pick<FacilityType, "code" | "label">[]>([]);
   const [search, setSearch] = useState("");
   const [registrationFilter, setRegistrationFilter] = useState<string | null>(null); // null | "registered" | "unregistered"
   const [loading, setLoading] = useState(true);
@@ -35,8 +36,9 @@ export default function BuildingsPage() {
     const registeredCount = activeBuildings.filter((b) => registeredIds.has(b.id)).length;
     const unregisteredCount = activeBuildings.filter((b) => !registeredIds.has(b.id)).length;
 
-    const typeCounts = {};
+    const typeCounts: Record<string, number> = {};
     for (const f of facilities) {
+      if (!f.facility_code) continue;
       typeCounts[f.facility_code] = (typeCounts[f.facility_code] ?? 0) + 1;
     }
     const typeBreakdown = facilityTypes

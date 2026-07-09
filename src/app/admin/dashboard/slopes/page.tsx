@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import type { SlopeSegment } from "@/types/domain";
 
 function buildGpx(name, points) {
   const trkpts = points.map(p =>
@@ -30,7 +31,7 @@ function downloadGpx(route) {
 }
 
 export default function SlopesPage() {
-  const [slopes, setSlopes] = useState<any[]>([]);
+  const [slopes, setSlopes] = useState<SlopeSegment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -44,7 +45,7 @@ export default function SlopesPage() {
       .from("slope_segments")
       .select("id, name, gpx_file, segments, created_at")
       .order("created_at", { ascending: false });
-    setSlopes(data ?? []);
+    setSlopes((data ?? []) as unknown as SlopeSegment[]);
     setLoading(false);
   }
 
@@ -174,7 +175,7 @@ export default function SlopesPage() {
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>{s.name}</div>
                   <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                    {s.segments?.length ?? 0}개 포인트 · {new Date(s.created_at).toLocaleDateString("ko-KR")}
+                    {s.segments?.length ?? 0}개 포인트 · {s.created_at ? new Date(s.created_at).toLocaleDateString("ko-KR") : ""}
                     {s.gpx_file && (
                       <span style={{ marginLeft: 8, color: "#bbb" }}>({s.gpx_file})</span>
                     )}

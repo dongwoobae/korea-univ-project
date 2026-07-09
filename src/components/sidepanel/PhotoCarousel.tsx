@@ -1,9 +1,12 @@
 "use client";
 
 import type { LangCode } from "@/lib/translations";
+import type { BuildingPhoto } from "@/types/domain";
+
+type PhotoRow = Pick<BuildingPhoto, "id" | "url" | "caption" | "caption_en" | "caption_zh">;
 
 interface PhotoCarouselProps {
-  photos: any[];
+  photos: PhotoRow[];
   photoIndex: number;
   setPhotoIndex: (updater: number | ((i: number) => number)) => void;
   displayName: string;
