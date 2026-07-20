@@ -1,24 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
+import { r2, R2_BUCKET, getPublicR2Url } from "@/lib/r2";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
-
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: process.env.CLOUDFLARE_R2_ENDPOINT!,
-  credentials: {
-    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
-  },
-});
-
-const BUCKET = process.env.CLOUDFLARE_R2_BUCKET_NAME;
-const PUBLIC_URL = process.env.CLOUDFLARE_R2_PUBLIC_URL!;
 
 const ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_SIZE = 200 * 1024 * 1024; // 200MB
@@ -69,14 +58,14 @@ export async function POST(request) {
 
     await r2.send(
       new PutObjectCommand({
-        Bucket: BUCKET,
+        Bucket: R2_BUCKET,
         Key: key,
         Body: buffer,
         ContentType: file.type,
       }),
     );
 
-    const videoUrl = `${PUBLIC_URL}/${key}`;
+    const videoUrl = getPublicR2Url(key);
 
     const { error: dbError } = await supabaseAdmin
       .from("building_facilities")
