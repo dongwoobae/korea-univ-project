@@ -45,6 +45,11 @@ export default function FacilityMap({
   markerPosition,
   onMapClick,
   highlightId,
+}: {
+  center: [number, number];
+  markerPosition: [number, number] | null;
+  onMapClick: (lat: number, lng: number) => void;
+  highlightId?: number;
 }) {
   const [map, setMap] = useState<L.Map | null>(null);
   const [locating, setLocating] = useState(false);
