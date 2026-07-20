@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { authedFetch } from "@/lib/authedFetch";
 import { deleteLandmark } from "@/lib/landmarkDelete";
 import type { Landmark } from "@/types/domain";
 import Toast from "@/components/Toast";
@@ -45,6 +46,9 @@ export default function LandmarksPage() {
       return;
     }
     fetchData();
+    authedFetch("/api/revalidate-landmarks", { method: "POST" }).catch(
+      () => {},
+    );
     showToast("명소가 삭제되었어요");
   }
 
@@ -177,6 +181,9 @@ export default function LandmarksPage() {
           onSaved={() => {
             setCreating(false);
             fetchData();
+            authedFetch("/api/revalidate-landmarks", { method: "POST" }).catch(
+              () => {},
+            );
           }}
           showToast={showToast}
         />
@@ -190,6 +197,9 @@ export default function LandmarksPage() {
           onSaved={() => {
             setEditingLandmark(null);
             fetchData();
+            authedFetch("/api/revalidate-landmarks", { method: "POST" }).catch(
+              () => {},
+            );
           }}
           onPhotoChanged={fetchData}
           showToast={showToast}
