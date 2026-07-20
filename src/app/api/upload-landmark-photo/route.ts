@@ -1,9 +1,10 @@
-import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { createClient } from "@supabase/supabase-js";
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import type { Database } from "@supabase-types";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { r2, R2_BUCKET, getPublicR2Url } from "@/lib/r2";
+import { r2, R2_BUCKET, getPublicR2Url, getR2KeyFromPublicUrl } from "@/lib/r2";
 
 const supabaseAdmin = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,6 +13,8 @@ const supabaseAdmin = createClient<Database>(
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_SIZE = 5 * 1024 * 1024;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function extensionFor(contentType: string): string {
   if (contentType === "image/png") return "png";
@@ -35,6 +38,33 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+
+    if (!UUID_RE.test(landmarkId)) {
+      return NextResponse.json(
+        { error: "잘못된 명소 ID" },
+        { status: 400 },
+      );
+    }
+
+    const { data: existing, error: fetchError } = await supabaseAdmin
+      .from("landmarks")
+      .select("id, photo_url")
+      .eq("id", landmarkId)
+      .maybeSingle();
+
+    if (fetchError) {
+      console.error("[upload-landmark-photo] fetch error:", fetchError);
+      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+    }
+
+    if (!existing) {
+      return NextResponse.json(
+        { error: "명소를 찾을 수 없어요" },
+        { status: 404 },
+      );
+    }
+
+    const previousPhotoUrl = existing.photo_url;
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
@@ -65,15 +95,49 @@ export async function POST(request: Request) {
     );
 
     const photoUrl = getPublicR2Url(key);
-    const { error: dbError } = await supabaseAdmin
+    const { data: updated, error: dbError } = await supabaseAdmin
       .from("landmarks")
       .update({ photo_url: photoUrl })
-      .eq("id", landmarkId);
+      .eq("id", landmarkId)
+      .select("id");
 
     if (dbError) {
       console.error("[upload-landmark-photo] db error:", dbError);
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
+
+    if (!updated || updated.length === 0) {
+      try {
+        await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+      } catch (cleanupErr) {
+        console.error(
+          "[upload-landmark-photo] orphan cleanup failed:",
+          cleanupErr,
+        );
+      }
+      return NextResponse.json(
+        { error: "명소를 찾을 수 없어요" },
+        { status: 404 },
+      );
+    }
+
+    if (previousPhotoUrl && previousPhotoUrl !== photoUrl) {
+      const oldKey = getR2KeyFromPublicUrl(previousPhotoUrl);
+      if (oldKey) {
+        try {
+          await r2.send(
+            new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: oldKey }),
+          );
+        } catch (cleanupErr) {
+          console.error(
+            "[upload-landmark-photo] old photo cleanup failed:",
+            cleanupErr,
+          );
+        }
+      }
+    }
+
+    revalidatePath("/api/landmarks");
 
     return NextResponse.json({ photoUrl });
   } catch (err) {
