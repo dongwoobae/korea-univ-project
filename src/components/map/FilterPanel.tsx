@@ -185,9 +185,7 @@ function MobileFilterSheet({
             onClick={() => setShowLandmarks((v) => !v)}
           >
             <span>✨</span>
-            <span>
-              {lang === "en" ? "Landmarks" : lang === "zh" ? "景点" : "명소"}
-            </span>
+            <span>{t("landmarkToggle")}</span>
           </Chip>
         </div>
         <div style={{ borderTop: "1px solid #e5e7eb", margin: "14px 0" }} />
@@ -299,7 +297,7 @@ export default function FilterPanel({
           />
           <span style={{ fontSize: 17 }}>✨</span>
           <span style={{ fontSize: 14, color: "#333", fontWeight: 500 }}>
-            {lang === "en" ? "Landmarks" : lang === "zh" ? "景点" : "명소"}
+            {t("landmarkToggle")}
           </span>
         </label>
         <div style={{ borderTop: "1px solid #e5e7eb", marginBottom: 12 }} />
