@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
+import { deleteFacility } from "@/lib/facilityDelete";
 import type {
   Building,
   BuildingPhoto,
@@ -14,17 +15,16 @@ import { useRouter, useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
+import AddFacilityButton from "@/components/admin/AddFacilityButton";
+import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
 
-const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
-  ssr: false,
-});
 const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
   ssr: false,
 });
 
-const KU_CENTER = [37.5893, 127.0327];
+const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
-function getBuildingCenter(building) {
+function getBuildingCenter(building): [number, number] {
   const geom = building?.geojson?.geometry;
   if (!geom) return KU_CENTER;
   if (geom.type === "Point") return [geom.coordinates[1], geom.coordinates[0]];
@@ -57,9 +57,9 @@ export default function BuildingDetail() {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
-  const [confirmModal, setConfirmModal] = useState<{
-    facilityId: string;
-  } | null>(null);
+  const [confirmModal, setConfirmModal] = useState<FacilityWithType | null>(
+    null,
+  );
   const [confirmDeleteBuilding, setConfirmDeleteBuilding] = useState(false);
   const [videoModalFacility, setVideoModalFacility] =
     useState<FacilityWithType | null>(null);
@@ -109,9 +109,13 @@ export default function BuildingDetail() {
     setLoading(false);
   }
 
-  async function handleDeleteFacility(facilityId) {
-    await supabase.from("building_facilities").delete().eq("id", facilityId);
+  async function handleDeleteFacility(facility) {
+    const error = await deleteFacility(facility);
     setConfirmModal(null);
+    if (error) {
+      showToast(error, "error");
+      return;
+    }
     fetchData();
     showToast("시설이 삭제되었어요");
   }
@@ -491,7 +495,7 @@ export default function BuildingDetail() {
             <div style={{ fontSize: 15, fontWeight: 600 }}>시설 현황</div>
             <AddFacilityButton
               buildingId={id}
-              buildingCenter={buildingCenter}
+              center={buildingCenter}
               facilityTypes={facilityTypes}
               onAdd={fetchData}
               showToast={showToast}
@@ -568,7 +572,7 @@ export default function BuildingDetail() {
                   {f.is_installed ? "설치" : "미설치"}
                 </button>
                 <button
-                  onClick={() => setConfirmModal({ facilityId: f.id })}
+                  onClick={() => setConfirmModal(f)}
                   style={{
                     fontSize: 12,
                     color: "#DC2626",
@@ -642,7 +646,7 @@ export default function BuildingDetail() {
           message="시설을 삭제할까요?"
           description="삭제한 시설은 복구할 수 없어요."
           confirmLabel="삭제"
-          onConfirm={() => handleDeleteFacility(confirmModal.facilityId)}
+          onConfirm={() => handleDeleteFacility(confirmModal)}
           onCancel={() => setConfirmModal(null)}
         />
       )}
@@ -956,706 +960,6 @@ function PhotoManager({ buildingId, showToast }) {
           confirmLabel="삭제"
           onConfirm={() => handleDelete(confirmDeletePhoto)}
           onCancel={() => setConfirmDeletePhoto(null)}
-        />
-      )}
-    </>
-  );
-}
-
-function AddFacilityButton({
-  buildingId,
-  buildingCenter,
-  facilityTypes,
-  onAdd,
-  showToast,
-}) {
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    facility_code: "",
-    name: "",
-    description: "",
-    floor_info: "",
-    is_installed: true,
-    lat: "",
-    lng: "",
-  });
-  const [saving, setSaving] = useState(false);
-
-  async function handleSave() {
-    if (!form.facility_code) {
-      showToast("시설 유형을 선택해주세요", "warning");
-      return;
-    }
-    setSaving(true);
-
-    const { data: inserted } = await supabase
-      .from("building_facilities")
-      .insert({
-        building_id: buildingId,
-        facility_code: form.facility_code,
-        name: form.name || null,
-        description: form.description || null,
-        floor_info: form.floor_info || null,
-        is_installed: form.is_installed,
-        lat: form.lat ? parseFloat(form.lat) : null,
-        lng: form.lng ? parseFloat(form.lng) : null,
-      })
-      .select("id")
-      .single();
-
-    if (inserted) {
-      const texts: Record<string, string> = {};
-      if (form.name) texts.name = form.name;
-      if (form.description) texts.description = form.description;
-      if (form.floor_info) texts.floor_info = form.floor_info;
-
-      if (Object.keys(texts).length > 0) {
-        try {
-          const res = await authedFetch("/api/translate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ texts }),
-          });
-          if (!res.ok) throw new Error("translate failed");
-          const { en, zh } = await res.json();
-          await supabase
-            .from("building_facilities")
-            .update({
-              name_en: en.name ?? null,
-              name_zh: zh.name ?? null,
-              description_en: en.description ?? null,
-              description_zh: zh.description ?? null,
-              floor_info_en: en.floor_info ?? null,
-              floor_info_zh: zh.floor_info ?? null,
-            })
-            .eq("id", inserted.id);
-        } catch {
-          // 번역 실패해도 시설 저장은 완료
-        }
-      }
-    }
-
-    setSaving(false);
-    setOpen(false);
-    setForm({
-      facility_code: "",
-      name: "",
-      description: "",
-      floor_info: "",
-      is_installed: true,
-      lat: "",
-      lng: "",
-    });
-    onAdd();
-    showToast("시설이 추가되었어요!");
-  }
-
-  const inputStyle: CSSProperties = {
-    width: "100%",
-    padding: "8px 10px",
-    border: "1px solid #ddd",
-    borderRadius: 6,
-    fontSize: 13,
-    outline: "none",
-    boxSizing: "border-box",
-    marginTop: 4,
-  };
-  const labelStyle = {
-    fontSize: 12,
-    color: "#555",
-    display: "block",
-    marginTop: 12,
-  };
-
-  return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          fontSize: 13,
-          padding: "8px 16px",
-          background: "#2563EB",
-          color: "#fff",
-          border: "none",
-          borderRadius: 8,
-          cursor: "pointer",
-        }}
-      >
-        + 시설 추가
-      </button>
-
-      {open && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.4)",
-            zIndex: 2000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <div
-            style={{
-              background: "#fff",
-              borderRadius: 12,
-              padding: 24,
-              width: 500,
-              maxHeight: "90vh",
-              overflowY: "auto",
-            }}
-          >
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
-              시설 추가
-            </div>
-
-            <label style={labelStyle}>시설 유형 *</label>
-            <select
-              value={form.facility_code}
-              onChange={(e) =>
-                setForm({ ...form, facility_code: e.target.value })
-              }
-              style={inputStyle}
-            >
-              <option value="">선택해주세요</option>
-              {facilityTypes.map((t) => (
-                <option key={t.code} value={t.code}>
-                  {t.icon} {t.label}
-                </option>
-              ))}
-            </select>
-
-            <label style={labelStyle}>시설 이름 (선택)</label>
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="예: 정문 엘리베이터"
-              style={inputStyle}
-            />
-
-            <label style={labelStyle}>설명 (선택)</label>
-            <input
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-              placeholder="예: 정문 우측 내부"
-              style={inputStyle}
-            />
-
-            <label style={labelStyle}>층 정보 (선택)</label>
-            <input
-              value={form.floor_info}
-              onChange={(e) => setForm({ ...form, floor_info: e.target.value })}
-              placeholder="예: 1층~4층"
-              style={inputStyle}
-            />
-
-            <label style={labelStyle}>위치 (지도에서 클릭해서 선택)</label>
-            <div
-              style={{
-                marginTop: 4,
-                borderRadius: 8,
-                overflow: "hidden",
-                border: "1px solid #ddd",
-              }}
-            >
-              <FacilityMap
-                center={buildingCenter}
-                highlightId={buildingId}
-                markerPosition={
-                  form.lat && form.lng
-                    ? [parseFloat(form.lat), parseFloat(form.lng)]
-                    : null
-                }
-                onMapClick={(lat, lng) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    lat: lat.toFixed(7),
-                    lng: lng.toFixed(7),
-                  }))
-                }
-              />
-            </div>
-
-            {form.lat && form.lng && (
-              <div style={{ fontSize: 12, color: "#2563EB", marginTop: 8 }}>
-                선택된 위치: {form.lat}, {form.lng}
-              </div>
-            )}
-
-            <label
-              style={{
-                ...labelStyle,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={form.is_installed}
-                onChange={(e) =>
-                  setForm({ ...form, is_installed: e.target.checked })
-                }
-              />
-              설치됨
-            </label>
-
-            <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-              <button
-                onClick={() => setOpen(false)}
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                  background: "none",
-                  border: "1px solid #ddd",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                취소
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                style={{
-                  flex: 1,
-                  padding: "10px",
-                  background: "#2563EB",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontSize: 13,
-                  cursor: "pointer",
-                }}
-              >
-                {saving ? "저장 중..." : "저장"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function FacilityVideoModal({ facility, onUpdate, showToast, onClose }) {
-  const [phase, setPhase] = useState<string | null>(null); // null | "loading" | "compressing" | "uploading"
-  const [progress, setProgress] = useState(0);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [confirmCancel, setConfirmCancel] = useState(false);
-  const [draftCaption, setDraftCaption] = useState(
-    facility.video_caption ?? "",
-  );
-  const [savingCaption, setSavingCaption] = useState(false);
-  const [currentVideoUrl, setCurrentVideoUrl] = useState(facility.video_url);
-  const xhrRef = useRef<XMLHttpRequest | null>(null);
-
-  const busy = phase !== null;
-
-  function handleCloseRequest() {
-    if (busy) {
-      setConfirmCancel(true);
-    } else {
-      onClose();
-    }
-  }
-
-  async function handleForceClose() {
-    if (xhrRef.current) xhrRef.current.abort();
-    onUpdate();
-    onClose();
-  }
-
-  async function handleSaveCaption() {
-    const caption = draftCaption.trim();
-    if (caption === (facility.video_caption ?? "")) return;
-    setSavingCaption(true);
-
-    const updateData = {
-      video_caption: caption || null,
-      video_caption_en: null,
-      video_caption_zh: null,
-    };
-
-    if (caption) {
-      try {
-        const res = await authedFetch("/api/translate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ texts: { video_caption: caption } }),
-        });
-        if (!res.ok) throw new Error("translate failed");
-        const { en, zh } = await res.json();
-        updateData.video_caption_en = en.video_caption ?? null;
-        updateData.video_caption_zh = zh.video_caption ?? null;
-      } catch {
-        // 번역 실패해도 캡션 저장은 진행
-      }
-    }
-
-    const { error } = await supabase
-      .from("building_facilities")
-      .update(updateData)
-      .eq("id", facility.id);
-    setSavingCaption(false);
-    if (error) {
-      showToast("캡션 저장 실패", "error");
-      return;
-    }
-    onUpdate();
-  }
-
-  async function handleUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      // 1. Presigned URL 발급
-      setPhase("preparing");
-      const presignRes = await authedFetch("/api/facility-video-presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          facilityId: facility.id,
-          contentType: file.type,
-          fileSize: file.size,
-        }),
-      });
-      const presignData = await presignRes.json();
-      if (!presignRes.ok || presignData.error) {
-        showToast(`준비 실패: ${presignData.error}`, "error");
-        return;
-      }
-
-      // 2. R2에 직접 업로드
-      setPhase("uploading");
-      setProgress(0);
-      const xhr = new XMLHttpRequest();
-      xhrRef.current = xhr;
-      await new Promise<void>((resolve, reject) => {
-        xhr.upload.onprogress = (ev) => {
-          if (ev.lengthComputable)
-            setProgress(Math.round((ev.loaded / ev.total) * 100));
-        };
-        xhr.onload = () => resolve();
-        xhr.onerror = () => reject(new Error("네트워크 오류"));
-        xhr.onabort = () => reject(new Error("업로드 취소됨"));
-        xhr.open("PUT", presignData.presignedUrl);
-        xhr.setRequestHeader("Content-Type", file.type);
-        xhr.send(file);
-      });
-
-      if (xhr.status !== 200) {
-        showToast("업로드 실패", "error");
-        return;
-      }
-
-      // 3. DB에 URL 저장
-      const confirmRes = await authedFetch("/api/facility-video-confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          facilityId: facility.id,
-          videoUrl: presignData.publicUrl,
-        }),
-      });
-      const confirmData = await confirmRes.json();
-      if (!confirmRes.ok || confirmData.error) {
-        showToast(`저장 실패: ${confirmData.error}`, "error");
-        return;
-      }
-
-      setCurrentVideoUrl(presignData.publicUrl);
-      showToast("동영상이 업로드됐어요!");
-      onUpdate();
-    } catch (err) {
-      if ((err as Error).message !== "업로드 취소됨")
-        showToast("네트워크 오류가 발생했어요", "error");
-    } finally {
-      setPhase(null);
-      setProgress(0);
-      e.target.value = "";
-    }
-  }
-
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      const res = await authedFetch("/api/delete-facility-video", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          facilityId: facility.id,
-          videoUrl: currentVideoUrl,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        showToast(`삭제 실패: ${data.error}`, "error");
-        return;
-      }
-      setCurrentVideoUrl(null);
-      showToast("동영상이 삭제됐어요");
-      onUpdate();
-    } catch {
-      showToast("네트워크 오류가 발생했어요", "error");
-    } finally {
-      setDeleting(false);
-      setConfirmDelete(false);
-    }
-  }
-
-  const phaseLabel =
-    phase === "preparing"
-      ? "업로드 준비 중..."
-      : phase === "uploading"
-        ? `업로드 중... ${progress}%`
-        : null;
-
-  return (
-    <>
-      {/* 배경 오버레이 */}
-      <div
-        onClick={handleCloseRequest}
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 1100,
-          background: "rgba(0,0,0,0.5)",
-          cursor: "default",
-        }}
-      />
-      {/* 모달 카드 */}
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          zIndex: 1101,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          pointerEvents: "none",
-        }}
-      >
-        <div
-          style={{
-            background: "#fff",
-            borderRadius: 12,
-            width: "min(480px, 92vw)",
-            maxHeight: "90vh",
-            overflowY: "auto",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
-            pointerEvents: "all",
-          }}
-        >
-          {/* 모달 헤더 */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "14px 16px",
-              borderBottom: "1px solid #f0f0f0",
-            }}
-          >
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>
-                {facility.facility_types?.icon}{" "}
-                {facility.name ?? facility.facility_types?.label}
-              </div>
-              <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-                동영상 관리
-              </div>
-            </div>
-            <button
-              onClick={handleCloseRequest}
-              style={{
-                background: "none",
-                border: "none",
-                fontSize: 18,
-                color: "#888",
-                cursor: "pointer",
-                padding: "4px 8px",
-              }}
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* 모달 본문 */}
-          <div style={{ padding: 16 }}>
-            {/* 진행 상태 */}
-            {busy && (
-              <div style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 12, color: "#555", marginBottom: 2 }}>
-                  {phaseLabel}
-                </div>
-                {phase === "loading" && (
-                  <div
-                    style={{ fontSize: 11, color: "#9ca3af", marginBottom: 4 }}
-                  >
-                    브라우저 캐싱되어 다음 업로드부터는 로딩하지 않습니다.
-                  </div>
-                )}
-                <div
-                  style={{
-                    height: 6,
-                    background: "#e5e7eb",
-                    borderRadius: 99,
-                    overflow: "hidden",
-                  }}
-                >
-                  {phase === "preparing" ? (
-                    <div
-                      style={{
-                        height: "100%",
-                        width: "40%",
-                        background: "#9ca3af",
-                        borderRadius: 99,
-                        animation: "shimmer 1.2s ease-in-out infinite",
-                      }}
-                    />
-                  ) : (
-                    <div
-                      style={{
-                        height: "100%",
-                        width: `${progress}%`,
-                        background: "#2563EB",
-                        borderRadius: 99,
-                        transition: "width 0.2s",
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            )}
-
-            {currentVideoUrl ? (
-              <>
-                <video
-                  src={currentVideoUrl}
-                  controls
-                  style={{
-                    width: "100%",
-                    borderRadius: 8,
-                    background: "#000",
-                    maxHeight: 260,
-                  }}
-                />
-                <input
-                  value={draftCaption}
-                  onChange={(e) => setDraftCaption(e.target.value)}
-                  onBlur={handleSaveCaption}
-                  placeholder="동영상 설명 추가..."
-                  maxLength={150}
-                  style={{
-                    width: "100%",
-                    marginTop: 8,
-                    fontSize: 13,
-                    padding: "7px 10px",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: 6,
-                    outline: "none",
-                    color: "#374151",
-                    background: savingCaption ? "#f9fafb" : "#fff",
-                  }}
-                />
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <label
-                    style={{
-                      flex: 1,
-                      textAlign: "center",
-                      padding: "8px",
-                      border: "1px solid #2563EB",
-                      color: "#2563EB",
-                      borderRadius: 6,
-                      fontSize: 13,
-                      cursor: busy ? "not-allowed" : "pointer",
-                      opacity: busy ? 0.6 : 1,
-                    }}
-                  >
-                    {phaseLabel ?? "동영상 교체"}
-                    <input
-                      type="file"
-                      accept="video/mp4,video/webm,video/quicktime"
-                      onChange={handleUpload}
-                      disabled={busy}
-                      style={{ display: "none" }}
-                    />
-                  </label>
-                  <button
-                    onClick={() => setConfirmDelete(true)}
-                    disabled={deleting || busy}
-                    style={{
-                      flex: 1,
-                      padding: "8px",
-                      background: "none",
-                      border: "1px solid #DC2626",
-                      color: "#DC2626",
-                      borderRadius: 6,
-                      fontSize: 13,
-                      cursor: deleting || busy ? "not-allowed" : "pointer",
-                      opacity: deleting || busy ? 0.6 : 1,
-                    }}
-                  >
-                    {deleting ? "삭제 중..." : "동영상 삭제"}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <label
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: 100,
-                  border: "1px dashed #d1d5db",
-                  borderRadius: 8,
-                  color: "#6b7280",
-                  fontSize: 13,
-                  cursor: busy ? "not-allowed" : "pointer",
-                  opacity: busy ? 0.7 : 1,
-                  padding: 16,
-                  gap: 6,
-                }}
-              >
-                <span style={{ fontSize: 28 }}>🎬</span>
-                {phaseLabel ?? "동영상 추가 (mp4, webm, mov · 최대 200MB)"}
-                <input
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime"
-                  onChange={handleUpload}
-                  disabled={busy}
-                  style={{ display: "none" }}
-                />
-              </label>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {confirmDelete && (
-        <ConfirmModal
-          message="동영상을 삭제할까요?"
-          description="삭제한 동영상은 복구할 수 없어요."
-          confirmLabel="삭제"
-          onConfirm={handleDelete}
-          onCancel={() => setConfirmDelete(false)}
-        />
-      )}
-      {confirmCancel && (
-        <ConfirmModal
-          message="지금 나가면 처리가 중단됩니다."
-          description="중단되면 처음부터 다시 해야 해요."
-          confirmLabel="중단하고 나가기"
-          onConfirm={handleForceClose}
-          onCancel={() => setConfirmCancel(false)}
         />
       )}
     </>
