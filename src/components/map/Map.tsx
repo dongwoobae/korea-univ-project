@@ -23,6 +23,7 @@ import LanguageSwitcher from "./LanguageSwitcher";
 import SlopeLegend from "./SlopeLegend";
 import SlopeLayer from "./SlopeLayer";
 import FacilityMarkers from "./FacilityMarkers";
+import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
 import { useMapData } from "./useMapData";
 
@@ -89,6 +90,7 @@ export default function Map() {
     setActiveTypes,
     slopes,
     campusBoundaries,
+    landmarks,
   } = useMapData();
   const [tooltip, setTooltip] = useState({
     visible: false,
@@ -109,6 +111,7 @@ export default function Map() {
   const [isMobile, setIsMobile] = useState(false);
   const [tileMode, setTileMode] = useState("street");
   const [showSlope, setShowSlope] = useState(false);
+  const [showLandmarks, setShowLandmarks] = useState(false);
   const [activeCampuses, setActiveCampuses] = useState({
     의료원: false,
     녹지캠퍼스: false,
@@ -348,6 +351,10 @@ export default function Map() {
           </>
         )}
         <FacilityMarkers facilities={facilities} activeTypes={activeTypes} />
+        <LandmarkMarkers
+          landmarks={landmarks}
+          showLandmarks={showLandmarks}
+        />
         <SubwayMarkers
           lang={lang}
           onSelect={(station) => setSelectedBuilding(station)}
@@ -506,6 +513,8 @@ export default function Map() {
         setShowSlope={setShowSlope}
         activeCampuses={activeCampuses}
         setActiveCampuses={setActiveCampuses}
+        showLandmarks={showLandmarks}
+        setShowLandmarks={setShowLandmarks}
       />
 
       {/* 툴팁 — 데스크탑만 */}
