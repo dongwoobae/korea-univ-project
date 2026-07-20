@@ -27,7 +27,10 @@ export default function BuildingsPage() {
   async function fetchData() {
     const [{ data: b }, { data: f }, { data: ft }] = await Promise.all([
       supabase.from("buildings").select("*").order("name"),
-      supabase.from("building_facilities").select("building_id, facility_code"),
+      supabase
+        .from("building_facilities")
+        .select("building_id, facility_code")
+        .not("building_id", "is", null),
       supabase.from("facility_types").select("code, label"),
     ]);
     setBuildings(b ?? []);

@@ -51,9 +51,11 @@ export default function FacilityMarkers({
                   {f.floor_info}
                 </div>
               )}
-              <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>
-                {f.buildings?.name}
-              </div>
+              {f.buildings?.name && (
+                <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>
+                  {f.buildings.name}
+                </div>
+              )}
             </Popup>
           </Marker>
         ))}
