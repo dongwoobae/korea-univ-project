@@ -191,6 +191,7 @@ export default function LandmarksPage() {
             setEditingLandmark(null);
             fetchData();
           }}
+          onPhotoChanged={fetchData}
           showToast={showToast}
         />
       )}

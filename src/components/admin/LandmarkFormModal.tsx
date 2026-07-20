@@ -15,6 +15,7 @@ interface LandmarkFormModalProps {
   landmark: Landmark | null;
   onClose: () => void;
   onSaved: () => void;
+  onPhotoChanged?: () => void;
   showToast: (message: string, type?: string) => void;
 }
 
@@ -23,6 +24,7 @@ export default function LandmarkFormModal({
   landmark,
   onClose,
   onSaved,
+  onPhotoChanged,
   showToast,
 }: LandmarkFormModalProps) {
   const editing = landmark !== null;
@@ -98,7 +100,7 @@ export default function LandmarkFormModal({
     try {
       await uploadPhoto(landmark.id, file);
       showToast("사진이 업로드되었어요");
-      onSaved();
+      onPhotoChanged?.();
     } catch (err) {
       showToast(err instanceof Error ? err.message : "사진 업로드 실패", "error");
     } finally {
@@ -122,7 +124,7 @@ export default function LandmarkFormModal({
     }
     setForm((prev) => ({ ...prev, photo_url: "" }));
     showToast("사진이 삭제되었어요");
-    onSaved();
+    onPhotoChanged?.();
   }
 
   async function handleSave() {
@@ -153,7 +155,8 @@ export default function LandmarkFormModal({
         .eq("id", landmark.id);
       setSaving(false);
       if (error) {
-        showToast(error.message, "error");
+        console.error(error);
+        showToast("저장에 실패했어요", "error");
         return;
       }
       onSaved();
@@ -164,7 +167,8 @@ export default function LandmarkFormModal({
     const { error } = await supabase.from("landmarks").insert(payload);
     setSaving(false);
     if (error) {
-      showToast(error.message, "error");
+      console.error(error);
+      showToast("저장에 실패했어요", "error");
       return;
     }
     onSaved();
@@ -337,7 +341,7 @@ export default function LandmarkFormModal({
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
-            disabled={uploading || !landmark?.id}
+            disabled={uploading || saving || !landmark?.id}
             onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null)}
             style={{ flex: 1, fontSize: 12 }}
           />
@@ -345,6 +349,7 @@ export default function LandmarkFormModal({
             <button
               type="button"
               onClick={handleDeletePhoto}
+              disabled={uploading || saving}
               style={{
                 padding: "7px 10px",
                 border: "1px solid #DC2626",
@@ -377,7 +382,7 @@ export default function LandmarkFormModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || uploading}
             style={{
               flex: 1,
               padding: "10px",
