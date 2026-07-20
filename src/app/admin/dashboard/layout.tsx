@@ -10,6 +10,7 @@ import FeedbackEmailModal from "@/components/admin/FeedbackEmailModal";
 const NAV = [
   { label: "🏢 건물 관리", href: "/admin/dashboard/buildings" },
   { label: "📍 독립 시설", href: "/admin/dashboard/facilities" },
+  { label: "✨ 명소", href: "/admin/dashboard/landmarks" },
   { label: "📐 경사도 경로", href: "/admin/dashboard/slopes" },
 ];
 
