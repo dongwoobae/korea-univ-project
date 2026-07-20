@@ -31,14 +31,14 @@ export async function POST(request: Request) {
 
     if (!(file instanceof File) || typeof landmarkId !== "string") {
       return NextResponse.json(
-        { error: "?뚯씪 ?먮뒗 紐낆냼 ID ?꾨씫" },
+        { error: "파일 또는 명소 ID 누락" },
         { status: 400 },
       );
     }
 
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { error: "jpg, png, webp, gif ?뺤떇留??낅줈??媛?ν빐??" },
+        { error: "jpg, png, webp, gif 형식만 업로드 가능해요" },
         { status: 400 },
       );
     }
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     if (buffer.length > MAX_SIZE) {
       return NextResponse.json(
-        { error: "?ъ쭊 ?ш린??5MB ?댄븯?ъ빞 ?댁슂" },
+        { error: "사진 크기는 5MB 이하여야 해요" },
         { status: 400 },
       );
     }
@@ -78,6 +78,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ photoUrl });
   } catch (err) {
     console.error("[upload-landmark-photo] unexpected error:", err);
-    return NextResponse.json({ error: "?쒕쾭 ?ㅻ쪟" }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }

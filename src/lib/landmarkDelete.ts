@@ -2,9 +2,9 @@ import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 
 /**
- * 紐낆냼瑜???젣?쒕떎. ?ъ쭊???덉쑝硫?R2 媛앹껜瑜?癒쇱? ?뺣━?쒕떎.
- * ?뺣━???ㅽ뙣?섎㈃ 怨좎븘 媛앹껜媛 ?⑥? ?딅룄濡?row瑜??④꺼?먭퀬 硫붿떆吏瑜?諛섑솚?쒕떎.
- * @returns ?깃났 ??null, ?ㅽ뙣 ???좎뒪?몄슜 硫붿떆吏
+ * 명소를 삭제한다. 사진이 있으면 R2 객체를 먼저 정리한다.
+ * 정리에 실패하면 고아 객체가 남지 않도록 row를 남겨두고 메시지를 반환한다.
+ * @returns 성공 시 null, 실패 시 토스트용 메시지
  */
 export async function deleteLandmark(landmark: {
   id: string;
@@ -19,7 +19,7 @@ export async function deleteLandmark(landmark: {
         photoUrl: landmark.photo_url,
       }),
     });
-    if (!res.ok) return "?ъ쭊 ??젣???ㅽ뙣??紐낆냼瑜?吏?곗? 紐삵뻽?댁슂";
+    if (!res.ok) return "사진 삭제에 실패해 명소를 지우지 못했어요";
   }
 
   const { error } = await supabase

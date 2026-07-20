@@ -14,7 +14,7 @@ describe("deleteLandmark", () => {
     eq.mockResolvedValue({ error: null });
   });
 
-  it("?ъ쭊???놁쑝硫?R2 ?뺣━ ?놁씠 row留???젣?쒕떎", async () => {
+  it("사진이 없으면 R2 정리 없이 row만 삭제한다", async () => {
     const { deleteLandmark } = await import("./landmarkDelete");
 
     const result = await deleteLandmark({ id: "l1", photo_url: null });
@@ -25,7 +25,7 @@ describe("deleteLandmark", () => {
     expect(result).toBeNull();
   });
 
-  it("?ъ쭊???덉쑝硫?R2瑜?癒쇱? ?뺣━????row瑜???젣?쒕떎", async () => {
+  it("사진이 있으면 R2를 먼저 정리한 뒤 row를 삭제한다", async () => {
     authedFetch.mockResolvedValueOnce({ ok: true });
     const { deleteLandmark } = await import("./landmarkDelete");
 
@@ -42,7 +42,7 @@ describe("deleteLandmark", () => {
     expect(result).toBeNull();
   });
 
-  it("?ъ쭊 ?뺣━???ㅽ뙣?섎㈃ row瑜???젣?섏? ?딄퀬 硫붿떆吏瑜?諛섑솚?쒕떎", async () => {
+  it("사진 정리에 실패하면 row를 삭제하지 않고 메시지를 반환한다", async () => {
     authedFetch.mockResolvedValueOnce({ ok: false });
     const { deleteLandmark } = await import("./landmarkDelete");
 
@@ -52,15 +52,15 @@ describe("deleteLandmark", () => {
     });
 
     expect(eq).not.toHaveBeenCalled();
-    expect(result).toBe("?ъ쭊 ??젣???ㅽ뙣??紐낆냼瑜?吏?곗? 紐삵뻽?댁슂");
+    expect(result).toBe("사진 삭제에 실패해 명소를 지우지 못했어요");
   });
 
-  it("row ??젣???ㅽ뙣?섎㈃ 硫붿떆吏瑜?諛섑솚?쒕떎", async () => {
-    eq.mockResolvedValueOnce({ error: { message: "沅뚰븳 ?놁쓬" } });
+  it("row 삭제에 실패하면 메시지를 반환한다", async () => {
+    eq.mockResolvedValueOnce({ error: { message: "권한 없음" } });
     const { deleteLandmark } = await import("./landmarkDelete");
 
     const result = await deleteLandmark({ id: "l4", photo_url: null });
 
-    expect(result).toBe("沅뚰븳 ?놁쓬");
+    expect(result).toBe("권한 없음");
   });
 });

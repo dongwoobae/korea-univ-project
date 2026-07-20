@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     if (!landmarkId || !photoUrl) {
       return NextResponse.json(
-        { error: "landmarkId ?먮뒗 photoUrl ?꾨씫" },
+        { error: "landmarkId 또는 photoUrl 누락" },
         { status: 400 },
       );
     }
@@ -44,6 +44,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[delete-landmark-photo] unexpected error:", err);
-    return NextResponse.json({ error: "?쒕쾭 ?ㅻ쪟" }, { status: 500 });
+    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
   }
 }
