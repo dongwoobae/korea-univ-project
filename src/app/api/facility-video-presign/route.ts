@@ -1,22 +1,8 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
-
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: process.env.CLOUDFLARE_R2_ENDPOINT!,
-  credentials: {
-    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
-  },
-  forcePathStyle: true,
-  requestChecksumCalculation: "WHEN_REQUIRED",
-  responseChecksumValidation: "WHEN_REQUIRED",
-});
-
-const BUCKET = process.env.CLOUDFLARE_R2_BUCKET_NAME;
-const PUBLIC_URL = process.env.CLOUDFLARE_R2_PUBLIC_URL;
+import { r2Presign, R2_BUCKET, getPublicR2Url } from "@/lib/r2";
 
 const ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_SIZE = 500 * 1024 * 1024; // 500MB
@@ -56,9 +42,9 @@ export async function POST(request) {
     const key = `facility-videos/${facilityId}/${Date.now()}.${ext}`;
 
     const presignedUrl = await getSignedUrl(
-      r2,
+      r2Presign,
       new PutObjectCommand({
-        Bucket: BUCKET,
+        Bucket: R2_BUCKET,
         Key: key,
         ContentType: contentType,
       }),
@@ -67,7 +53,7 @@ export async function POST(request) {
 
     return NextResponse.json({
       presignedUrl,
-      publicUrl: `${PUBLIC_URL}/${key}`,
+      publicUrl: getPublicR2Url(key),
     });
   } catch (err) {
     console.error("[facility-video-presign]", err);
