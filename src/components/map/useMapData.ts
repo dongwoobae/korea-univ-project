@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import type { FeatureCollection } from "geojson";
 import { supabase } from "@/lib/supabaseClient";
-import type { FacilityType, MapFacility, SlopeSegment } from "@/types/domain";
+import type {
+  FacilityType,
+  Landmark,
+  MapFacility,
+  SlopeSegment,
+} from "@/types/domain";
 
 /**
  * 지도에 필요한 원격 데이터(건물 GeoJSON·시설·시설유형·경사·캠퍼스 경계)를
@@ -18,6 +23,7 @@ export function useMapData() {
   const [slopes, setSlopes] = useState<SlopeSegment[]>([]);
   const [campusBoundaries, setCampusBoundaries] =
     useState<FeatureCollection | null>(null);
+  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
 
   useEffect(() => {
     setLoadingMap(true);
@@ -63,6 +69,13 @@ export function useMapData() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    fetch("/api/landmarks")
+      .then((r) => r.json())
+      .then((data) => setLandmarks(Array.isArray(data) ? data : []))
+      .catch(() => setLandmarks([]));
+  }, []);
+
   return {
     geoData,
     loadingMap,
@@ -72,5 +85,6 @@ export function useMapData() {
     setActiveTypes,
     slopes,
     campusBoundaries,
+    landmarks,
   };
 }

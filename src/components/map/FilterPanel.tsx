@@ -84,6 +84,8 @@ function MobileFilterSheet({
   setActiveTypes,
   activeCampuses,
   setActiveCampuses,
+  showLandmarks,
+  setShowLandmarks,
   onClose,
 }) {
   const { lang, t } = useLanguage();
@@ -175,6 +177,18 @@ function MobileFilterSheet({
           })}
         </div>
         <div style={{ borderTop: "1px solid #e5e7eb", margin: "14px 0" }} />
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          <Chip
+            active={showLandmarks}
+            color="#F4B942"
+            activeTextColor="#333"
+            onClick={() => setShowLandmarks((v) => !v)}
+          >
+            <span>✨</span>
+            <span>{t("landmarkToggle")}</span>
+          </Chip>
+        </div>
+        <div style={{ borderTop: "1px solid #e5e7eb", margin: "14px 0" }} />
         <div
           style={{
             fontSize: 12,
@@ -220,6 +234,8 @@ export default function FilterPanel({
   setShowSlope,
   activeCampuses,
   setActiveCampuses,
+  showLandmarks,
+  setShowLandmarks,
 }) {
   const [showFilter, setShowFilter] = useState(false);
   const { lang, t } = useLanguage();
@@ -261,6 +277,27 @@ export default function FilterPanel({
           <span style={{ fontSize: 17 }}>📐</span>
           <span style={{ fontSize: 14, color: "#333", fontWeight: 500 }}>
             {t("slopeToggle")}
+          </span>
+        </label>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            width: "100%",
+            marginBottom: 12,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={showLandmarks}
+            onChange={() => setShowLandmarks((v) => !v)}
+            style={{ accentColor: "#F4B942", width: 17, height: 17 }}
+          />
+          <span style={{ fontSize: 17 }}>✨</span>
+          <span style={{ fontSize: 14, color: "#333", fontWeight: 500 }}>
+            {t("landmarkToggle")}
           </span>
         </label>
         <div style={{ borderTop: "1px solid #e5e7eb", marginBottom: 12 }} />
@@ -429,6 +466,8 @@ export default function FilterPanel({
           setActiveTypes={setActiveTypes}
           activeCampuses={activeCampuses}
           setActiveCampuses={setActiveCampuses}
+          showLandmarks={showLandmarks}
+          setShowLandmarks={setShowLandmarks}
           onClose={() => setShowFilter(false)}
         />
       )}
