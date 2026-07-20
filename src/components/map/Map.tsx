@@ -111,7 +111,7 @@ export default function Map() {
   const [isMobile, setIsMobile] = useState(false);
   const [tileMode, setTileMode] = useState("street");
   const [showSlope, setShowSlope] = useState(false);
-  const [showLandmarks, setShowLandmarks] = useState(false);
+  const [showLandmarks, setShowLandmarks] = useState(true);
   const [activeCampuses, setActiveCampuses] = useState({
     의료원: false,
     녹지캠퍼스: false,
