@@ -7,6 +7,7 @@ export type Facility = Tables["building_facilities"]["Row"];
 export type FacilityType = Tables["facility_types"]["Row"];
 export type College = Tables["colleges"]["Row"];
 export type BuildingPhoto = Tables["building_photos"]["Row"];
+export type Landmark = Tables["landmarks"]["Row"];
 
 /** facilityColors의 알려진 시설 코드 */
 export type FacilityCode =

@@ -246,6 +246,54 @@ export type Database = {
         };
         Relationships: [];
       };
+      landmarks: {
+        Row: {
+          created_at: string | null;
+          description: string | null;
+          description_en: string | null;
+          description_zh: string | null;
+          icon: string;
+          id: string;
+          image_url: string | null;
+          lat: number;
+          lng: number;
+          name: string;
+          name_en: string | null;
+          name_zh: string | null;
+          photo_url: string | null;
+        };
+        Insert: {
+          created_at?: string | null;
+          description?: string | null;
+          description_en?: string | null;
+          description_zh?: string | null;
+          icon: string;
+          id?: string;
+          image_url?: string | null;
+          lat: number;
+          lng: number;
+          name: string;
+          name_en?: string | null;
+          name_zh?: string | null;
+          photo_url?: string | null;
+        };
+        Update: {
+          created_at?: string | null;
+          description?: string | null;
+          description_en?: string | null;
+          description_zh?: string | null;
+          icon?: string;
+          id?: string;
+          image_url?: string | null;
+          lat?: number;
+          lng?: number;
+          name?: string;
+          name_en?: string | null;
+          name_zh?: string | null;
+          photo_url?: string | null;
+        };
+        Relationships: [];
+      };
       slope_segments: {
         Row: {
           created_at: string | null;
