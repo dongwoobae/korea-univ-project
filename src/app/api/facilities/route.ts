@@ -10,7 +10,10 @@ export const revalidate = 3600;
 export async function GET() {
   const { data, error } = await supabase
     .from("building_facilities")
-    .select("*, facility_types(code, label, icon), buildings(name)")
+    .select(
+      "*, facility_types(code, label, label_en, label_zh, icon), buildings(name, name_en)",
+    )
+    .eq("is_installed", true)
     .not("lat", "is", null)
     .not("lng", "is", null);
 

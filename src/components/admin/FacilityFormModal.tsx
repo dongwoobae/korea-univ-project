@@ -143,6 +143,9 @@ export default function FacilityFormModal({
     }
 
     await syncTranslations(facilityId);
+    await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
+      () => {},
+    );
 
     setSaving(false);
     onSaved();
@@ -168,6 +171,8 @@ export default function FacilityFormModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       style={{
         position: "fixed",
         inset: 0,
@@ -183,7 +188,8 @@ export default function FacilityFormModal({
           background: "#fff",
           borderRadius: 12,
           padding: 24,
-          width: 500,
+          width: "min(500px, calc(100vw - 32px))",
+          boxSizing: "border-box",
           maxHeight: "90vh",
           overflowY: "auto",
         }}

@@ -29,35 +29,47 @@ export async function POST(request: Request) {
     }
 
     if (typeof landmarkId !== "string" || !UUID_RE.test(landmarkId)) {
-      return NextResponse.json(
-        { error: "잘못된 명소 ID" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "잘못된 명소 ID" }, { status: 400 });
     }
 
+    if (typeof photoUrl !== "string") {
+      return NextResponse.json({ error: "잘못된 사진 URL" }, { status: 400 });
+    }
     const key = getR2KeyFromPublicUrl(photoUrl);
-    console.log(`[delete-landmark-photo] landmarkId=${landmarkId} key=${key}`);
-
-    if (key) {
-      await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    if (!key) {
+      return NextResponse.json({ error: "잘못된 사진 URL" }, { status: 400 });
     }
+    console.log(`[delete-landmark-photo] landmarkId=${landmarkId} key=${key}`);
 
     const { data: updated, error: dbError } = await supabaseAdmin
       .from("landmarks")
       .update({ photo_url: null })
       .eq("id", landmarkId)
-      .select("id");
+      .eq("photo_url", photoUrl)
+      .select("id")
+      .maybeSingle();
 
     if (dbError) {
       console.error("[delete-landmark-photo] db error:", dbError);
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
 
-    if (!updated || updated.length === 0) {
+    if (!updated) {
       return NextResponse.json(
-        { error: "명소를 찾을 수 없어요" },
-        { status: 404 },
+        { error: "사진이 이미 변경되었어요. 새로고침 후 다시 시도해주세요" },
+        { status: 409 },
       );
+    }
+
+    try {
+      await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+    } catch (storageError) {
+      await supabaseAdmin
+        .from("landmarks")
+        .update({ photo_url: photoUrl })
+        .eq("id", landmarkId)
+        .is("photo_url", null);
+      throw storageError;
     }
 
     revalidatePath("/api/landmarks");

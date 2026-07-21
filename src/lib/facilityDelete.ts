@@ -27,5 +27,11 @@ export async function deleteFacility(facility: {
     .delete()
     .eq("id", facility.id);
 
-  return error ? error.message : null;
+  if (error) return error.message;
+  try {
+    await authedFetch("/api/revalidate-facilities", { method: "POST" });
+  } catch {
+    // 삭제 자체는 완료됐으므로 캐시 갱신 실패만으로 실패 처리하지 않는다.
+  }
+  return null;
 }

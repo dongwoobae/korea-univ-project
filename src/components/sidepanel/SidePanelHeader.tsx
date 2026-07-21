@@ -74,6 +74,7 @@ export default function SidePanelHeader({
         <button
           onClick={onTts}
           title={isSpeaking ? t("stopSpeaking") : t("speakInfo")}
+          aria-label={isSpeaking ? t("stopSpeaking") : t("speakInfo")}
           style={{
             background: "none",
             border: "none",
@@ -95,6 +96,7 @@ export default function SidePanelHeader({
         <button
           onClick={onToggleFavorite}
           title={isFavorite ? t("removeFavorite") : t("addFavorite")}
+          aria-label={isFavorite ? t("removeFavorite") : t("addFavorite")}
           style={{
             background: "none",
             border: "none",
@@ -109,6 +111,7 @@ export default function SidePanelHeader({
         {/* 닫기 버튼 */}
         <button
           onClick={onClose}
+          aria-label="닫기"
           style={{
             background: "none",
             border: "none",

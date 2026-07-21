@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
 import type { FacilityWithType, FacilityType } from "@/types/domain";
 import Toast from "@/components/Toast";
@@ -16,6 +17,8 @@ export default function StandaloneFacilitiesPage() {
   const [facilities, setFacilities] = useState<FacilityWithType[]>([]);
   const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -36,7 +39,10 @@ export default function StandaloneFacilitiesPage() {
   }, []);
 
   async function fetchData() {
-    const [{ data: facilitiesData }, { data: typesData }] = await Promise.all([
+    const [
+      { data: facilitiesData, error: facilitiesError },
+      { data: typesData, error: typesError },
+    ] = await Promise.all([
       supabase
         .from("building_facilities")
         .select("*, facility_types(label, icon)")
@@ -44,6 +50,12 @@ export default function StandaloneFacilitiesPage() {
         .order("created_at"),
       supabase.from("facility_types").select("*"),
     ]);
+    if (facilitiesError || typesError) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
+    setLoadError(false);
     setFacilities(facilitiesData ?? []);
     setFacilityTypes(typesData ?? []);
     setLoading(false);
@@ -61,11 +73,20 @@ export default function StandaloneFacilitiesPage() {
   }
 
   async function handleToggleInstalled(facility) {
-    await supabase
+    setTogglingId(facility.id);
+    const { error } = await supabase
       .from("building_facilities")
       .update({ is_installed: !facility.is_installed })
       .eq("id", facility.id);
-    fetchData();
+    setTogglingId(null);
+    if (error) {
+      showToast("설치 상태 변경에 실패했어요", "error");
+      return;
+    }
+    await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
+      () => {},
+    );
+    await fetchData();
     showToast(
       facility.is_installed ? "미설치로 변경되었어요" : "설치로 변경되었어요",
     );
@@ -73,6 +94,13 @@ export default function StandaloneFacilitiesPage() {
 
   if (loading)
     return <div style={{ padding: 40, color: "#aaa" }}>불러오는 중...</div>;
+  if (loadError)
+    return (
+      <div style={{ padding: 40, textAlign: "center" }}>
+        <p>시설 목록을 불러오지 못했어요.</p>
+        <button onClick={fetchData}>다시 시도</button>
+      </div>
+    );
 
   return (
     <div style={{ padding: 24, maxWidth: 800, margin: "0 auto" }}>
@@ -123,13 +151,14 @@ export default function StandaloneFacilitiesPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
+                flexWrap: "wrap",
                 gap: 12,
                 padding: "12px 0",
                 borderBottom: "1px solid #f5f5f5",
               }}
             >
               <div style={{ fontSize: 20 }}>{f.facility_types?.icon}</div>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 500 }}>
                   {f.name ?? f.facility_types?.label}
                 </div>
@@ -162,18 +191,23 @@ export default function StandaloneFacilitiesPage() {
               </button>
               <button
                 onClick={() => handleToggleInstalled(f)}
+                disabled={togglingId === f.id}
                 style={{
                   fontSize: 12,
                   padding: "4px 10px",
                   borderRadius: 20,
                   border: "none",
-                  cursor: "pointer",
+                  cursor: togglingId === f.id ? "wait" : "pointer",
                   fontWeight: 500,
                   background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
                   color: f.is_installed ? "#3B6D11" : "#A32D2D",
                 }}
               >
-                {f.is_installed ? "설치" : "미설치"}
+                {togglingId === f.id
+                  ? "변경 중"
+                  : f.is_installed
+                    ? "설치"
+                    : "미설치"}
               </button>
               <button
                 onClick={() => setEditingFacility(f)}

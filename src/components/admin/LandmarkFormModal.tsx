@@ -42,6 +42,7 @@ export default function LandmarkFormModal({
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
 
   async function fillTranslations() {
     const texts: Record<string, string> = {};
@@ -93,7 +94,8 @@ export default function LandmarkFormModal({
   async function handlePhotoChange(file: File | null) {
     if (!file) return;
     if (!landmark?.id) {
-      showToast("명소를 먼저 저장한 뒤 사진을 올려주세요", "warning");
+      setPendingPhoto(file);
+      showToast("명소를 저장할 때 사진도 함께 업로드해요");
       return;
     }
     setUploading(true);
@@ -102,7 +104,10 @@ export default function LandmarkFormModal({
       showToast("사진이 업로드되었어요");
       onPhotoChanged?.();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "사진 업로드 실패", "error");
+      showToast(
+        err instanceof Error ? err.message : "사진 업로드 실패",
+        "error",
+      );
     } finally {
       setUploading(false);
     }
@@ -164,13 +169,30 @@ export default function LandmarkFormModal({
       return;
     }
 
-    const { error } = await supabase.from("landmarks").insert(payload);
-    setSaving(false);
-    if (error) {
+    const { data: inserted, error } = await supabase
+      .from("landmarks")
+      .insert(payload)
+      .select("id")
+      .single();
+    if (error || !inserted) {
+      setSaving(false);
       console.error(error);
       showToast("저장에 실패했어요", "error");
       return;
     }
+    if (pendingPhoto) {
+      try {
+        setUploading(true);
+        await uploadPhoto(inserted.id, pendingPhoto);
+      } catch {
+        onSaved();
+        showToast("명소는 저장됐지만 사진 업로드에 실패했어요", "warning");
+        return;
+      } finally {
+        setUploading(false);
+      }
+    }
+    setSaving(false);
     onSaved();
     showToast("명소가 추가되었어요");
   }
@@ -194,6 +216,8 @@ export default function LandmarkFormModal({
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
       style={{
         position: "fixed",
         inset: 0,
@@ -209,7 +233,8 @@ export default function LandmarkFormModal({
           background: "#fff",
           borderRadius: 12,
           padding: 24,
-          width: 560,
+          width: "min(560px, calc(100vw - 32px))",
+          boxSizing: "border-box",
           maxHeight: "90vh",
           overflowY: "auto",
         }}
@@ -268,18 +293,14 @@ export default function LandmarkFormModal({
         <label style={labelStyle}>영문 설명</label>
         <textarea
           value={form.description_en}
-          onChange={(e) =>
-            setForm({ ...form, description_en: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, description_en: e.target.value })}
           style={{ ...inputStyle, minHeight: 60, resize: "vertical" }}
         />
 
         <label style={labelStyle}>중문 설명</label>
         <textarea
           value={form.description_zh}
-          onChange={(e) =>
-            setForm({ ...form, description_zh: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, description_zh: e.target.value })}
           style={{ ...inputStyle, minHeight: 60, resize: "vertical" }}
         />
 
@@ -341,10 +362,15 @@ export default function LandmarkFormModal({
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
-            disabled={uploading || saving || !landmark?.id}
+            disabled={uploading || saving}
             onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null)}
             style={{ flex: 1, fontSize: 12 }}
           />
+          {pendingPhoto && !landmark && (
+            <span style={{ fontSize: 12, color: "#2563EB" }}>
+              저장 시 업로드: {pendingPhoto.name}
+            </span>
+          )}
           {form.photo_url && (
             <button
               type="button"

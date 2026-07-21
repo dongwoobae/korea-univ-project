@@ -14,6 +14,7 @@ const KU_CENTER: [number, number] = [37.5893, 127.0327];
 export default function LandmarksPage() {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -30,10 +31,16 @@ export default function LandmarksPage() {
   }, []);
 
   async function fetchData() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("landmarks")
       .select("*")
       .order("created_at", { ascending: true });
+    if (error) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
+    setLoadError(false);
     setLandmarks(data ?? []);
     setLoading(false);
   }
@@ -54,6 +61,13 @@ export default function LandmarksPage() {
 
   if (loading)
     return <div style={{ padding: 40, color: "#aaa" }}>불러오는 중...</div>;
+  if (loadError)
+    return (
+      <div style={{ padding: 40, textAlign: "center" }}>
+        <p>명소 목록을 불러오지 못했어요.</p>
+        <button onClick={fetchData}>다시 시도</button>
+      </div>
+    );
 
   return (
     <div style={{ padding: 24, maxWidth: 860, margin: "0 auto" }}>
@@ -111,6 +125,7 @@ export default function LandmarksPage() {
               style={{
                 display: "flex",
                 alignItems: "center",
+                flexWrap: "wrap",
                 gap: 12,
                 padding: "12px 0",
                 borderBottom: "1px solid #f5f5f5",
@@ -119,7 +134,7 @@ export default function LandmarksPage() {
               <div style={{ fontSize: 22, width: 28, textAlign: "center" }}>
                 {landmark.icon}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 500 }}>
                   {landmark.name}
                 </div>

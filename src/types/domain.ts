@@ -41,7 +41,7 @@ export type BuildingWithCollege = Building & {
 
 /** /api/facilities 응답 — 시설 Row + 조인된 유형/건물명 */
 export type MapFacility = FacilityWithType & {
-  buildings: Partial<Pick<Building, "name">> | null;
+  buildings: Partial<Pick<Building, "name" | "name_en">> | null;
 };
 
 /** localStorage("ku_favorites")에 저장되는 즐겨찾기 항목 */

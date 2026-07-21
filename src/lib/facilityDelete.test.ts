@@ -19,7 +19,10 @@ describe("deleteFacility", () => {
 
     const result = await deleteFacility({ id: "f1", video_url: null });
 
-    expect(authedFetch).not.toHaveBeenCalled();
+    expect(authedFetch).toHaveBeenCalledTimes(1);
+    expect(authedFetch).toHaveBeenCalledWith("/api/revalidate-facilities", {
+      method: "POST",
+    });
     expect(eq).toHaveBeenCalledWith("id", "f1");
     expect(result).toBeNull();
   });
