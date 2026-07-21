@@ -40,10 +40,7 @@ export async function POST(request: Request) {
     }
 
     if (!UUID_RE.test(landmarkId)) {
-      return NextResponse.json(
-        { error: "잘못된 명소 ID" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "잘못된 명소 ID" }, { status: 400 });
     }
 
     const { data: existing, error: fetchError } = await supabaseAdmin

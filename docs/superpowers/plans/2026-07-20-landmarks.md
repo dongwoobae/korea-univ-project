@@ -247,16 +247,16 @@ import { r2, R2_BUCKET, getPublicR2Url } from "@/lib/r2";
 기존 `new S3Client`, `BUCKET`, `PUBLIC_URL` 블록은 삭제한다. 업로드 호출과 URL 생성은 아래처럼 바꾼다.
 
 ```ts
-    await r2.send(
-      new PutObjectCommand({
-        Bucket: R2_BUCKET,
-        Key: key,
-        Body: buffer,
-        ContentType: file.type,
-      }),
-    );
+await r2.send(
+  new PutObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+    Body: buffer,
+    ContentType: file.type,
+  }),
+);
 
-    const videoUrl = getPublicR2Url(key);
+const videoUrl = getPublicR2Url(key);
 ```
 
 - [ ] **Step 3: facility-video-presign 라우트 교체**
@@ -271,20 +271,20 @@ import { r2Presign, R2_BUCKET, getPublicR2Url } from "@/lib/r2";
 presign 생성부를 아래처럼 바꾼다.
 
 ```ts
-    const presignedUrl = await getSignedUrl(
-      r2Presign,
-      new PutObjectCommand({
-        Bucket: R2_BUCKET,
-        Key: key,
-        ContentType: contentType,
-      }),
-      { expiresIn: 3600 },
-    );
+const presignedUrl = await getSignedUrl(
+  r2Presign,
+  new PutObjectCommand({
+    Bucket: R2_BUCKET,
+    Key: key,
+    ContentType: contentType,
+  }),
+  { expiresIn: 3600 },
+);
 
-    return NextResponse.json({
-      presignedUrl,
-      publicUrl: getPublicR2Url(key),
-    });
+return NextResponse.json({
+  presignedUrl,
+  publicUrl: getPublicR2Url(key),
+});
 ```
 
 - [ ] **Step 4: delete-facility-video 라우트 교체**
@@ -299,13 +299,13 @@ import { r2, R2_BUCKET, getR2KeyFromPublicUrl } from "@/lib/r2";
 key 파싱과 삭제 호출을 아래처럼 바꾼다.
 
 ```ts
-    const key = getR2KeyFromPublicUrl(videoUrl);
+const key = getR2KeyFromPublicUrl(videoUrl);
 
-    console.log(`[delete-facility-video] facilityId=${facilityId} key=${key}`);
+console.log(`[delete-facility-video] facilityId=${facilityId} key=${key}`);
 
-    if (key) {
-      await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
-    }
+if (key) {
+  await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+}
 ```
 
 - [ ] **Step 5: 정적 검증**
@@ -861,16 +861,16 @@ import type {
 state와 effect를 추가:
 
 ```ts
-  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
+const [landmarks, setLandmarks] = useState<Landmark[]>([]);
 ```
 
 ```ts
-  useEffect(() => {
-    fetch("/api/landmarks")
-      .then((r) => r.json())
-      .then((data) => setLandmarks(Array.isArray(data) ? data : []))
-      .catch(() => setLandmarks([]));
-  }, []);
+useEffect(() => {
+  fetch("/api/landmarks")
+    .then((r) => r.json())
+    .then((data) => setLandmarks(Array.isArray(data) ? data : []))
+    .catch(() => setLandmarks([]));
+}, []);
 ```
 
 return 객체에 추가:
@@ -891,27 +891,27 @@ return 객체에 추가:
 데스크탑 패널의 경사도 토글 아래, 캠퍼스 구분선 앞에 추가:
 
 ```tsx
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            width: "100%",
-            marginBottom: 12,
-            cursor: "pointer",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={showLandmarks}
-            onChange={() => setShowLandmarks((v) => !v)}
-            style={{ accentColor: "#F4B942", width: 17, height: 17 }}
-          />
-          <span style={{ fontSize: 17 }}>✨</span>
-          <span style={{ fontSize: 14, color: "#333", fontWeight: 500 }}>
-            {lang === "en" ? "Landmarks" : lang === "zh" ? "景点" : "명소"}
-          </span>
-        </label>
+<label
+  style={{
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    width: "100%",
+    marginBottom: 12,
+    cursor: "pointer",
+  }}
+>
+  <input
+    type="checkbox"
+    checked={showLandmarks}
+    onChange={() => setShowLandmarks((v) => !v)}
+    style={{ accentColor: "#F4B942", width: 17, height: 17 }}
+  />
+  <span style={{ fontSize: 17 }}>✨</span>
+  <span style={{ fontSize: 14, color: "#333", fontWeight: 500 }}>
+    {lang === "en" ? "Landmarks" : lang === "zh" ? "景点" : "명소"}
+  </span>
+</label>
 ```
 
 `MobileFilterSheet` props에 `showLandmarks`, `setShowLandmarks`를 추가하고 시설 섹션 위에 추가:
@@ -936,16 +936,16 @@ return 객체에 추가:
 모바일 호출부에 props를 전달:
 
 ```tsx
-        <MobileFilterSheet
-          facilityTypes={facilityTypes}
-          activeTypes={activeTypes}
-          setActiveTypes={setActiveTypes}
-          activeCampuses={activeCampuses}
-          setActiveCampuses={setActiveCampuses}
-          showLandmarks={showLandmarks}
-          setShowLandmarks={setShowLandmarks}
-          onClose={() => setShowFilter(false)}
-        />
+<MobileFilterSheet
+  facilityTypes={facilityTypes}
+  activeTypes={activeTypes}
+  setActiveTypes={setActiveTypes}
+  activeCampuses={activeCampuses}
+  setActiveCampuses={setActiveCampuses}
+  showLandmarks={showLandmarks}
+  setShowLandmarks={setShowLandmarks}
+  onClose={() => setShowFilter(false)}
+/>
 ```
 
 - [ ] **Step 3: Map 배선**
@@ -965,23 +965,20 @@ import LandmarkMarkers from "./LandmarkMarkers";
 state 추가:
 
 ```tsx
-  const [showLandmarks, setShowLandmarks] = useState(false);
+const [showLandmarks, setShowLandmarks] = useState(false);
 ```
 
 `FacilityMarkers` 아래에 추가:
 
 ```tsx
-        <LandmarkMarkers
-          landmarks={landmarks}
-          showLandmarks={showLandmarks}
-        />
+<LandmarkMarkers landmarks={landmarks} showLandmarks={showLandmarks} />
 ```
 
 `FilterPanel` props에 추가:
 
 ```tsx
-        showLandmarks={showLandmarks}
-        setShowLandmarks={setShowLandmarks}
+showLandmarks = { showLandmarks };
+setShowLandmarks = { setShowLandmarks };
 ```
 
 - [ ] **Step 4: 검증**
@@ -1119,7 +1116,10 @@ export default function LandmarkFormModal({
       showToast("사진이 업로드되었어요");
       onSaved();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "사진 업로드 실패", "error");
+      showToast(
+        err instanceof Error ? err.message : "사진 업로드 실패",
+        "error",
+      );
     } finally {
       setUploading(false);
     }
@@ -1283,18 +1283,14 @@ export default function LandmarkFormModal({
         <label style={labelStyle}>영문 설명</label>
         <textarea
           value={form.description_en}
-          onChange={(e) =>
-            setForm({ ...form, description_en: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, description_en: e.target.value })}
           style={{ ...inputStyle, minHeight: 60, resize: "vertical" }}
         />
 
         <label style={labelStyle}>중문 설명</label>
         <textarea
           value={form.description_zh}
-          onChange={(e) =>
-            setForm({ ...form, description_zh: e.target.value })
-          }
+          onChange={(e) => setForm({ ...form, description_zh: e.target.value })}
           style={{ ...inputStyle, minHeight: 60, resize: "vertical" }}
         />
 

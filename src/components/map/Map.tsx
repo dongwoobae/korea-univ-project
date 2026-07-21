@@ -351,10 +351,7 @@ export default function Map() {
           </>
         )}
         <FacilityMarkers facilities={facilities} activeTypes={activeTypes} />
-        <LandmarkMarkers
-          landmarks={landmarks}
-          showLandmarks={showLandmarks}
-        />
+        <LandmarkMarkers landmarks={landmarks} showLandmarks={showLandmarks} />
         <SubwayMarkers
           lang={lang}
           onSelect={(station) => setSelectedBuilding(station)}

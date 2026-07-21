@@ -17,16 +17,16 @@
 
 ## DB — `landmarks` 테이블 (Supabase)
 
-| 컬럼 | 타입 | 비고 |
-| --- | --- | --- |
-| `id` | uuid PK | default `gen_random_uuid()` |
-| `name` / `name_en` / `name_zh` | text | `name`만 필수, 기존 i18n 컬럼 패턴 |
-| `description` / `description_en` / `description_zh` | text nullable | |
-| `lat` / `lng` | double precision **NOT NULL** | 좌표 없는 명소는 허용하지 않는다 (유령 데이터 방지) |
-| `icon` | text NOT NULL | 이모지 문자 1개 (예: 🐿️) |
-| `image_url` | text nullable | 마커 아이콘을 이모지 대신 커스텀 이미지로 대체할 확장 지점. 이번 작업에서는 컬럼만 만들고 UI는 이모지만 지원 |
-| `photo_url` | text nullable | 팝업에 보여줄 명소 사진 (R2 공개 URL) |
-| `created_at` | timestamptz | default `now()` |
+| 컬럼                                                | 타입                          | 비고                                                                                                         |
+| --------------------------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `id`                                                | uuid PK                       | default `gen_random_uuid()`                                                                                  |
+| `name` / `name_en` / `name_zh`                      | text                          | `name`만 필수, 기존 i18n 컬럼 패턴                                                                           |
+| `description` / `description_en` / `description_zh` | text nullable                 |                                                                                                              |
+| `lat` / `lng`                                       | double precision **NOT NULL** | 좌표 없는 명소는 허용하지 않는다 (유령 데이터 방지)                                                          |
+| `icon`                                              | text NOT NULL                 | 이모지 문자 1개 (예: 🐿️)                                                                                     |
+| `image_url`                                         | text nullable                 | 마커 아이콘을 이모지 대신 커스텀 이미지로 대체할 확장 지점. 이번 작업에서는 컬럼만 만들고 UI는 이모지만 지원 |
+| `photo_url`                                         | text nullable                 | 팝업에 보여줄 명소 사진 (R2 공개 URL)                                                                        |
+| `created_at`                                        | timestamptz                   | default `now()`                                                                                              |
 
 **마이그레이션에 RLS를 명시적으로 포함한다** (기존 정책이 자동 적용되지 않음 — `slope_segments`의 `20260612163920_fix_slope_rls.sql` 패턴):
 
