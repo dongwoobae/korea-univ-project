@@ -22,7 +22,7 @@ const landmarkMarkerIcon = (landmark: Landmark) => {
 
   return L.divIcon({
     className: "",
-    html: `<div style="width:34px;height:34px;background:${LANDMARK_COLOR};border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 7px rgba(0,0,0,0.24);">${content}</div>`,
+    html: `<div data-testid="landmark-marker-${landmark.id}" style="width:34px;height:34px;background:${LANDMARK_COLOR};border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 2px 7px rgba(0,0,0,0.24);">${content}</div>`,
     iconAnchor: [17, 17],
     popupAnchor: [0, -20],
   });
