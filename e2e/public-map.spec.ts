@@ -31,6 +31,20 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     expect(filterBox?.height).toBeLessThan(400);
     const attributionBox = await page.locator(".ku-attribution").boundingBox();
     expect(attributionBox?.x).toBe(20);
+    const providerLink = page.locator(".ku-attribution a");
+    await expect(providerLink).toHaveText("OpenStreetMap");
+    await expect(providerLink).toHaveAttribute("target", "_blank");
+    await expect(providerLink).toHaveAttribute("rel", "noopener noreferrer");
+    await expect(page.locator(".leaflet-control-attribution")).toContainText(
+      "CARTO",
+    );
+
+    await page.getByRole("button", { name: "항공사진으로 전환" }).click();
+    await expect(providerLink).toHaveText("Esri");
+    await expect(providerLink).toHaveAttribute("href", "https://www.esri.com");
+    await expect(page.locator(".leaflet-control-attribution")).toContainText(
+      "Esri",
+    );
   });
 
   test("건물 검색, 상세 패널, 즐겨찾기 영속성을 연결한다", async ({ page }) => {

@@ -33,13 +33,14 @@ const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
 const TILES = {
   street: {
     url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    attribution: "&copy; OpenStreetMap &copy; CARTO",
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors &middot; &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
     subdomains: "abcd",
   },
   satellite: {
     url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
     attribution:
-      "Tiles &copy; Esri &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community",
+      'Tiles &copy; <a href="https://www.esri.com" target="_blank" rel="noopener noreferrer">Esri</a> &mdash; Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
     subdomains: "abc",
   },
 };
@@ -406,7 +407,18 @@ export default function Map() {
         <img src="/kuis-logo.png" alt="고려대학교 지속가능원" />
         <span className="ku-attribution-separator" aria-hidden="true" />
         <span>
-          Leaflet · © <a href="https://www.openstreetmap.org/copyright">OSM</a> · © CARTO
+          Leaflet · ©{" "}
+          <a
+            href={
+              tileMode === "street"
+                ? "https://www.openstreetmap.org/copyright"
+                : "https://www.esri.com"
+            }
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {tileMode === "street" ? "OpenStreetMap" : "Esri"}
+          </a>
         </span>
       </div>
 
