@@ -22,10 +22,10 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       page.locator('[data-testid^="landmark-marker-"]').first(),
     ).toHaveText("🐿️");
     await expect(
-      page.getByRole("button", { name: /캠퍼스 선택 0/ }),
+      page.getByRole("button", { name: /캠퍼스 영역/ }),
     ).toHaveAttribute("aria-expanded", "false");
     await expect(
-      page.getByRole("button", { name: /시설 선택 0/ }),
+      page.getByRole("button", { name: /시설 [▼▲]/ }),
     ).toHaveAttribute("aria-expanded", "false");
     const filterBox = await page.locator(".ku-filter-panel").boundingBox();
     expect(filterBox?.height).toBeLessThan(400);
@@ -129,7 +129,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
     ).toHaveCount(0);
-    await page.getByRole("button", { name: /시설 선택 0/ }).click();
+    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
@@ -155,7 +155,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.getByTitle("English").click();
 
     await expect(page.getByPlaceholder("Search buildings...")).toBeVisible();
-    await page.getByRole("button", { name: /Facilities Selected 0/ }).click();
+    await page.getByRole("button", { name: /Facilities [▼▲]/ }).click();
     await page.getByRole("button", { name: /Ramp/ }).click();
     await page
       .locator('[data-testid="facility-marker-f-installed"]')
@@ -181,7 +181,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
 
     await page.getByRole("button", { name: /시설 필터/ }).click();
     await expect(
-      page.getByRole("button", { name: /캠퍼스 선택 0/ }),
+      page.getByRole("button", { name: /캠퍼스 영역/ }),
     ).toBeVisible();
     await expect(page.getByText("명소", { exact: true })).toBeVisible();
 

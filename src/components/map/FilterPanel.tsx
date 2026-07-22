@@ -84,11 +84,13 @@ export default function FilterPanel({
   const activeCampusCount =
     Object.values(activeCampuses).filter(Boolean).length;
   const activeFacilityCount = Object.values(activeTypes).filter(Boolean).length;
+  // 배지는 "기본값에서 벗어난 조건" 수. 명소 표시는 기본값이 true이므로
+  // 숨겼을 때만(!showLandmarks) 활성 필터로 센다. 이렇게 하면 첫 로드 배지가 0이다.
   const totalActive =
     activeCampusCount +
     activeFacilityCount +
     Number(showSlope) +
-    Number(showLandmarks);
+    Number(!showLandmarks);
 
   const content = (
     <>
@@ -99,12 +101,7 @@ export default function FilterPanel({
           onClick={() => setCampusSectionOpen((open) => !open)}
           aria-expanded={campusSectionOpen}
         >
-          <span>
-            {t("campusTitle")}{" "}
-            <span className="ku-filter-count">
-              {t("selectedLabel")} {activeCampusCount}
-            </span>
-          </span>
+          <span>{t("campusTitle")}</span>
           <span className="ku-filter-chevron">
             {campusSectionOpen ? "▲" : "▼"}
           </span>
@@ -145,12 +142,7 @@ export default function FilterPanel({
           onClick={() => setFacilitySectionOpen((open) => !open)}
           aria-expanded={facilitySectionOpen}
         >
-          <span>
-            {t("facilitySection")}{" "}
-            <span className="ku-filter-count">
-              {t("selectedLabel")} {activeFacilityCount}
-            </span>
-          </span>
+          <span>{t("facilitySection")}</span>
           <span className="ku-filter-chevron">
             {facilitySectionOpen ? "▲" : "▼"}
           </span>

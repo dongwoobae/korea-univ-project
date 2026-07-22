@@ -1,7 +1,14 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  GeoJSON,
+  Marker,
+  Circle,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
@@ -25,6 +32,13 @@ import "./map-ui.css";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
+
+const userLocationIcon = L.divIcon({
+  className: "ku-user-location",
+  html: '<span class="ku-user-location-dot"></span>',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
 
 const TILES = {
   street: {
@@ -126,6 +140,12 @@ export default function Map() {
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+    accuracy: number;
+  } | null>(null);
+  const [locating, setLocating] = useState(false);
   const [activeCampuses, setActiveCampuses] = useState({
     의료원: false,
     녹지캠퍼스: false,
@@ -312,28 +332,37 @@ export default function Map() {
 
   function locateUser() {
     if (!navigator.geolocation) {
-      setToast({
-        message: "현재 위치를 사용할 수 없는 브라우저입니다.",
-        type: "info",
-      });
+      setToast({ message: t("locateUnsupported"), type: "info" });
       return;
     }
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
+        setLocating(false);
         const location: [number, number] = [coords.latitude, coords.longitude];
         if (!KU_BOUNDS.contains(location)) {
-          setToast({ message: "지도 영역 밖입니다", type: "info" });
+          setToast({ message: t("locateOutside"), type: "info" });
           return;
         }
+        setUserLocation({
+          lat: coords.latitude,
+          lng: coords.longitude,
+          accuracy: coords.accuracy,
+        });
         mapRef.current?.flyTo(location, 18, {
           animate: true,
         });
       },
-      () =>
-        setToast({
-          message: "위치 권한을 확인해 주세요.",
-          type: "info",
-        }),
+      (error) => {
+        setLocating(false);
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? t("locateDenied")
+            : error.code === error.TIMEOUT
+              ? t("locateTimeout")
+              : t("locateUnavailable");
+        setToast({ message, type: "error" });
+      },
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
@@ -388,6 +417,27 @@ export default function Map() {
               onSearchOpen={(open) => {
                 if (open) setShowFavorites(false);
               }}
+            />
+          </>
+        )}
+        {userLocation && (
+          <>
+            <Circle
+              center={[userLocation.lat, userLocation.lng]}
+              radius={userLocation.accuracy}
+              pathOptions={{
+                color: "#2563eb",
+                weight: 1,
+                opacity: 0.5,
+                fillColor: "#2563eb",
+                fillOpacity: 0.12,
+              }}
+            />
+            <Marker
+              position={[userLocation.lat, userLocation.lng]}
+              icon={userLocationIcon}
+              title={t("myLocationMarker")}
+              alt={t("myLocationMarker")}
             />
           </>
         )}
@@ -497,6 +547,9 @@ export default function Map() {
           onClick={locateUser}
           title="현재 위치"
           aria-label="현재 위치"
+          disabled={locating}
+          data-locating={locating}
+          aria-busy={locating}
         >
           <span aria-hidden="true">📍</span>
         </button>
