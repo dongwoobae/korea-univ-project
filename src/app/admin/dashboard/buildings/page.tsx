@@ -4,26 +4,31 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { campusColor } from "@/lib/theme";
+import { inferCampusFromGeometry, type CampusBoundaryCollection } from "@/lib/campusGeometry";
+import type { Feature } from "geojson";
 import type { Building, Facility } from "@/types/domain";
 
 export default function BuildingsPage() {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [facilities, setFacilities] = useState<Pick<Facility, "building_id">[]>([]);
+  const [campusBoundaries, setCampusBoundaries] = useState<CampusBoundaryCollection | null>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     async function fetchData() {
-      const [{ data: buildingData }, { data: facilityData }] = await Promise.all([
+      const [{ data: buildingData }, { data: facilityData }, boundaries] = await Promise.all([
         supabase.from("buildings").select("*").order("name"),
         supabase
           .from("building_facilities")
           .select("building_id")
           .not("building_id", "is", null),
+        fetch("/campus-boundaries.geojson").then((response) => response.json() as Promise<CampusBoundaryCollection>),
       ]);
       setBuildings(buildingData ?? []);
       setFacilities(facilityData ?? []);
+      setCampusBoundaries(boundaries);
       setLoading(false);
     }
     fetchData();
@@ -37,6 +42,13 @@ export default function BuildingsPage() {
     });
     return counts;
   }, [facilities]);
+
+  const campusByBuilding = useMemo(() => new Map(
+    buildings.map((building) => [
+      building.id,
+      inferCampusFromGeometry(building.geojson as unknown as Feature, campusBoundaries) ?? "",
+    ]),
+  ), [buildings, campusBoundaries]);
 
   const filtered = useMemo(() => {
     const normalized = search.trim().toLocaleLowerCase();
@@ -83,7 +95,7 @@ export default function BuildingsPage() {
               <span>건물</span><span>캠퍼스</span><span>시설</span><span>최근 업데이트</span><span>상태</span><span>액션</span>
             </div>
             {filtered.map((building) => {
-              const campus = building.campus ?? "";
+              const campus = campusByBuilding.get(building.id) ?? "";
               return (
                 <div className="ku-admin-table-row" role="row" key={building.id} data-deleted={building.is_deleted}>
                   <div><div className="ku-admin-building-name">{building.name}</div><div className="ku-admin-building-en">{building.name_en || "—"}</div></div>
@@ -101,7 +113,7 @@ export default function BuildingsPage() {
 
           <div className="ku-admin-mobile-list">
             {filtered.map((building) => {
-              const campus = building.campus ?? "";
+              const campus = campusByBuilding.get(building.id) ?? "";
               return (
                 <button className="ku-admin-mobile-card" type="button" key={building.id} onClick={() => router.push(`/admin/buildings/${building.id}`)}>
                   <div className="ku-admin-mobile-copy">

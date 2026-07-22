@@ -304,7 +304,6 @@ async function handleApi(route: Route, state: MockState, url: URL) {
             id: row.id,
             name: row.name,
             name_en: row.name_en,
-            campus: row.campus,
           },
         })),
     });

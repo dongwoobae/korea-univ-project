@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { FeatureCollection } from "geojson";
 import { supabase } from "@/lib/supabaseClient";
+import { assignCampusesToBuildings } from "@/lib/campusGeometry";
 import type {
   FacilityType,
   Landmark,
@@ -27,11 +28,14 @@ export function useMapData() {
 
   useEffect(() => {
     setLoadingMap(true);
-    fetch("/api/buildings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.features) return;
-        setGeoData(data);
+    Promise.all([
+      fetch("/api/buildings").then((response) => response.json()),
+      fetch("/campus-boundaries.geojson").then((response) => response.json()),
+    ])
+      .then(([buildings, boundaries]) => {
+        if (!buildings.features || !boundaries.features) return;
+        setCampusBoundaries(boundaries);
+        setGeoData(assignCampusesToBuildings(buildings, boundaries));
       })
       .catch((err) => console.error("buildings fetch 실패:", err))
       .finally(() => setLoadingMap(false));
@@ -59,13 +63,6 @@ export function useMapData() {
     fetch("/api/slopes")
       .then((r) => r.json())
       .then((data) => setSlopes(Array.isArray(data) ? data : []))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetch("/campus-boundaries.geojson")
-      .then((r) => r.json())
-      .then((data) => setCampusBoundaries(data))
       .catch(() => {});
   }, []);
 
