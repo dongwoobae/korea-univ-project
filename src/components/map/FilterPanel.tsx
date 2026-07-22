@@ -52,7 +52,7 @@ export default function FilterPanel({
   setShowLandmarks,
   onOpenChange,
 }) {
-  const [campusSectionOpen, setCampusSectionOpen] = useState(true);
+  const [campusSectionOpen, setCampusSectionOpen] = useState(false);
   const [facilitySectionOpen, setFacilitySectionOpen] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const { lang, t } = useLanguage();
@@ -69,7 +69,7 @@ export default function FilterPanel({
     <>
       <section className="ku-filter-section">
         <button className="ku-filter-heading" type="button" onClick={() => setCampusSectionOpen((open) => !open)} aria-expanded={campusSectionOpen}>
-          <span>{t("campusTitle")} <span className="ku-filter-count">{activeCampusCount}</span></span>
+          <span>{t("campusTitle")} <span className="ku-filter-count">{t("selectedLabel")} {activeCampusCount}</span></span>
           <span className="ku-filter-chevron">{campusSectionOpen ? "▲" : "▼"}</span>
         </button>
         {campusSectionOpen && (
@@ -90,7 +90,7 @@ export default function FilterPanel({
 
       <section className="ku-filter-section">
         <button className="ku-filter-heading" type="button" onClick={() => setFacilitySectionOpen((open) => !open)} aria-expanded={facilitySectionOpen}>
-          <span>{t("facilitySection")} <span className="ku-filter-count">{activeFacilityCount}</span></span>
+          <span>{t("facilitySection")} <span className="ku-filter-count">{t("selectedLabel")} {activeFacilityCount}</span></span>
           <span className="ku-filter-chevron">{facilitySectionOpen ? "▲" : "▼"}</span>
         </button>
         {facilitySectionOpen && (

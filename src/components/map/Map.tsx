@@ -6,7 +6,6 @@ import {
   TileLayer,
   GeoJSON,
   useMap,
-  ZoomControl,
 } from "react-leaflet";
 import L from "leaflet";
 import type { FeatureCollection } from "geojson";
@@ -294,7 +293,12 @@ export default function Map() {
     }
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        mapRef.current?.flyTo([coords.latitude, coords.longitude], 18, {
+        const location: [number, number] = [coords.latitude, coords.longitude];
+        if (!KU_BOUNDS.contains(location)) {
+          setToast({ message: "지도 영역 밖입니다", type: "info" });
+          return;
+        }
+        mapRef.current?.flyTo(location, 18, {
           animate: true,
         });
       },
@@ -326,7 +330,6 @@ export default function Map() {
         ref={mapRef}
         zoomControl={false}
       >
-        <ZoomControl position="topright" />
         <TileLayer
           key={tileMode}
           url={TILES[tileMode].url}
@@ -412,6 +415,10 @@ export default function Map() {
         data-panel-open={Boolean(selectedBuilding)}
         data-overlay-open={mobileFilterOpen}
       >
+        <div className="ku-map-zoom" aria-label="지도 확대 및 축소">
+          <button className="ku-map-action" type="button" onClick={() => mapRef.current?.zoomIn()} title="확대" aria-label="확대">＋</button>
+          <button className="ku-map-action" type="button" onClick={() => mapRef.current?.zoomOut()} title="축소" aria-label="축소">−</button>
+        </div>
         <button className="ku-map-action" type="button" onClick={locateUser} title="현재 위치" aria-label="현재 위치">
           <span aria-hidden="true">📍</span>
         </button>

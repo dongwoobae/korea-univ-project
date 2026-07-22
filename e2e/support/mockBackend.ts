@@ -380,10 +380,13 @@ async function handleApi(route: Route, state: MockState, url: URL) {
 
 export async function installMockBackend(
   page: Page,
-  options: { authenticated?: boolean } = {},
+  options: {
+    authenticated?: boolean;
+    currentLocation?: { latitude: number; longitude: number };
+  } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
-  await page.addInitScript((authenticated) => {
+  await page.addInitScript(({ authenticated, currentLocation }) => {
     if (authenticated) {
       localStorage.setItem(
         "sb-127-auth-token",
@@ -433,15 +436,22 @@ export async function installMockBackend(
       },
     });
     Object.defineProperty(navigator, "geolocation", {
+      configurable: true,
       value: {
         getCurrentPosition(success: PositionCallback) {
           success({
-            coords: { latitude: 37.5893, longitude: 127.0327 },
+            coords: currentLocation,
           } as GeolocationPosition);
         },
       },
     });
-  }, state.authenticated);
+  }, {
+    authenticated: state.authenticated,
+    currentLocation: options.currentLocation ?? {
+      latitude: 37.5893,
+      longitude: 127.0327,
+    },
+  });
 
   await page.route("**/*", async (route) => {
     const request = route.request();

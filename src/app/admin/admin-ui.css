@@ -16,6 +16,8 @@
 .ku-admin-title { color: var(--ku-text-1); font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
 .ku-admin-caption { margin-top: 5px; color: var(--ku-text-3); font-size: 12px; }
 .ku-admin-actions { display: flex; gap: 8px; }
+.ku-admin-summary-strip { display: flex; align-items: center; width: fit-content; min-height: 38px; gap: 9px; margin-bottom: 14px; padding: 0 13px; border: 1px solid var(--ku-border); border-radius: 10px; color: var(--ku-text-2); background: var(--ku-surface); font-size: 12.5px; }
+.ku-admin-summary-strip strong { color: var(--ku-crimson-600); font-size: 14px; }
 .ku-admin-search { position: relative; width: min(340px, 100%); margin-bottom: 16px; }
 .ku-admin-search span { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); pointer-events: none; }
 .ku-admin-search input { width: 100%; height: 42px; padding: 0 38px; border: 1px solid var(--ku-border-input); border-radius: 8px; outline: 0; color: var(--ku-text-1); background: var(--ku-surface); font-size: 14px; }
@@ -87,6 +89,7 @@
   .ku-admin-actions .ku-admin-button:first-child { display: none; }
   .ku-admin-actions .ku-admin-button { min-height: 36px; padding: 0 10px; }
   .ku-admin-search { width: 100%; }
+  .ku-admin-summary-strip { width: 100%; justify-content: center; gap: 7px; }
   .ku-admin-search input { height: 44px; font-size: 16px; }
   .ku-admin-table { display: none; }
   .ku-admin-mobile-list { display: grid; gap: 9px; }

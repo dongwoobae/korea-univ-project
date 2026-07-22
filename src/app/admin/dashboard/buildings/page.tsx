@@ -17,7 +17,10 @@ export default function BuildingsPage() {
     async function fetchData() {
       const [{ data: buildingData }, { data: facilityData }] = await Promise.all([
         supabase.from("buildings").select("*").order("name"),
-        supabase.from("building_facilities").select("building_id").not("building_id", "is", null),
+        supabase
+          .from("building_facilities")
+          .select("building_id")
+          .not("building_id", "is", null),
       ]);
       setBuildings(buildingData ?? []);
       setFacilities(facilityData ?? []);
@@ -47,7 +50,6 @@ export default function BuildingsPage() {
   }, [buildings, search]);
 
   const deletedCount = buildings.filter((building) => building.is_deleted).length;
-
   return (
     <div className="ku-admin-main">
       <div className="ku-admin-page-heading">
@@ -59,6 +61,10 @@ export default function BuildingsPage() {
           <button className="ku-admin-button" type="button" onClick={() => window.location.reload()}>↻ 새로고침</button>
           <button className="ku-admin-button ku-admin-button--accent" type="button" onClick={() => router.push("/admin/buildings/new")}>＋ 건물 추가</button>
         </div>
+      </div>
+
+      <div className="ku-admin-summary-strip" aria-label="시설 등록 현황">
+        등록된 시설 <strong>{facilities.length}</strong>개
       </div>
 
       <div className="ku-admin-search">

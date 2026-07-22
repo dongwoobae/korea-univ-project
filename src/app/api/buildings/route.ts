@@ -56,7 +56,7 @@ export async function GET(request) {
   // 일반 모드 → Supabase에서 GeoJSON FeatureCollection 반환
   const { data, error } = await supabase
     .from("buildings")
-    .select("id, name, name_en, geojson")
+    .select("id, name, name_en, campus, geojson")
     .not("geojson", "is", null)
     .eq("is_deleted", false);
 
@@ -73,6 +73,7 @@ export async function GET(request) {
           id: b.id,
           name: b.name,
           name_en: b.name_en,
+          campus: b.campus,
         },
       })),
   };

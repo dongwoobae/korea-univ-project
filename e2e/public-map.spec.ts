@@ -12,9 +12,21 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.locator(".leaflet-container")).toBeVisible();
     await expect(page.getByPlaceholder("건물 검색...")).toBeVisible();
     await expect(page.getByTitle("즐겨찾기")).toBeVisible();
+    await expect(
+      page.locator(".leaflet-overlay-pane path.leaflet-interactive").first(),
+    ).toHaveAttribute("fill", "#963A32");
     await expect(page.locator('[data-testid^="landmark-marker-"]')).toHaveCount(
       1,
     );
+    await expect(
+      page.locator('[data-testid^="landmark-marker-"]').first(),
+    ).toHaveText("🐿️");
+    await expect(
+      page.getByRole("button", { name: /캠퍼스 선택 0/ }),
+    ).toHaveAttribute("aria-expanded", "false");
+    await expect(
+      page.getByRole("button", { name: /시설 선택 0/ }),
+    ).toHaveAttribute("aria-expanded", "false");
   });
 
   test("건물 검색, 상세 패널, 즐겨찾기 영속성을 연결한다", async ({ page }) => {
@@ -42,7 +54,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
     ).toHaveCount(0);
-    await page.getByRole("button", { name: /시설 0/ }).click();
+    await page.getByRole("button", { name: /시설 선택 0/ }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
@@ -68,7 +80,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.getByTitle("English").click();
 
     await expect(page.getByPlaceholder("Search buildings...")).toBeVisible();
-    await page.getByRole("button", { name: /Facilities 0/ }).click();
+    await page.getByRole("button", { name: /Facilities Selected 0/ }).click();
     await page.getByRole("button", { name: /Ramp/ }).click();
     await page
       .locator('[data-testid="facility-marker-f-installed"]')
@@ -94,7 +106,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
 
     await page.getByRole("button", { name: /시설 필터/ }).click();
     await expect(
-      page.getByRole("button", { name: /캠퍼스 0/ }),
+      page.getByRole("button", { name: /캠퍼스 선택 0/ }),
     ).toBeVisible();
     await expect(page.getByText("명소", { exact: true })).toBeVisible();
 
@@ -102,6 +114,16 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       () => document.documentElement.scrollWidth,
     );
     expect(scrollWidth).toBeLessThanOrEqual(390);
+  });
+
+  test("지도 영역 밖의 현재 위치는 이동하지 않고 안내한다", async ({ page }) => {
+    await installMockBackend(page, {
+      currentLocation: { latitude: 37.4, longitude: 127.1 },
+    });
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "현재 위치" }).click();
+    await expect(page.getByText("지도 영역 밖입니다")).toBeVisible();
   });
 
   test("TTS와 음성 검색 미지원 피드백을 제공한다", async ({ page }) => {
