@@ -20,6 +20,7 @@ import FacilityMarkers from "./FacilityMarkers";
 import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
 import { useMapData } from "./useMapData";
+import MapErrorBanner from "./MapErrorBanner";
 import "./map-ui.css";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
@@ -101,6 +102,8 @@ export default function Map() {
     slopes,
     campusBoundaries,
     landmarks,
+    statuses,
+    retry,
   } = useMapData();
   const [tooltip, setTooltip] = useState({
     visible: false,
@@ -345,6 +348,9 @@ export default function Map() {
         </div>
       )}
 
+      {/* 데이터 소스 오류 배너 (비차단·재시도) */}
+      <MapErrorBanner statuses={statuses} retry={retry} t={t} />
+
       <MapContainer
         center={KU_CENTER}
         zoom={16}
@@ -520,7 +526,6 @@ export default function Map() {
       />
 
       <LanguageSwitcher
-        isMobile={isMobile}
         lang={lang}
         setLang={setLang}
         panelOpen={Boolean(selectedBuilding)}

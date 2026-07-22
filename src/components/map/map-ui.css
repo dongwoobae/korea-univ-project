@@ -114,6 +114,7 @@
 }
 
 .ku-favorite-button {
+  position: relative;
   color: var(--ku-star);
   font-size: 21px;
 }
@@ -121,6 +122,23 @@
 .ku-favorite-button[aria-expanded="true"] {
   border-color: var(--ku-star);
   background: var(--ku-star-bg);
+}
+
+.ku-favorite-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  color: #fff;
+  background: #8c0000;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .ku-search-results,
@@ -334,8 +352,6 @@
   z-index: 1000;
   top: 20px;
   right: 20px;
-  display: flex;
-  gap: 2px;
   padding: 3px;
   border: 1px solid var(--ku-border);
   border-radius: 10px;
@@ -346,7 +362,11 @@
 .ku-language[data-panel-open="true"] {
   right: 360px;
 }
-.ku-language button {
+.ku-language-inline {
+  display: flex;
+  gap: 2px;
+}
+.ku-language-inline button {
   min-width: 52px;
   height: 38px;
   padding: 0 12px;
@@ -357,10 +377,15 @@
   cursor: pointer;
   font-size: 12px;
 }
-.ku-language button[aria-pressed="true"] {
+.ku-language-inline button[aria-pressed="true"] {
   color: var(--ku-crimson-600);
   background: var(--ku-crimson-100);
   font-weight: 700;
+}
+/* 트리거 · 리스트박스는 모바일 전용 — 데스크톱에서는 숨김 */
+.ku-language-trigger,
+.ku-language-listbox {
+  display: none;
 }
 
 .ku-map-actions {
@@ -710,7 +735,11 @@
     font-size: 16px;
   }
   .ku-favorite-button {
-    display: none;
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    border-radius: 12px;
+    box-shadow: var(--ku-shadow-floating);
   }
   .ku-search-results {
     box-shadow: var(--ku-shadow-overlay);
@@ -723,21 +752,59 @@
   .ku-language {
     top: 16px;
     right: 16px;
-    width: 48px;
-    height: 48px;
     padding: 0;
     border-radius: 12px;
   }
-  .ku-language button {
+  .ku-language-inline {
     display: none;
-    width: 48px;
-    min-width: 48px;
-    height: 48px;
-    padding: 0;
-    font-size: 14px;
   }
-  .ku-language button[aria-pressed="true"] {
-    display: block;
+  .ku-language-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: 0;
+    border-radius: 12px;
+    color: var(--ku-text-1);
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .ku-language[data-open="true"] .ku-language-trigger {
+    color: var(--ku-crimson-600);
+  }
+  .ku-language-listbox {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    display: grid;
+    gap: 2px;
+    min-width: 128px;
+    padding: 4px;
+    border: 1px solid var(--ku-border);
+    border-radius: 12px;
+    background: var(--ku-map-control);
+    box-shadow: var(--ku-shadow-overlay);
+  }
+  .ku-language-listbox [role="option"] {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 8px;
+    color: var(--ku-text-1);
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: left;
+  }
+  .ku-language-listbox [role="option"][aria-selected="true"] {
+    color: var(--ku-crimson-600);
+    background: var(--ku-crimson-100);
+    font-weight: 700;
   }
   .ku-language[data-panel-open="true"] {
     right: 16px;

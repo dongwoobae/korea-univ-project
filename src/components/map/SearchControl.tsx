@@ -161,11 +161,20 @@ export default function SearchControl({
           type="button"
           onMouseDown={(event) => event.preventDefault()}
           onClick={onToggleFavorites}
-          aria-label={t("favorites")}
+          aria-label={
+            favorites.length > 0
+              ? `${t("favorites")} (${favorites.length})`
+              : t("favorites")
+          }
           aria-expanded={favoritesOpen}
           title={t("favorites")}
         >
           <span aria-hidden="true">★</span>
+          {favorites.length > 0 && (
+            <span className="ku-favorite-badge" aria-hidden="true">
+              {favorites.length}
+            </span>
+          )}
         </button>
       </div>
 

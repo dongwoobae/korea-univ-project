@@ -25,6 +25,18 @@
   --ku-shadow-raised: 0 1px 3px rgba(28, 25, 23, 0.1);
   --ku-shadow-floating: 0 4px 16px rgba(28, 25, 23, 0.12);
   --ku-shadow-overlay: 0 12px 32px rgba(28, 25, 23, 0.16);
+  --ku-primary: #2563eb;
+  --ku-primary-text: #2563eb;
+  --ku-primary-disabled: #93c5fd;
+  --ku-primary-soft-bg: #eff6ff;
+  --ku-danger: #dc2626;
+  --ku-status-installed-bg: #eaf3de;
+  --ku-status-installed-fg: #3b6d11;
+  --ku-status-missing-bg: #fcebeb;
+  --ku-status-missing-fg: #a32d2d;
+  --ku-status-warn-bg: #fef3c7;
+  --ku-status-warn-fg: #92400e;
+  --ku-overlay: rgba(0, 0, 0, 0.55);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -53,6 +65,18 @@
     --ku-shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.35);
     --ku-shadow-floating: 0 4px 18px rgba(0, 0, 0, 0.42);
     --ku-shadow-overlay: 0 14px 36px rgba(0, 0, 0, 0.58);
+    --ku-primary: #2563eb;
+    --ku-primary-text: #6ba5ff;
+    --ku-primary-disabled: #2f4368;
+    --ku-primary-soft-bg: #1a2a44;
+    --ku-danger: #f4756e;
+    --ku-status-installed-bg: #24331c;
+    --ku-status-installed-fg: #a4d977;
+    --ku-status-missing-bg: #3a1f1e;
+    --ku-status-missing-fg: #f0a6a1;
+    --ku-status-warn-bg: #3a2f14;
+    --ku-status-warn-fg: #f1cb77;
+    --ku-overlay: rgba(0, 0, 0, 0.62);
   }
 }
 

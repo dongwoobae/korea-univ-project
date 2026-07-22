@@ -42,6 +42,15 @@ export const translations = {
 
     // 언어 토글
     langLabel: "언어",
+
+    // 데이터 오류 처리
+    errRetry: "다시 시도",
+    errBuildings: "건물 정보를 불러오지 못했어요",
+    errFacilities: "시설 정보를 불러오지 못했어요",
+    errSlopes: "경사도 정보를 불러오지 못했어요",
+    errLandmarks: "명소 정보를 불러오지 못했어요",
+    errFacilityTypes: "시설 유형을 불러오지 못했어요",
+    facilityLoadError: "접근성 정보를 불러오지 못했어요",
   },
 
   en: {
@@ -82,6 +91,14 @@ export const translations = {
     stopSpeaking: "Stop reading",
 
     langLabel: "Language",
+
+    errRetry: "Retry",
+    errBuildings: "Couldn't load building info",
+    errFacilities: "Couldn't load facility info",
+    errSlopes: "Couldn't load slope info",
+    errLandmarks: "Couldn't load landmark info",
+    errFacilityTypes: "Couldn't load facility types",
+    facilityLoadError: "Couldn't load accessibility info",
   },
 
   zh: {
@@ -120,5 +137,13 @@ export const translations = {
     stopSpeaking: "停止朗读",
 
     langLabel: "语言",
+
+    errRetry: "重试",
+    errBuildings: "无法加载建筑信息",
+    errFacilities: "无法加载设施信息",
+    errSlopes: "无法加载坡度信息",
+    errLandmarks: "无法加载景点信息",
+    errFacilityTypes: "无法加载设施类型",
+    facilityLoadError: "无法加载无障碍信息",
   },
 };

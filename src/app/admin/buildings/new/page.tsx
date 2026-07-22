@@ -14,18 +14,18 @@ const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
 const inputStyle: CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  border: "1px solid #e5e7eb",
+  border: "1px solid var(--ku-border)",
   borderRadius: 8,
   fontSize: 14,
   outline: "none",
   boxSizing: "border-box",
-  background: "#fff",
+  background: "var(--ku-surface)",
 };
 
 const labelStyle = {
   fontSize: 13,
   fontWeight: 500,
-  color: "#555",
+  color: "var(--ku-text-2)",
   display: "block",
   marginBottom: 6,
 };
@@ -96,8 +96,8 @@ export default function NewBuilding() {
       <div
         className="ku-admin-detail-header"
         style={{
-          background: "#fff",
-          borderBottom: "1px solid #e5e7eb",
+          background: "var(--ku-surface)",
+          borderBottom: "1px solid var(--ku-border)",
           padding: "16px 24px",
           display: "flex",
           justifyContent: "space-between",
@@ -109,7 +109,7 @@ export default function NewBuilding() {
           onClick={() => router.push("/admin/dashboard")}
           style={{
             fontSize: 13,
-            color: "#888",
+            color: "var(--ku-text-2)",
             background: "none",
             border: "none",
             cursor: "pointer",
@@ -123,10 +123,10 @@ export default function NewBuilding() {
         {/* 기본 정보 */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 24,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
@@ -173,17 +173,17 @@ export default function NewBuilding() {
         {/* 폴리곤 */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 24,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
             건물 폴리곤 *
           </div>
-          <div style={{ fontSize: 13, color: "#888", marginBottom: 16 }}>
+          <div style={{ fontSize: 13, color: "var(--ku-text-2)", marginBottom: 16 }}>
             지도에서 건물 외곽선을 따라 폴리곤을 그려주세요.
           </div>
           <PolygonEditor
@@ -203,7 +203,7 @@ export default function NewBuilding() {
               style={{
                 marginTop: 12,
                 fontSize: 13,
-                color: "#3B6D11",
+                color: "var(--ku-status-installed-fg)",
                 fontWeight: 500,
               }}
             >
@@ -219,12 +219,12 @@ export default function NewBuilding() {
             style={{
               flex: 1,
               padding: "12px",
-              background: "#fff",
-              border: "1px solid #e5e7eb",
+              background: "var(--ku-surface)",
+              border: "1px solid var(--ku-border)",
               borderRadius: 8,
               fontSize: 14,
               cursor: "pointer",
-              color: "#555",
+              color: "var(--ku-text-2)",
             }}
           >
             취소
@@ -235,7 +235,9 @@ export default function NewBuilding() {
             style={{
               flex: 2,
               padding: "12px",
-              background: saving ? "#93C5FD" : "#2563EB",
+              background: saving
+                ? "var(--ku-primary-disabled)"
+                : "var(--ku-primary)",
               color: "#fff",
               border: "none",
               borderRadius: 8,

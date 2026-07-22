@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/LanguageContext";
 import type {
@@ -40,6 +40,11 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
   const [photos, setPhotos] = useState<SidePanelPhoto[]>([]);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState({
+    building: false,
+    facilities: false,
+    photos: false,
+  });
   const [isFavorite, setIsFavorite] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
@@ -76,40 +81,47 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
   }, [buildingId]);
 
   // 데이터 fetch — label_en, label_zh 포함
-  useEffect(() => {
+  const fetchData = useCallback(async () => {
     if (!buildingId) return;
     setLoading(true);
 
-    async function fetchData() {
-      const [
-        { data: buildingData },
-        { data: facilitiesData },
-        { data: photosData },
-      ] = await Promise.all([
-        supabase
-          .from("buildings")
-          .select("*, colleges(name, name_en, name_zh)")
-          .eq("id", buildingId)
-          .single(),
-        supabase
-          .from("building_facilities")
-          .select("*, facility_types(label, label_en, label_zh, icon)")
-          .eq("building_id", buildingId),
-        supabase
-          .from("building_photos")
-          .select("id, url, caption, caption_en, caption_zh")
-          .eq("building_id", buildingId)
-          .order("created_at"),
-      ]);
-      setBuilding(buildingData);
-      setFacilities(facilitiesData ?? []);
-      setPhotos(photosData ?? []);
-      setPhotoIndex(0);
-      setLoading(false);
-    }
+    const [
+      { data: buildingData, error: buildingError },
+      { data: facilitiesData, error: facilitiesError },
+      { data: photosData, error: photosError },
+    ] = await Promise.all([
+      supabase
+        .from("buildings")
+        .select("*, colleges(name, name_en, name_zh)")
+        .eq("id", buildingId)
+        .single(),
+      supabase
+        .from("building_facilities")
+        .select("*, facility_types(label, label_en, label_zh, icon)")
+        .eq("building_id", buildingId),
+      supabase
+        .from("building_photos")
+        .select("id, url, caption, caption_en, caption_zh")
+        .eq("building_id", buildingId)
+        .order("created_at"),
+    ]);
 
-    fetchData();
+    // 조회 성공분만 갱신. 실패 섹션은 error 상태로 유지해 빈 상태와 구분.
+    if (!buildingError) setBuilding(buildingData);
+    if (!facilitiesError) setFacilities(facilitiesData ?? []);
+    if (!photosError) setPhotos(photosData ?? []);
+    setPhotoIndex(0);
+    setErrors({
+      building: Boolean(buildingError),
+      facilities: Boolean(facilitiesError),
+      photos: Boolean(photosError),
+    });
+    setLoading(false);
   }, [buildingId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // 언어에 따른 건물명
   const displayName =
@@ -277,6 +289,8 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         {/* 시설 목록 */}
         <FacilityList
           loading={loading}
+          error={errors.facilities}
+          onRetry={fetchData}
           facilities={facilities}
           lang={lang}
           getFacilityLabel={getFacilityLabel}

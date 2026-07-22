@@ -93,7 +93,7 @@ export default function StandaloneFacilitiesPage() {
   }
 
   if (loading)
-    return <div style={{ padding: 40, color: "#aaa" }}>불러오는 중...</div>;
+    return <div style={{ padding: 40, color: "var(--ku-text-3)" }}>불러오는 중...</div>;
   if (loadError)
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
@@ -106,10 +106,10 @@ export default function StandaloneFacilitiesPage() {
     <div style={{ padding: 24, maxWidth: 800, margin: "0 auto" }}>
       <div
         style={{
-          background: "#fff",
+          background: "var(--ku-surface)",
           borderRadius: 10,
           padding: 20,
-          border: "1px solid #e5e7eb",
+          border: "1px solid var(--ku-border)",
         }}
       >
         <div
@@ -129,7 +129,7 @@ export default function StandaloneFacilitiesPage() {
             showToast={showToast}
           />
         </div>
-        <div style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 16 }}>
           건물에 소속되지 않는 시설(야외 경사로, 독립 주차구역 등)을 관리해요.
         </div>
 
@@ -137,7 +137,7 @@ export default function StandaloneFacilitiesPage() {
           <div
             style={{
               textAlign: "center",
-              color: "#aaa",
+              color: "var(--ku-text-3)",
               fontSize: 13,
               padding: "20px 0",
             }}
@@ -154,7 +154,7 @@ export default function StandaloneFacilitiesPage() {
                 flexWrap: "wrap",
                 gap: 12,
                 padding: "12px 0",
-                borderBottom: "1px solid #f5f5f5",
+                borderBottom: "1px solid var(--ku-border)",
               }}
             >
               <div style={{ fontSize: 20 }}>{f.facility_types?.icon}</div>
@@ -163,12 +163,12 @@ export default function StandaloneFacilitiesPage() {
                   {f.name ?? f.facility_types?.label}
                 </div>
                 {f.description && (
-                  <div style={{ fontSize: 12, color: "#888" }}>
+                  <div style={{ fontSize: 12, color: "var(--ku-text-2)" }}>
                     {f.description}
                   </div>
                 )}
                 {f.lat && (
-                  <div style={{ fontSize: 11, color: "#bbb" }}>
+                  <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
                     위도 {f.lat} / 경도 {f.lng}
                   </div>
                 )}
@@ -182,9 +182,15 @@ export default function StandaloneFacilitiesPage() {
                   border: "1px solid",
                   cursor: "pointer",
                   fontWeight: 500,
-                  background: f.video_url ? "#EFF6FF" : "none",
-                  borderColor: f.video_url ? "#2563EB" : "#d1d5db",
-                  color: f.video_url ? "#2563EB" : "#6b7280",
+                  background: f.video_url
+                    ? "var(--ku-primary-soft-bg)"
+                    : "none",
+                  borderColor: f.video_url
+                    ? "var(--ku-primary-text)"
+                    : "var(--ku-border)",
+                  color: f.video_url
+                    ? "var(--ku-primary-text)"
+                    : "var(--ku-text-2)",
                 }}
               >
                 {f.video_url ? "동영상 ✓" : "동영상"}
@@ -199,8 +205,12 @@ export default function StandaloneFacilitiesPage() {
                   border: "none",
                   cursor: togglingId === f.id ? "wait" : "pointer",
                   fontWeight: 500,
-                  background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
-                  color: f.is_installed ? "#3B6D11" : "#A32D2D",
+                  background: f.is_installed
+                    ? "var(--ku-status-installed-bg)"
+                    : "var(--ku-status-missing-bg)",
+                  color: f.is_installed
+                    ? "var(--ku-status-installed-fg)"
+                    : "var(--ku-status-missing-fg)",
                 }}
               >
                 {togglingId === f.id
@@ -213,7 +223,7 @@ export default function StandaloneFacilitiesPage() {
                 onClick={() => setEditingFacility(f)}
                 style={{
                   fontSize: 12,
-                  color: "#2563EB",
+                  color: "var(--ku-primary-text)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
@@ -225,7 +235,7 @@ export default function StandaloneFacilitiesPage() {
                 onClick={() => setConfirmDelete(f)}
                 style={{
                   fontSize: 12,
-                  color: "#DC2626",
+                  color: "var(--ku-danger)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",

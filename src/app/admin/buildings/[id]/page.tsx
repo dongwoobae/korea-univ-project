@@ -53,6 +53,7 @@ export default function BuildingDetail() {
   const [savingCollege, setSavingCollege] = useState(false);
   const [nameForm, setNameForm] = useState({ name: "", name_en: "" });
   const [savingName, setSavingName] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingPolygon, setEditingPolygon] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
@@ -185,10 +186,16 @@ export default function BuildingDetail() {
   }
 
   async function handleToggleInstalled(facility) {
-    await supabase
+    setTogglingId(facility.id);
+    const { error } = await supabase
       .from("building_facilities")
       .update({ is_installed: !facility.is_installed })
       .eq("id", facility.id);
+    setTogglingId(null);
+    if (error) {
+      showToast("변경에 실패했어요", "error");
+      return;
+    }
     fetchData();
     showToast(
       facility.is_installed ? "미설치로 변경되었어요" : "설치로 변경되었어요",
@@ -196,10 +203,10 @@ export default function BuildingDetail() {
   }
 
   if (loading)
-    return <div style={{ padding: 40, color: "#aaa" }}>불러오는 중...</div>;
+    return <div style={{ padding: 40, color: "var(--ku-text-3)" }}>불러오는 중...</div>;
   if (!building)
     return (
-      <div style={{ padding: 40, color: "#aaa" }}>건물을 찾을 수 없어요</div>
+      <div style={{ padding: 40, color: "var(--ku-text-3)" }}>건물을 찾을 수 없어요</div>
     );
 
   const buildingCenter = getBuildingCenter(building);
@@ -210,8 +217,8 @@ export default function BuildingDetail() {
       <div
         className="ku-admin-detail-header"
         style={{
-          background: "#fff",
-          borderBottom: "1px solid #e5e7eb",
+          background: "var(--ku-surface)",
+          borderBottom: "1px solid var(--ku-border)",
           padding: "16px 24px",
           display: "flex",
           justifyContent: "space-between",
@@ -226,14 +233,14 @@ export default function BuildingDetail() {
               border: "none",
               cursor: "pointer",
               fontSize: 20,
-              color: "#888",
+              color: "var(--ku-text-2)",
             }}
           >
             ←
           </button>
           <div>
             <div style={{ fontSize: 18, fontWeight: 600 }}>{building.name}</div>
-            <div style={{ fontSize: 12, color: "#888" }}>
+            <div style={{ fontSize: 12, color: "var(--ku-text-2)" }}>
               {building.name_en}
             </div>
           </div>
@@ -242,9 +249,9 @@ export default function BuildingDetail() {
           onClick={() => router.push("/")}
           style={{
             fontSize: 13,
-            color: "#555",
+            color: "var(--ku-text-2)",
             background: "none",
-            border: "1px solid #ddd",
+            border: "1px solid var(--ku-border)",
             borderRadius: 6,
             padding: "6px 12px",
             cursor: "pointer",
@@ -258,10 +265,10 @@ export default function BuildingDetail() {
         {/* 건물 사진 */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
@@ -274,10 +281,10 @@ export default function BuildingDetail() {
         {/* 건물명 수정 */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
@@ -286,7 +293,7 @@ export default function BuildingDetail() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
+              <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 4 }}>
                 한국어
               </div>
               <input
@@ -298,7 +305,7 @@ export default function BuildingDetail() {
                 style={{
                   width: "100%",
                   padding: "8px 10px",
-                  border: "1px solid #ddd",
+                  border: "1px solid var(--ku-border)",
                   borderRadius: 6,
                   fontSize: 13,
                   outline: "none",
@@ -307,7 +314,7 @@ export default function BuildingDetail() {
               />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
+              <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 4 }}>
                 영어
               </div>
               <input
@@ -319,7 +326,7 @@ export default function BuildingDetail() {
                 style={{
                   width: "100%",
                   padding: "8px 10px",
-                  border: "1px solid #ddd",
+                  border: "1px solid var(--ku-border)",
                   borderRadius: 6,
                   fontSize: 13,
                   outline: "none",
@@ -333,7 +340,9 @@ export default function BuildingDetail() {
               style={{
                 alignSelf: "flex-end",
                 padding: "8px 20px",
-                background: savingName ? "#93c5fd" : "#2563EB",
+                background: savingName
+                  ? "var(--ku-primary-disabled)"
+                  : "var(--ku-primary)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 6,
@@ -349,10 +358,10 @@ export default function BuildingDetail() {
         {/* 소속 단과대학 */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
@@ -370,11 +379,11 @@ export default function BuildingDetail() {
               style={{
                 flex: 1,
                 padding: "8px 10px",
-                border: "1px solid #ddd",
+                border: "1px solid var(--ku-border)",
                 borderRadius: 6,
                 fontSize: 13,
                 outline: "none",
-                background: "#fff",
+                background: "var(--ku-surface)",
               }}
             >
               <option value="">선택 안 함</option>
@@ -389,7 +398,7 @@ export default function BuildingDetail() {
               disabled={savingCollege}
               style={{
                 padding: "8px 16px",
-                background: "#2563EB",
+                background: "var(--ku-primary)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 6,
@@ -406,10 +415,10 @@ export default function BuildingDetail() {
         {/* 폴리곤 편집 */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
@@ -427,7 +436,9 @@ export default function BuildingDetail() {
                 <div
                   style={{
                     fontSize: 12,
-                    color: building?.geojson ? "#3B6D11" : "#aaa",
+                    color: building?.geojson
+                      ? "var(--ku-status-installed-fg)"
+                      : "var(--ku-text-3)",
                     marginTop: 4,
                   }}
                 >
@@ -444,8 +455,8 @@ export default function BuildingDetail() {
                   fontSize: 13,
                   padding: "6px 14px",
                   background: "none",
-                  border: "1px solid #2563EB",
-                  color: "#2563EB",
+                  border: "1px solid var(--ku-primary-text)",
+                  color: "var(--ku-primary-text)",
                   borderRadius: 8,
                   cursor: "pointer",
                 }}
@@ -480,10 +491,10 @@ export default function BuildingDetail() {
         {/* 시설 목록 */}
         <div
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
           }}
         >
           <div
@@ -508,7 +519,7 @@ export default function BuildingDetail() {
             <div
               style={{
                 textAlign: "center",
-                color: "#aaa",
+                color: "var(--ku-text-3)",
                 fontSize: 13,
                 padding: "20px 0",
               }}
@@ -524,7 +535,7 @@ export default function BuildingDetail() {
                   alignItems: "center",
                   gap: 12,
                   padding: "12px 0",
-                  borderBottom: "1px solid #f5f5f5",
+                  borderBottom: "1px solid var(--ku-border)",
                 }}
               >
                 <div style={{ fontSize: 20 }}>{f.facility_types?.icon}</div>
@@ -532,12 +543,12 @@ export default function BuildingDetail() {
                   <div style={{ fontSize: 14, fontWeight: 500 }}>
                     {f.name ?? f.facility_types?.label}
                   </div>
-                  <div style={{ fontSize: 12, color: "#888" }}>
+                  <div style={{ fontSize: 12, color: "var(--ku-text-2)" }}>
                     {f.description}
                     {f.floor_info && ` · ${f.floor_info}`}
                   </div>
                   {f.lat && (
-                    <div style={{ fontSize: 11, color: "#bbb" }}>
+                    <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
                       위도 {f.lat} / 경도 {f.lng}
                     </div>
                   )}
@@ -551,33 +562,48 @@ export default function BuildingDetail() {
                     border: "1px solid",
                     cursor: "pointer",
                     fontWeight: 500,
-                    background: f.video_url ? "#EFF6FF" : "none",
-                    borderColor: f.video_url ? "#2563EB" : "#d1d5db",
-                    color: f.video_url ? "#2563EB" : "#6b7280",
+                    background: f.video_url
+                      ? "var(--ku-primary-soft-bg)"
+                      : "none",
+                    borderColor: f.video_url
+                      ? "var(--ku-primary-text)"
+                      : "var(--ku-border)",
+                    color: f.video_url
+                      ? "var(--ku-primary-text)"
+                      : "var(--ku-text-2)",
                   }}
                 >
                   {f.video_url ? "동영상 ✓" : "동영상"}
                 </button>
                 <button
                   onClick={() => handleToggleInstalled(f)}
+                  disabled={togglingId === f.id}
                   style={{
                     fontSize: 12,
                     padding: "4px 10px",
                     borderRadius: 20,
                     border: "none",
-                    cursor: "pointer",
+                    cursor: togglingId === f.id ? "wait" : "pointer",
                     fontWeight: 500,
-                    background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
-                    color: f.is_installed ? "#3B6D11" : "#A32D2D",
+                    background: f.is_installed
+                      ? "var(--ku-status-installed-bg)"
+                      : "var(--ku-status-missing-bg)",
+                    color: f.is_installed
+                      ? "var(--ku-status-installed-fg)"
+                      : "var(--ku-status-missing-fg)",
                   }}
                 >
-                  {f.is_installed ? "설치" : "미설치"}
+                  {togglingId === f.id
+                    ? "변경 중"
+                    : f.is_installed
+                      ? "설치"
+                      : "미설치"}
                 </button>
                 <button
                   onClick={() => setConfirmModal(f)}
                   style={{
                     fontSize: 12,
-                    color: "#DC2626",
+                    color: "var(--ku-danger)",
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -604,7 +630,7 @@ export default function BuildingDetail() {
               style={{
                 fontSize: 13,
                 color: "#fff",
-                background: "#2563EB",
+                background: "var(--ku-primary)",
                 border: "none",
                 borderRadius: 6,
                 padding: "8px 20px",
@@ -619,9 +645,9 @@ export default function BuildingDetail() {
               onClick={() => setConfirmDeleteBuilding(true)}
               style={{
                 fontSize: 13,
-                color: "#DC2626",
+                color: "var(--ku-danger)",
                 background: "none",
-                border: "1px solid #DC2626",
+                border: "1px solid var(--ku-danger)",
                 borderRadius: 6,
                 padding: "8px 20px",
                 cursor: "pointer",
@@ -849,12 +875,12 @@ function PhotoManager({ buildingId, showToast }) {
           style={{
             width: "100%",
             height: 120,
-            background: "#f5f5f5",
+            background: "var(--ku-border)",
             borderRadius: 8,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#aaa",
+            color: "var(--ku-text-3)",
             fontSize: 13,
           }}
         >
@@ -893,7 +919,7 @@ function PhotoManager({ buildingId, showToast }) {
                     width: 22,
                     height: 22,
                     borderRadius: "50%",
-                    background: "rgba(0,0,0,0.55)",
+                    background: "var(--ku-overlay)",
                     color: "#fff",
                     border: "none",
                     cursor: "pointer",
@@ -921,11 +947,14 @@ function PhotoManager({ buildingId, showToast }) {
                   width: "100%",
                   fontSize: 11,
                   padding: "4px 6px",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--ku-border)",
                   borderRadius: 4,
                   outline: "none",
-                  color: "#374151",
-                  background: savingCaption === photo.id ? "#f9fafb" : "#fff",
+                  color: "var(--ku-text-1)",
+                  background:
+                    savingCaption === photo.id
+                      ? "var(--ku-divider)"
+                      : "var(--ku-surface)",
                 }}
               />
             </div>
@@ -937,7 +966,7 @@ function PhotoManager({ buildingId, showToast }) {
           display: "inline-block",
           marginTop: 12,
           padding: "8px 16px",
-          background: "#2563EB",
+          background: "var(--ku-primary)",
           color: "#fff",
           borderRadius: 8,
           fontSize: 13,

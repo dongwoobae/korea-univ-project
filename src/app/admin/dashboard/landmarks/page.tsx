@@ -60,7 +60,7 @@ export default function LandmarksPage() {
   }
 
   if (loading)
-    return <div style={{ padding: 40, color: "#aaa" }}>불러오는 중...</div>;
+    return <div style={{ padding: 40, color: "var(--ku-text-3)" }}>불러오는 중...</div>;
   if (loadError)
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
@@ -73,10 +73,10 @@ export default function LandmarksPage() {
     <div style={{ padding: 24, maxWidth: 860, margin: "0 auto" }}>
       <div
         style={{
-          background: "#fff",
+          background: "var(--ku-surface)",
           borderRadius: 10,
           padding: 20,
-          border: "1px solid #e5e7eb",
+          border: "1px solid var(--ku-border)",
         }}
       >
         <div
@@ -93,7 +93,7 @@ export default function LandmarksPage() {
             style={{
               fontSize: 13,
               padding: "8px 16px",
-              background: "#2563EB",
+              background: "var(--ku-primary)",
               color: "#fff",
               border: "none",
               borderRadius: 8,
@@ -103,7 +103,7 @@ export default function LandmarksPage() {
             + 명소 추가
           </button>
         </div>
-        <div style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>
+        <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 16 }}>
           지도에 표시할 캠퍼스 명소를 관리해요.
         </div>
 
@@ -111,7 +111,7 @@ export default function LandmarksPage() {
           <div
             style={{
               textAlign: "center",
-              color: "#aaa",
+              color: "var(--ku-text-3)",
               fontSize: 13,
               padding: "20px 0",
             }}
@@ -128,7 +128,7 @@ export default function LandmarksPage() {
                 flexWrap: "wrap",
                 gap: 12,
                 padding: "12px 0",
-                borderBottom: "1px solid #f5f5f5",
+                borderBottom: "1px solid var(--ku-border)",
               }}
             >
               <div style={{ fontSize: 22, width: 28, textAlign: "center" }}>
@@ -139,11 +139,11 @@ export default function LandmarksPage() {
                   {landmark.name}
                 </div>
                 {landmark.description && (
-                  <div style={{ fontSize: 12, color: "#888" }}>
+                  <div style={{ fontSize: 12, color: "var(--ku-text-2)" }}>
                     {landmark.description}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: "#bbb" }}>
+                <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
                   위도 {landmark.lat} / 경도 {landmark.lng}
                 </div>
               </div>
@@ -152,8 +152,12 @@ export default function LandmarksPage() {
                   fontSize: 11,
                   padding: "3px 8px",
                   borderRadius: 20,
-                  background: landmark.photo_url ? "#FEF3C7" : "#F3F4F6",
-                  color: landmark.photo_url ? "#92400E" : "#6B7280",
+                  background: landmark.photo_url
+                    ? "var(--ku-status-warn-bg)"
+                    : "var(--ku-divider)",
+                  color: landmark.photo_url
+                    ? "var(--ku-status-warn-fg)"
+                    : "var(--ku-text-2)",
                   flexShrink: 0,
                 }}
               >
@@ -163,7 +167,7 @@ export default function LandmarksPage() {
                 onClick={() => setEditingLandmark(landmark)}
                 style={{
                   fontSize: 12,
-                  color: "#2563EB",
+                  color: "var(--ku-primary-text)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",
@@ -175,7 +179,7 @@ export default function LandmarksPage() {
                 onClick={() => setConfirmDelete(landmark)}
                 style={{
                   fontSize: 12,
-                  color: "#DC2626",
+                  color: "var(--ku-danger)",
                   background: "none",
                   border: "none",
                   cursor: "pointer",

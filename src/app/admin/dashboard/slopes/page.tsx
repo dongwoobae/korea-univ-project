@@ -127,9 +127,9 @@ export default function SlopesPage() {
       {/* 업로드 섹션 */}
       <div
         style={{
-          background: "#fff",
+          background: "var(--ku-surface)",
           borderRadius: 10,
-          border: "1px solid #e5e7eb",
+          border: "1px solid var(--ku-border)",
           padding: 24,
           marginBottom: 24,
         }}
@@ -158,7 +158,10 @@ export default function SlopesPage() {
             disabled={!selectedFile || uploading}
             style={{
               padding: "8px 20px",
-              background: selectedFile && !uploading ? "#2563EB" : "#d1d5db",
+              background:
+                selectedFile && !uploading
+                  ? "var(--ku-primary)"
+                  : "var(--ku-border)",
               color: "#fff",
               border: "none",
               borderRadius: 8,
@@ -171,11 +174,11 @@ export default function SlopesPage() {
           </button>
         </div>
         {selectedFile && (
-          <div style={{ fontSize: 12, color: "#555", marginBottom: 4 }}>
+          <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 4 }}>
             경로명: <strong>{selectedFile.name.replace(/\.gpx$/i, "")}</strong>
           </div>
         )}
-        <div style={{ fontSize: 12, color: "#aaa" }}>
+        <div style={{ fontSize: 12, color: "var(--ku-text-3)" }}>
           파일명이 경로명으로 사용됩니다. 업로드 전 파일명을 원하는 경로명으로
           변경하세요 (예: 정문-중앙광장.gpx)
         </div>
@@ -184,9 +187,9 @@ export default function SlopesPage() {
       {/* 경로 목록 */}
       <div
         style={{
-          background: "#fff",
+          background: "var(--ku-surface)",
           borderRadius: 10,
-          border: "1px solid #e5e7eb",
+          border: "1px solid var(--ku-border)",
           padding: 24,
         }}
       >
@@ -194,9 +197,9 @@ export default function SlopesPage() {
           등록된 경로 ({slopes.length}개)
         </div>
         {loading ? (
-          <div style={{ color: "#aaa", fontSize: 13 }}>불러오는 중...</div>
+          <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>불러오는 중...</div>
         ) : slopes.length === 0 ? (
-          <div style={{ color: "#aaa", fontSize: 13 }}>
+          <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>
             등록된 경로가 없습니다.
           </div>
         ) : (
@@ -209,21 +212,23 @@ export default function SlopesPage() {
                   justifyContent: "space-between",
                   alignItems: "center",
                   padding: "12px 16px",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--ku-border)",
                   borderRadius: 8,
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111" }}>
+                  <div
+                  style={{ fontSize: 14, fontWeight: 600, color: "var(--ku-text-1)" }}
+                >
                     {s.name}
                   </div>
-                  <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginTop: 2 }}>
                     {s.segments?.length ?? 0}개 포인트 ·{" "}
                     {s.created_at
                       ? new Date(s.created_at).toLocaleDateString("ko-KR")
                       : ""}
                     {s.gpx_file && (
-                      <span style={{ marginLeft: 8, color: "#bbb" }}>
+                      <span style={{ marginLeft: 8, color: "var(--ku-text-3)" }}>
                         ({s.gpx_file})
                       </span>
                     )}
@@ -234,9 +239,9 @@ export default function SlopesPage() {
                     onClick={() => downloadGpx(s)}
                     style={{
                       fontSize: 13,
-                      color: "#2563EB",
+                      color: "var(--ku-primary-text)",
                       background: "none",
-                      border: "1px solid #2563EB",
+                      border: "1px solid var(--ku-primary-text)",
                       borderRadius: 6,
                       padding: "6px 12px",
                       cursor: "pointer",
@@ -248,9 +253,9 @@ export default function SlopesPage() {
                     onClick={() => handleDelete(s.id, s.name)}
                     style={{
                       fontSize: 13,
-                      color: "#DC2626",
+                      color: "var(--ku-danger)",
                       background: "none",
-                      border: "1px solid #DC2626",
+                      border: "1px solid var(--ku-danger)",
                       borderRadius: 6,
                       padding: "6px 12px",
                       cursor: "pointer",

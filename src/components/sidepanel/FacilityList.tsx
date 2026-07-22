@@ -5,6 +5,8 @@ import type { FacilityWithType } from "@/types/domain";
 
 interface FacilityListProps {
   loading: boolean;
+  error?: boolean;
+  onRetry?: () => void;
   facilities: FacilityWithType[];
   lang: LangCode;
   getFacilityLabel: (
@@ -16,6 +18,8 @@ interface FacilityListProps {
 
 export default function FacilityList({
   loading,
+  error,
+  onRetry,
   facilities,
   lang,
   getFacilityLabel,
@@ -26,6 +30,40 @@ export default function FacilityList({
     <div className="ku-side-content">
       {loading ? (
         <div className="ku-favorites-empty">{t("loading")}</div>
+      ) : error ? (
+        <div
+          className="ku-facility-error"
+          role="alert"
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            textAlign: "center",
+            padding: "32px 20px",
+            color: "#991B1B",
+          }}
+        >
+          <p style={{ margin: 0 }}>{t("facilityLoadError")}</p>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              style={{
+                marginTop: 12,
+                background: "#991B1B",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {t("errRetry")}
+            </button>
+          )}
+        </div>
       ) : facilities.length === 0 ? (
         <div className="ku-favorites-empty">{t("noFacilityInfo")}</div>
       ) : (
