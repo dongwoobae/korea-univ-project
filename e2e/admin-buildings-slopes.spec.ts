@@ -54,7 +54,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       .getByRole("button", { name: "삭제", exact: true })
       .last()
       .click();
-    await page.getByText("중앙도서관 E2E", { exact: true }).click();
+    await page.getByRole("button", { name: "복구", exact: true }).click();
     await expect(page.getByRole("button", { name: /건물 복구/ })).toBeVisible();
 
     await page.getByRole("button", { name: /건물 복구/ }).click();

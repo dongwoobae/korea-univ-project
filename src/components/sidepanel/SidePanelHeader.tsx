@@ -53,6 +53,7 @@ export default function SidePanelHeader({
           className="ku-side-action ku-side-action--favorite"
           type="button"
           onClick={onToggleFavorite}
+          aria-label={isFavorite ? t("removeFavorite") : t("addFavorite")}
           aria-pressed={isFavorite}
         >
           <span aria-hidden="true">{isFavorite ? "★" : "☆"}</span> {t("favorites")}

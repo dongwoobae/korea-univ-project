@@ -31,7 +31,9 @@ test.describe("관리자 인증과 공통 기능", () => {
     await page.locator('input[type="password"]').fill("secret");
     await page.getByRole("button", { name: "로그인" }).click();
 
-    await expect(page.getByText("모두의 캠퍼스 — 관리자")).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /관리자 콘솔/ }),
+    ).toBeVisible();
     await page.getByRole("button", { name: "로그아웃" }).click();
     await expect(page).toHaveURL("http://127.0.0.1:3100/admin");
   });
@@ -44,7 +46,7 @@ test.describe("관리자 인증과 공통 기능", () => {
     await page.getByRole("button", { name: "로그인" }).click();
     await page.getByRole("link", { name: /독립 시설/ }).click();
 
-    await page.getByRole("button", { name: /피드백 이메일 변경/ }).click();
+    await page.getByRole("button", { name: "설정" }).click();
     await expect(
       page.getByText("피드백 이메일 변경", { exact: true }).last(),
     ).toBeVisible();

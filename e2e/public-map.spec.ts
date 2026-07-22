@@ -42,7 +42,8 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
     ).toHaveCount(0);
-    await page.getByRole("checkbox", { name: /경사로/ }).check();
+    await page.getByRole("button", { name: /시설 0/ }).click();
+    await page.getByRole("button", { name: /경사로/ }).click();
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
     ).toBeVisible();
@@ -67,7 +68,8 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.getByTitle("English").click();
 
     await expect(page.getByPlaceholder("Search buildings...")).toBeVisible();
-    await page.getByRole("checkbox", { name: /Ramp/ }).check();
+    await page.getByRole("button", { name: /Facilities 0/ }).click();
+    await page.getByRole("button", { name: /Ramp/ }).click();
     await page
       .locator('[data-testid="facility-marker-f-installed"]')
       .locator("..")
@@ -78,18 +80,22 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       .locator('[data-testid^="landmark-marker-"]')
       .locator("..")
       .evaluate((marker: HTMLElement) => marker.click());
-    await expect(page.getByText("Squirrel Trail")).toBeVisible();
+    await expect(
+      page.locator(".leaflet-popup").getByText("Squirrel Trail"),
+    ).toBeVisible();
 
     await page.getByTitle("中文").click();
     await expect(page.getByPlaceholder("搜索建筑...")).toBeVisible();
   });
 
-  test("모바일 필터 바텀시트가 화면 안에서 동작한다", async ({ page }) => {
+  test("모바일 필터 드롭다운이 화면 안에서 동작한다", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
     await page.getByRole("button", { name: /시설 필터/ }).click();
-    await expect(page.getByText("캠퍼스", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /캠퍼스 0/ }),
+    ).toBeVisible();
     await expect(page.getByText("명소", { exact: true })).toBeVisible();
 
     const scrollWidth = await page.evaluate(
