@@ -385,72 +385,75 @@ export async function installMockBackend(
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
-  await page.addInitScript(({ authenticated, currentLocation }) => {
-    if (authenticated) {
-      localStorage.setItem(
-        "sb-127-auth-token",
-        JSON.stringify({
-          access_token: "e2e-access-token",
-          refresh_token: "e2e-refresh-token",
-          token_type: "bearer",
-          expires_in: 3600,
-          expires_at: Math.floor(Date.now() / 1000) + 3600,
-          user: {
-            id: "admin-user",
-            email: "admin@example.com",
-            aud: "authenticated",
-            role: "authenticated",
-          },
-        }),
-      );
-    }
-    delete (window as typeof window & { SpeechRecognition?: unknown })
-      .SpeechRecognition;
-    delete (window as typeof window & { webkitSpeechRecognition?: unknown })
-      .webkitSpeechRecognition;
-    const currentWindow = window as typeof window & {
-      __spoken?: string;
-      __speechCancelled?: boolean;
-    };
-    class Utterance {
-      text: string;
-      lang = "ko-KR";
-      onend: (() => void) | null = null;
-      constructor(text: string) {
-        this.text = text;
+  await page.addInitScript(
+    ({ authenticated, currentLocation }) => {
+      if (authenticated) {
+        localStorage.setItem(
+          "sb-127-auth-token",
+          JSON.stringify({
+            access_token: "e2e-access-token",
+            refresh_token: "e2e-refresh-token",
+            token_type: "bearer",
+            expires_in: 3600,
+            expires_at: Math.floor(Date.now() / 1000) + 3600,
+            user: {
+              id: "admin-user",
+              email: "admin@example.com",
+              aud: "authenticated",
+              role: "authenticated",
+            },
+          }),
+        );
       }
-    }
-    Object.defineProperty(window, "SpeechSynthesisUtterance", {
-      value: Utterance,
-    });
-    Object.defineProperty(window, "speechSynthesis", {
-      value: {
-        speak(value: Utterance) {
-          currentWindow.__spoken = value.text;
-          setTimeout(() => value.onend?.(), 0);
+      delete (window as typeof window & { SpeechRecognition?: unknown })
+        .SpeechRecognition;
+      delete (window as typeof window & { webkitSpeechRecognition?: unknown })
+        .webkitSpeechRecognition;
+      const currentWindow = window as typeof window & {
+        __spoken?: string;
+        __speechCancelled?: boolean;
+      };
+      class Utterance {
+        text: string;
+        lang = "ko-KR";
+        onend: (() => void) | null = null;
+        constructor(text: string) {
+          this.text = text;
+        }
+      }
+      Object.defineProperty(window, "SpeechSynthesisUtterance", {
+        value: Utterance,
+      });
+      Object.defineProperty(window, "speechSynthesis", {
+        value: {
+          speak(value: Utterance) {
+            currentWindow.__spoken = value.text;
+            setTimeout(() => value.onend?.(), 0);
+          },
+          cancel() {
+            currentWindow.__speechCancelled = true;
+          },
         },
-        cancel() {
-          currentWindow.__speechCancelled = true;
+      });
+      Object.defineProperty(navigator, "geolocation", {
+        configurable: true,
+        value: {
+          getCurrentPosition(success: PositionCallback) {
+            success({
+              coords: currentLocation,
+            } as GeolocationPosition);
+          },
         },
-      },
-    });
-    Object.defineProperty(navigator, "geolocation", {
-      configurable: true,
-      value: {
-        getCurrentPosition(success: PositionCallback) {
-          success({
-            coords: currentLocation,
-          } as GeolocationPosition);
-        },
-      },
-    });
-  }, {
-    authenticated: state.authenticated,
-    currentLocation: options.currentLocation ?? {
-      latitude: 37.5893,
-      longitude: 127.0327,
+      });
     },
-  });
+    {
+      authenticated: state.authenticated,
+      currentLocation: options.currentLocation ?? {
+        latitude: 37.5893,
+        longitude: 127.0327,
+      },
+    },
+  );
 
   await page.route("**/*", async (route) => {
     const request = route.request();

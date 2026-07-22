@@ -7,7 +7,11 @@ export default function FavoritesList({ show, favorites, onSelect }) {
   if (!show) return null;
 
   return (
-    <div className="ku-favorites-list" role="dialog" aria-label={t("favorites")}>
+    <div
+      className="ku-favorites-list"
+      role="dialog"
+      aria-label={t("favorites")}
+    >
       <div className="ku-favorites-title">
         {t("favorites")}
         {favorites.length > 0 ? ` (${favorites.length})` : ""}

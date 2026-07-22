@@ -188,15 +188,20 @@ export default function SearchControl({
                   {campus && (
                     <span
                       className="ku-search-result-campus"
-                      style={{
-                        "--campus-color": campusColor[campus],
-                      } as React.CSSProperties}
+                      style={
+                        {
+                          "--campus-color": campusColor[campus],
+                        } as React.CSSProperties
+                      }
                     >
                       {campus}
                     </span>
                   )}
                   {favoriteIds.has(properties?.id) && (
-                    <span className="ku-search-result-star" aria-label="즐겨찾기">
+                    <span
+                      className="ku-search-result-star"
+                      aria-label="즐겨찾기"
+                    >
                       ★
                     </span>
                   )}

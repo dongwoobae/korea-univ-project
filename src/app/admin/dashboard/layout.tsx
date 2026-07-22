@@ -19,7 +19,9 @@ const NAV = [
 export default function DashboardLayout({ children }) {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [feedbackEmails, setFeedbackEmails] = useState(FEEDBACK_EMAILS_FALLBACK);
+  const [feedbackEmails, setFeedbackEmails] = useState(
+    FEEDBACK_EMAILS_FALLBACK,
+  );
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -52,7 +54,8 @@ export default function DashboardLayout({ children }) {
     router.push("/admin");
   }
 
-  if (!authChecked) return <div className="ku-admin-loading">불러오는 중...</div>;
+  if (!authChecked)
+    return <div className="ku-admin-loading">불러오는 중...</div>;
 
   return (
     <div className="ku-admin-shell">
@@ -63,15 +66,38 @@ export default function DashboardLayout({ children }) {
         </Link>
         <nav className="ku-admin-nav" aria-label="관리자 메뉴">
           {NAV.map((item) => {
-            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return <Link key={item.href} href={item.href} data-active={active}>{item.label}</Link>;
+            const active =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link key={item.href} href={item.href} data-active={active}>
+                {item.label}
+              </Link>
+            );
           })}
         </nav>
         <div className="ku-admin-account">
           <span className="ku-admin-email">{user?.email}</span>
-          <button className="ku-admin-button ku-admin-settings" type="button" onClick={() => setShowFeedbackModal(true)}>설정</button>
-          <button className="ku-admin-button ku-admin-map-link" type="button" onClick={() => router.push("/")}>지도 보기</button>
-          <button className="ku-admin-button" type="button" onClick={handleLogout}>로그아웃</button>
+          <button
+            className="ku-admin-button ku-admin-settings"
+            type="button"
+            onClick={() => setShowFeedbackModal(true)}
+          >
+            설정
+          </button>
+          <button
+            className="ku-admin-button ku-admin-map-link"
+            type="button"
+            onClick={() => router.push("/")}
+          >
+            지도 보기
+          </button>
+          <button
+            className="ku-admin-button"
+            type="button"
+            onClick={handleLogout}
+          >
+            로그아웃
+          </button>
         </div>
       </header>
       <main className="ku-admin-content">{children}</main>

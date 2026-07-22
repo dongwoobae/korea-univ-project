@@ -35,9 +35,18 @@ export default function SidePanelHeader({
         <div>
           {collegeName && <div className="ku-side-caption">{collegeName}</div>}
           <h2 className="ku-side-title">{displayName}</h2>
-          {lang !== "ko" && <div className="ku-side-subtitle">{buildingName}</div>}
+          {lang !== "ko" && (
+            <div className="ku-side-subtitle">{buildingName}</div>
+          )}
         </div>
-        <button className="ku-side-close" type="button" onClick={onClose} aria-label="닫기">✕</button>
+        <button
+          className="ku-side-close"
+          type="button"
+          onClick={onClose}
+          aria-label="닫기"
+        >
+          ✕
+        </button>
       </div>
       <div className="ku-side-actions">
         <button
@@ -47,7 +56,8 @@ export default function SidePanelHeader({
           disabled={loading}
           aria-pressed={isSpeaking}
         >
-          <span aria-hidden="true">🔊</span> {isSpeaking ? t("stopSpeaking") : t("speakInfo")}
+          <span aria-hidden="true">🔊</span>{" "}
+          {isSpeaking ? t("stopSpeaking") : t("speakInfo")}
         </button>
         <button
           className="ku-side-action ku-side-action--favorite"
@@ -56,7 +66,8 @@ export default function SidePanelHeader({
           aria-label={isFavorite ? t("removeFavorite") : t("addFavorite")}
           aria-pressed={isFavorite}
         >
-          <span aria-hidden="true">{isFavorite ? "★" : "☆"}</span> {t("favorites")}
+          <span aria-hidden="true">{isFavorite ? "★" : "☆"}</span>{" "}
+          {t("favorites")}
         </button>
       </div>
     </header>

@@ -60,13 +60,28 @@ export default function FeedbackButton() {
             if (event.target === event.currentTarget) setOpen(false);
           }}
         >
-          <div className="ku-feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+          <div
+            className="ku-feedback-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="feedback-title"
+          >
             <div className="ku-feedback-header">
-              <h2 className="ku-feedback-title" id="feedback-title">피드백 보내기</h2>
-              <button className="ku-feedback-close" type="button" onClick={() => setOpen(false)} aria-label="닫기">✕</button>
+              <h2 className="ku-feedback-title" id="feedback-title">
+                피드백 보내기
+              </h2>
+              <button
+                className="ku-feedback-close"
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="닫기"
+              >
+                ✕
+              </button>
             </div>
             <p className="ku-feedback-help">
-              발견한 오류나 필요한 접근성 정보를 알려주세요. 메일 앱에서 내용을 확인한 뒤 전송할 수 있습니다.
+              발견한 오류나 필요한 접근성 정보를 알려주세요. 메일 앱에서 내용을
+              확인한 뒤 전송할 수 있습니다.
             </p>
             <span className="ku-feedback-label">유형</span>
             <div className="ku-feedback-types">
@@ -82,7 +97,9 @@ export default function FeedbackButton() {
                 </button>
               ))}
             </div>
-            <label className="ku-feedback-label" htmlFor="feedback-content">내용</label>
+            <label className="ku-feedback-label" htmlFor="feedback-content">
+              내용
+            </label>
             <textarea
               className="ku-feedback-textarea"
               id="feedback-content"
@@ -92,8 +109,21 @@ export default function FeedbackButton() {
               autoFocus
             />
             <div className="ku-feedback-actions">
-              <button className="ku-button" type="button" onClick={() => setOpen(false)}>취소</button>
-              <button className="ku-button ku-button--primary" type="button" onClick={sendFeedback} disabled={!content.trim()}>보내기</button>
+              <button
+                className="ku-button"
+                type="button"
+                onClick={() => setOpen(false)}
+              >
+                취소
+              </button>
+              <button
+                className="ku-button ku-button--primary"
+                type="button"
+                onClick={sendFeedback}
+                disabled={!content.trim()}
+              >
+                보내기
+              </button>
             </div>
           </div>
         </div>

@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  GeoJSON,
-  useMap,
-} from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import L from "leaflet";
 import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
@@ -65,7 +60,10 @@ function loadFavoritesFromStorage() {
 
 function buildingColor(feature, tileMode) {
   const colors = tileMode === "satellite" ? satelliteCampusColor : campusColor;
-  return colors[feature?.properties?.campus] ?? (tileMode === "satellite" ? "#FF4D3D" : "#963A32");
+  return (
+    colors[feature?.properties?.campus] ??
+    (tileMode === "satellite" ? "#FF4D3D" : "#963A32")
+  );
 }
 
 function baseStyle(feature, tileMode) {
@@ -168,7 +166,10 @@ export default function Map() {
     const bId = feature.properties.id;
     if (activeLayerRef.current && activeBuildingIdRef.current !== bId) {
       activeLayerRef.current.setStyle(
-        baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1], tileMode),
+        baseStyle(
+          featureMapRef.current[activeBuildingIdRef.current ?? -1],
+          tileMode,
+        ),
       );
     }
     const layer = layerMapRef.current[bId];
@@ -198,7 +199,11 @@ export default function Map() {
         const numId = Number(id);
         const isActive = activeBuildingIdRef.current === numId;
         const feature = featureMapRef.current[numId];
-        layer.setStyle(isActive ? hoverStyle(feature, tileMode) : baseStyle(feature, tileMode));
+        layer.setStyle(
+          isActive
+            ? hoverStyle(feature, tileMode)
+            : baseStyle(feature, tileMode),
+        );
       });
     };
     window.addEventListener("favoritesUpdated", handler);
@@ -249,7 +254,10 @@ export default function Map() {
         }
         if (activeLayerRef.current && activeLayerRef.current !== layer) {
           activeLayerRef.current.setStyle(
-            baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1], tileMode),
+            baseStyle(
+              featureMapRef.current[activeBuildingIdRef.current ?? -1],
+              tileMode,
+            ),
           );
         }
         layer.setStyle(hoverStyle(feature, tileMode));
@@ -263,7 +271,10 @@ export default function Map() {
   function handleSelectById(id, name) {
     if (activeLayerRef.current && activeBuildingIdRef.current !== id) {
       activeLayerRef.current.setStyle(
-        baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1], tileMode),
+        baseStyle(
+          featureMapRef.current[activeBuildingIdRef.current ?? -1],
+          tileMode,
+        ),
       );
     }
     const layer = layerMapRef.current[id];
@@ -285,7 +296,10 @@ export default function Map() {
       setSelectedBuilding(null);
       if (activeLayerRef.current) {
         activeLayerRef.current.setStyle(
-          baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1], tileMode),
+          baseStyle(
+            featureMapRef.current[activeBuildingIdRef.current ?? -1],
+            tileMode,
+          ),
         );
         activeLayerRef.current = null;
         activeBuildingIdRef.current = null;
@@ -295,7 +309,10 @@ export default function Map() {
 
   function locateUser() {
     if (!navigator.geolocation) {
-      setToast({ message: "현재 위치를 사용할 수 없는 브라우저입니다.", type: "info" });
+      setToast({
+        message: "현재 위치를 사용할 수 없는 브라우저입니다.",
+        type: "info",
+      });
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -408,7 +425,9 @@ export default function Map() {
 
       <div
         className="ku-attribution"
-        data-hidden={isMobile && (mobileFilterOpen || Boolean(selectedBuilding))}
+        data-hidden={
+          isMobile && (mobileFilterOpen || Boolean(selectedBuilding))
+        }
       >
         <img src="/kuis-logo.png" alt="고려대학교 지속가능원" />
         <span className="ku-attribution-separator" aria-hidden="true" />
@@ -427,7 +446,8 @@ export default function Map() {
           </a>
           {tileMode === "street" && (
             <>
-              {" "}· ©{" "}
+              {" "}
+              · ©{" "}
               <a
                 href="https://carto.com/attributions"
                 target="_blank"
@@ -446,18 +466,44 @@ export default function Map() {
         data-overlay-open={mobileFilterOpen}
       >
         <div className="ku-map-zoom" aria-label="지도 확대 및 축소">
-          <button className="ku-map-action" type="button" onClick={() => mapRef.current?.zoomIn()} title="확대" aria-label="확대">＋</button>
-          <button className="ku-map-action" type="button" onClick={() => mapRef.current?.zoomOut()} title="축소" aria-label="축소">−</button>
+          <button
+            className="ku-map-action"
+            type="button"
+            onClick={() => mapRef.current?.zoomIn()}
+            title="확대"
+            aria-label="확대"
+          >
+            ＋
+          </button>
+          <button
+            className="ku-map-action"
+            type="button"
+            onClick={() => mapRef.current?.zoomOut()}
+            title="축소"
+            aria-label="축소"
+          >
+            −
+          </button>
         </div>
-        <button className="ku-map-action" type="button" onClick={locateUser} title="현재 위치" aria-label="현재 위치">
+        <button
+          className="ku-map-action"
+          type="button"
+          onClick={locateUser}
+          title="현재 위치"
+          aria-label="현재 위치"
+        >
           <span aria-hidden="true">📍</span>
         </button>
         <button
           className="ku-map-action"
           type="button"
-          onClick={() => setTileMode((mode) => (mode === "street" ? "satellite" : "street"))}
+          onClick={() =>
+            setTileMode((mode) => (mode === "street" ? "satellite" : "street"))
+          }
           title={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
-          aria-label={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
+          aria-label={
+            tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"
+          }
         >
           <span aria-hidden="true">{tileMode === "street" ? "🛰️" : "🗺️"}</span>
         </button>
@@ -496,7 +542,10 @@ export default function Map() {
 
       {/* 툴팁 — 데스크탑만 */}
       {!isMobile && tooltip.visible && (
-        <div className="ku-map-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+        <div
+          className="ku-map-tooltip"
+          style={{ left: tooltip.x, top: tooltip.y }}
+        >
           {lang === "ko" ? tooltip.name : (tooltip.name_en ?? tooltip.name)}
         </div>
       )}

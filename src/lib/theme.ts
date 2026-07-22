@@ -19,17 +19,17 @@ export const color = {
 } as const;
 
 export const campusColor: Record<string, string> = {
-  "인문사회계": "#963A32",
-  "자연계": "#315E96",
-  "녹지캠퍼스": "#3E7A46",
-  "의료원": "#85477C",
+  인문사회계: "#963A32",
+  자연계: "#315E96",
+  녹지캠퍼스: "#3E7A46",
+  의료원: "#85477C",
 };
 
 export const satelliteCampusColor: Record<string, string> = {
-  "인문사회계": "#FF4D3D",
-  "자연계": "#268CFF",
-  "녹지캠퍼스": "#22C95A",
-  "의료원": "#E650C5",
+  인문사회계: "#FF4D3D",
+  자연계: "#268CFF",
+  녹지캠퍼스: "#22C95A",
+  의료원: "#E650C5",
 };
 
 export const facilityColor = {

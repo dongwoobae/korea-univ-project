@@ -80,7 +80,9 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByText("중앙도서관", { exact: true })).toBeVisible();
   });
 
-  test("지도 위 UI의 더블클릭과 건물 툴팁을 지도에서 분리한다", async ({ page }) => {
+  test("지도 위 UI의 더블클릭과 건물 툴팁을 지도에서 분리한다", async ({
+    page,
+  }) => {
     await page.goto("/");
     const building = page
       .locator(".leaflet-overlay-pane path.leaflet-interactive")
@@ -96,16 +98,24 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       page.locator(".leaflet-tile").evaluateAll((tiles) =>
         Math.max(
           ...tiles.map((tile) => {
-            const match = (tile as HTMLImageElement).src.match(/light_all\/(\d+)\//);
+            const match = (tile as HTMLImageElement).src.match(
+              /light_all\/(\d+)\//,
+            );
             return match ? Number(match[1]) : 0;
           }),
         ),
       );
     const zoomBefore = await currentTileZoom();
 
-    await page.locator(".ku-search-control").dblclick({ position: { x: 300, y: 10 } });
-    await page.locator(".ku-filter-panel").dblclick({ position: { x: 300, y: 10 } });
-    await page.locator(".ku-side-panel").dblclick({ position: { x: 170, y: 400 } });
+    await page
+      .locator(".ku-search-control")
+      .dblclick({ position: { x: 300, y: 10 } });
+    await page
+      .locator(".ku-filter-panel")
+      .dblclick({ position: { x: 300, y: 10 } });
+    await page
+      .locator(".ku-side-panel")
+      .dblclick({ position: { x: 170, y: 400 } });
     await page.waitForTimeout(350);
 
     expect(await currentTileZoom()).toBe(zoomBefore);
@@ -181,7 +191,9 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     expect(scrollWidth).toBeLessThanOrEqual(390);
   });
 
-  test("지도 영역 밖의 현재 위치는 이동하지 않고 안내한다", async ({ page }) => {
+  test("지도 영역 밖의 현재 위치는 이동하지 않고 안내한다", async ({
+    page,
+  }) => {
     await installMockBackend(page, {
       currentLocation: { latitude: 37.4, longitude: 127.1 },
     });

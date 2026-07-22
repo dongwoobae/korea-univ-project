@@ -6,9 +6,18 @@ const LANG_BUTTONS = [
   { code: "zh", label: "中文", mobileLabel: "中", title: "中文" },
 ];
 
-export default function LanguageSwitcher({ isMobile, lang, setLang, panelOpen }) {
+export default function LanguageSwitcher({
+  isMobile,
+  lang,
+  setLang,
+  panelOpen,
+}) {
   return (
-    <div className="ku-language" data-panel-open={panelOpen} aria-label="언어 선택">
+    <div
+      className="ku-language"
+      data-panel-open={panelOpen}
+      aria-label="언어 선택"
+    >
       {LANG_BUTTONS.map((language) => (
         <button
           key={language.code}
