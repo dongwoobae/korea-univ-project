@@ -419,6 +419,18 @@ export default function Map() {
           >
             {tileMode === "street" ? "OpenStreetMap" : "Esri"}
           </a>
+          {tileMode === "street" && (
+            <>
+              {" "}· ©{" "}
+              <a
+                href="https://carto.com/attributions"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                CARTO
+              </a>
+            </>
+          )}
         </span>
       </div>
 

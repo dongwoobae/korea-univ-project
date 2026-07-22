@@ -31,17 +31,26 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     expect(filterBox?.height).toBeLessThan(400);
     const attributionBox = await page.locator(".ku-attribution").boundingBox();
     expect(attributionBox?.x).toBe(20);
-    const providerLink = page.locator(".ku-attribution a");
-    await expect(providerLink).toHaveText("OpenStreetMap");
-    await expect(providerLink).toHaveAttribute("target", "_blank");
-    await expect(providerLink).toHaveAttribute("rel", "noopener noreferrer");
+    const providerLinks = page.locator(".ku-attribution a");
+    await expect(providerLinks).toHaveText(["OpenStreetMap", "CARTO"]);
+    await expect(providerLinks.nth(0)).toHaveAttribute("target", "_blank");
+    await expect(providerLinks.nth(0)).toHaveAttribute(
+      "rel",
+      "noopener noreferrer",
+    );
+    await expect(providerLinks.nth(1)).toHaveAttribute(
+      "href",
+      "https://carto.com/attributions",
+    );
+    await expect(providerLinks.nth(1)).toHaveAttribute("target", "_blank");
     await expect(page.locator(".leaflet-control-attribution")).toContainText(
       "CARTO",
     );
 
     await page.getByRole("button", { name: "항공사진으로 전환" }).click();
-    await expect(providerLink).toHaveText("Esri");
-    await expect(providerLink).toHaveAttribute("href", "https://www.esri.com");
+    await expect(providerLinks).toHaveCount(1);
+    await expect(providerLinks).toHaveText("Esri");
+    await expect(providerLinks).toHaveAttribute("href", "https://www.esri.com");
     await expect(page.locator(".leaflet-control-attribution")).toContainText(
       "Esri",
     );
