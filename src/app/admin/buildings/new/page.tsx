@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
+import "../../admin-ui.css";
 
 const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
   ssr: false,
@@ -90,9 +91,10 @@ export default function NewBuilding() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f5" }}>
+    <div className="ku-admin-shell ku-admin-detail-shell">
       {/* 헤더 */}
       <div
+        className="ku-admin-detail-header"
         style={{
           background: "#fff",
           borderBottom: "1px solid #e5e7eb",
@@ -117,7 +119,7 @@ export default function NewBuilding() {
         </button>
       </div>
 
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: 24 }}>
+      <div className="ku-admin-new-building">
         {/* 기본 정보 */}
         <div
           style={{

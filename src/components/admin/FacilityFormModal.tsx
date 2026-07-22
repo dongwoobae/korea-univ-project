@@ -45,6 +45,25 @@ export default function FacilityFormModal({
   });
   const [saving, setSaving] = useState(false);
 
+  function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      showToast("현재 위치를 사용할 수 없는 브라우저입니다.", "error");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        setForm((previous) => ({
+          ...previous,
+          lat: coords.latitude.toFixed(7),
+          lng: coords.longitude.toFixed(7),
+        }));
+        showToast("현재 위치를 지도에 표시했어요.");
+      },
+      () => showToast("위치 권한을 확인해 주세요.", "error"),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
+
   /** 번역 컬럼을 현재 입력 기준으로 다시 채운다. 실패 시 기존 값을 유지한다. */
   async function syncTranslations(facilityId: string) {
     const texts: Record<string, string> = {};
@@ -171,6 +190,7 @@ export default function FacilityFormModal({
 
   return (
     <div
+      className="ku-facility-modal-backdrop"
       role="dialog"
       aria-modal="true"
       style={{
@@ -184,6 +204,7 @@ export default function FacilityFormModal({
       }}
     >
       <div
+        className="ku-facility-modal"
         style={{
           background: "#fff",
           borderRadius: 12,
@@ -244,6 +265,7 @@ export default function FacilityFormModal({
           위치 (지도에서 클릭해서 선택){standalone ? " *" : ""}
         </label>
         <div
+          className="ku-facility-map-frame"
           style={{
             marginTop: 4,
             borderRadius: 8,
@@ -269,6 +291,14 @@ export default function FacilityFormModal({
           />
         </div>
 
+        <button
+          className="ku-current-location-button"
+          type="button"
+          onClick={useCurrentLocation}
+        >
+          <span aria-hidden="true">📍</span> 현 위치로 찍기
+        </button>
+
         {form.lat && form.lng && (
           <div style={{ fontSize: 12, color: "#2563EB", marginTop: 8 }}>
             선택된 위치: {form.lat}, {form.lng}
@@ -293,7 +323,7 @@ export default function FacilityFormModal({
           설치됨
         </label>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+        <div className="ku-facility-modal-actions">
           <button
             onClick={onClose}
             style={{
@@ -314,7 +344,7 @@ export default function FacilityFormModal({
             style={{
               flex: 1,
               padding: "10px",
-              background: "#2563EB",
+              background: "#8C0000",
               color: "#fff",
               border: "none",
               borderRadius: 8,

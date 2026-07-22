@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import "./admin-ui.css";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
@@ -42,24 +43,9 @@ export default function AdminLogin() {
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100vh",
-        background: "#f5f5f5",
-      }}
-    >
-      <div
-        style={{
-          background: "#fff",
-          padding: 32,
-          borderRadius: 12,
-          width: 360,
-          boxShadow: "0 2px 12px rgba(0,0,0,0.08)",
-        }}
-      >
+    <div className="ku-admin-login-shell">
+      <div className="ku-admin-login-card">
+        <img src="/favicon.png" alt="고려대학교" />
         <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
           관리자 로그인
         </div>
@@ -79,15 +65,7 @@ export default function AdminLogin() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              fontSize: 14,
-              outline: "none",
-              boxSizing: "border-box",
-            }}
+            className="ku-admin-login-input"
           />
         </div>
 
@@ -107,15 +85,7 @@ export default function AdminLogin() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-            style={{
-              width: "100%",
-              padding: "10px 12px",
-              border: "1px solid #ddd",
-              borderRadius: 8,
-              fontSize: 14,
-              outline: "none",
-              boxSizing: "border-box",
-            }}
+            className="ku-admin-login-input"
           />
         </div>
 
@@ -131,7 +101,7 @@ export default function AdminLogin() {
           style={{
             width: "100%",
             padding: "12px",
-            background: "#2563EB",
+            background: "#8C0000",
             color: "#fff",
             border: "none",
             borderRadius: 8,

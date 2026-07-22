@@ -17,6 +17,7 @@ import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
+import "../../admin-ui.css";
 
 const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
   ssr: false,
@@ -204,9 +205,10 @@ export default function BuildingDetail() {
   const buildingCenter = getBuildingCenter(building);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f5f5f5" }}>
+    <div className="ku-admin-shell ku-admin-detail-shell">
       {/* 헤더 */}
       <div
+        className="ku-admin-detail-header"
         style={{
           background: "#fff",
           borderBottom: "1px solid #e5e7eb",
@@ -252,7 +254,7 @@ export default function BuildingDetail() {
         </button>
       </div>
 
-      <div style={{ padding: 24, maxWidth: 800, margin: "0 auto" }}>
+      <div className="ku-admin-detail-grid">
         {/* 건물 사진 */}
         <div
           style={{
