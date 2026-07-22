@@ -407,6 +407,7 @@ export default function Map() {
             />
             <SearchControl
               geoData={geoData}
+              landmarks={landmarks}
               onBuildingSelect={handleBuildingSelectFromSearch}
               favorites={favoritesList}
               favoritesOpen={showFavorites}

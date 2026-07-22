@@ -5,6 +5,10 @@ export const translations = {
     // Map.js
     loadingMap: "지도 불러오는 중...",
     searchPlaceholder: "건물 검색...",
+    searchNoResults: "검색 결과가 없어요",
+    searchClear: "검색어 지우기",
+    searchMany: "검색 결과가 많아요. 검색어를 좁혀 보세요.",
+    searchCountUnit: "개 결과",
     favorites: "즐겨찾기",
     noFavorites: "즐겨찾기한 건물이 없어요",
     myLocation: "현 위치",
@@ -62,6 +66,10 @@ export const translations = {
   en: {
     loadingMap: "Loading map...",
     searchPlaceholder: "Search buildings...",
+    searchNoResults: "No results",
+    searchClear: "Clear search",
+    searchMany: "Many results. Try narrowing your search.",
+    searchCountUnit: " results",
     favorites: "Favorites",
     noFavorites: "No saved buildings",
     myLocation: "My Location",
@@ -116,6 +124,10 @@ export const translations = {
   zh: {
     loadingMap: "地图加载中...",
     searchPlaceholder: "搜索建筑...",
+    searchNoResults: "无搜索结果",
+    searchClear: "清除搜索",
+    searchMany: "结果较多，请缩小搜索范围。",
+    searchCountUnit: "个结果",
     favorites: "收藏",
     noFavorites: "暂无收藏建筑",
     myLocation: "我的位置",
