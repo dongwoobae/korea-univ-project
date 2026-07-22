@@ -29,6 +29,8 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     ).toHaveAttribute("aria-expanded", "false");
     const filterBox = await page.locator(".ku-filter-panel").boundingBox();
     expect(filterBox?.height).toBeLessThan(400);
+    const attributionBox = await page.locator(".ku-attribution").boundingBox();
+    expect(attributionBox?.x).toBe(20);
   });
 
   test("건물 검색, 상세 패널, 즐겨찾기 영속성을 연결한다", async ({ page }) => {
@@ -46,6 +48,37 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.getByTitle("즐겨찾기").click();
     await expect(page.getByText("즐겨찾기 (1)")).toBeVisible();
     await expect(page.getByText("중앙도서관", { exact: true })).toBeVisible();
+  });
+
+  test("지도 위 UI의 더블클릭과 건물 툴팁을 지도에서 분리한다", async ({ page }) => {
+    await page.goto("/");
+    const building = page
+      .locator(".leaflet-overlay-pane path.leaflet-interactive")
+      .first();
+
+    await building.hover();
+    await expect(page.locator(".ku-map-tooltip")).toBeVisible();
+    await building.click();
+    await page.mouse.move(700, 120);
+    await expect(page.locator(".ku-map-tooltip")).toHaveCount(0);
+
+    const currentTileZoom = () =>
+      page.locator(".leaflet-tile").evaluateAll((tiles) =>
+        Math.max(
+          ...tiles.map((tile) => {
+            const match = (tile as HTMLImageElement).src.match(/light_all\/(\d+)\//);
+            return match ? Number(match[1]) : 0;
+          }),
+        ),
+      );
+    const zoomBefore = await currentTileZoom();
+
+    await page.locator(".ku-search-control").dblclick({ position: { x: 300, y: 10 } });
+    await page.locator(".ku-filter-panel").dblclick({ position: { x: 300, y: 10 } });
+    await page.locator(".ku-side-panel").dblclick({ position: { x: 170, y: 400 } });
+    await page.waitForTimeout(350);
+
+    expect(await currentTileZoom()).toBe(zoomBefore);
   });
 
   test("시설 유형, 명소, 경사도 필터가 지도 레이어를 제어한다", async ({

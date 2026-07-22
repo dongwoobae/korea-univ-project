@@ -124,7 +124,10 @@ export default function FilterPanel({
   );
 
   return (
-    <div className="ku-filter-panel">
+    <div
+      className="ku-filter-panel"
+      onDoubleClickCapture={(event) => event.stopPropagation()}
+    >
       {isMobile ? (
         <>
           <button className="ku-mobile-filter-trigger" type="button" onClick={() => setMobileFilterOpen((open) => !open)} aria-expanded={mobileFilterOpen}>

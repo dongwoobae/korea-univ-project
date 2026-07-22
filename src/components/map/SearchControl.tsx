@@ -114,7 +114,10 @@ export default function SearchControl({
   const favoriteIds = new Set(favorites.map((favorite) => favorite.id));
 
   return (
-    <div className="ku-search-control">
+    <div
+      className="ku-search-control"
+      onDoubleClickCapture={(event) => event.stopPropagation()}
+    >
       <div className="ku-search-row">
         <div className="ku-search-field">
           <span className="ku-search-icon" role="img" aria-label="검색">

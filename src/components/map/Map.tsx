@@ -231,9 +231,9 @@ export default function Map() {
         }));
       },
       mouseout() {
+        setTooltip((prev) => ({ ...prev, visible: false }));
         if (activeLayerRef.current === layer) return;
         layer.setStyle(baseStyle(feature));
-        setTooltip((prev) => ({ ...prev, visible: false }));
       },
       click() {
         if (activeBuildingIdRef.current === bId) {

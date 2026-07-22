@@ -240,7 +240,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         />
       )}
 
-      <aside className="ku-side-panel" data-visible={visible} aria-label={`${displayName} 접근성 정보`}>
+      <aside className="ku-side-panel" data-visible={visible} aria-label={`${displayName} 접근성 정보`} onDoubleClickCapture={(event) => event.stopPropagation()}>
         {/* 모바일 드래그 핸들 */}
         {isMobile && (
           <div className="ku-side-handle" aria-hidden="true" />
