@@ -1,11 +1,8 @@
 import type { FacilityCode } from "@/types/domain";
+import { facilityColor } from "@/lib/theme";
 
 export const FACILITY_COLORS: Record<FacilityCode, string> = {
-  elevator: "#2563EB",
-  restroom: "#16A34A",
-  ramp: "#EA580C",
-  parking: "#7C3AED",
-  braille: "#CA8A04",
+  ...facilityColor,
 };
 
 const FALLBACK_PALETTE = [
