@@ -180,10 +180,11 @@
   position: absolute;
   z-index: 1050;
   top: 98px;
-  bottom: 20px;
   left: 20px;
   width: 324px;
+  max-height: calc(100dvh - 118px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 8px 16px 16px;
   border: 1px solid color-mix(in srgb, var(--ku-border) 78%, transparent);
   border-radius: 16px;

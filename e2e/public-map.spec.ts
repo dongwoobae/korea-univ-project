@@ -27,6 +27,8 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(
       page.getByRole("button", { name: /시설 선택 0/ }),
     ).toHaveAttribute("aria-expanded", "false");
+    const filterBox = await page.locator(".ku-filter-panel").boundingBox();
+    expect(filterBox?.height).toBeLessThan(400);
   });
 
   test("건물 검색, 상세 패널, 즐겨찾기 영속성을 연결한다", async ({ page }) => {
