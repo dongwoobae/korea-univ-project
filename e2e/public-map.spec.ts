@@ -57,7 +57,8 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     const satelliteBuilding = page
       .locator(".leaflet-overlay-pane path.leaflet-interactive")
       .first();
-    await expect(satelliteBuilding).toHaveAttribute("fill", "#963A32");
+    await expect(satelliteBuilding).toHaveAttribute("fill", "#FF4D3D");
+    await expect(satelliteBuilding).toHaveAttribute("fill-opacity", "0.42");
     await satelliteBuilding.click();
     await expect(page.getByText("중앙 엘리베이터")).toBeVisible();
   });

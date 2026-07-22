@@ -11,7 +11,7 @@ import L from "leaflet";
 import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
 import type { Favorite } from "@/types/domain";
-import { campusColor } from "@/lib/theme";
+import { campusColor, satelliteCampusColor } from "@/lib/theme";
 import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -63,29 +63,32 @@ function loadFavoritesFromStorage() {
   }
 }
 
-function buildingColor(feature) {
-  return campusColor[feature?.properties?.campus] ?? "#963A32";
+function buildingColor(feature, tileMode) {
+  const colors = tileMode === "satellite" ? satelliteCampusColor : campusColor;
+  return colors[feature?.properties?.campus] ?? (tileMode === "satellite" ? "#FF4D3D" : "#963A32");
 }
 
-function baseStyle(feature) {
-  const color = buildingColor(feature);
+function baseStyle(feature, tileMode) {
+  const color = buildingColor(feature, tileMode);
+  const satellite = tileMode === "satellite";
   return {
     color,
-    weight: 1.5,
-    opacity: 0.55,
+    weight: satellite ? 2.4 : 1.5,
+    opacity: satellite ? 1 : 0.55,
     fillColor: color,
-    fillOpacity: 0.18,
+    fillOpacity: satellite ? 0.42 : 0.18,
   };
 }
 
-function hoverStyle(feature) {
-  const color = buildingColor(feature);
+function hoverStyle(feature, tileMode) {
+  const color = buildingColor(feature, tileMode);
+  const satellite = tileMode === "satellite";
   return {
     color,
-    weight: 2.5,
-    opacity: 0.9,
+    weight: satellite ? 3.5 : 2.5,
+    opacity: satellite ? 1 : 0.9,
     fillColor: color,
-    fillOpacity: 0.38,
+    fillOpacity: satellite ? 0.62 : 0.38,
   };
 }
 
@@ -118,7 +121,7 @@ export default function Map() {
     null,
   );
   const [isMobile, setIsMobile] = useState(false);
-  const [tileMode, setTileMode] = useState("street");
+  const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
@@ -142,8 +145,11 @@ export default function Map() {
   const isMobileRef = useRef(false);
 
   const geoJsonStyle = useCallback(
-    (feature) => baseStyle(feature),
-    [],
+    (feature) =>
+      activeBuildingIdRef.current === feature?.properties?.id
+        ? hoverStyle(feature, tileMode)
+        : baseStyle(feature, tileMode),
+    [tileMode],
   );
 
   // 모바일 감지
@@ -162,12 +168,12 @@ export default function Map() {
     const bId = feature.properties.id;
     if (activeLayerRef.current && activeBuildingIdRef.current !== bId) {
       activeLayerRef.current.setStyle(
-        baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1]),
+        baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1], tileMode),
       );
     }
     const layer = layerMapRef.current[bId];
     if (layer) {
-      layer.setStyle(hoverStyle(feature));
+      layer.setStyle(hoverStyle(feature, tileMode));
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = bId;
     }
@@ -192,12 +198,12 @@ export default function Map() {
         const numId = Number(id);
         const isActive = activeBuildingIdRef.current === numId;
         const feature = featureMapRef.current[numId];
-        layer.setStyle(isActive ? hoverStyle(feature) : baseStyle(feature));
+        layer.setStyle(isActive ? hoverStyle(feature, tileMode) : baseStyle(feature, tileMode));
       });
     };
     window.addEventListener("favoritesUpdated", handler);
     return () => window.removeEventListener("favoritesUpdated", handler);
-  }, []);
+  }, [tileMode]);
 
   function onEachFeature(feature, layer) {
     const bId = feature.properties.id;
@@ -206,7 +212,7 @@ export default function Map() {
     layer.on({
       mouseover(e) {
         if (isMobileRef.current) return;
-        layer.setStyle(hoverStyle(feature));
+        layer.setStyle(hoverStyle(feature, tileMode));
         const { clientX, clientY } = e.originalEvent;
         const mapEl = mapRef.current?.getContainer();
         if (!mapEl) return;
@@ -234,7 +240,7 @@ export default function Map() {
       mouseout() {
         setTooltip((prev) => ({ ...prev, visible: false }));
         if (activeLayerRef.current === layer) return;
-        layer.setStyle(baseStyle(feature));
+        layer.setStyle(baseStyle(feature, tileMode));
       },
       click() {
         if (activeBuildingIdRef.current === bId) {
@@ -243,10 +249,10 @@ export default function Map() {
         }
         if (activeLayerRef.current && activeLayerRef.current !== layer) {
           activeLayerRef.current.setStyle(
-            baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1]),
+            baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1], tileMode),
           );
         }
-        layer.setStyle(hoverStyle(feature));
+        layer.setStyle(hoverStyle(feature, tileMode));
         activeLayerRef.current = layer;
         activeBuildingIdRef.current = bId;
         setSelectedBuilding({ id: bId, name: feature.properties.name });
@@ -257,12 +263,12 @@ export default function Map() {
   function handleSelectById(id, name) {
     if (activeLayerRef.current && activeBuildingIdRef.current !== id) {
       activeLayerRef.current.setStyle(
-        baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1]),
+        baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1], tileMode),
       );
     }
     const layer = layerMapRef.current[id];
     if (layer) {
-      layer.setStyle(hoverStyle(featureMapRef.current[id]));
+      layer.setStyle(hoverStyle(featureMapRef.current[id], tileMode));
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = id;
       mapRef.current?.fitBounds(layer.getBounds(), {
@@ -279,7 +285,7 @@ export default function Map() {
       setSelectedBuilding(null);
       if (activeLayerRef.current) {
         activeLayerRef.current.setStyle(
-          baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1]),
+          baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1], tileMode),
         );
         activeLayerRef.current = null;
         activeBuildingIdRef.current = null;
@@ -342,7 +348,7 @@ export default function Map() {
         {geoData && (
           <>
             <GeoJSON
-              key={JSON.stringify(geoData)}
+              key={`${tileMode}-${JSON.stringify(geoData)}`}
               data={geoData}
               style={geoJsonStyle}
               onEachFeature={onEachFeature}

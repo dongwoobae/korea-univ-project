@@ -25,6 +25,13 @@ export const campusColor: Record<string, string> = {
   "의료원": "#85477C",
 };
 
+export const satelliteCampusColor: Record<string, string> = {
+  "인문사회계": "#FF4D3D",
+  "자연계": "#268CFF",
+  "녹지캠퍼스": "#22C95A",
+  "의료원": "#E650C5",
+};
+
 export const facilityColor = {
   elevator: "#2D5FB0",
   restroom: "#2F7A4F",
