@@ -15,7 +15,7 @@ interface SpeechRecognitionLike {
   interimResults: boolean;
   onstart: (() => void) | null;
   onend: (() => void) | null;
-  onerror: (() => void) | null;
+  onerror: ((event: { error?: string }) => void) | null;
   onresult: (ev: {
     results: ArrayLike<ArrayLike<{ transcript: string }>>;
   }) => void;
@@ -240,6 +240,14 @@ export default function SearchControl({
     inputRef.current?.focus();
   }
 
+  function notifyVoice(messageKey) {
+    window.dispatchEvent(
+      new CustomEvent("showToast", {
+        detail: { message: t(messageKey), type: "error" },
+      }),
+    );
+  }
+
   function handleVoiceSearch(event) {
     event.preventDefault();
     const speechWindow = window as unknown as {
@@ -250,7 +258,7 @@ export default function SearchControl({
       speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      alert(t("voiceNotSupported"));
+      notifyVoice("voiceNotSupported");
       return;
     }
     if (isListening) {
@@ -264,7 +272,20 @@ export default function SearchControl({
     recognition.interimResults = false;
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
-    recognition.onerror = () => setIsListening(false);
+    recognition.onerror = (event) => {
+      setIsListening(false);
+      const code = event?.error;
+      // 사용자가 직접 중지(stop)한 경우는 오류가 아니므로 안내하지 않는다.
+      if (code === "aborted") return;
+      if (code === "not-allowed" || code === "service-not-allowed") {
+        notifyVoice("voicePermissionDenied");
+      } else if (code === "network") {
+        notifyVoice("voiceNetworkError");
+      } else {
+        // no-speech 및 기타 인식 실패
+        notifyVoice("voiceNoSpeech");
+      }
+    };
     recognition.onresult = (result) => {
       setQuery(result.results[0][0].transcript);
       setIsFocused(true);
@@ -340,6 +361,9 @@ export default function SearchControl({
           >
             <span aria-hidden="true">🎤</span>
           </button>
+          <span className="ku-visually-hidden" role="status" aria-live="polite">
+            {isListening ? t("voiceListening") : ""}
+          </span>
         </div>
         <button
           className="ku-favorite-button"
@@ -369,7 +393,7 @@ export default function SearchControl({
           id={listboxId}
           role="listbox"
           className="ku-search-results"
-          aria-label="검색 결과"
+          aria-label={t("searchResultsLabel")}
         >
           {results.map((result, index) => {
             const active = index === activeIndex;
@@ -413,7 +437,10 @@ export default function SearchControl({
                   </span>
                 )}
                 {result.kind === "building" && favoriteIds.has(result.id) && (
-                  <span className="ku-search-result-star" aria-label="즐겨찾기">
+                  <span
+                    className="ku-search-result-star"
+                    aria-label={t("favorites")}
+                  >
                     ★
                   </span>
                 )}
@@ -434,7 +461,8 @@ export default function SearchControl({
       )}
 
       <div className="ku-search-count" role="status" aria-live="polite">
-        {showListbox ? `${results.length}${t("searchCountUnit")}` : ""}
+        {/* 8개로 잘려도 실제 총 개수를 안내(초과 시 searchMany 문구와 함께 정합) */}
+        {showListbox ? `${totalCount}${t("searchCountUnit")}` : ""}
       </div>
     </div>
   );

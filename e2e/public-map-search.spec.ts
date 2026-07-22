@@ -128,4 +128,63 @@ test.describe("공개 지도 통합 검색 · 콤보박스", () => {
     await expect(input).toHaveValue("");
     await expect(page.getByRole("option")).toHaveCount(0);
   });
+
+  test("결과 목록 접근성 라벨이 UI 언어를 따른다", async ({ page }) => {
+    await page.goto("/");
+    await page.getByTitle("English").click();
+    await page.getByPlaceholder("Search buildings...").fill("Library");
+
+    // listbox의 접근 이름이 한국어 고정이 아니라 현재 언어(영어)로 노출
+    await expect(
+      page.getByRole("listbox", { name: "Search results" }),
+    ).toBeVisible();
+  });
+
+  test("결과가 8개를 초과하면 개수 안내가 표시 개수가 아닌 총 개수를 알린다", async ({
+    page,
+  }) => {
+    const poly = (dx: number) => ({
+      type: "Polygon",
+      coordinates: [
+        [
+          [127.032 + dx, 37.589],
+          [127.0324 + dx, 37.589],
+          [127.0324 + dx, 37.5894],
+          [127.032 + dx, 37.5894],
+          [127.032 + dx, 37.589],
+        ],
+      ],
+    });
+    // "중앙"이 들어간 건물 10개 반환 → 결과는 8개로 잘리지만 총량은 10
+    await page.route("**/api/buildings", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify({
+          type: "FeatureCollection",
+          features: Array.from({ length: 10 }, (_, i) => ({
+            type: "Feature",
+            geometry: poly(i * 0.001),
+            properties: {
+              id: i + 1,
+              name: `중앙건물 ${i + 1}`,
+              name_en: `Central ${i + 1}`,
+            },
+          })),
+        }),
+      }),
+    );
+
+    await page.goto("/");
+    await page.getByPlaceholder("건물 검색...").fill("중앙");
+
+    // 옵션은 8개로 제한되지만
+    await expect(page.getByRole("option")).toHaveCount(8);
+    // 초과 안내 문구와, 실제 총 개수(10)를 알리는 개수 라이브 영역
+    await expect(
+      page.getByText("검색 결과가 많아요. 검색어를 좁혀 보세요."),
+    ).toBeVisible();
+    await expect(page.locator(".ku-search-count")).toHaveText("10개 결과");
+  });
 });

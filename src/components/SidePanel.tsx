@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/LanguageContext";
 import type {
@@ -51,6 +51,12 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
   );
   const [visible, setVisible] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  // 모바일 아래로 스와이프 닫기: 드래그 중 손가락을 따라 내려가는 오프셋(px)
+  const [dragOffset, setDragOffset] = useState(0);
+  const dragStartY = useRef<number | null>(null);
+  const draggedRef = useRef(false);
+  // 임계값 판정은 리렌더 타이밍에 의존하지 않도록 ref로 최신 오프셋을 읽는다
+  const offsetRef = useRef(0);
 
   // 모바일 감지
   useEffect(() => {
@@ -211,7 +217,14 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
   }
 
   function handleTts() {
-    if (!window.speechSynthesis) return;
+    if (!window.speechSynthesis) {
+      window.dispatchEvent(
+        new CustomEvent("showToast", {
+          detail: { message: t("ttsNotSupported"), type: "error" },
+        }),
+      );
+      return;
+    }
     if (isSpeaking) {
       window.speechSynthesis.cancel();
       setIsSpeaking(false);
@@ -237,6 +250,35 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     return () => window.speechSynthesis?.cancel();
   }, []);
 
+  // 손잡이 스와이프: 아래로 임계값 이상 끌면 닫고, 그 이하면 제자리로 복귀
+  const CLOSE_THRESHOLD = 80;
+  function handleHandleTouchStart(event) {
+    dragStartY.current = event.touches[0].clientY;
+    draggedRef.current = false;
+  }
+  function handleHandleTouchMove(event) {
+    if (dragStartY.current === null) return;
+    const delta = event.touches[0].clientY - dragStartY.current;
+    if (Math.abs(delta) > 6) draggedRef.current = true;
+    // 아래 방향으로만 따라간다(위로 끌어도 패널이 딸려 올라가지 않게)
+    if (delta > 0) {
+      offsetRef.current = delta;
+      setDragOffset(delta);
+    }
+  }
+  function handleHandleTouchEnd() {
+    const shouldClose = offsetRef.current > CLOSE_THRESHOLD;
+    dragStartY.current = null;
+    offsetRef.current = 0;
+    setDragOffset(0);
+    if (shouldClose) onClose();
+  }
+  // 실제 드래그가 없었던 순수 탭(키보드 활성화 포함)이면 닫기 동작으로 처리
+  function handleHandleClick() {
+    if (draggedRef.current) return;
+    onClose();
+  }
+
   return (
     <>
       {/* 모바일 배경 터치 시 닫기 */}
@@ -257,9 +299,24 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         data-visible={visible}
         aria-label={`${displayName} 접근성 정보`}
         onDoubleClickCapture={(event) => event.stopPropagation()}
+        style={
+          isMobile && dragOffset > 0
+            ? { transform: `translateY(${dragOffset}px)`, transition: "none" }
+            : undefined
+        }
       >
-        {/* 모바일 드래그 핸들 */}
-        {isMobile && <div className="ku-side-handle" aria-hidden="true" />}
+        {/* 모바일 스와이프 손잡이: 아래로 끌거나 눌러서 닫기 */}
+        {isMobile && (
+          <button
+            className="ku-side-handle"
+            type="button"
+            aria-label={t("closeLabel")}
+            onClick={handleHandleClick}
+            onTouchStart={handleHandleTouchStart}
+            onTouchMove={handleHandleTouchMove}
+            onTouchEnd={handleHandleTouchEnd}
+          />
+        )}
 
         {/* 헤더 */}
         <SidePanelHeader

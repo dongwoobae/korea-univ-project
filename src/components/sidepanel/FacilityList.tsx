@@ -81,6 +81,11 @@ export default function FacilityList({
                 lang === "ko"
                   ? facility.floor_info
                   : (facility[`floor_info_${lang}`] ?? facility.floor_info);
+              const videoCaption =
+                lang === "ko"
+                  ? facility.video_caption
+                  : (facility[`video_caption_${lang}`] ??
+                    facility.video_caption);
               return (
                 <div className="ku-facility-row" key={facility.id}>
                   <div className="ku-facility-main">
@@ -107,18 +112,25 @@ export default function FacilityList({
                     </span>
                   </div>
                   {facility.video_url && (
-                    <video
-                      src={facility.video_url}
-                      controls
-                      playsInline
-                      style={{
-                        width: "100%",
-                        maxHeight: 180,
-                        marginTop: 10,
-                        borderRadius: 8,
-                        background: "#000",
-                      }}
-                    />
+                    <figure className="ku-facility-video">
+                      <video
+                        src={facility.video_url}
+                        controls
+                        playsInline
+                        aria-label={`${name} ${t("videoLabelSuffix")}`}
+                        style={{
+                          width: "100%",
+                          maxHeight: 180,
+                          borderRadius: 8,
+                          background: "#000",
+                        }}
+                      />
+                      {videoCaption && (
+                        <figcaption className="ku-facility-video-caption">
+                          {videoCaption}
+                        </figcaption>
+                      )}
+                    </figure>
                   )}
                 </div>
               );

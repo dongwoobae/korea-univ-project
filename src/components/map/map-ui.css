@@ -823,10 +823,32 @@
   color: var(--ku-success-fg);
   background: var(--ku-success-bg);
 }
+.ku-facility-video {
+  margin: 10px 0 0;
+}
+.ku-facility-video-caption {
+  margin-top: 6px;
+  color: var(--ku-text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .ku-last-updated {
   margin-top: 16px;
   color: var(--ku-text-3);
   font-size: 12px;
+}
+
+/* 스크린리더 전용(시각적으로 숨김, AT에는 노출) */
+.ku-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (max-width: 767px) {
@@ -1027,11 +1049,25 @@
   }
   .ku-side-handle {
     display: block;
+    width: 100%;
+    padding: 12px 0 6px;
+    border: 0;
+    background: transparent;
+    cursor: grab;
+    /* 세로 드래그를 우리가 직접 처리하므로 브라우저 스크롤에 넘기지 않는다 */
+    touch-action: none;
+  }
+  .ku-side-handle::before {
+    content: "";
+    display: block;
     width: 40px;
     height: 4px;
-    margin: 10px auto 2px;
+    margin: 0 auto;
     border-radius: 2px;
     background: var(--ku-border);
+  }
+  .ku-side-handle:active {
+    cursor: grabbing;
   }
   .ku-side-header {
     padding-top: 10px;

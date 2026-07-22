@@ -1,3 +1,32 @@
+/**
+ * Playwright E2E 목(mock) 백엔드 — Supabase/Next API를 네트워크 레벨에서 흉내낸다.
+ * 실제 서버 없이 공개 지도·관리자 흐름을 결정론적으로 테스트하기 위한 것.
+ *
+ * ┌─ 구조 ──────────────────────────────────────────────────────────────┐
+ * 1) 픽스처(고정 데이터): `types`(시설 유형) · `colleges` · `polygon`(건물 형상).
+ *    `createState()`가 이들을 조합해 테스트 1건의 초기 상태 `MockState`를 만든다.
+ *      - 건물 1: 중앙도서관(id 1, 인문사회계)
+ *      - 시설 3: `f-installed`(설치 경사로·건물 미소속) · `f-building`(건물 1 소속 엘리베이터)
+ *                · `f-uninstalled`(미설치 주차)
+ *      - 명소 1(다람쥐길) · 경사 1 · 사진 1
+ *
+ * 2) 라우팅: `installMockBackend()`가 전역 `page.route`로 모든 요청을 가로챈다.
+ *      - `/rest/v1/<table>` → `handleRest()`: PostgREST 흉내.
+ *          GET·HEAD·POST·PATCH·DELETE 지원, `?id=eq.` / `?building_id=eq.|is.null` 필터,
+ *          `Accept: object+json`이면 단건(.single()) 응답.
+ *      - `/api/<route>`     → `handleApi()`: Next 라우트 핸들러 흉내(/api/buildings 등).
+ *      - `/auth/v1/*`       → 로그인·로그아웃·현재 유저 조회.
+ *      - 타일/CDN/업로드 호스트(cartocdn·arcgis·unpkg·cdn.test·upload.test)는 abort 또는 빈 200.
+ *
+ * 3) `addInitScript`: 페이지 로드 전 브라우저 API 스텁 —
+ *      인증 토큰(localStorage) · SpeechRecognition 제거(미지원 흉내) ·
+ *      speechSynthesis(발화 텍스트를 `window.__spoken`에 기록) · navigator.geolocation(고정 좌표).
+ *
+ * 상태는 테스트마다 새로 생성되고 POST/PATCH/DELETE가 in-memory로 변형한다.
+ * 특정 응답만 바꾸려면 `installMockBackend` 호출 뒤에 `page.route`를 추가하면(LIFO) 먼저
+ * 실행되고, 조건이 안 맞을 때 `route.fallback()`으로 이 목에 위임하면 된다.
+ * └─────────────────────────────────────────────────────────────────────┘
+ */
 import type { Page, Route } from "@playwright/test";
 
 type Row = Record<string, unknown>;
@@ -10,6 +39,8 @@ export interface MockState {
   photos: Row[];
 }
 
+// ── 픽스처(고정 데이터) ───────────────────────────────────────────────
+// facility_types / colleges 조회에 그대로 반환되고, 시설 POST 시 code로 매칭된다.
 const types = [
   {
     code: "elevator",
@@ -58,6 +89,7 @@ const polygon = {
   properties: {},
 };
 
+// 테스트 1건의 초기 상태 생성(건물/시설/명소/경사/사진). 이후 in-memory로 변형됨.
 function createState(authenticated: boolean): MockState {
   return {
     authenticated,
@@ -172,6 +204,8 @@ function createState(authenticated: boolean): MockState {
   };
 }
 
+// ── 응답 헬퍼 & 조회 로직 ─────────────────────────────────────────────
+// CORS 허용 헤더를 붙여 JSON으로 응답.
 function json(
   route: Route,
   body: unknown,
@@ -186,11 +220,13 @@ function json(
   });
 }
 
+// `?id=eq.<v>` → `<v>` 추출(PostgREST 필터 문법).
 const filterId = (url: URL) => {
   const value = url.searchParams.get("id");
   return value?.startsWith("eq.") ? value.slice(3) : null;
 };
 
+// 테이블명 → 해당 상태 배열 매핑.
 function table(state: MockState, name: string): Row[] {
   if (name === "buildings") return state.buildings;
   if (name === "building_facilities") return state.facilities;
@@ -200,6 +236,8 @@ function table(state: MockState, name: string): Row[] {
   return [];
 }
 
+// 테이블 조회: 정적 테이블(facility_types/colleges/app_settings)은 즉시 반환,
+// 나머지는 id·building_id 필터를 PostgREST처럼 적용해 걸러낸다.
 function rows(state: MockState, name: string, url: URL): Row[] {
   if (name === "facility_types") return types;
   if (name === "colleges") return colleges;
@@ -227,6 +265,7 @@ function rows(state: MockState, name: string, url: URL): Row[] {
   return result;
 }
 
+// POST로 생성되는 새 행의 id 생성 규칙(테이블별).
 function nextId(name: string, state: MockState) {
   if (name === "buildings")
     return Math.max(1, ...state.buildings.map((row) => Number(row.id))) + 1;
@@ -237,6 +276,9 @@ function nextId(name: string, state: MockState) {
   return Date.now();
 }
 
+// ── /rest/v1/* : PostgREST(GET·HEAD·POST·PATCH·DELETE) 흉내 ──────────────
+// HEAD는 content-range로 개수만, GET은 배열(또는 object+json이면 단건),
+// POST/PATCH/DELETE는 상태 배열을 직접 변형하고 변형된 행을 돌려준다.
 async function handleRest(route: Route, state: MockState, url: URL) {
   const name = url.pathname.split("/rest/v1/")[1];
   const method = route.request().method();
@@ -291,6 +333,9 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   return json(route, []);
 }
 
+// ── /api/* : Next 라우트 핸들러 흉내 ─────────────────────────────────────
+// 공개 데이터(buildings/facilities/landmarks/slopes)와 관리자 액션(번역·사진/영상
+// 업로드·설정)을 상태 기반으로 응답. 매칭 안 되는 /api/*는 { ok: true }.
 async function handleApi(route: Route, state: MockState, url: URL) {
   const path = url.pathname;
   if (path === "/api/buildings") {
@@ -377,6 +422,11 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   return json(route, { ok: true });
 }
 
+// ── 진입점 ───────────────────────────────────────────────────────────
+// 테스트 beforeEach에서 호출. 브라우저 API 스텁(addInitScript)을 심고, 이후
+// 모든 네트워크 요청을 위 핸들러들로 라우팅한다. 생성된 state를 반환하므로
+// 테스트에서 초기 데이터를 참조할 수 있다.
+// options.authenticated: 관리자 세션으로 시작할지 / options.currentLocation: geolocation 좌표.
 export async function installMockBackend(
   page: Page,
   options: {
@@ -385,6 +435,7 @@ export async function installMockBackend(
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
+  // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(
     ({ authenticated, currentLocation }) => {
       if (authenticated) {
@@ -455,6 +506,7 @@ export async function installMockBackend(
     },
   );
 
+  // 2) 전역 라우트 인터셉트: 외부 타일/CDN은 차단, auth/rest/api는 위 핸들러로 위임.
   await page.route("**/*", async (route) => {
     const request = route.request();
     const url = new URL(request.url());

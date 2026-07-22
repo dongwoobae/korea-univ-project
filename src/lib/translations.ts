@@ -9,6 +9,7 @@ export const translations = {
     searchClear: "검색어 지우기",
     searchMany: "검색 결과가 많아요. 검색어를 좁혀 보세요.",
     searchCountUnit: "개 결과",
+    searchResultsLabel: "검색 결과",
     favorites: "즐겨찾기",
     noFavorites: "즐겨찾기한 건물이 없어요",
     myLocation: "현 위치",
@@ -41,14 +42,23 @@ export const translations = {
     lastUpdated: "마지막 업데이트:",
     addFavorite: "즐겨찾기 추가",
     removeFavorite: "즐겨찾기 해제",
+    closeLabel: "닫기",
     favoriteSavedMsg:
       "즐겨찾기는 이 브라우저에 저장돼요. 캐시를 지우면 초기화될 수 있어요.",
 
     // 음성 기능
     voiceSearch: "음성 검색",
     voiceNotSupported: "이 브라우저는 음성 인식을 지원하지 않습니다",
+    voicePermissionDenied: "마이크 권한이 거부되었어요",
+    voiceNoSpeech: "음성을 인식하지 못했어요. 다시 시도해 주세요",
+    voiceNetworkError: "네트워크 오류로 음성 인식에 실패했어요",
+    voiceListening: "듣는 중이에요",
     speakInfo: "음성으로 읽기",
     stopSpeaking: "읽기 중지",
+    ttsNotSupported: "이 브라우저는 음성 읽기를 지원하지 않습니다",
+
+    // 시설 영상
+    videoLabelSuffix: "영상",
 
     // 언어 토글
     langLabel: "언어",
@@ -70,6 +80,7 @@ export const translations = {
     searchClear: "Clear search",
     searchMany: "Many results. Try narrowing your search.",
     searchCountUnit: " results",
+    searchResultsLabel: "Search results",
     favorites: "Favorites",
     noFavorites: "No saved buildings",
     myLocation: "My Location",
@@ -102,13 +113,22 @@ export const translations = {
     lastUpdated: "Last updated:",
     addFavorite: "Add to Favorites",
     removeFavorite: "Remove from Favorites",
+    closeLabel: "Close",
     favoriteSavedMsg:
       "Favorites are saved in this browser. They may be reset if cache is cleared.",
 
     voiceSearch: "Voice Search",
     voiceNotSupported: "Voice recognition is not supported in this browser",
+    voicePermissionDenied: "Microphone permission was denied",
+    voiceNoSpeech: "No speech detected. Please try again",
+    voiceNetworkError: "Voice recognition failed due to a network error",
+    voiceListening: "Listening…",
     speakInfo: "Read aloud",
     stopSpeaking: "Stop reading",
+    ttsNotSupported: "Text-to-speech is not supported in this browser",
+
+    // Facility video
+    videoLabelSuffix: "video",
 
     langLabel: "Language",
 
@@ -128,6 +148,7 @@ export const translations = {
     searchClear: "清除搜索",
     searchMany: "结果较多，请缩小搜索范围。",
     searchCountUnit: "个结果",
+    searchResultsLabel: "搜索结果",
     favorites: "收藏",
     noFavorites: "暂无收藏建筑",
     myLocation: "我的位置",
@@ -159,12 +180,21 @@ export const translations = {
     lastUpdated: "最近更新：",
     addFavorite: "添加收藏",
     removeFavorite: "取消收藏",
+    closeLabel: "关闭",
     favoriteSavedMsg: "收藏保存在此浏览器中，清除缓存后可能会重置。",
 
     voiceSearch: "语音搜索",
     voiceNotSupported: "此浏览器不支持语音识别",
+    voicePermissionDenied: "麦克风权限被拒绝",
+    voiceNoSpeech: "未识别到语音，请重试",
+    voiceNetworkError: "网络错误导致语音识别失败",
+    voiceListening: "正在聆听…",
     speakInfo: "朗读信息",
     stopSpeaking: "停止朗读",
+    ttsNotSupported: "此浏览器不支持语音朗读",
+
+    // 设施视频
+    videoLabelSuffix: "视频",
 
     langLabel: "语言",
 

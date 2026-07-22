@@ -219,12 +219,9 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       .toContain("중앙도서관");
 
     await page.getByRole("button", { name: "닫기" }).click();
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toBe(
-        "이 브라우저는 음성 인식을 지원하지 않습니다",
-      );
-      await dialog.accept();
-    });
     await page.getByTitle("음성 검색").click();
+    await expect(
+      page.getByText("이 브라우저는 음성 인식을 지원하지 않습니다"),
+    ).toBeVisible();
   });
 });
