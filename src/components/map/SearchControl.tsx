@@ -1,13 +1,14 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
+
+import { useEffect, useRef, useState } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import type { Feature } from "geojson";
 import { useLanguage } from "@/lib/LanguageContext";
+import { campusColor } from "@/lib/theme";
 
 const VOICE_LANG_MAP = { ko: "ko-KR", en: "en-US", zh: "zh-CN" };
 
-/** 브라우저 SpeechRecognition API 최소 형상 (표준 DOM 타입에 없음) */
 interface SpeechRecognitionLike {
   lang: string;
   continuous: boolean;
@@ -21,9 +22,24 @@ interface SpeechRecognitionLike {
   start(): void;
   stop(): void;
 }
+
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 
-export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
+function localizedName(properties, lang) {
+  if (lang === "ko") return properties.name;
+  if (lang === "zh")
+    return properties.name_zh || properties.name_en || properties.name;
+  return properties.name_en || properties.name;
+}
+
+export default function SearchControl({
+  geoData,
+  onBuildingSelect,
+  favorites,
+  favoritesOpen,
+  onToggleFavorites,
+  onSearchOpen,
+}) {
   const map = useMap();
   const { lang, t } = useLanguage();
   const [query, setQuery] = useState("");
@@ -33,42 +49,43 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
-    if (!geoData || query.trim() === "") {
+    const trimmed = query.trim();
+    if (!geoData || !trimmed) {
       setResults([]);
       return;
     }
-    const q = query.toLowerCase();
-    const matched = geoData.features
-      .filter(
-        (f) =>
-          f.properties.name?.includes(query) ||
-          f.properties.name_en?.toLowerCase().includes(q),
-      )
-      .slice(0, 6);
-    setResults(matched);
-  }, [query, geoData]);
+
+    const normalizedQuery = trimmed.toLocaleLowerCase();
+    setResults(
+      geoData.features
+        .filter((feature) => {
+          const name = localizedName(feature.properties, lang);
+          return name?.toLocaleLowerCase().includes(normalizedQuery);
+        })
+        .slice(0, 6),
+    );
+  }, [query, geoData, lang]);
 
   function handleSelect(feature) {
     const coords = feature.geometry.coordinates[0];
     const latlngs = coords.map(([lon, lat]) => [lat, lon]);
-    const bounds = L.latLngBounds(latlngs);
-    map.fitBounds(bounds, { maxZoom: 18, animate: true });
-    setQuery(
-      lang === "ko"
-        ? feature.properties.name
-        : (feature.properties.name_en ?? feature.properties.name),
-    );
+    map.fitBounds(L.latLngBounds(latlngs), { maxZoom: 18, animate: true });
+    setQuery(localizedName(feature.properties, lang));
     setResults([]);
+    setIsFocused(false);
+    onSearchOpen?.(false);
     onBuildingSelect?.(feature);
   }
 
-  function handleVoiceSearch(e) {
-    e.preventDefault();
-    const w = window as unknown as {
+  function handleVoiceSearch(event) {
+    event.preventDefault();
+    const speechWindow = window as unknown as {
       SpeechRecognition?: SpeechRecognitionCtor;
       webkitSpeechRecognition?: SpeechRecognitionCtor;
     };
-    const SpeechRecognition = w.SpeechRecognition || w.webkitSpeechRecognition;
+    const SpeechRecognition =
+      speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+
     if (!SpeechRecognition) {
       alert(t("voiceNotSupported"));
       return;
@@ -77,6 +94,7 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
       recognitionRef.current?.stop();
       return;
     }
+
     const recognition = new SpeechRecognition();
     recognition.lang = VOICE_LANG_MAP[lang] ?? "ko-KR";
     recognition.continuous = false;
@@ -84,122 +102,107 @@ export default function SearchControl({ geoData, isMobile, onBuildingSelect }) {
     recognition.onstart = () => setIsListening(true);
     recognition.onend = () => setIsListening(false);
     recognition.onerror = () => setIsListening(false);
-    recognition.onresult = (ev) => {
-      setQuery(ev.results[0][0].transcript);
+    recognition.onresult = (result) => {
+      setQuery(result.results[0][0].transcript);
+      setIsFocused(true);
+      onSearchOpen?.(true);
     };
     recognitionRef.current = recognition;
     recognition.start();
   }
 
+  const favoriteIds = new Set(favorites.map((favorite) => favorite.id));
+
   return (
-    <div
-      style={{
-        position: "absolute",
-        top: 16,
-        left: 56,
-        zIndex: 1000,
-        width: isMobile ? "calc(100vw - 188px)" : 260,
-      }}
-    >
-      <div style={{ position: "relative" }}>
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setTimeout(() => setIsFocused(false), 150)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && results.length > 0)
-              handleSelect(results[0]);
-          }}
-          placeholder={t("searchPlaceholder")}
-          style={{
-            width: "100%",
-            padding: "10px 38px 10px 14px",
-            borderWidth: 1,
-            borderStyle: "solid",
-            borderColor: "#ddd",
-            borderRadius:
-              results.length > 0 && isFocused ? "8px 8px 0 0" : "8px",
-            fontSize: isMobile ? 16 : 14,
-            outline: "none",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-            background: "#fff",
-            boxSizing: "border-box",
-          }}
-        />
+    <div className="ku-search-control">
+      <div className="ku-search-row">
+        <div className="ku-search-field">
+          <span className="ku-search-icon" role="img" aria-label="검색">
+            🔍
+          </span>
+          <input
+            className="ku-search-input"
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            onFocus={() => {
+              setIsFocused(true);
+              onSearchOpen?.(true);
+            }}
+            onBlur={() =>
+              window.setTimeout(() => {
+                setIsFocused(false);
+                onSearchOpen?.(false);
+              }, 150)
+            }
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && results.length > 0)
+                handleSelect(results[0]);
+            }}
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchPlaceholder")}
+          />
+          <button
+            className="ku-voice-button"
+            type="button"
+            onMouseDown={handleVoiceSearch}
+            aria-label={t("voiceSearch")}
+            title={t("voiceSearch")}
+            data-listening={isListening}
+          >
+            <span aria-hidden="true">🎤</span>
+          </button>
+        </div>
         <button
-          onMouseDown={handleVoiceSearch}
-          title={t("voiceSearch")}
-          style={{
-            position: "absolute",
-            right: 8,
-            top: "50%",
-            transform: "translateY(-50%)",
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 16,
-            padding: "0 2px",
-            lineHeight: 1,
-            color: isListening ? "#ef4444" : "#999",
-            animation: isListening
-              ? "micPulse 1s ease-in-out infinite"
-              : "none",
-          }}
+          className="ku-favorite-button"
+          type="button"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={onToggleFavorites}
+          aria-label={t("favorites")}
+          aria-expanded={favoritesOpen}
+          title={t("favorites")}
         >
-          🎤
+          <span aria-hidden="true">★</span>
         </button>
       </div>
-      {results.length > 0 && isFocused && (
-        <ul
-          style={{
-            margin: 0,
-            padding: 0,
-            listStyle: "none",
-            background: "#fff",
-            borderTopWidth: 0,
-            borderRightWidth: 1,
-            borderBottomWidth: 1,
-            borderLeftWidth: 1,
-            borderStyle: "solid",
-            borderColor: "#ddd",
-            borderRadius: "0 0 8px 8px",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
-            overflow: "hidden",
-          }}
-        >
-          {results.map((f) => (
-            <li
-              key={f.properties?.id}
-              onMouseDown={() => handleSelect(f)}
-              style={{
-                padding: isMobile ? "12px 14px" : "9px 14px",
-                fontSize: 13,
-                cursor: "pointer",
-                borderBottomWidth: 1,
-                borderBottomStyle: "solid",
-                borderBottomColor: "#f0f0f0",
-                color: "#333",
-              }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.background = "#f5f5f5")
-              }
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
-            >
-              {lang === "ko"
-                ? f.properties?.name
-                : (f.properties?.name_en ?? f.properties?.name)}
-            </li>
-          ))}
+
+      {results.length > 0 && isFocused && !favoritesOpen && (
+        <ul className="ku-search-results" aria-label="검색 결과">
+          {results.map((feature) => {
+            const properties = feature.properties;
+            const campus = properties?.campus ?? "";
+            return (
+              <li key={properties?.id}>
+                <button
+                  className="ku-search-result"
+                  type="button"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => handleSelect(feature)}
+                >
+                  <span className="ku-search-result-name">
+                    {localizedName(properties, lang)}
+                  </span>
+                  {campus && (
+                    <span
+                      className="ku-search-result-campus"
+                      style={{
+                        "--campus-color": campusColor[campus],
+                      } as React.CSSProperties}
+                    >
+                      {campus}
+                    </span>
+                  )}
+                  {favoriteIds.has(properties?.id) && (
+                    <span className="ku-search-result-star" aria-label="즐겨찾기">
+                      ★
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
-      <style>{`
-        @keyframes micPulse {
-          0%, 100% { opacity: 1; transform: translateY(-50%) scale(1); }
-          50% { opacity: 0.5; transform: translateY(-50%) scale(1.2); }
-        }
-      `}</style>
     </div>
   );
 }

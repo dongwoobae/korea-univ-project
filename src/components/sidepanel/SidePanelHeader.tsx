@@ -30,106 +30,34 @@ export default function SidePanelHeader({
   t,
 }: SidePanelHeaderProps) {
   return (
-    <div
-      style={{
-        padding: "14px 16px",
-        borderBottom: "1px solid #f0f0f0",
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 600, color: "#111" }}>
-          {displayName}
+    <header className="ku-side-header">
+      <div className="ku-side-heading-row">
+        <div>
+          {collegeName && <div className="ku-side-caption">{collegeName}</div>}
+          <h2 className="ku-side-title">{displayName}</h2>
+          {lang !== "ko" && <div className="ku-side-subtitle">{buildingName}</div>}
         </div>
-        {collegeName && (
-          <div
-            style={{
-              fontSize: 12,
-              color: "#2563EB",
-              marginTop: 3,
-              fontWeight: 500,
-            }}
-          >
-            {collegeName}
-          </div>
-        )}
-        {/* 한국어가 아닐 때는 한국어 원명을 서브텍스트로 표시 */}
-        {lang !== "ko" && (
-          <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
-            {buildingName}
-          </div>
-        )}
+        <button className="ku-side-close" type="button" onClick={onClose} aria-label="닫기">✕</button>
       </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          flexShrink: 0,
-        }}
-      >
-        {/* TTS 버튼 */}
+      <div className="ku-side-actions">
         <button
+          className="ku-side-action"
+          type="button"
           onClick={onTts}
-          title={isSpeaking ? t("stopSpeaking") : t("speakInfo")}
-          aria-label={isSpeaking ? t("stopSpeaking") : t("speakInfo")}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: loading ? "default" : "pointer",
-            fontSize: 18,
-            padding: "2px 6px",
-            lineHeight: 1,
-            opacity: loading ? 0.4 : 1,
-            color: isSpeaking ? "#2563EB" : "#888",
-            animation: isSpeaking
-              ? "speakPulse 1.2s ease-in-out infinite"
-              : "none",
-          }}
           disabled={loading}
+          aria-pressed={isSpeaking}
         >
-          🔊
+          <span aria-hidden="true">🔊</span> {isSpeaking ? t("stopSpeaking") : t("speakInfo")}
         </button>
-        {/* 즐겨찾기 버튼 */}
         <button
+          className="ku-side-action ku-side-action--favorite"
+          type="button"
           onClick={onToggleFavorite}
-          title={isFavorite ? t("removeFavorite") : t("addFavorite")}
-          aria-label={isFavorite ? t("removeFavorite") : t("addFavorite")}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 20,
-            padding: "2px 6px",
-            lineHeight: 1,
-          }}
+          aria-pressed={isFavorite}
         >
-          {isFavorite ? "⭐" : "☆"}
-        </button>
-        {/* 닫기 버튼 */}
-        <button
-          onClick={onClose}
-          aria-label="닫기"
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: 18,
-            color: "#888",
-            padding: "2px 6px",
-          }}
-        >
-          ✕
+          <span aria-hidden="true">{isFavorite ? "★" : "☆"}</span> {t("favorites")}
         </button>
       </div>
-      <style>{`
-        @keyframes speakPulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
-    </div>
+    </header>
   );
 }

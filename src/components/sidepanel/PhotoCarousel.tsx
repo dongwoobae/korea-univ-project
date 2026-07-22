@@ -31,9 +31,12 @@ export default function PhotoCarousel({
         <div
           style={{
             position: "relative",
-            width: "100%",
-            height: 160,
+            width: "calc(100% - 40px)",
+            height: 150,
+            margin: "16px 20px 0",
             background: "#000",
+            borderRadius: 12,
+            overflow: "hidden",
           }}
         >
           <img
@@ -62,8 +65,8 @@ export default function PhotoCarousel({
                   color: "#fff",
                   border: "none",
                   borderRadius: "50%",
-                  width: 28,
-                  height: 28,
+                  width: 36,
+                  height: 36,
                   cursor: "pointer",
                   fontSize: 14,
                   display: "flex",
@@ -85,8 +88,8 @@ export default function PhotoCarousel({
                   color: "#fff",
                   border: "none",
                   borderRadius: "50%",
-                  width: 28,
-                  height: 28,
+                  width: 36,
+                  height: 36,
                   cursor: "pointer",
                   fontSize: 14,
                   display: "flex",
@@ -132,13 +135,15 @@ export default function PhotoCarousel({
       ) : (
         <div
           style={{
-            width: "100%",
-            height: 160,
-            background: "#f5f5f5",
+            width: "calc(100% - 40px)",
+            height: 150,
+            margin: "16px 20px 0",
+            borderRadius: 12,
+            background: "var(--ku-bg)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#aaa",
+            color: "var(--ku-text-3)",
             fontSize: 13,
           }}
         >
@@ -148,11 +153,11 @@ export default function PhotoCarousel({
       {photos[photoIndex]?.caption && (
         <div
           style={{
-            padding: "6px 14px",
+            margin: "0 20px",
+            padding: "7px 10px",
             fontSize: 12,
-            color: "#555",
-            background: "#fafafa",
-            borderBottom: "1px solid #f0f0f0",
+            color: "var(--ku-text-2)",
+            background: "var(--ku-bg)",
           }}
         >
           {lang === "ko"

@@ -138,6 +138,12 @@ a {
   border-color: var(--ku-divider) !important;
 }
 
+.leaflet-top.leaflet-right {
+  top: auto;
+  right: 10px;
+  bottom: 166px;
+}
+
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
   color: var(--ku-text-1);

@@ -12,6 +12,7 @@ import L from "leaflet";
 import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
 import type { Favorite } from "@/types/domain";
+import { campusColor } from "@/lib/theme";
 import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -20,12 +21,12 @@ import FilterPanel from "./FilterPanel";
 import FeedbackButton from "./FeedbackButton";
 import FavoritesList from "./FavoritesList";
 import LanguageSwitcher from "./LanguageSwitcher";
-import SlopeLegend from "./SlopeLegend";
 import SlopeLayer from "./SlopeLayer";
 import FacilityMarkers from "./FacilityMarkers";
 import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
 import { useMapData } from "./useMapData";
+import "./map-ui.css";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
@@ -62,21 +63,29 @@ function loadFavoritesFromStorage() {
   }
 }
 
-function baseStyle(isFav) {
+function buildingColor(feature) {
+  return campusColor[feature?.properties?.campus] ?? "#963A32";
+}
+
+function baseStyle(feature) {
+  const color = buildingColor(feature);
   return {
-    color: isFav ? "#FACC15" : "#2563EB",
-    weight: isFav ? 3 : 1.5,
-    fillColor: "#2563EB",
-    fillOpacity: 0.2,
+    color,
+    weight: 1.5,
+    opacity: 0.55,
+    fillColor: color,
+    fillOpacity: 0.18,
   };
 }
 
-function hoverStyle(isFav) {
+function hoverStyle(feature) {
+  const color = buildingColor(feature);
   return {
-    color: isFav ? "#FACC15" : "#2563EB",
-    weight: isFav ? 3 : 2.5,
-    fillColor: "#2563EB",
-    fillOpacity: 0.5,
+    color,
+    weight: 2.5,
+    opacity: 0.9,
+    fillColor: color,
+    fillOpacity: 0.38,
   };
 }
 
@@ -112,6 +121,7 @@ export default function Map() {
   const [tileMode, setTileMode] = useState("street");
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [activeCampuses, setActiveCampuses] = useState({
     의료원: false,
     녹지캠퍼스: false,
@@ -124,6 +134,7 @@ export default function Map() {
   const activeLayerRef = useRef<L.Polygon | null>(null);
   const activeBuildingIdRef = useRef<number | null>(null);
   const layerMapRef = useRef<Record<number, L.Polygon>>({});
+  const featureMapRef = useRef<Record<number, unknown>>({});
   const favoriteIdsRef = useRef(
     new Set(loadFavoritesFromStorage().map((f) => f.id)),
   );
@@ -131,7 +142,7 @@ export default function Map() {
   const isMobileRef = useRef(false);
 
   const geoJsonStyle = useCallback(
-    (feature) => baseStyle(favoriteIdsRef.current.has(feature.properties.id)),
+    (feature) => baseStyle(feature),
     [],
   );
 
@@ -151,12 +162,12 @@ export default function Map() {
     const bId = feature.properties.id;
     if (activeLayerRef.current && activeBuildingIdRef.current !== bId) {
       activeLayerRef.current.setStyle(
-        baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+        baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1]),
       );
     }
     const layer = layerMapRef.current[bId];
     if (layer) {
-      layer.setStyle(hoverStyle(favoriteIdsRef.current.has(bId)));
+      layer.setStyle(hoverStyle(feature));
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = bId;
     }
@@ -179,9 +190,9 @@ export default function Map() {
       favoriteIdsRef.current = new Set(updated.map((f) => f.id));
       Object.entries(layerMapRef.current).forEach(([id, layer]) => {
         const numId = Number(id);
-        const isFav = favoriteIdsRef.current.has(numId);
         const isActive = activeBuildingIdRef.current === numId;
-        layer.setStyle(isActive ? hoverStyle(isFav) : baseStyle(isFav));
+        const feature = featureMapRef.current[numId];
+        layer.setStyle(isActive ? hoverStyle(feature) : baseStyle(feature));
       });
     };
     window.addEventListener("favoritesUpdated", handler);
@@ -191,11 +202,11 @@ export default function Map() {
   function onEachFeature(feature, layer) {
     const bId = feature.properties.id;
     layerMapRef.current[bId] = layer;
+    featureMapRef.current[bId] = feature;
     layer.on({
       mouseover(e) {
         if (isMobileRef.current) return;
-        const isFav = favoriteIdsRef.current.has(bId);
-        layer.setStyle(hoverStyle(isFav));
+        layer.setStyle(hoverStyle(feature));
         const { clientX, clientY } = e.originalEvent;
         const mapEl = mapRef.current?.getContainer();
         if (!mapEl) return;
@@ -222,7 +233,7 @@ export default function Map() {
       },
       mouseout() {
         if (activeLayerRef.current === layer) return;
-        layer.setStyle(baseStyle(favoriteIdsRef.current.has(bId)));
+        layer.setStyle(baseStyle(feature));
         setTooltip((prev) => ({ ...prev, visible: false }));
       },
       click() {
@@ -232,10 +243,10 @@ export default function Map() {
         }
         if (activeLayerRef.current && activeLayerRef.current !== layer) {
           activeLayerRef.current.setStyle(
-            baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+            baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1]),
           );
         }
-        layer.setStyle(hoverStyle(favoriteIdsRef.current.has(bId)));
+        layer.setStyle(hoverStyle(feature));
         activeLayerRef.current = layer;
         activeBuildingIdRef.current = bId;
         setSelectedBuilding({ id: bId, name: feature.properties.name });
@@ -246,12 +257,12 @@ export default function Map() {
   function handleSelectById(id, name) {
     if (activeLayerRef.current && activeBuildingIdRef.current !== id) {
       activeLayerRef.current.setStyle(
-        baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+        baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1]),
       );
     }
     const layer = layerMapRef.current[id];
     if (layer) {
-      layer.setStyle(hoverStyle(favoriteIdsRef.current.has(id)));
+      layer.setStyle(hoverStyle(featureMapRef.current[id]));
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = id;
       mapRef.current?.fitBounds(layer.getBounds(), {
@@ -268,7 +279,7 @@ export default function Map() {
       setSelectedBuilding(null);
       if (activeLayerRef.current) {
         activeLayerRef.current.setStyle(
-          baseStyle(favoriteIdsRef.current.has(activeBuildingIdRef.current)),
+          baseStyle(featureMapRef.current[activeBuildingIdRef.current ?? -1]),
         );
         activeLayerRef.current = null;
         activeBuildingIdRef.current = null;
@@ -276,46 +287,35 @@ export default function Map() {
     }, 280);
   }
 
+  function locateUser() {
+    if (!navigator.geolocation) {
+      setToast({ message: "현재 위치를 사용할 수 없는 브라우저입니다.", type: "info" });
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        mapRef.current?.flyTo([coords.latitude, coords.longitude], 18, {
+          animate: true,
+        });
+      },
+      () =>
+        setToast({
+          message: "위치 권한을 확인해 주세요.",
+          type: "info",
+        }),
+      { enableHighAccuracy: true, timeout: 10000 },
+    );
+  }
+
   return (
-    <div style={{ position: "relative", width: "100%", height: "100dvh" }}>
+    <div className="ku-map-shell">
       {/* 로딩 오버레이 */}
       {loadingMap && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 2000,
-            background: "rgba(255,255,255,0.85)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 16,
-          }}
-        >
-          <div
-            style={{
-              width: 40,
-              height: 40,
-              borderWidth: 3,
-              borderStyle: "solid",
-              borderColor: "#e5e7eb",
-              borderTopColor: "#2563EB",
-              borderRadius: "50%",
-              animation: "spin 0.8s linear infinite",
-            }}
-          />
-          <div style={{ fontSize: 14, color: "#555" }}>{t("loadingMap")}</div>
-          <style>{`
-            @keyframes spin { to { transform: rotate(360deg) } }
-            .leaflet-bottom.leaflet-right {
-              bottom: env(safe-area-inset-bottom, 0px) !important;
-            }
-          `}</style>
+        <div className="ku-map-loading">
+          <div className="ku-map-spinner" />
+          <div>{t("loadingMap")}</div>
         </div>
       )}
-
-      <style>{`.leaflet-top.leaflet-right { top: ${isMobile ? "46px" : "6px"}; }`}</style>
 
       <MapContainer
         center={KU_CENTER}
@@ -345,8 +345,16 @@ export default function Map() {
             />
             <SearchControl
               geoData={geoData}
-              isMobile={isMobile}
               onBuildingSelect={handleBuildingSelectFromSearch}
+              favorites={favoritesList}
+              favoritesOpen={showFavorites}
+              onToggleFavorites={() => {
+                setFavoritesList(loadFavoritesFromStorage());
+                setShowFavorites((show) => !show);
+              }}
+              onSearchOpen={(open) => {
+                if (open) setShowFavorites(false);
+              }}
             />
           </>
         )}
@@ -372,10 +380,15 @@ export default function Map() {
               } as FeatureCollection
             }
             style={(feature) => ({
-              color: feature?.properties?.color,
+              color:
+                campusColor[feature?.properties?.campus] ??
+                feature?.properties?.color,
               weight: 2,
-              fillColor: feature?.properties?.color,
-              fillOpacity: 0.18,
+              opacity: 0.45,
+              fillColor:
+                campusColor[feature?.properties?.campus] ??
+                feature?.properties?.color,
+              fillOpacity: 0.05,
               dashArray: "5 4",
             })}
             interactive={false}
@@ -383,123 +396,52 @@ export default function Map() {
         )}
       </MapContainer>
 
-      {/* 고려대학교 사회공헌원 로고 */}
       <div
-        style={{
-          position: "absolute",
-          bottom: "calc(22px + env(safe-area-inset-bottom, 0px))",
-          right: 10,
-          zIndex: 1000,
-          background: "rgba(255,255,255,0.85)",
-          borderRadius: 6,
-          padding: "4px 8px",
-          pointerEvents: "none",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-          display: "flex",
-          alignItems: "center",
-        }}
+        className="ku-attribution"
+        data-hidden={isMobile && (mobileFilterOpen || Boolean(selectedBuilding))}
       >
-        <img
-          src="/kuis-logo.png"
-          alt="고려대학교 사회공헌원 KU Institute for Sustainability"
-          style={{ height: isMobile ? 20 : 28, display: "block" }}
-        />
+        <img src="/kuis-logo.png" alt="고려대학교 지속가능원" />
+        <span className="ku-attribution-separator" aria-hidden="true" />
+        <span>
+          Leaflet · © <a href="https://www.openstreetmap.org/copyright">OSM</a> · © CARTO
+        </span>
       </div>
 
-      {/* 항공사진 출처 라벨 */}
-      {tileMode === "satellite" && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: "calc(56px + env(safe-area-inset-bottom, 0px))",
-            right: 10,
-            zIndex: 1000,
-            background: "rgba(0,0,0,0.55)",
-            color: "#fff",
-            fontSize: 10,
-            padding: "3px 7px",
-            borderRadius: 4,
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
-          }}
+      <div
+        className="ku-map-actions"
+        data-panel-open={Boolean(selectedBuilding)}
+        data-overlay-open={mobileFilterOpen}
+      >
+        <button className="ku-map-action" type="button" onClick={locateUser} title="현재 위치" aria-label="현재 위치">
+          <span aria-hidden="true">📍</span>
+        </button>
+        <button
+          className="ku-map-action"
+          type="button"
+          onClick={() => setTileMode((mode) => (mode === "street" ? "satellite" : "street"))}
+          title={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
+          aria-label={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
         >
-          Esri World Imagery
-        </div>
-      )}
-
-      {/* 항공/지도 전환 버튼 */}
-      <button
-        onClick={() =>
-          setTileMode((m) => (m === "street" ? "satellite" : "street"))
-        }
-        title={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
-        style={{
-          position: "absolute",
-          top: isMobile ? 130 : 82,
-          right: 10,
-          zIndex: 1000,
-          width: 36,
-          height: 36,
-          borderRadius: 8,
-          background: tileMode === "satellite" ? "#1d4ed8" : "#fff",
-          border: "1px solid #ddd",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          cursor: "pointer",
-          fontSize: 18,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        {tileMode === "street" ? "🛰️" : "🗺️"}
-      </button>
-
-      {/* 즐겨찾기 버튼 */}
-      <button
-        onClick={() => {
-          setFavoritesList(loadFavoritesFromStorage());
-          setShowFavorites((v) => !v);
-        }}
-        title={t("favorites")}
-        style={{
-          position: "absolute",
-          top: 16,
-          left: 16,
-          zIndex: 1000,
-          width: 36,
-          height: 36,
-          borderRadius: 8,
-          background: showFavorites ? "#FEF08A" : "#fff",
-          borderWidth: 1,
-          borderStyle: "solid",
-          borderColor: "#ddd",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          cursor: "pointer",
-          fontSize: 18,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        ⭐
-      </button>
-
-      <FeedbackButton isMobile={isMobile} />
-
-      <SlopeLegend show={showSlope} isMobile={isMobile} />
+          <span aria-hidden="true">{tileMode === "street" ? "🛰️" : "🗺️"}</span>
+        </button>
+        <FeedbackButton />
+      </div>
 
       <FavoritesList
         show={showFavorites}
         favorites={favoritesList}
-        isMobile={isMobile}
         onSelect={(id, name) => {
           handleSelectById(id, name);
           setShowFavorites(false);
         }}
-        onClose={() => setShowFavorites(false)}
       />
 
-      <LanguageSwitcher isMobile={isMobile} lang={lang} setLang={setLang} />
+      <LanguageSwitcher
+        isMobile={isMobile}
+        lang={lang}
+        setLang={setLang}
+        panelOpen={Boolean(selectedBuilding)}
+      />
 
       <FilterPanel
         isMobile={isMobile}
@@ -512,30 +454,12 @@ export default function Map() {
         setActiveCampuses={setActiveCampuses}
         showLandmarks={showLandmarks}
         setShowLandmarks={setShowLandmarks}
+        onOpenChange={setMobileFilterOpen}
       />
 
       {/* 툴팁 — 데스크탑만 */}
       {!isMobile && tooltip.visible && (
-        <div
-          style={{
-            position: "absolute",
-            left: tooltip.x,
-            top: tooltip.y,
-            background: "#fff",
-            borderWidth: 1,
-            borderStyle: "solid",
-            borderColor: "#ddd",
-            borderRadius: 6,
-            padding: "6px 10px",
-            fontSize: 13,
-            fontWeight: 500,
-            color: "#333",
-            pointerEvents: "none",
-            zIndex: 1000,
-            boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <div className="ku-map-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
           {lang === "ko" ? tooltip.name : (tooltip.name_en ?? tooltip.name)}
         </div>
       )}

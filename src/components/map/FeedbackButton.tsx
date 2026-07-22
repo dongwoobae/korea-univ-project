@@ -1,12 +1,15 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { FEEDBACK_EMAILS_FALLBACK, getSetting } from "@/lib/settings";
-import { useLanguage } from "@/lib/LanguageContext";
 
-export default function FeedbackButton({ isMobile }) {
-  const [showFeedback, setShowFeedback] = useState(false);
+const FEEDBACK_TYPES = ["오류 제보", "시설 정보 수정", "기능 제안", "기타"];
+
+export default function FeedbackButton() {
+  const [open, setOpen] = useState(false);
   const [emails, setEmails] = useState(FEEDBACK_EMAILS_FALLBACK);
-  const { t } = useLanguage();
+  const [type, setType] = useState(FEEDBACK_TYPES[0]);
+  const [content, setContent] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -18,100 +21,83 @@ export default function FeedbackButton({ isMobile }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
+  function sendFeedback() {
+    const params = new URLSearchParams({
+      subject: `${emails.subject} · ${type}`,
+      body: `유형: ${type}\n\n내용:\n${content.trim()}\n\n페이지: ${window.location.href}`,
+    });
+    if (emails.cc.length > 0) params.set("cc", emails.cc.join(","));
+    window.location.href = `mailto:${emails.to}?${params.toString()}`;
+    setOpen(false);
+  }
+
   return (
-    <div
-      onMouseEnter={() => setShowFeedback(true)}
-      onMouseLeave={() => setShowFeedback(false)}
-      style={{
-        position: "absolute",
-        ...(isMobile ? { top: 60, left: 16 } : { top: 160, left: 16 }),
-        zIndex: showFeedback ? 1100 : 1000,
-      }}
-    >
-      <div
-        style={{
-          height: 28,
-          padding: "0 10px",
-          borderRadius: showFeedback ? "8px 8px 0 0" : 8,
-          background: showFeedback ? "#2563EB" : "#fff",
-          borderWidth: 1,
-          borderStyle: "solid",
-          borderColor: "#ddd",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-          cursor: "default",
-          fontSize: 12,
-          color: showFeedback ? "#fff" : "#555",
-          fontWeight: 500,
-          display: "flex",
-          alignItems: "center",
-          userSelect: "none",
-          width: "fit-content",
-        }}
+    <>
+      <button
+        className="ku-map-action ku-map-action--primary"
+        type="button"
+        onClick={() => setOpen(true)}
+        title="피드백 보내기"
+        aria-label="피드백 보내기"
       >
-        {t("feedback")}
-      </div>
-      <div
-        style={{
-          overflow: "hidden",
-          maxHeight: showFeedback ? 200 : 0,
-          transition: "max-height 0.25s ease",
-          background: "#fff",
-          borderTopWidth: 0,
-          borderRightWidth: showFeedback ? 1 : 0,
-          borderBottomWidth: showFeedback ? 1 : 0,
-          borderLeftWidth: showFeedback ? 1 : 0,
-          borderStyle: "solid",
-          borderColor: "#ddd",
-          borderRadius: "0 8px 8px 8px",
-          boxShadow: showFeedback ? "0 4px 16px rgba(0,0,0,0.12)" : "none",
-          width: 220,
-        }}
-      >
-        <div style={{ padding: 14 }}>
-          <div
-            style={{
-              fontSize: 11,
-              color: "#888",
-              marginBottom: 8,
-              lineHeight: 1.8,
-            }}
-          >
-            <div>
-              <span style={{ color: "#555", fontWeight: 600 }}>
-                {t("feedbackTo")}
-              </span>{" "}
-              {emails.to}
+        <span aria-hidden="true">💬</span>
+      </button>
+
+      {open && (
+        <div
+          className="ku-feedback-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setOpen(false);
+          }}
+        >
+          <div className="ku-feedback-modal" role="dialog" aria-modal="true" aria-labelledby="feedback-title">
+            <div className="ku-feedback-header">
+              <h2 className="ku-feedback-title" id="feedback-title">피드백 보내기</h2>
+              <button className="ku-feedback-close" type="button" onClick={() => setOpen(false)} aria-label="닫기">✕</button>
             </div>
-            <div>
-              <span style={{ color: "#555", fontWeight: 600 }}>
-                {t("feedbackCc")}
-              </span>{" "}
-              {Array.isArray(emails.cc) ? emails.cc.join(", ") : emails.cc}
+            <p className="ku-feedback-help">
+              발견한 오류나 필요한 접근성 정보를 알려주세요. 메일 앱에서 내용을 확인한 뒤 전송할 수 있습니다.
+            </p>
+            <span className="ku-feedback-label">유형</span>
+            <div className="ku-feedback-types">
+              {FEEDBACK_TYPES.map((item) => (
+                <button
+                  className="ku-chip"
+                  type="button"
+                  key={item}
+                  data-active={type === item}
+                  onClick={() => setType(item)}
+                >
+                  {item}
+                </button>
+              ))}
             </div>
-            <div>
-              <span style={{ color: "#555", fontWeight: 600 }}>
-                {t("feedbackSubject")}
-              </span>{" "}
-              {emails.subject}
+            <label className="ku-feedback-label" htmlFor="feedback-content">내용</label>
+            <textarea
+              className="ku-feedback-textarea"
+              id="feedback-content"
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              placeholder="어떤 점을 개선하면 좋을지 적어주세요."
+              autoFocus
+            />
+            <div className="ku-feedback-actions">
+              <button className="ku-button" type="button" onClick={() => setOpen(false)}>취소</button>
+              <button className="ku-button ku-button--primary" type="button" onClick={sendFeedback} disabled={!content.trim()}>보내기</button>
             </div>
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: "#888",
-              background: "#f9fafb",
-              borderRadius: 5,
-              padding: "7px 9px",
-              lineHeight: 1.8,
-            }}
-          >
-            {t("feedbackTypeLine")}
-            <br />
-            <br />
-            {t("feedbackContentLine")}
           </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }

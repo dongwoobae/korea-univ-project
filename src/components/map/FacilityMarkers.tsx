@@ -9,9 +9,9 @@ import { FACILITY_COLORS } from "./facilityColors";
 const facilityMarkerIcon = (code: string, icon: string, id: string) =>
   L.divIcon({
     className: "",
-    html: `<div data-testid="facility-marker-${id}" style="width:30px;height:30px;background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};border:2.5px solid white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,0.25);">${icon}</div>`,
-    iconAnchor: [15, 15],
-    popupAnchor: [0, -18],
+    html: `<div data-testid="facility-marker-${id}" style="width:34px;height:34px;background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};border:2px solid white;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 7px rgba(28,25,23,0.28);transform:rotate(-45deg);"><span style="transform:rotate(45deg)">${icon}</span></div>`,
+    iconAnchor: [17, 30],
+    popupAnchor: [0, -30],
   });
 
 interface FacilityMarkersProps {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useLanguage } from "@/lib/LanguageContext";
 import type {
@@ -225,39 +225,6 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     return () => window.speechSynthesis?.cancel();
   }, []);
 
-  const transition = "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)";
-
-  const panelStyle: CSSProperties = isMobile
-    ? {
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        width: "100%",
-        height: "62vh",
-        background: "#fff",
-        borderRadius: "16px 16px 0 0",
-        zIndex: 1000,
-        overflowY: "auto",
-        boxShadow: "0 -4px 20px rgba(0,0,0,0.12)",
-        transform: visible ? "translateY(0)" : "translateY(100%)",
-        transition,
-      }
-    : {
-        position: "absolute",
-        top: 0,
-        right: 0,
-        width: 320,
-        height: "100%",
-        background: "#fff",
-        borderLeft: "1px solid #e5e7eb",
-        zIndex: 1000,
-        overflowY: "auto",
-        boxShadow: "-4px 0 12px rgba(0,0,0,0.08)",
-        transform: visible ? "translateX(0)" : "translateX(100%)",
-        transition,
-      };
-
   return (
     <>
       {/* 모바일 배경 터치 시 닫기 */}
@@ -273,25 +240,10 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         />
       )}
 
-      <div style={panelStyle}>
+      <aside className="ku-side-panel" data-visible={visible} aria-label={`${displayName} 접근성 정보`}>
         {/* 모바일 드래그 핸들 */}
         {isMobile && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              padding: "10px 0 4px",
-            }}
-          >
-            <div
-              style={{
-                width: 36,
-                height: 4,
-                borderRadius: 2,
-                background: "#ddd",
-              }}
-            />
-          </div>
+          <div className="ku-side-handle" aria-hidden="true" />
         )}
 
         {/* 헤더 */}
@@ -328,7 +280,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
           lastUpdated={building?.last_updated}
           t={t}
         />
-      </div>
+      </aside>
     </>
   );
 }
