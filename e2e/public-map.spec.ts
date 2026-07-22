@@ -54,6 +54,12 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.locator(".leaflet-control-attribution")).toContainText(
       "Esri",
     );
+    const satelliteBuilding = page
+      .locator(".leaflet-overlay-pane path.leaflet-interactive")
+      .first();
+    await expect(satelliteBuilding).toHaveAttribute("fill", "#963A32");
+    await satelliteBuilding.click();
+    await expect(page.getByText("중앙 엘리베이터")).toBeVisible();
   });
 
   test("건물 검색, 상세 패널, 즐겨찾기 영속성을 연결한다", async ({ page }) => {
