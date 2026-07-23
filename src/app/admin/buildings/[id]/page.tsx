@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import NextImage from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
@@ -17,6 +18,10 @@ import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
+import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
+import FacilityTranslationControl from "@/components/admin/FacilityTranslationControl";
+import type { Feature, Polygon } from "geojson";
+import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
 
 const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
@@ -24,6 +29,15 @@ const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
 });
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
+
+const DETAIL_SECTIONS = [
+  { id: "building-photos", label: "사진" },
+  { id: "building-name", label: "이름" },
+  { id: "building-college", label: "소속" },
+  { id: "building-polygon", label: "폴리곤" },
+  { id: "building-facilities", label: "시설" },
+  { id: "building-danger", label: "삭제·복구" },
+] as const;
 
 function getBuildingCenter(building): [number, number] {
   const geom = building?.geojson?.geometry;
@@ -53,6 +67,7 @@ export default function BuildingDetail() {
   const [savingCollege, setSavingCollege] = useState(false);
   const [nameForm, setNameForm] = useState({ name: "", name_en: "" });
   const [savingName, setSavingName] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editingPolygon, setEditingPolygon] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
@@ -62,28 +77,34 @@ export default function BuildingDetail() {
     null,
   );
   const [confirmDeleteBuilding, setConfirmDeleteBuilding] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(
+    null,
+  );
+  const [activeSection, setActiveSection] = useState<string>(
+    DETAIL_SECTIONS[0].id,
+  );
   const [videoModalFacility, setVideoModalFacility] =
     useState<FacilityWithType | null>(null);
+
+  const hasUnsavedNameChanges = Boolean(
+    building &&
+    (nameForm.name !== building.name ||
+      nameForm.name_en !== (building.name_en ?? "")),
+  );
+  const hasUnsavedCollegeChanges = Boolean(
+    building && selectedCollegeId !== building.college_id,
+  );
+  const unsavedChangeCount =
+    Number(hasUnsavedNameChanges) +
+    Number(hasUnsavedCollegeChanges) +
+    Number(editingPolygon);
+  const hasUnsavedChanges = unsavedChangeCount > 0;
 
   function showToast(message, type = "success") {
     setToast({ message, type });
   }
 
-  useEffect(() => {
-    async function init() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/admin");
-        return;
-      }
-      fetchData();
-    }
-    init();
-  }, []);
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     const [
       { data: buildingData },
       { data: facilitiesData },
@@ -108,6 +129,60 @@ export default function BuildingDetail() {
       name_en: buildingData?.name_en ?? "",
     });
     setLoading(false);
+  }, [id]);
+
+  useEffect(() => {
+    async function init() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/admin");
+        return;
+      }
+      await fetchData();
+    }
+    void init();
+  }, [fetchData, router]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visibleEntry) setActiveSection(visibleEntry.target.id);
+      },
+      { rootMargin: "-140px 0px -55% 0px", threshold: [0, 0.2, 0.6] },
+    );
+
+    DETAIL_SECTIONS.forEach(({ id: sectionId }) => {
+      const section = document.getElementById(sectionId);
+      if (section) observer.observe(section);
+    });
+
+    return () => observer.disconnect();
+  }, [loading]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  function navigateWithUnsavedCheck(href: string) {
+    if (hasUnsavedChanges) {
+      setPendingNavigation(href);
+      return;
+    }
+    router.push(href);
   }
 
   async function handleDeleteFacility(facility) {
@@ -165,7 +240,7 @@ export default function BuildingDetail() {
       showToast("저장에 실패했어요", "error");
       return;
     }
-    fetchData();
+    await fetchData();
     showToast("건물명이 저장되었어요!");
   }
 
@@ -180,15 +255,21 @@ export default function BuildingDetail() {
       showToast("저장에 실패했어요", "error");
       return;
     }
-    fetchData();
+    await fetchData();
     showToast("소속 단과대학이 저장되었어요!");
   }
 
   async function handleToggleInstalled(facility) {
-    await supabase
+    setTogglingId(facility.id);
+    const { error } = await supabase
       .from("building_facilities")
       .update({ is_installed: !facility.is_installed })
       .eq("id", facility.id);
+    setTogglingId(null);
+    if (error) {
+      showToast("변경에 실패했어요", "error");
+      return;
+    }
     fetchData();
     showToast(
       facility.is_installed ? "미설치로 변경되었어요" : "설치로 변경되었어요",
@@ -196,10 +277,16 @@ export default function BuildingDetail() {
   }
 
   if (loading)
-    return <div style={{ padding: 40, color: "#aaa" }}>불러오는 중...</div>;
+    return (
+      <div style={{ padding: 40, color: "var(--ku-text-3)" }}>
+        불러오는 중...
+      </div>
+    );
   if (!building)
     return (
-      <div style={{ padding: 40, color: "#aaa" }}>건물을 찾을 수 없어요</div>
+      <div style={{ padding: 40, color: "var(--ku-text-3)" }}>
+        건물을 찾을 수 없어요
+      </div>
     );
 
   const buildingCenter = getBuildingCenter(building);
@@ -210,8 +297,8 @@ export default function BuildingDetail() {
       <div
         className="ku-admin-detail-header"
         style={{
-          background: "#fff",
-          borderBottom: "1px solid #e5e7eb",
+          background: "var(--ku-surface)",
+          borderBottom: "1px solid var(--ku-border)",
           padding: "16px 24px",
           display: "flex",
           justifyContent: "space-between",
@@ -220,31 +307,32 @@ export default function BuildingDetail() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
-            onClick={() => router.push("/admin/dashboard")}
+            onClick={() => navigateWithUnsavedCheck("/admin/dashboard")}
+            aria-label="건물 목록으로 돌아가기"
             style={{
               background: "none",
               border: "none",
               cursor: "pointer",
               fontSize: 20,
-              color: "#888",
+              color: "var(--ku-text-2)",
             }}
           >
             ←
           </button>
           <div>
             <div style={{ fontSize: 18, fontWeight: 600 }}>{building.name}</div>
-            <div style={{ fontSize: 12, color: "#888" }}>
+            <div style={{ fontSize: 12, color: "var(--ku-text-2)" }}>
               {building.name_en}
             </div>
           </div>
         </div>
         <button
-          onClick={() => router.push("/")}
+          onClick={() => navigateWithUnsavedCheck("/")}
           style={{
             fontSize: 13,
-            color: "#555",
+            color: "var(--ku-text-2)",
             background: "none",
-            border: "1px solid #ddd",
+            border: "1px solid var(--ku-border)",
             borderRadius: 6,
             padding: "6px 12px",
             cursor: "pointer",
@@ -254,14 +342,49 @@ export default function BuildingDetail() {
         </button>
       </div>
 
+      <nav className="ku-admin-detail-section-nav" aria-label="건물 상세 섹션">
+        <div className="ku-admin-detail-section-nav-inner">
+          <div className="ku-admin-detail-section-links">
+            {DETAIL_SECTIONS.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                aria-current={
+                  activeSection === section.id ? "location" : undefined
+                }
+                onClick={() => setActiveSection(section.id)}
+              >
+                {section.label}
+              </a>
+            ))}
+          </div>
+          <div
+            className="ku-admin-detail-save-status"
+            data-unsaved={hasUnsavedChanges}
+            role="status"
+            aria-label={
+              hasUnsavedChanges
+                ? `저장하지 않은 변경 ${unsavedChangeCount}개`
+                : "모든 변경 저장됨"
+            }
+          >
+            {hasUnsavedChanges
+              ? `저장하지 않은 변경 ${unsavedChangeCount}개`
+              : "모든 변경 저장됨"}
+          </div>
+        </div>
+      </nav>
+
       <div className="ku-admin-detail-grid">
         {/* 건물 사진 */}
         <div
+          id="building-photos"
+          className="ku-admin-detail-card"
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
@@ -273,20 +396,38 @@ export default function BuildingDetail() {
 
         {/* 건물명 수정 */}
         <div
+          id="building-name"
+          className="ku-admin-detail-card"
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
-            건물명 수정
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              marginBottom: 16,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: 600 }}>건물명 수정</span>
+            {hasUnsavedNameChanges && (
+              <span className="ku-admin-detail-unsaved-label">저장 안 됨</span>
+            )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--ku-text-2)",
+                  marginBottom: 4,
+                }}
+              >
                 한국어
               </div>
               <input
@@ -298,7 +439,7 @@ export default function BuildingDetail() {
                 style={{
                   width: "100%",
                   padding: "8px 10px",
-                  border: "1px solid #ddd",
+                  border: "1px solid var(--ku-border)",
                   borderRadius: 6,
                   fontSize: 13,
                   outline: "none",
@@ -307,7 +448,13 @@ export default function BuildingDetail() {
               />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--ku-text-2)",
+                  marginBottom: 4,
+                }}
+              >
                 영어
               </div>
               <input
@@ -319,7 +466,7 @@ export default function BuildingDetail() {
                 style={{
                   width: "100%",
                   padding: "8px 10px",
-                  border: "1px solid #ddd",
+                  border: "1px solid var(--ku-border)",
                   borderRadius: 6,
                   fontSize: 13,
                   outline: "none",
@@ -333,7 +480,9 @@ export default function BuildingDetail() {
               style={{
                 alignSelf: "flex-end",
                 padding: "8px 20px",
-                background: savingName ? "#93c5fd" : "#2563EB",
+                background: savingName
+                  ? "var(--ku-primary-disabled)"
+                  : "var(--ku-primary)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 6,
@@ -348,16 +497,28 @@ export default function BuildingDetail() {
 
         {/* 소속 단과대학 */}
         <div
+          id="building-college"
+          className="ku-admin-detail-card"
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
-            소속 단과대학
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              marginBottom: 16,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: 600 }}>소속 단과대학</span>
+            {hasUnsavedCollegeChanges && (
+              <span className="ku-admin-detail-unsaved-label">저장 안 됨</span>
+            )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <select
@@ -370,11 +531,11 @@ export default function BuildingDetail() {
               style={{
                 flex: 1,
                 padding: "8px 10px",
-                border: "1px solid #ddd",
+                border: "1px solid var(--ku-border)",
                 borderRadius: 6,
                 fontSize: 13,
                 outline: "none",
-                background: "#fff",
+                background: "var(--ku-surface)",
               }}
             >
               <option value="">선택 안 함</option>
@@ -389,7 +550,7 @@ export default function BuildingDetail() {
               disabled={savingCollege}
               style={{
                 padding: "8px 16px",
-                background: "#2563EB",
+                background: "var(--ku-primary)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 6,
@@ -405,11 +566,13 @@ export default function BuildingDetail() {
 
         {/* 폴리곤 편집 */}
         <div
+          id="building-polygon"
+          className="ku-admin-detail-card"
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
             marginBottom: 20,
           }}
         >
@@ -422,12 +585,21 @@ export default function BuildingDetail() {
             }}
           >
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>건물 폴리곤</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 15, fontWeight: 600 }}>
+                  건물 폴리곤
+                </span>
+                {editingPolygon && (
+                  <span className="ku-admin-detail-unsaved-label">편집 중</span>
+                )}
+              </div>
               {!editingPolygon && (
                 <div
                   style={{
                     fontSize: 12,
-                    color: building?.geojson ? "#3B6D11" : "#aaa",
+                    color: building?.geojson
+                      ? "var(--ku-status-installed-fg)"
+                      : "var(--ku-text-3)",
                     marginTop: 4,
                   }}
                 >
@@ -444,8 +616,8 @@ export default function BuildingDetail() {
                   fontSize: 13,
                   padding: "6px 14px",
                   background: "none",
-                  border: "1px solid #2563EB",
-                  color: "#2563EB",
+                  border: "1px solid var(--ku-primary-text)",
+                  color: "var(--ku-primary-text)",
                   borderRadius: 8,
                   cursor: "pointer",
                 }}
@@ -457,19 +629,22 @@ export default function BuildingDetail() {
 
           {editingPolygon && (
             <PolygonEditor
-              geojson={building?.geojson ?? null}
+              geojson={
+                (building?.geojson as unknown as Feature<Polygon> | null) ??
+                null
+              }
               excludeId={id}
               onSave={async (newGeojson) => {
                 const { error } = await supabase
                   .from("buildings")
-                  .update({ geojson: newGeojson })
+                  .update({ geojson: newGeojson as unknown as Json })
                   .eq("id", id);
                 if (error) {
                   showToast("저장에 실패했어요", "error");
                   return;
                 }
                 setEditingPolygon(false);
-                fetchData();
+                await fetchData();
                 showToast("폴리곤이 저장되었어요!");
               }}
               onCancel={() => setEditingPolygon(false)}
@@ -479,11 +654,13 @@ export default function BuildingDetail() {
 
         {/* 시설 목록 */}
         <div
+          id="building-facilities"
+          className="ku-admin-detail-card"
           style={{
-            background: "#fff",
+            background: "var(--ku-surface)",
             borderRadius: 10,
             padding: 20,
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--ku-border)",
           }}
         >
           <div
@@ -508,7 +685,7 @@ export default function BuildingDetail() {
             <div
               style={{
                 textAlign: "center",
-                color: "#aaa",
+                color: "var(--ku-text-3)",
                 fontSize: 13,
                 padding: "20px 0",
               }}
@@ -522,22 +699,23 @@ export default function BuildingDetail() {
                 style={{
                   display: "flex",
                   alignItems: "center",
+                  flexWrap: "wrap",
                   gap: 12,
                   padding: "12px 0",
-                  borderBottom: "1px solid #f5f5f5",
+                  borderBottom: "1px solid var(--ku-border)",
                 }}
               >
                 <div style={{ fontSize: 20 }}>{f.facility_types?.icon}</div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 500 }}>
                     {f.name ?? f.facility_types?.label}
                   </div>
-                  <div style={{ fontSize: 12, color: "#888" }}>
+                  <div style={{ fontSize: 12, color: "var(--ku-text-2)" }}>
                     {f.description}
                     {f.floor_info && ` · ${f.floor_info}`}
                   </div>
                   {f.lat && (
-                    <div style={{ fontSize: 11, color: "#bbb" }}>
+                    <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
                       위도 {f.lat} / 경도 {f.lng}
                     </div>
                   )}
@@ -551,33 +729,34 @@ export default function BuildingDetail() {
                     border: "1px solid",
                     cursor: "pointer",
                     fontWeight: 500,
-                    background: f.video_url ? "#EFF6FF" : "none",
-                    borderColor: f.video_url ? "#2563EB" : "#d1d5db",
-                    color: f.video_url ? "#2563EB" : "#6b7280",
+                    background: f.video_url
+                      ? "var(--ku-primary-soft-bg)"
+                      : "none",
+                    borderColor: f.video_url
+                      ? "var(--ku-primary-text)"
+                      : "var(--ku-border)",
+                    color: f.video_url
+                      ? "var(--ku-primary-text)"
+                      : "var(--ku-text-2)",
                   }}
                 >
                   {f.video_url ? "동영상 ✓" : "동영상"}
                 </button>
-                <button
-                  onClick={() => handleToggleInstalled(f)}
-                  style={{
-                    fontSize: 12,
-                    padding: "4px 10px",
-                    borderRadius: 20,
-                    border: "none",
-                    cursor: "pointer",
-                    fontWeight: 500,
-                    background: f.is_installed ? "#EAF3DE" : "#FCEBEB",
-                    color: f.is_installed ? "#3B6D11" : "#A32D2D",
-                  }}
-                >
-                  {f.is_installed ? "설치" : "미설치"}
-                </button>
+                <FacilityInstallationControl
+                  installed={f.is_installed}
+                  pending={togglingId === f.id}
+                  onToggle={() => handleToggleInstalled(f)}
+                />
+                <FacilityTranslationControl
+                  facility={f}
+                  onTranslated={fetchData}
+                  showToast={showToast}
+                />
                 <button
                   onClick={() => setConfirmModal(f)}
                   style={{
                     fontSize: 12,
-                    color: "#DC2626",
+                    color: "var(--ku-danger)",
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -590,6 +769,8 @@ export default function BuildingDetail() {
           )}
         </div>
         <div
+          id="building-danger"
+          className="ku-admin-detail-danger"
           style={{
             display: "flex",
             justifyContent: "center",
@@ -604,7 +785,7 @@ export default function BuildingDetail() {
               style={{
                 fontSize: 13,
                 color: "#fff",
-                background: "#2563EB",
+                background: "var(--ku-primary)",
                 border: "none",
                 borderRadius: 6,
                 padding: "8px 20px",
@@ -619,9 +800,9 @@ export default function BuildingDetail() {
               onClick={() => setConfirmDeleteBuilding(true)}
               style={{
                 fontSize: 13,
-                color: "#DC2626",
+                color: "var(--ku-danger)",
                 background: "none",
-                border: "1px solid #DC2626",
+                border: "1px solid var(--ku-danger)",
                 borderRadius: 6,
                 padding: "8px 20px",
                 cursor: "pointer",
@@ -661,6 +842,20 @@ export default function BuildingDetail() {
           onCancel={() => setConfirmDeleteBuilding(false)}
         />
       )}
+
+      {pendingNavigation && (
+        <ConfirmModal
+          message="저장하지 않은 변경사항이 있어요"
+          description="지금 이동하면 건물 이름, 소속 또는 폴리곤 편집 내용이 사라질 수 있어요."
+          confirmLabel="저장하지 않고 이동"
+          onConfirm={() => {
+            const href = pendingNavigation;
+            setPendingNavigation(null);
+            router.push(href);
+          }}
+          onCancel={() => setPendingNavigation(null)}
+        />
+      )}
       {videoModalFacility && (
         <FacilityVideoModal
           facility={videoModalFacility}
@@ -676,9 +871,28 @@ export default function BuildingDetail() {
   );
 }
 
+type PhotoUploadStatus =
+  "queued" | "compressing" | "uploading" | "success" | "error";
+
+interface PhotoUploadItem {
+  id: string;
+  file: File;
+  status: PhotoUploadStatus;
+  error?: string;
+}
+
+const photoUploadStatusLabel: Record<PhotoUploadStatus, string> = {
+  queued: "대기 중",
+  compressing: "압축 중",
+  uploading: "업로드 중",
+  success: "완료",
+  error: "실패",
+};
+
 function PhotoManager({ buildingId, showToast }) {
   const [photos, setPhotos] = useState<BuildingPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadItems, setUploadItems] = useState<PhotoUploadItem[]>([]);
   const [confirmDeletePhoto, setConfirmDeletePhoto] =
     useState<BuildingPhoto | null>(null);
   const [draftCaptions, setDraftCaptions] = useState<Record<string, string>>(
@@ -686,11 +900,7 @@ function PhotoManager({ buildingId, showToast }) {
   );
   const [savingCaption, setSavingCaption] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchPhotos();
-  }, []);
-
-  async function fetchPhotos() {
+  const fetchPhotos = useCallback(async () => {
     const { data } = await supabase
       .from("building_photos")
       .select("*")
@@ -702,7 +912,12 @@ function PhotoManager({ buildingId, showToast }) {
       initial[p.id] = p.caption ?? "";
     });
     setDraftCaptions(initial);
-  }
+  }, [buildingId]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void fetchPhotos(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchPhotos]);
 
   async function handleSaveCaption(photoId) {
     const caption = draftCaptions[photoId] ?? "";
@@ -785,45 +1000,124 @@ function PhotoManager({ buildingId, showToast }) {
     });
   }
 
-  async function handleUpload(e) {
-    const files = Array.from(e.target.files as FileList);
-    if (!files.length) return;
+  function updateUploadItem(
+    id: string,
+    status: PhotoUploadStatus,
+    error?: string,
+  ) {
+    setUploadItems((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status, error } : item,
+      ),
+    );
+  }
+
+  async function uploadPhoto(item: PhotoUploadItem) {
+    updateUploadItem(item.id, "compressing");
+    let blob: Blob;
+    try {
+      blob = (await convertToWebP(item.file)) as Blob;
+    } catch (error) {
+      return {
+        ...item,
+        status: "error" as const,
+        error:
+          error instanceof Error ? error.message : "이미지 압축에 실패했어요",
+      };
+    }
+
+    updateUploadItem(item.id, "uploading");
+    const formData = new FormData();
+    formData.append("file", blob, "photo.webp");
+    formData.append("buildingId", String(buildingId));
+    formData.append("originalName", item.file.name);
+
+    try {
+      const res = await authedFetch("/api/upload-building-photo", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        return {
+          ...item,
+          status: "error" as const,
+          error: data.error ?? `서버 응답 오류 (${res.status})`,
+        };
+      }
+      return { ...item, status: "success" as const, error: undefined };
+    } catch {
+      return {
+        ...item,
+        status: "error" as const,
+        error: "네트워크 오류가 발생했어요",
+      };
+    }
+  }
+
+  async function runUploads(
+    targets: PhotoUploadItem[],
+    existingSuccessCount: number,
+  ) {
+    if (targets.length === 0) return;
     setUploading(true);
-
-    let successCount = 0;
-    for (const file of files) {
-      let blob;
-      try {
-        blob = await convertToWebP(file);
-      } catch {
-        showToast(`${file.name} 변환 실패`, "error");
-        continue;
-      }
-
-      const formData = new FormData();
-      formData.append("file", blob, "photo.webp");
-      formData.append("buildingId", buildingId);
-
-      try {
-        const res = await authedFetch("/api/upload-building-photo", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          showToast(`업로드 실패: ${data.error}`, "error");
-          continue;
-        }
-        successCount++;
-      } catch {
-        showToast("네트워크 오류가 발생했어요", "error");
-      }
+    const results: PhotoUploadItem[] = [];
+    for (const target of targets) {
+      const result = await uploadPhoto(target);
+      results.push(result);
+      updateUploadItem(result.id, result.status, result.error);
     }
 
     await fetchPhotos();
     setUploading(false);
+    const successCount =
+      existingSuccessCount +
+      results.filter((item) => item.status === "success").length;
+    const failureCount = results.filter(
+      (item) => item.status === "error",
+    ).length;
+    showToast(
+      failureCount > 0
+        ? `${successCount}장 업로드 완료 · ${failureCount}장 실패`
+        : `${successCount}장 업로드됐어요!`,
+      failureCount > 0 ? "warning" : "success",
+    );
+  }
+
+  async function handleUpload(e) {
+    const files = Array.from(e.target.files as FileList);
     e.target.value = "";
-    if (successCount > 0) showToast(`${successCount}장 업로드됐어요!`);
+    if (!files.length) return;
+    const batchId = Date.now();
+    const items = files.map((file, index) => ({
+      id: `${batchId}-${index}`,
+      file,
+      status: "queued" as const,
+    }));
+    setUploadItems(items);
+    await runUploads(items, 0);
+  }
+
+  async function handleRetryFailed() {
+    const failed = uploadItems
+      .filter((item) => item.status === "error")
+      .map((item) => ({
+        ...item,
+        status: "queued" as const,
+        error: undefined,
+      }));
+    const failedIds = new Set(failed.map((item) => item.id));
+    setUploadItems((current) =>
+      current.map((item) =>
+        failedIds.has(item.id)
+          ? { ...item, status: "queued", error: undefined }
+          : item,
+      ),
+    );
+    await runUploads(
+      failed,
+      uploadItems.filter((item) => item.status === "success").length,
+    );
   }
 
   async function handleDelete(photo) {
@@ -849,12 +1143,12 @@ function PhotoManager({ buildingId, showToast }) {
           style={{
             width: "100%",
             height: 120,
-            background: "#f5f5f5",
+            background: "var(--ku-border)",
             borderRadius: 8,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#aaa",
+            color: "var(--ku-text-3)",
             fontSize: 13,
           }}
         >
@@ -874,12 +1168,13 @@ function PhotoManager({ buildingId, showToast }) {
               style={{ display: "flex", flexDirection: "column", gap: 4 }}
             >
               <div style={{ position: "relative", aspectRatio: "4/3" }}>
-                <img
+                <NextImage
                   src={photo.url}
                   alt={photo.caption ?? ""}
+                  fill
+                  sizes="(max-width: 767px) 30vw, 180px"
+                  unoptimized
                   style={{
-                    width: "100%",
-                    height: "100%",
                     objectFit: "cover",
                     borderRadius: 6,
                   }}
@@ -893,7 +1188,7 @@ function PhotoManager({ buildingId, showToast }) {
                     width: 22,
                     height: 22,
                     borderRadius: "50%",
-                    background: "rgba(0,0,0,0.55)",
+                    background: "var(--ku-overlay)",
                     color: "#fff",
                     border: "none",
                     cursor: "pointer",
@@ -921,11 +1216,14 @@ function PhotoManager({ buildingId, showToast }) {
                   width: "100%",
                   fontSize: 11,
                   padding: "4px 6px",
-                  border: "1px solid #e5e7eb",
+                  border: "1px solid var(--ku-border)",
                   borderRadius: 4,
                   outline: "none",
-                  color: "#374151",
-                  background: savingCaption === photo.id ? "#f9fafb" : "#fff",
+                  color: "var(--ku-text-1)",
+                  background:
+                    savingCaption === photo.id
+                      ? "var(--ku-divider)"
+                      : "var(--ku-surface)",
                 }}
               />
             </div>
@@ -937,7 +1235,7 @@ function PhotoManager({ buildingId, showToast }) {
           display: "inline-block",
           marginTop: 12,
           padding: "8px 16px",
-          background: "#2563EB",
+          background: "var(--ku-primary)",
           color: "#fff",
           borderRadius: 8,
           fontSize: 13,
@@ -955,6 +1253,61 @@ function PhotoManager({ buildingId, showToast }) {
           style={{ display: "none" }}
         />
       </label>
+      {uploadItems.length > 0 && (
+        <div
+          className="ku-photo-upload-panel"
+          aria-label="사진 업로드 진행 상황"
+        >
+          <div
+            className="ku-photo-upload-summary"
+            role="status"
+            aria-live="polite"
+            aria-label={`성공 ${
+              uploadItems.filter((item) => item.status === "success").length
+            }개 · 실패 ${
+              uploadItems.filter((item) => item.status === "error").length
+            }개${uploading ? " · 처리 중" : ""}`}
+          >
+            성공{" "}
+            {uploadItems.filter((item) => item.status === "success").length}개 ·
+            실패 {uploadItems.filter((item) => item.status === "error").length}
+            개{uploading ? " · 처리 중" : ""}
+          </div>
+          <ul className="ku-photo-upload-list">
+            {uploadItems.map((item) => (
+              <li key={item.id} data-status={item.status}>
+                <span className="ku-photo-upload-name" title={item.file.name}>
+                  {item.file.name}
+                </span>
+                <span className="ku-photo-upload-state">
+                  {photoUploadStatusLabel[item.status]}
+                  {item.error ? ` · ${item.error}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {!uploading &&
+            uploadItems.some((item) => item.status === "error") && (
+              <button
+                type="button"
+                className="ku-photo-upload-retry"
+                onClick={handleRetryFailed}
+              >
+                실패한 사진 다시 시도
+              </button>
+            )}
+          {!uploading &&
+            uploadItems.every((item) => item.status === "success") && (
+              <button
+                type="button"
+                className="ku-photo-upload-clear"
+                onClick={() => setUploadItems([])}
+              >
+                업로드 결과 닫기
+              </button>
+            )}
+        </div>
+      )}
       {confirmDeletePhoto && (
         <ConfirmModal
           message="사진을 삭제할까요?"

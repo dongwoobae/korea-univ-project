@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import "./admin-ui.css";
 
 export default function AdminLogin() {
@@ -22,7 +23,7 @@ export default function AdminLogin() {
       }
     }
     checkSession();
-  }, []);
+  }, [router]);
 
   async function handleLogin() {
     setLoading(true);
@@ -45,7 +46,7 @@ export default function AdminLogin() {
   return (
     <div className="ku-admin-login-shell">
       <div className="ku-admin-login-card">
-        <img src="/favicon.png" alt="고려대학교" />
+        <Image src="/favicon.png" alt="고려대학교" width={44} height={44} />
         <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
           관리자 로그인
         </div>
@@ -54,7 +55,7 @@ export default function AdminLogin() {
           <label
             style={{
               fontSize: 13,
-              color: "#555",
+              color: "var(--ku-text-2)",
               display: "block",
               marginBottom: 6,
             }}
@@ -73,7 +74,7 @@ export default function AdminLogin() {
           <label
             style={{
               fontSize: 13,
-              color: "#555",
+              color: "var(--ku-text-2)",
               display: "block",
               marginBottom: 6,
             }}
@@ -90,7 +91,13 @@ export default function AdminLogin() {
         </div>
 
         {error && (
-          <div style={{ fontSize: 13, color: "#DC2626", marginBottom: 16 }}>
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--ku-danger)",
+              marginBottom: 16,
+            }}
+          >
             {error}
           </div>
         )}
@@ -101,7 +108,7 @@ export default function AdminLogin() {
           style={{
             width: "100%",
             padding: "12px",
-            background: "#8C0000",
+            background: "var(--ku-crimson-700)",
             color: "#fff",
             border: "none",
             borderRadius: 8,
@@ -120,8 +127,8 @@ export default function AdminLogin() {
             width: "100%",
             padding: "12px",
             background: "none",
-            color: "#888",
-            border: "1px solid #ddd",
+            color: "var(--ku-text-2)",
+            border: "1px solid var(--ku-border)",
             borderRadius: 8,
             fontSize: 15,
             cursor: "pointer",

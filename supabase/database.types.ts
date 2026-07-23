@@ -32,6 +32,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      feedback_submissions: {
+        Row: {
+          content: string;
+          created_at: string;
+          feedback_type: string;
+          id: string;
+          page_url: string | null;
+          status: string;
+        };
+        Insert: {
+          content: string;
+          created_at?: string;
+          feedback_type: string;
+          id?: string;
+          page_url?: string | null;
+          status?: string;
+        };
+        Update: {
+          content?: string;
+          created_at?: string;
+          feedback_type?: string;
+          id?: string;
+          page_url?: string | null;
+          status?: string;
+        };
+        Relationships: [];
+      };
       building_facilities: {
         Row: {
           building_id: number | null;
@@ -50,10 +77,12 @@ export type Database = {
           name: string | null;
           name_en: string | null;
           name_zh: string | null;
+          translation_status: string;
           video_caption: string | null;
           video_caption_en: string | null;
           video_caption_zh: string | null;
           video_url: string | null;
+          updated_at: string;
         };
         Insert: {
           building_id?: number | null;
@@ -72,10 +101,12 @@ export type Database = {
           name?: string | null;
           name_en?: string | null;
           name_zh?: string | null;
+          translation_status?: string;
           video_caption?: string | null;
           video_caption_en?: string | null;
           video_caption_zh?: string | null;
           video_url?: string | null;
+          updated_at?: string;
         };
         Update: {
           building_id?: number | null;
@@ -94,10 +125,12 @@ export type Database = {
           name?: string | null;
           name_en?: string | null;
           name_zh?: string | null;
+          translation_status?: string;
           video_caption?: string | null;
           video_caption_en?: string | null;
           video_caption_zh?: string | null;
           video_url?: string | null;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -261,6 +294,7 @@ export type Database = {
           name_en: string | null;
           name_zh: string | null;
           photo_url: string | null;
+          updated_at: string;
         };
         Insert: {
           created_at?: string | null;
@@ -276,6 +310,7 @@ export type Database = {
           name_en?: string | null;
           name_zh?: string | null;
           photo_url?: string | null;
+          updated_at?: string;
         };
         Update: {
           created_at?: string | null;
@@ -291,6 +326,7 @@ export type Database = {
           name_en?: string | null;
           name_zh?: string | null;
           photo_url?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -301,6 +337,7 @@ export type Database = {
           id: string;
           name: string;
           segments: Json;
+          updated_at: string;
         };
         Insert: {
           created_at?: string | null;
@@ -308,6 +345,7 @@ export type Database = {
           id?: string;
           name: string;
           segments: Json;
+          updated_at?: string;
         };
         Update: {
           created_at?: string | null;
@@ -315,6 +353,7 @@ export type Database = {
           id?: string;
           name?: string;
           segments?: Json;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -323,7 +362,17 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      get_admin_building_summary: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          missing_facility_count: number;
+          missing_location_count: number;
+          missing_photo_count: number;
+          registered_facility_count: number;
+          stale_update_count: number;
+          translation_needed_count: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;

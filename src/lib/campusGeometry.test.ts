@@ -3,6 +3,7 @@ import type { FeatureCollection, Polygon } from "geojson";
 import {
   assignCampusesToBuildings,
   inferCampusFromGeometry,
+  inferCampusFromPoint,
 } from "./campusGeometry";
 
 const boundaries: FeatureCollection<Polygon, { campus: string }> = {
@@ -52,6 +53,12 @@ function building(coordinates: number[][]) {
 }
 
 describe("campus geometry", () => {
+  it("좌표가 포함된 캠퍼스를 반환하고 경계 밖 좌표는 null을 반환한다", () => {
+    expect(inferCampusFromPoint([2, 2], boundaries)).toBe("서쪽");
+    expect(inferCampusFromPoint([8, 2], boundaries)).toBe("동쪽");
+    expect(inferCampusFromPoint([12, 2], boundaries)).toBeNull();
+  });
+
   it("건물 영역이 포함된 캠퍼스를 반환한다", () => {
     expect(
       inferCampusFromGeometry(

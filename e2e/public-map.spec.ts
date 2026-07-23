@@ -22,10 +22,10 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       page.locator('[data-testid^="landmark-marker-"]').first(),
     ).toHaveText("🐿️");
     await expect(
-      page.getByRole("button", { name: /캠퍼스 선택 0/ }),
+      page.getByRole("button", { name: /캠퍼스 영역/ }),
     ).toHaveAttribute("aria-expanded", "false");
     await expect(
-      page.getByRole("button", { name: /시설 선택 0/ }),
+      page.getByRole("button", { name: /시설 [▼▲]/ }),
     ).toHaveAttribute("aria-expanded", "false");
     const filterBox = await page.locator(".ku-filter-panel").boundingBox();
     expect(filterBox?.height).toBeLessThan(400);
@@ -129,7 +129,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
     ).toHaveCount(0);
-    await page.getByRole("button", { name: /시설 선택 0/ }).click();
+    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
@@ -150,12 +150,72 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByRole("checkbox", { name: /경사도/ })).toBeChecked();
   });
 
+  test("낮은 줌에서 라벨과 가까운 마커를 정리하고 확대하면 펼친다", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await expect(page.getByTestId("landmark-label")).toHaveCount(0);
+    await expect(page.getByTestId("subway-label")).toHaveCount(0);
+
+    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: /경사로/ }).click();
+    await page.getByRole("button", { name: /엘리베이터/ }).click();
+
+    await expect(page.getByTestId("facility-marker-cluster")).toHaveCount(1);
+    await page
+      .getByTestId("facility-marker-cluster")
+      .locator("..")
+      .evaluate((marker: HTMLElement) => marker.click());
+
+    await expect(page.getByTestId("facility-marker-cluster")).toHaveCount(0);
+    await expect(
+      page.locator(
+        '[data-testid^="facility-marker-"]:not([data-testid$="cluster"])',
+      ),
+    ).toHaveCount(2);
+    await expect(page.getByTestId("landmark-label")).toBeVisible();
+    await expect(page.getByTestId("subway-label").first()).toBeVisible();
+  });
+
+  test("현재 지도 범위의 시설과 명소를 목록으로 탐색한다", async ({ page }) => {
+    await page.goto("/");
+
+    const browseTrigger = page.getByRole("button", {
+      name: /현재 지도 목록 1/,
+    });
+    await expect(browseTrigger).toBeVisible();
+    await browseTrigger.click();
+    await expect(
+      page.getByRole("heading", { name: "현재 지도 안의 시설과 명소" }),
+    ).toBeVisible();
+    await expect(page.getByText("다람쥐길", { exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "현재 지도 목록 닫기" }).click();
+    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: /경사로/ }).click();
+    await expect(
+      page.getByRole("button", { name: /현재 지도 목록 2/ }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /현재 지도 목록 2/ }).click();
+    await page
+      .getByRole("button", { name: /중앙광장 경사로.*지도 보기/ })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "현재 지도 안의 시설과 명소" }),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="facility-marker-f-installed"]'),
+    ).toBeVisible();
+  });
+
   test("영어와 중국어에서 시설과 명소 팝업을 번역한다", async ({ page }) => {
     await page.goto("/");
     await page.getByTitle("English").click();
 
     await expect(page.getByPlaceholder("Search buildings...")).toBeVisible();
-    await page.getByRole("button", { name: /Facilities Selected 0/ }).click();
+    await page.getByRole("button", { name: /Facilities [▼▲]/ }).click();
     await page.getByRole("button", { name: /Ramp/ }).click();
     await page
       .locator('[data-testid="facility-marker-f-installed"]')
@@ -181,7 +241,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
 
     await page.getByRole("button", { name: /시설 필터/ }).click();
     await expect(
-      page.getByRole("button", { name: /캠퍼스 선택 0/ }),
+      page.getByRole("button", { name: /캠퍼스 영역/ }),
     ).toBeVisible();
     await expect(page.getByText("명소", { exact: true })).toBeVisible();
 
@@ -189,6 +249,82 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       () => document.documentElement.scrollWidth,
     );
     expect(scrollWidth).toBeLessThanOrEqual(390);
+  });
+
+  test("시스템 색상 모드에 맞춰 기본 지도 타일을 교체한다", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/");
+
+    await expect(
+      page.locator('.leaflet-tile[src*="/dark_all/"]').first(),
+    ).toBeAttached();
+    await expect(
+      page.locator(".leaflet-overlay-pane path.leaflet-interactive").first(),
+    ).toHaveAttribute("fill", "#FF4D3D");
+
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(
+      page.locator('.leaflet-tile[src*="/light_all/"]').first(),
+    ).toBeAttached();
+    await expect(page.locator('.leaflet-tile[src*="/dark_all/"]')).toHaveCount(
+      0,
+    );
+    await expect(
+      page.locator(".leaflet-overlay-pane path.leaflet-interactive").first(),
+    ).toHaveAttribute("fill", "#963A32");
+  });
+
+  test("피드백을 서버로 제출하고 개인정보 안내를 제공한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page);
+    await page.goto("/");
+
+    await page.getByTitle("피드백 보내기").click();
+    await expect(
+      page.getByText("이름·연락처는 수집하지 않습니다", { exact: false }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "시설 정보 수정" }).click();
+    await page
+      .getByLabel("내용")
+      .fill("중앙광장 경사로 위치를 다시 확인해주세요.");
+    await page.getByRole("button", { name: "제출하기" }).click();
+
+    await expect(
+      page.getByText("피드백이 접수되었습니다", { exact: false }),
+    ).toBeVisible();
+    expect(state.feedbackSubmissions).toHaveLength(1);
+    expect(state.feedbackSubmissions[0]).toMatchObject({
+      type: "facility",
+      content: "중앙광장 경사로 위치를 다시 확인해주세요.",
+    });
+  });
+
+  test("피드백 서버 제출 실패 시 재시도와 메일 대안을 제공한다", async ({
+    page,
+  }) => {
+    await page.route("**/api/feedback", (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "test failure" }),
+      }),
+    );
+    await page.goto("/");
+
+    await page.getByTitle("피드백 보내기").click();
+    await page.getByLabel("내용").fill("제출 실패 상태를 확인합니다.");
+    await page.getByRole("button", { name: "제출하기" }).click();
+
+    await expect(
+      page.getByRole("alert").filter({ hasText: "서버 제출에 실패했습니다" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "메일 앱으로 피드백 보내기" }),
+    ).toHaveAttribute("href", /^mailto:/);
+    await expect(page.getByRole("button", { name: "제출하기" })).toBeEnabled();
   });
 
   test("지도 영역 밖의 현재 위치는 이동하지 않고 안내한다", async ({
@@ -219,12 +355,9 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       .toContain("중앙도서관");
 
     await page.getByRole("button", { name: "닫기" }).click();
-    page.once("dialog", async (dialog) => {
-      expect(dialog.message()).toBe(
-        "이 브라우저는 음성 인식을 지원하지 않습니다",
-      );
-      await dialog.accept();
-    });
     await page.getByTitle("음성 검색").click();
+    await expect(
+      page.getByText("이 브라우저는 음성 인식을 지원하지 않습니다"),
+    ).toBeVisible();
   });
 });

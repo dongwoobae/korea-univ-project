@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { LangCode } from "@/lib/translations";
 import type { BuildingPhoto } from "@/types/domain";
 
@@ -39,14 +40,14 @@ export default function PhotoCarousel({
             overflow: "hidden",
           }}
         >
-          <img
+          <Image
             src={photos[photoIndex]?.url}
             alt={displayName}
+            fill
+            sizes="(max-width: 767px) calc(100vw - 40px), 380px"
+            unoptimized
             style={{
-              width: "100%",
-              height: "100%",
               objectFit: "cover",
-              display: "block",
             }}
           />
           {photos.length > 1 && (

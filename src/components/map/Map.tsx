@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import Image from "next/image";
+import {
+  MapContainer,
+  TileLayer,
+  GeoJSON,
+  Marker,
+  Circle,
+  useMap,
+} from "react-leaflet";
 import L from "leaflet";
 import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
-import type { Favorite } from "@/types/domain";
+import type { Favorite, Landmark, MapFacility } from "@/types/domain";
 import { campusColor, satelliteCampusColor } from "@/lib/theme";
 import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
@@ -20,16 +28,29 @@ import FacilityMarkers from "./FacilityMarkers";
 import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
 import { useMapData } from "./useMapData";
+import MapErrorBanner from "./MapErrorBanner";
+import MapBrowseList, { type MapBrowseItem } from "./MapBrowseList";
+import MapViewportObserver, {
+  containsMapPoint,
+  type MapViewport,
+} from "./MapViewportObserver";
+import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
+import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import "./map-ui.css";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
 
+const userLocationIcon = L.divIcon({
+  className: "ku-user-location",
+  html: '<span class="ku-user-location-dot"></span>',
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
+
 const TILES = {
   street: {
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors &middot; &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
+    attribution: CARTO_ATTRIBUTION,
     subdomains: "abcd",
   },
   satellite: {
@@ -58,16 +79,17 @@ function loadFavoritesFromStorage() {
   }
 }
 
-function buildingColor(feature, tileMode) {
-  const colors = tileMode === "satellite" ? satelliteCampusColor : campusColor;
+function buildingColor(feature, tileMode, prefersDarkMode) {
+  const useBrightColors = tileMode === "satellite" || prefersDarkMode;
+  const colors = useBrightColors ? satelliteCampusColor : campusColor;
   return (
     colors[feature?.properties?.campus] ??
-    (tileMode === "satellite" ? "#FF4D3D" : "#963A32")
+    (useBrightColors ? "#FF4D3D" : "#963A32")
   );
 }
 
-function baseStyle(feature, tileMode) {
-  const color = buildingColor(feature, tileMode);
+function baseStyle(feature, tileMode, prefersDarkMode) {
+  const color = buildingColor(feature, tileMode, prefersDarkMode);
   const satellite = tileMode === "satellite";
   return {
     color,
@@ -78,8 +100,8 @@ function baseStyle(feature, tileMode) {
   };
 }
 
-function hoverStyle(feature, tileMode) {
-  const color = buildingColor(feature, tileMode);
+function hoverStyle(feature, tileMode, prefersDarkMode) {
+  const color = buildingColor(feature, tileMode, prefersDarkMode);
   const satellite = tileMode === "satellite";
   return {
     color,
@@ -88,6 +110,92 @@ function hoverStyle(feature, tileMode) {
     fillColor: color,
     fillOpacity: satellite ? 0.62 : 0.38,
   };
+}
+
+function localizedValue(
+  ko: string | null | undefined,
+  en: string | null | undefined,
+  zh: string | null | undefined,
+  lang: "ko" | "en" | "zh",
+) {
+  return lang === "en" ? (en ?? ko) : lang === "zh" ? (zh ?? ko) : ko;
+}
+
+function facilityBrowseItem(
+  facility: MapFacility,
+  lang: "ko" | "en" | "zh",
+): MapBrowseItem {
+  const name =
+    localizedValue(
+      facility.name ?? facility.facility_types?.label,
+      facility.name_en ?? facility.facility_types?.label_en,
+      facility.name_zh ?? facility.facility_types?.label_zh,
+      lang,
+    ) ?? "";
+  const type =
+    localizedValue(
+      facility.facility_types?.label,
+      facility.facility_types?.label_en,
+      facility.facility_types?.label_zh,
+      lang,
+    ) ?? "";
+  const location =
+    localizedValue(
+      facility.buildings?.name,
+      facility.buildings?.name_en,
+      undefined,
+      lang,
+    ) ??
+    localizedValue(
+      facility.floor_info,
+      facility.floor_info_en,
+      facility.floor_info_zh,
+      lang,
+    );
+
+  return {
+    key: `facility-${facility.id}`,
+    kind: "facility",
+    icon: facility.facility_types?.icon ?? "♿",
+    name,
+    detail: [type, location].filter(Boolean).join(" · "),
+    lat: facility.lat!,
+    lng: facility.lng!,
+  };
+}
+
+function landmarkBrowseItem(
+  landmark: Landmark,
+  lang: "ko" | "en" | "zh",
+  detail: string,
+): MapBrowseItem {
+  return {
+    key: `landmark-${landmark.id}`,
+    kind: "landmark",
+    icon: landmark.icon || "✨",
+    name:
+      localizedValue(landmark.name, landmark.name_en, landmark.name_zh, lang) ??
+      landmark.name,
+    detail,
+    lat: landmark.lat,
+    lng: landmark.lng,
+  };
+}
+
+function mapDistanceMeters(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+) {
+  const earthRadius = 6_371_000;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const latitudeDelta = toRadians(to.lat - from.lat);
+  const longitudeDelta = toRadians(to.lng - from.lng);
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(toRadians(from.lat)) *
+      Math.cos(toRadians(to.lat)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 export default function Map() {
@@ -101,6 +209,8 @@ export default function Map() {
     slopes,
     campusBoundaries,
     landmarks,
+    statuses,
+    retry,
   } = useMapData();
   const [tooltip, setTooltip] = useState({
     visible: false,
@@ -114,15 +224,25 @@ export default function Map() {
     name: string;
   } | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
-  const [favoritesList, setFavoritesList] = useState<Favorite[]>([]);
+  const [favoritesList, setFavoritesList] = useState<Favorite[]>(
+    loadFavoritesFromStorage,
+  );
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
   const [isMobile, setIsMobile] = useState(false);
   const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
+  const prefersDarkMode = usePrefersDarkMode();
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+    accuracy: number;
+  } | null>(null);
+  const [locating, setLocating] = useState(false);
   const [activeCampuses, setActiveCampuses] = useState({
     의료원: false,
     녹지캠퍼스: false,
@@ -130,6 +250,45 @@ export default function Map() {
     자연계: false,
   });
   const { lang, setLang, t } = useLanguage();
+
+  const browseItems = useMemo(() => {
+    const facilityItems = facilities
+      .filter(
+        (facility) =>
+          activeTypes[facility.facility_types?.code ?? ""] &&
+          containsMapPoint(viewport, facility.lat!, facility.lng!),
+      )
+      .map((facility) => facilityBrowseItem(facility, lang));
+    const landmarkItems = showLandmarks
+      ? landmarks
+          .filter((landmark) =>
+            containsMapPoint(viewport, landmark.lat, landmark.lng),
+          )
+          .map((landmark) =>
+            landmarkBrowseItem(landmark, lang, t("landmarkItem")),
+          )
+      : [];
+
+    const origin = userLocation ?? {
+      lat: ((viewport?.north ?? 0) + (viewport?.south ?? 0)) / 2,
+      lng: ((viewport?.east ?? 0) + (viewport?.west ?? 0)) / 2,
+    };
+
+    return [...facilityItems, ...landmarkItems].sort(
+      (a, b) =>
+        mapDistanceMeters(origin, a) - mapDistanceMeters(origin, b) ||
+        a.name.localeCompare(b.name, lang),
+    );
+  }, [
+    activeTypes,
+    facilities,
+    lang,
+    landmarks,
+    showLandmarks,
+    t,
+    userLocation,
+    viewport,
+  ]);
 
   const mapRef = useRef<L.Map | null>(null);
   const activeLayerRef = useRef<L.Polygon | null>(null);
@@ -145,9 +304,9 @@ export default function Map() {
   const geoJsonStyle = useCallback(
     (feature) =>
       activeBuildingIdRef.current === feature?.properties?.id
-        ? hoverStyle(feature, tileMode)
-        : baseStyle(feature, tileMode),
-    [tileMode],
+        ? hoverStyle(feature, tileMode, prefersDarkMode)
+        : baseStyle(feature, tileMode, prefersDarkMode),
+    [tileMode, prefersDarkMode],
   );
 
   // 모바일 감지
@@ -169,12 +328,13 @@ export default function Map() {
         baseStyle(
           featureMapRef.current[activeBuildingIdRef.current ?? -1],
           tileMode,
+          prefersDarkMode,
         ),
       );
     }
     const layer = layerMapRef.current[bId];
     if (layer) {
-      layer.setStyle(hoverStyle(feature, tileMode));
+      layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = bId;
     }
@@ -188,9 +348,6 @@ export default function Map() {
   }, []);
 
   useEffect(() => {
-    const initial = loadFavoritesFromStorage();
-    setFavoritesList(initial);
-    favoriteIdsRef.current = new Set(initial.map((f) => f.id));
     const handler = () => {
       const updated = loadFavoritesFromStorage();
       setFavoritesList(updated);
@@ -201,14 +358,14 @@ export default function Map() {
         const feature = featureMapRef.current[numId];
         layer.setStyle(
           isActive
-            ? hoverStyle(feature, tileMode)
-            : baseStyle(feature, tileMode),
+            ? hoverStyle(feature, tileMode, prefersDarkMode)
+            : baseStyle(feature, tileMode, prefersDarkMode),
         );
       });
     };
     window.addEventListener("favoritesUpdated", handler);
     return () => window.removeEventListener("favoritesUpdated", handler);
-  }, [tileMode]);
+  }, [tileMode, prefersDarkMode]);
 
   function onEachFeature(feature, layer) {
     const bId = feature.properties.id;
@@ -217,7 +374,7 @@ export default function Map() {
     layer.on({
       mouseover(e) {
         if (isMobileRef.current) return;
-        layer.setStyle(hoverStyle(feature, tileMode));
+        layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
         const { clientX, clientY } = e.originalEvent;
         const mapEl = mapRef.current?.getContainer();
         if (!mapEl) return;
@@ -245,7 +402,7 @@ export default function Map() {
       mouseout() {
         setTooltip((prev) => ({ ...prev, visible: false }));
         if (activeLayerRef.current === layer) return;
-        layer.setStyle(baseStyle(feature, tileMode));
+        layer.setStyle(baseStyle(feature, tileMode, prefersDarkMode));
       },
       click() {
         if (activeBuildingIdRef.current === bId) {
@@ -257,10 +414,11 @@ export default function Map() {
             baseStyle(
               featureMapRef.current[activeBuildingIdRef.current ?? -1],
               tileMode,
+              prefersDarkMode,
             ),
           );
         }
-        layer.setStyle(hoverStyle(feature, tileMode));
+        layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
         activeLayerRef.current = layer;
         activeBuildingIdRef.current = bId;
         setSelectedBuilding({ id: bId, name: feature.properties.name });
@@ -274,12 +432,15 @@ export default function Map() {
         baseStyle(
           featureMapRef.current[activeBuildingIdRef.current ?? -1],
           tileMode,
+          prefersDarkMode,
         ),
       );
     }
     const layer = layerMapRef.current[id];
     if (layer) {
-      layer.setStyle(hoverStyle(featureMapRef.current[id], tileMode));
+      layer.setStyle(
+        hoverStyle(featureMapRef.current[id], tileMode, prefersDarkMode),
+      );
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = id;
       mapRef.current?.fitBounds(layer.getBounds(), {
@@ -299,6 +460,7 @@ export default function Map() {
           baseStyle(
             featureMapRef.current[activeBuildingIdRef.current ?? -1],
             tileMode,
+            prefersDarkMode,
           ),
         );
         activeLayerRef.current = null;
@@ -309,28 +471,37 @@ export default function Map() {
 
   function locateUser() {
     if (!navigator.geolocation) {
-      setToast({
-        message: "현재 위치를 사용할 수 없는 브라우저입니다.",
-        type: "info",
-      });
+      setToast({ message: t("locateUnsupported"), type: "info" });
       return;
     }
+    setLocating(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
+        setLocating(false);
         const location: [number, number] = [coords.latitude, coords.longitude];
         if (!KU_BOUNDS.contains(location)) {
-          setToast({ message: "지도 영역 밖입니다", type: "info" });
+          setToast({ message: t("locateOutside"), type: "info" });
           return;
         }
+        setUserLocation({
+          lat: coords.latitude,
+          lng: coords.longitude,
+          accuracy: coords.accuracy,
+        });
         mapRef.current?.flyTo(location, 18, {
           animate: true,
         });
       },
-      () =>
-        setToast({
-          message: "위치 권한을 확인해 주세요.",
-          type: "info",
-        }),
+      (error) => {
+        setLocating(false);
+        const message =
+          error.code === error.PERMISSION_DENIED
+            ? t("locateDenied")
+            : error.code === error.TIMEOUT
+              ? t("locateTimeout")
+              : t("locateUnavailable");
+        setToast({ message, type: "error" });
+      },
       { enableHighAccuracy: true, timeout: 10000 },
     );
   }
@@ -345,6 +516,9 @@ export default function Map() {
         </div>
       )}
 
+      {/* 데이터 소스 오류 배너 (비차단·재시도) */}
+      <MapErrorBanner statuses={statuses} retry={retry} t={t} />
+
       <MapContainer
         center={KU_CENTER}
         zoom={16}
@@ -355,23 +529,29 @@ export default function Map() {
         zoomControl={false}
       >
         <TileLayer
-          key={tileMode}
-          url={TILES[tileMode].url}
+          key={`${tileMode}-${prefersDarkMode ? "dark" : "light"}`}
+          url={
+            tileMode === "street"
+              ? getCartoTileUrl(prefersDarkMode)
+              : TILES.satellite.url
+          }
           attribution={TILES[tileMode].attribution}
           subdomains={TILES[tileMode].subdomains}
           maxZoom={19}
         />
         <BoundsController />
+        <MapViewportObserver onChange={setViewport} />
         {geoData && (
           <>
             <GeoJSON
-              key={`${tileMode}-${JSON.stringify(geoData)}`}
+              key={`${tileMode}-${prefersDarkMode}-${JSON.stringify(geoData)}`}
               data={geoData}
               style={geoJsonStyle}
               onEachFeature={onEachFeature}
             />
             <SearchControl
               geoData={geoData}
+              landmarks={landmarks}
               onBuildingSelect={handleBuildingSelectFromSearch}
               favorites={favoritesList}
               favoritesOpen={showFavorites}
@@ -385,10 +565,40 @@ export default function Map() {
             />
           </>
         )}
-        <FacilityMarkers facilities={facilities} activeTypes={activeTypes} />
-        <LandmarkMarkers landmarks={landmarks} showLandmarks={showLandmarks} />
+        {userLocation && (
+          <>
+            <Circle
+              center={[userLocation.lat, userLocation.lng]}
+              radius={userLocation.accuracy}
+              pathOptions={{
+                color: "#2563eb",
+                weight: 1,
+                opacity: 0.5,
+                fillColor: "#2563eb",
+                fillOpacity: 0.12,
+              }}
+            />
+            <Marker
+              position={[userLocation.lat, userLocation.lng]}
+              icon={userLocationIcon}
+              title={t("myLocationMarker")}
+              alt={t("myLocationMarker")}
+            />
+          </>
+        )}
+        <FacilityMarkers
+          facilities={facilities}
+          activeTypes={activeTypes}
+          zoom={viewport?.zoom ?? 16}
+        />
+        <LandmarkMarkers
+          landmarks={landmarks}
+          showLandmarks={showLandmarks}
+          zoom={viewport?.zoom ?? 16}
+        />
         <SubwayMarkers
           lang={lang}
+          zoom={viewport?.zoom ?? 16}
           onSelect={(station) => setSelectedBuilding(station)}
         />
         {showSlope && slopes.length > 0 && <SlopeLayer slopes={slopes} />}
@@ -408,12 +618,16 @@ export default function Map() {
             }
             style={(feature) => ({
               color:
-                campusColor[feature?.properties?.campus] ??
+                (prefersDarkMode
+                  ? satelliteCampusColor[feature?.properties?.campus]
+                  : campusColor[feature?.properties?.campus]) ??
                 feature?.properties?.color,
               weight: 2,
               opacity: 0.45,
               fillColor:
-                campusColor[feature?.properties?.campus] ??
+                (prefersDarkMode
+                  ? satelliteCampusColor[feature?.properties?.campus]
+                  : campusColor[feature?.properties?.campus]) ??
                 feature?.properties?.color,
               fillOpacity: 0.05,
               dashArray: "5 4",
@@ -429,7 +643,12 @@ export default function Map() {
           isMobile && (mobileFilterOpen || Boolean(selectedBuilding))
         }
       >
-        <img src="/kuis-logo.png" alt="고려대학교 지속가능원" />
+        <Image
+          src="/kuis-logo.png"
+          alt="고려대학교 지속가능원"
+          width={510}
+          height={84}
+        />
         <span className="ku-attribution-separator" aria-hidden="true" />
         <span>
           Leaflet · ©{" "}
@@ -491,6 +710,9 @@ export default function Map() {
           onClick={locateUser}
           title="현재 위치"
           aria-label="현재 위치"
+          disabled={locating}
+          data-locating={locating}
+          aria-busy={locating}
         >
           <span aria-hidden="true">📍</span>
         </button>
@@ -520,11 +742,19 @@ export default function Map() {
       />
 
       <LanguageSwitcher
-        isMobile={isMobile}
         lang={lang}
         setLang={setLang}
         panelOpen={Boolean(selectedBuilding)}
       />
+
+      {!selectedBuilding && !mobileFilterOpen && (
+        <MapBrowseList
+          items={browseItems}
+          onSelect={(item) => {
+            mapRef.current?.flyTo([item.lat, item.lng], 18, { animate: true });
+          }}
+        />
+      )}
 
       <FilterPanel
         isMobile={isMobile}
@@ -552,6 +782,7 @@ export default function Map() {
 
       {selectedBuilding && (
         <SidePanel
+          key={selectedBuilding.id}
           buildingId={selectedBuilding.id}
           buildingName={selectedBuilding.name}
           onClose={handleClosePanel}

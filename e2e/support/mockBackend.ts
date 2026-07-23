@@ -1,15 +1,50 @@
+/**
+ * Playwright E2E 목(mock) 백엔드 — Supabase/Next API를 네트워크 레벨에서 흉내낸다.
+ * 실제 서버 없이 공개 지도·관리자 흐름을 결정론적으로 테스트하기 위한 것.
+ *
+ * ┌─ 구조 ──────────────────────────────────────────────────────────────┐
+ * 1) 픽스처(고정 데이터): `types`(시설 유형) · `colleges` · `polygon`(건물 형상).
+ *    `createState()`가 이들을 조합해 테스트 1건의 초기 상태 `MockState`를 만든다.
+ *      - 건물 1: 중앙도서관(id 1, 인문사회계)
+ *      - 시설 3: `f-installed`(설치 경사로·건물 미소속) · `f-building`(건물 1 소속 엘리베이터)
+ *                · `f-uninstalled`(미설치 주차)
+ *      - 명소 1(다람쥐길) · 경사 1 · 사진 1
+ *
+ * 2) 라우팅: `installMockBackend()`가 전역 `page.route`로 모든 요청을 가로챈다.
+ *      - `/rest/v1/<table>` → `handleRest()`: PostgREST 흉내.
+ *          GET·HEAD·POST·PATCH·DELETE 지원, `?id=eq.` / `?building_id=eq.|is.null` 필터,
+ *          `Accept: object+json`이면 단건(.single()) 응답.
+ *      - `/api/<route>`     → `handleApi()`: Next 라우트 핸들러 흉내(/api/buildings 등).
+ *      - `/auth/v1/*`       → 로그인·로그아웃·현재 유저 조회.
+ *      - 타일/CDN/업로드 호스트(cartocdn·arcgis·unpkg·cdn.test·upload.test)는 abort 또는 빈 200.
+ *
+ * 3) `addInitScript`: 페이지 로드 전 브라우저 API 스텁 —
+ *      인증 토큰(localStorage) · SpeechRecognition 제거(미지원 흉내) ·
+ *      speechSynthesis(발화 텍스트를 `window.__spoken`에 기록) · navigator.geolocation(고정 좌표).
+ *
+ * 상태는 테스트마다 새로 생성되고 POST/PATCH/DELETE가 in-memory로 변형한다.
+ * 특정 응답만 바꾸려면 `installMockBackend` 호출 뒤에 `page.route`를 추가하면(LIFO) 먼저
+ * 실행되고, 조건이 안 맞을 때 `route.fallback()`으로 이 목에 위임하면 된다.
+ * └─────────────────────────────────────────────────────────────────────┘
+ */
 import type { Page, Route } from "@playwright/test";
 
 type Row = Record<string, unknown>;
 export interface MockState {
   authenticated: boolean;
+  buildingPhotoUploadAttempts: number;
+  buildingPhotoFailuresRemaining: number;
+  translationFailuresRemaining: number;
   buildings: Row[];
   facilities: Row[];
+  feedbackSubmissions: Row[];
   landmarks: Row[];
   slopes: Row[];
   photos: Row[];
 }
 
+// ── 픽스처(고정 데이터) ───────────────────────────────────────────────
+// facility_types / colleges 조회에 그대로 반환되고, 시설 POST 시 code로 매칭된다.
 const types = [
   {
     code: "elevator",
@@ -58,9 +93,14 @@ const polygon = {
   properties: {},
 };
 
+// 테스트 1건의 초기 상태 생성(건물/시설/명소/경사/사진). 이후 in-memory로 변형됨.
 function createState(authenticated: boolean): MockState {
   return {
     authenticated,
+    buildingPhotoUploadAttempts: 0,
+    buildingPhotoFailuresRemaining: 0,
+    translationFailuresRemaining: 0,
+    feedbackSubmissions: [],
     buildings: [
       {
         id: 1,
@@ -70,6 +110,7 @@ function createState(authenticated: boolean): MockState {
         college_id: 1,
         is_deleted: false,
         geojson: polygon,
+        last_updated: "2026-07-22",
         colleges: colleges[0],
       },
     ],
@@ -81,6 +122,7 @@ function createState(authenticated: boolean): MockState {
         name: "중앙광장 경사로",
         name_en: "Central Plaza Ramp",
         name_zh: "中央广场坡道",
+        translation_status: "translated",
         description: "정문 방향",
         description_en: "Toward the main gate",
         description_zh: "正门方向",
@@ -95,6 +137,7 @@ function createState(authenticated: boolean): MockState {
         facility_types: types[1],
         buildings: null,
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T03:00:00Z",
       },
       {
         id: "f-building",
@@ -103,6 +146,7 @@ function createState(authenticated: boolean): MockState {
         name: "중앙 엘리베이터",
         name_en: "Central Elevator",
         name_zh: "中央电梯",
+        translation_status: "translated",
         description: "1층 로비",
         description_en: "First-floor lobby",
         description_zh: "一层大厅",
@@ -117,18 +161,23 @@ function createState(authenticated: boolean): MockState {
         facility_types: types[0],
         buildings: { name: "중앙도서관", name_en: "Central Library" },
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T02:00:00Z",
       },
       {
         id: "f-uninstalled",
         building_id: null,
         facility_code: "parking",
         name: "공사 중 주차구역",
+        name_en: "Parking area under construction",
+        name_zh: "施工中的停车区",
+        translation_status: "translated",
         is_installed: false,
         lat: 37.5896,
         lng: 127.0328,
         facility_types: types[2],
         buildings: null,
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T01:00:00Z",
       },
     ],
     landmarks: [
@@ -145,6 +194,7 @@ function createState(authenticated: boolean): MockState {
         lng: 127.03225,
         photo_url: "https://cdn.test/landmark.webp",
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T00:00:00Z",
       },
     ],
     slopes: [
@@ -157,6 +207,7 @@ function createState(authenticated: boolean): MockState {
           { lat: 37.5892, lng: 127.0322, ele: 22 },
         ],
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T00:00:00Z",
       },
     ],
     photos: [
@@ -172,6 +223,8 @@ function createState(authenticated: boolean): MockState {
   };
 }
 
+// ── 응답 헬퍼 & 조회 로직 ─────────────────────────────────────────────
+// CORS 허용 헤더를 붙여 JSON으로 응답.
 function json(
   route: Route,
   body: unknown,
@@ -186,11 +239,13 @@ function json(
   });
 }
 
+// `?id=eq.<v>` → `<v>` 추출(PostgREST 필터 문법).
 const filterId = (url: URL) => {
   const value = url.searchParams.get("id");
   return value?.startsWith("eq.") ? value.slice(3) : null;
 };
 
+// 테이블명 → 해당 상태 배열 매핑.
 function table(state: MockState, name: string): Row[] {
   if (name === "buildings") return state.buildings;
   if (name === "building_facilities") return state.facilities;
@@ -200,11 +255,22 @@ function table(state: MockState, name: string): Row[] {
   return [];
 }
 
+// 테이블 조회: 정적 테이블(facility_types/colleges/app_settings)은 즉시 반환,
+// 나머지는 id·building_id 필터를 PostgREST처럼 적용해 걸러낸다.
 function rows(state: MockState, name: string, url: URL): Row[] {
   if (name === "facility_types") return types;
   if (name === "colleges") return colleges;
   if (name === "app_settings")
-    return [{ key: "feedback_emails", value: "help@example.com" }];
+    return [
+      {
+        key: "feedback_emails",
+        value: {
+          to: "help@example.com",
+          cc: "cc@example.com",
+          subject: "[테스트] 피드백",
+        },
+      },
+    ];
   let result = [...table(state, name)];
   const id = filterId(url);
   if (id) result = result.filter((row) => String(row.id) === id);
@@ -216,6 +282,15 @@ function rows(state: MockState, name: string, url: URL): Row[] {
       result = result.filter(
         (row) => String(row.building_id) === parent.slice(3),
       );
+    if (parent?.startsWith("in.(")) {
+      const ids = new Set(
+        parent
+          .slice(4, -1)
+          .split(",")
+          .map((value) => value.replace(/^"|"$/g, "")),
+      );
+      result = result.filter((row) => ids.has(String(row.building_id)));
+    }
   }
   if (name === "building_photos") {
     const parent = url.searchParams.get("building_id");
@@ -224,9 +299,76 @@ function rows(state: MockState, name: string, url: URL): Row[] {
         (row) => String(row.building_id) === parent.slice(3),
       );
   }
+  const facilityCode = url.searchParams.get("facility_code");
+  if (facilityCode?.startsWith("eq.")) {
+    result = result.filter(
+      (row) => String(row.facility_code) === facilityCode.slice(3),
+    );
+  }
+  const installed = url.searchParams.get("is_installed");
+  if (installed?.startsWith("eq.")) {
+    result = result.filter(
+      (row) => String(row.is_installed) === installed.slice(3),
+    );
+  }
+  const deleted = url.searchParams.get("is_deleted");
+  if (deleted?.startsWith("eq.")) {
+    result = result.filter(
+      (row) => String(row.is_deleted) === deleted.slice(3),
+    );
+  }
+  const photoUrl = url.searchParams.get("photo_url");
+  if (photoUrl === "is.null")
+    result = result.filter((row) => row.photo_url == null);
+  if (photoUrl === "not.is.null")
+    result = result.filter((row) => row.photo_url != null);
+  if (photoUrl === "neq.")
+    result = result.filter(
+      (row) => row.photo_url != null && row.photo_url !== "",
+    );
+
+  const orFilter = url.searchParams.get("or");
+  if (orFilter) {
+    const clauses = orFilter.replace(/^\(|\)$/g, "").split(",");
+    result = result.filter((row) =>
+      clauses.some((clause) => {
+        const [column, operator, ...patternParts] = clause.split(".");
+        if (operator !== "ilike") return false;
+        const pattern = patternParts.join(".");
+        const expression = pattern
+          .split("*")
+          .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+          .join(".*");
+        return new RegExp(`^${expression}$`, "i").test(
+          String(row[column] ?? ""),
+        );
+      }),
+    );
+  }
+
+  const order = url.searchParams.get("order");
+  if (order) {
+    const rules = order.split(",").map((rule) => {
+      const [column, direction] = rule.split(".");
+      return { column, ascending: direction !== "desc" };
+    });
+    result.sort((left, right) => {
+      for (const rule of rules) {
+        const a = left[rule.column];
+        const b = right[rule.column];
+        if (a == null && b == null) continue;
+        if (a == null) return 1;
+        if (b == null) return -1;
+        const comparison = String(a).localeCompare(String(b), "ko");
+        if (comparison !== 0) return rule.ascending ? comparison : -comparison;
+      }
+      return 0;
+    });
+  }
   return result;
 }
 
+// POST로 생성되는 새 행의 id 생성 규칙(테이블별).
 function nextId(name: string, state: MockState) {
   if (name === "buildings")
     return Math.max(1, ...state.buildings.map((row) => Number(row.id))) + 1;
@@ -237,14 +379,55 @@ function nextId(name: string, state: MockState) {
   return Date.now();
 }
 
+// ── /rest/v1/* : PostgREST(GET·HEAD·POST·PATCH·DELETE) 흉내 ──────────────
+// HEAD는 content-range로 개수만, GET은 배열(또는 object+json이면 단건),
+// POST/PATCH/DELETE는 상태 배열을 직접 변형하고 변형된 행을 돌려준다.
 async function handleRest(route: Route, state: MockState, url: URL) {
   const name = url.pathname.split("/rest/v1/")[1];
   const method = route.request().method();
+  if (name === "rpc/get_admin_building_summary") {
+    const activeBuildings = state.buildings.filter(
+      (building) => !building.is_deleted,
+    );
+    const activeIds = new Set(activeBuildings.map((building) => building.id));
+    const summary = {
+      registered_facility_count: state.facilities.filter(
+        (facility) =>
+          facility.building_id != null && activeIds.has(facility.building_id),
+      ).length,
+      missing_facility_count: activeBuildings.filter(
+        (building) =>
+          !state.facilities.some(
+            (facility) => facility.building_id === building.id,
+          ),
+      ).length,
+      missing_photo_count: activeBuildings.filter(
+        (building) =>
+          !state.photos.some((photo) => photo.building_id === building.id),
+      ).length,
+      missing_location_count: activeBuildings.filter(
+        (building) => building.geojson == null,
+      ).length,
+      stale_update_count: activeBuildings.filter(
+        (building) =>
+          building.last_updated == null ||
+          String(building.last_updated) < "2025-07-23",
+      ).length,
+      translation_needed_count: state.facilities.filter(
+        (facility) =>
+          facility.building_id != null &&
+          activeIds.has(facility.building_id) &&
+          facility.translation_status !== "translated",
+      ).length,
+    };
+    return json(route, summary);
+  }
   const result = rows(state, name, url);
   if (method === "HEAD") {
     return route.fulfill({
       status: 200,
       headers: {
+        "access-control-expose-headers": "Content-Range",
         "content-range": `0-${Math.max(0, result.length - 1)}/${result.length}`,
       },
       body: "",
@@ -252,12 +435,32 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   }
   if (method === "GET") {
     const single = route.request().headers().accept?.includes("object+json");
+    const rangeHeader = route.request().headers().range;
+    const rangeMatch = rangeHeader?.match(/^(\d+)-(\d+)$/);
+    const offset = url.searchParams.get("offset");
+    const limit = url.searchParams.get("limit");
+    const from = rangeMatch
+      ? Number(rangeMatch[1])
+      : offset
+        ? Number(offset)
+        : 0;
+    const to = rangeMatch
+      ? Number(rangeMatch[2])
+      : limit
+        ? from + Number(limit) - 1
+        : result.length - 1;
+    const paged = rangeMatch || limit ? result.slice(from, to + 1) : result;
+    const contentRange =
+      result.length === 0
+        ? "*/0"
+        : `${from}-${from + Math.max(0, paged.length - 1)}/${result.length}`;
     return json(
       route,
-      single ? (result[0] ?? null) : result,
+      single ? (paged[0] ?? null) : paged,
       single && !result[0] ? 406 : 200,
       {
-        "content-range": `0-${Math.max(0, result.length - 1)}/${result.length}`,
+        "access-control-expose-headers": "Content-Range",
+        "content-range": contentRange,
       },
     );
   }
@@ -268,6 +471,7 @@ async function handleRest(route: Route, state: MockState, url: URL) {
     const created: Row = {
       id: nextId(name, state),
       created_at: "2026-07-21T01:00:00Z",
+      updated_at: "2026-07-21T01:00:00Z",
       ...input,
     };
     if (name === "building_facilities") {
@@ -282,7 +486,9 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   const id = filterId(url);
   const index = target.findIndex((row) => String(row.id) === id);
   if (method === "PATCH" && index >= 0) {
-    Object.assign(target[index], body);
+    Object.assign(target[index], body, {
+      updated_at: "2026-07-23T00:00:00Z",
+    });
     return json(route, [target[index]]);
   }
   if (method === "DELETE" && index >= 0) {
@@ -291,6 +497,9 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   return json(route, []);
 }
 
+// ── /api/* : Next 라우트 핸들러 흉내 ─────────────────────────────────────
+// 공개 데이터(buildings/facilities/landmarks/slopes)와 관리자 액션(번역·사진/영상
+// 업로드·설정)을 상태 기반으로 응답. 매칭 안 되는 /api/*는 { ok: true }.
 async function handleApi(route: Route, state: MockState, url: URL) {
   const path = url.pathname;
   if (path === "/api/buildings") {
@@ -315,8 +524,17 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     );
   if (path === "/api/landmarks") return json(route, state.landmarks);
   if (path === "/api/slopes") return json(route, state.slopes);
+  if (path === "/api/feedback") {
+    const submission = route.request().postDataJSON() as Row;
+    state.feedbackSubmissions.push(submission);
+    return json(route, { ok: true }, 201);
+  }
   if (path.startsWith("/api/revalidate-")) return json(route, { ok: true });
   if (path === "/api/translate") {
+    if (state.translationFailuresRemaining > 0) {
+      state.translationFailuresRemaining -= 1;
+      return json(route, { error: "테스트 번역 실패" }, 500);
+    }
     const { texts } = route.request().postDataJSON() as {
       texts: Record<string, string>;
     };
@@ -334,6 +552,29 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     if (landmark)
       landmark.photo_url = "https://cdn.test/uploaded-landmark.webp";
     return json(route, { photoUrl: "https://cdn.test/uploaded-landmark.webp" });
+  }
+  if (path === "/api/upload-building-photo") {
+    state.buildingPhotoUploadAttempts += 1;
+    if (state.buildingPhotoFailuresRemaining > 0) {
+      state.buildingPhotoFailuresRemaining -= 1;
+      return json(route, { error: "테스트 업로드 실패" }, 500);
+    }
+    const rawBody = route.request().postData() ?? "";
+    const buildingIdMatch = rawBody.match(/name="buildingId"\r?\n\r?\n(\d+)/);
+    const buildingId = Number(buildingIdMatch?.[1] ?? 1);
+    const id =
+      Math.max(0, ...state.photos.map((photo) => Number(photo.id))) + 1;
+    const photo = {
+      id,
+      building_id: buildingId,
+      url: `https://cdn.test/uploaded-building-${id}.webp`,
+      caption: null,
+      caption_en: null,
+      caption_zh: null,
+      created_at: "2026-07-23T00:00:00Z",
+    };
+    state.photos.push(photo);
+    return json(route, { id: photo.id, url: photo.url });
   }
   if (path === "/api/delete-landmark-photo") {
     const { landmarkId } = route.request().postDataJSON() as {
@@ -377,14 +618,24 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   return json(route, { ok: true });
 }
 
+// ── 진입점 ───────────────────────────────────────────────────────────
+// 테스트 beforeEach에서 호출. 브라우저 API 스텁(addInitScript)을 심고, 이후
+// 모든 네트워크 요청을 위 핸들러들로 라우팅한다. 생성된 state를 반환하므로
+// 테스트에서 초기 데이터를 참조할 수 있다.
+// options.authenticated: 관리자 세션으로 시작할지 / options.currentLocation: geolocation 좌표.
 export async function installMockBackend(
   page: Page,
   options: {
     authenticated?: boolean;
+    failBuildingPhotoUploads?: number;
+    failTranslations?: number;
     currentLocation?: { latitude: number; longitude: number };
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
+  state.buildingPhotoFailuresRemaining = options.failBuildingPhotoUploads ?? 0;
+  state.translationFailuresRemaining = options.failTranslations ?? 0;
+  // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(
     ({ authenticated, currentLocation }) => {
       if (authenticated) {
@@ -455,6 +706,7 @@ export async function installMockBackend(
     },
   );
 
+  // 2) 전역 라우트 인터셉트: 외부 타일/CDN은 차단, auth/rest/api는 위 핸들러로 위임.
   await page.route("**/*", async (route) => {
     const request = route.request();
     const url = new URL(request.url());

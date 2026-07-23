@@ -5,8 +5,31 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
+  migration-safety:
+    name: Migration safety
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check migration file history
+        id: check
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: bash scripts/check-migrations.sh
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
@@ -97,3 +120,77 @@ jobs:
           name: playwright-test-results
           path: test-results/
           retention-days: 7
+
+  migrate:
+    name: Apply Supabase migrations
+    if: >-
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      needs.migration-safety.outputs.has_changes == 'true'
+    needs: [migration-safety, lint, format, typecheck, test, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    concurrency:
+      group: supabase-production-migrations
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      SUPABASE_DB_URL_TEMPLATE: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Build masked database connection
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$SUPABASE_DB_URL_TEMPLATE" || -z "$SUPABASE_DB_PASSWORD" ]]; then
+            echo "::error::Configure SUPABASE_DB_URL and SUPABASE_DB_PASSWORD in the production environment or repository secrets."
+            exit 1
+          fi
+          if [[ "$SUPABASE_DB_URL_TEMPLATE" != *".pooler.supabase.com:5432/"* ]]; then
+            echo "::error::SUPABASE_DB_URL must be the IPv4-compatible Session pooler URI on port 5432."
+            exit 1
+          fi
+          if [[ "$SUPABASE_DB_URL_TEMPLATE" != *"[YOUR-PASSWORD]"* ]]; then
+            echo "::error::SUPABASE_DB_URL must retain the [YOUR-PASSWORD] placeholder."
+            exit 1
+          fi
+
+          encoded_password="$(
+            node -e 'process.stdout.write(encodeURIComponent(process.env.SUPABASE_DB_PASSWORD))'
+          )"
+          database_url="${SUPABASE_DB_URL_TEMPLATE/\[YOUR-PASSWORD\]/$encoded_password}"
+
+          echo "::add-mask::$encoded_password"
+          echo "::add-mask::$database_url"
+          echo "SUPABASE_MIGRATION_DB_URL=$database_url" >> "$GITHUB_ENV"
+
+      - name: Preview pending migrations
+        run: supabase db push --db-url "$SUPABASE_MIGRATION_DB_URL" --dry-run
+
+      - name: Apply pending migrations
+        run: supabase db push --db-url "$SUPABASE_MIGRATION_DB_URL" --yes
+
+      - name: Verify local and remote migration history
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_json="$(
+            supabase migration list \
+              --db-url "$SUPABASE_MIGRATION_DB_URL" \
+              --output json
+          )"
+          jq -e '
+            .migrations | length > 0 and
+            all(.[]; .local != "" and .remote != "" and .local == .remote)
+          ' <<< "$status_json" > /dev/null
+          echo "Local and remote migration histories match."

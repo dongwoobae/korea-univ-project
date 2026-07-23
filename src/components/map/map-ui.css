@@ -75,6 +75,10 @@
   font-size: 15px;
 }
 
+.ku-search-field:has(.ku-search-clear) .ku-search-input {
+  padding-right: 72px;
+}
+
 .ku-search-input::placeholder {
   color: var(--ku-text-3);
 }
@@ -114,6 +118,7 @@
 }
 
 .ku-favorite-button {
+  position: relative;
   color: var(--ku-star);
   font-size: 21px;
 }
@@ -121,6 +126,23 @@
 .ku-favorite-button[aria-expanded="true"] {
   border-color: var(--ku-star);
   background: var(--ku-star-bg);
+}
+
+.ku-favorite-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  color: #fff;
+  background: #8c0000;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .ku-search-results,
@@ -169,6 +191,73 @@
 }
 .ku-search-result-star {
   color: var(--ku-star);
+}
+.ku-search-result[data-active="true"] {
+  background: var(--ku-crimson-100);
+}
+.ku-search-result-icon {
+  flex: 0 0 auto;
+  font-size: 15px;
+  line-height: 1;
+}
+.ku-search-result-tag {
+  flex: 0 0 auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--ku-crimson-600);
+  background: var(--ku-crimson-50);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ku-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 44px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  color: var(--ku-text-3);
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+.ku-search-clear:hover {
+  color: var(--ku-text-1);
+  background: var(--ku-bg);
+}
+
+.ku-search-empty,
+.ku-search-note,
+.ku-search-count {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  background: var(--ku-surface);
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+}
+.ku-search-count {
+  margin-top: 6px;
+  padding: 4px 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-search-count:empty {
+  display: none;
+}
+.ku-search-note {
+  margin-top: 6px;
+  color: var(--ku-text-3);
 }
 
 .ku-favorites-list {
@@ -334,8 +423,6 @@
   z-index: 1000;
   top: 20px;
   right: 20px;
-  display: flex;
-  gap: 2px;
   padding: 3px;
   border: 1px solid var(--ku-border);
   border-radius: 10px;
@@ -346,7 +433,11 @@
 .ku-language[data-panel-open="true"] {
   right: 360px;
 }
-.ku-language button {
+.ku-language-inline {
+  display: flex;
+  gap: 2px;
+}
+.ku-language-inline button {
   min-width: 52px;
   height: 38px;
   padding: 0 12px;
@@ -357,10 +448,15 @@
   cursor: pointer;
   font-size: 12px;
 }
-.ku-language button[aria-pressed="true"] {
+.ku-language-inline button[aria-pressed="true"] {
   color: var(--ku-crimson-600);
   background: var(--ku-crimson-100);
   font-weight: 700;
+}
+/* 트리거 · 리스트박스는 모바일 전용 — 데스크톱에서는 숨김 */
+.ku-language-trigger,
+.ku-language-listbox {
+  display: none;
 }
 
 .ku-map-actions {
@@ -407,6 +503,209 @@
   border-color: var(--ku-crimson-700);
   color: #fff;
   background: #8c0000;
+}
+.ku-map-action[data-locating="true"] {
+  cursor: progress;
+  opacity: 0.6;
+}
+.ku-map-action[data-locating="true"] span {
+  display: inline-block;
+  animation: ku-locate-pulse 0.9s ease-in-out infinite;
+}
+
+.ku-marker-cluster {
+  display: grid;
+  grid-template-columns: auto auto;
+  place-content: center;
+  width: 42px;
+  height: 42px;
+  gap: 2px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: #8c0000;
+  box-shadow: 0 2px 9px rgba(28, 25, 23, 0.32);
+  font-size: 13px;
+}
+.ku-marker-cluster--landmark {
+  color: #4b3508;
+  background: #f3ce79;
+}
+.ku-marker-cluster strong {
+  font-size: 13px;
+}
+
+.ku-map-browse {
+  position: absolute;
+  z-index: 1050;
+  bottom: 62px;
+  left: 20px;
+}
+.ku-map-browse-trigger {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 10px;
+  color: var(--ku-text-1);
+  background: var(--ku-map-control);
+  box-shadow: var(--ku-shadow-raised);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+.ku-map-browse-trigger strong {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: #8c0000;
+  font-size: 11px;
+}
+.ku-map-browse-panel {
+  position: absolute;
+  bottom: 50px;
+  left: 0;
+  width: 340px;
+  max-height: min(460px, calc(100dvh - 150px));
+  overflow: hidden;
+  border: 1px solid var(--ku-border);
+  border-radius: 16px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  box-shadow: var(--ku-shadow-overlay);
+}
+.ku-map-browse-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--ku-divider);
+}
+.ku-map-browse-heading h2 {
+  font-size: 15px;
+  line-height: 1.4;
+}
+.ku-map-browse-heading p {
+  margin-top: 3px;
+  color: var(--ku-text-3);
+  font-size: 11.5px;
+}
+.ku-map-browse-heading button {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ku-text-2);
+  background: var(--ku-bg);
+  cursor: pointer;
+  font-size: 20px;
+}
+.ku-map-browse-list {
+  max-height: min(350px, calc(100dvh - 250px));
+  overflow-y: auto;
+  list-style: none;
+}
+.ku-map-browse-list li + li {
+  border-top: 1px solid var(--ku-divider);
+}
+.ku-map-browse-list li > button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 58px;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 0;
+  color: var(--ku-text-1);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.ku-map-browse-list li > button:hover,
+.ku-map-browse-list li > button:focus-visible {
+  background: var(--ku-crimson-50);
+}
+.ku-map-browse-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid var(--ku-border);
+  border-radius: 9px;
+  background: var(--ku-bg);
+}
+.ku-map-browse-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+.ku-map-browse-copy strong,
+.ku-map-browse-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ku-map-browse-copy strong {
+  font-size: 13px;
+}
+.ku-map-browse-copy span {
+  color: var(--ku-text-3);
+  font-size: 11.5px;
+}
+.ku-map-browse-move {
+  flex: 0 0 auto;
+  color: var(--ku-crimson-600);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.ku-map-browse-empty {
+  padding: 22px 16px;
+  color: var(--ku-text-3);
+  font-size: 13px;
+  text-align: center;
+}
+
+.ku-user-location-dot {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.4);
+  animation: ku-user-location-pulse 1.8s ease-out infinite;
+}
+
+@keyframes ku-user-location-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes ku-locate-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .ku-attribution {
@@ -508,10 +807,44 @@
 .ku-feedback-actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 18px;
 }
+.ku-feedback-privacy {
+  margin-top: 10px;
+  color: var(--ku-text-3);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.ku-feedback-status {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--ku-text-2);
+  background: var(--ku-bg);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ku-feedback-status[data-kind="success"] {
+  color: var(--ku-success-fg);
+  background: var(--ku-success-bg);
+}
+.ku-feedback-status[data-kind="error"] {
+  color: var(--ku-danger);
+  background: color-mix(in srgb, var(--ku-danger) 12%, var(--ku-surface));
+}
+.ku-feedback-honeypot {
+  position: fixed;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
 .ku-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 44px;
   padding: 0 18px;
   border: 1px solid var(--ku-border-input);
@@ -521,6 +854,9 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
+}
+.ku-button--link {
+  text-decoration: none;
 }
 .ku-button--primary {
   border-color: #8c0000;
@@ -686,10 +1022,32 @@
   color: var(--ku-success-fg);
   background: var(--ku-success-bg);
 }
+.ku-facility-video {
+  margin: 10px 0 0;
+}
+.ku-facility-video-caption {
+  margin-top: 6px;
+  color: var(--ku-text-2);
+  font-size: 12px;
+  line-height: 1.5;
+}
 .ku-last-updated {
   margin-top: 16px;
   color: var(--ku-text-3);
   font-size: 12px;
+}
+
+/* 스크린리더 전용(시각적으로 숨김, AT에는 노출) */
+.ku-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (max-width: 767px) {
@@ -710,7 +1068,11 @@
     font-size: 16px;
   }
   .ku-favorite-button {
-    display: none;
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    border-radius: 12px;
+    box-shadow: var(--ku-shadow-floating);
   }
   .ku-search-results {
     box-shadow: var(--ku-shadow-overlay);
@@ -723,21 +1085,59 @@
   .ku-language {
     top: 16px;
     right: 16px;
-    width: 48px;
-    height: 48px;
     padding: 0;
     border-radius: 12px;
   }
-  .ku-language button {
+  .ku-language-inline {
     display: none;
-    width: 48px;
-    min-width: 48px;
-    height: 48px;
-    padding: 0;
-    font-size: 14px;
   }
-  .ku-language button[aria-pressed="true"] {
-    display: block;
+  .ku-language-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border: 0;
+    border-radius: 12px;
+    color: var(--ku-text-1);
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .ku-language[data-open="true"] .ku-language-trigger {
+    color: var(--ku-crimson-600);
+  }
+  .ku-language-listbox {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    display: grid;
+    gap: 2px;
+    min-width: 128px;
+    padding: 4px;
+    border: 1px solid var(--ku-border);
+    border-radius: 12px;
+    background: var(--ku-map-control);
+    box-shadow: var(--ku-shadow-overlay);
+  }
+  .ku-language-listbox [role="option"] {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 8px;
+    color: var(--ku-text-1);
+    background: transparent;
+    cursor: pointer;
+    font-size: 14px;
+    text-align: left;
+  }
+  .ku-language-listbox [role="option"][aria-selected="true"] {
+    color: var(--ku-crimson-600);
+    background: var(--ku-crimson-100);
+    font-weight: 700;
   }
   .ku-language[data-panel-open="true"] {
     right: 16px;
@@ -813,6 +1213,25 @@
   .ku-map-zoom {
     display: none;
   }
+  .ku-map-browse {
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+  }
+  .ku-map-browse-trigger {
+    min-height: 44px;
+    border-radius: 12px;
+  }
+  .ku-map-browse-panel {
+    position: fixed;
+    right: 16px;
+    bottom: calc(122px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    width: auto;
+    max-height: calc(100dvh - 210px);
+  }
+  .ku-map-browse-list {
+    max-height: calc(100dvh - 320px);
+  }
   .ku-attribution {
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     left: 16px;
@@ -848,11 +1267,25 @@
   }
   .ku-side-handle {
     display: block;
+    width: 100%;
+    padding: 12px 0 6px;
+    border: 0;
+    background: transparent;
+    cursor: grab;
+    /* 세로 드래그를 우리가 직접 처리하므로 브라우저 스크롤에 넘기지 않는다 */
+    touch-action: none;
+  }
+  .ku-side-handle::before {
+    content: "";
+    display: block;
     width: 40px;
     height: 4px;
-    margin: 10px auto 2px;
+    margin: 0 auto;
     border-radius: 2px;
     background: var(--ku-border);
+  }
+  .ku-side-handle:active {
+    cursor: grabbing;
   }
   .ku-side-header {
     padding-top: 10px;
