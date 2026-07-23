@@ -885,3 +885,34 @@
     font-weight: 700;
   }
 }
+.ku-facility-translation-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ku-facility-translation-badge {
+  padding: 4px 7px;
+  border: 1px solid #f59e0b;
+  border-radius: 999px;
+  color: #92400e;
+  background: #fffbeb;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ku-facility-translation-control button {
+  padding: 4px 7px;
+  border: 1px solid #d97706;
+  border-radius: 6px;
+  color: #92400e;
+  background: var(--ku-surface);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ku-facility-translation-control button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}

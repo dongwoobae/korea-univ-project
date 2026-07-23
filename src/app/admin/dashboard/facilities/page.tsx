@@ -11,6 +11,7 @@ import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityFormModal from "@/components/admin/FacilityFormModal";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
 import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
+import FacilityTranslationControl from "@/components/admin/FacilityTranslationControl";
 import AdminListControls from "@/components/admin/AdminListControls";
 import AdminPagination from "@/components/admin/AdminPagination";
 import {
@@ -335,6 +336,11 @@ export default function StandaloneFacilitiesPage() {
                 installed={f.is_installed}
                 pending={togglingId === f.id}
                 onToggle={() => handleToggleInstalled(f)}
+              />
+              <FacilityTranslationControl
+                facility={f}
+                onTranslated={fetchData}
+                showToast={showToast}
               />
               <button
                 onClick={() => setEditingFacility(f)}

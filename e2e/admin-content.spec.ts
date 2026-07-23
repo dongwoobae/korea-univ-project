@@ -78,6 +78,51 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     await expect(page.getByText("E2E 경사로")).toHaveCount(0);
   });
 
+  test("시설 저장과 자동 번역 실패를 분리하고 재번역한다", async ({ page }) => {
+    const state = await installMockBackend(page, {
+      authenticated: true,
+      failTranslations: 1,
+    });
+    await page.goto("/admin/dashboard/facilities");
+
+    await page.getByRole("button", { name: "+ 시설 추가" }).click();
+    const dialog = page.getByRole("dialog");
+    await dialog.locator("select").selectOption("ramp");
+    await dialog
+      .getByPlaceholder("예: 정문 엘리베이터")
+      .fill("번역 실패 경사로");
+    await dialog.getByTitle("현재 위치로 이동").click();
+    await dialog.getByRole("button", { name: "저장" }).click();
+
+    await expect(
+      page.getByText(
+        "시설은 저장했지만 자동 번역에 실패했어요. 목록에서 재번역해 주세요.",
+      ),
+    ).toBeVisible();
+    const row = page.getByText("번역 실패 경사로").locator("xpath=../..");
+    await expect(
+      row.getByRole("status", { name: "번역 상태: 번역 필요" }),
+    ).toBeVisible();
+    expect(
+      state.facilities.find((facility) => facility.name === "번역 실패 경사로")
+        ?.translation_status,
+    ).toBe("failed");
+
+    await row.getByRole("button", { name: "재번역" }).click();
+    await expect(page.getByText("시설 번역을 완료했어요")).toBeVisible();
+    await expect(
+      row.getByRole("status", { name: "번역 상태: 번역 필요" }),
+    ).toHaveCount(0);
+    expect(
+      state.facilities.find((facility) => facility.name === "번역 실패 경사로")
+        ?.name_en,
+    ).toBe("EN 번역 실패 경사로");
+    expect(
+      state.facilities.find((facility) => facility.name === "번역 실패 경사로")
+        ?.translation_status,
+    ).toBe("translated");
+  });
+
   test("시설 동영상을 업로드하고 캡션 저장 후 삭제한다", async ({ page }) => {
     const state = await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/facilities");

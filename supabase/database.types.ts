@@ -77,6 +77,7 @@ export type Database = {
           name: string | null;
           name_en: string | null;
           name_zh: string | null;
+          translation_status: string;
           video_caption: string | null;
           video_caption_en: string | null;
           video_caption_zh: string | null;
@@ -100,6 +101,7 @@ export type Database = {
           name?: string | null;
           name_en?: string | null;
           name_zh?: string | null;
+          translation_status?: string;
           video_caption?: string | null;
           video_caption_en?: string | null;
           video_caption_zh?: string | null;
@@ -123,6 +125,7 @@ export type Database = {
           name?: string | null;
           name_en?: string | null;
           name_zh?: string | null;
+          translation_status?: string;
           video_caption?: string | null;
           video_caption_en?: string | null;
           video_caption_zh?: string | null;

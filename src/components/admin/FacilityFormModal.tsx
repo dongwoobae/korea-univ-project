@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { validateFacilityForm } from "@/lib/facilityForm";
 import { inferCampusFromPoint } from "@/lib/campusGeometry";
+import { translateFacility } from "@/lib/facilityTranslation";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
 import type { FacilityType, FacilityWithType } from "@/types/domain";
 
@@ -74,56 +75,6 @@ export default function FacilityFormModal({
     );
   }
 
-  /** 번역 컬럼을 현재 입력 기준으로 다시 채운다. 실패 시 기존 값을 유지한다. */
-  async function syncTranslations(facilityId: string) {
-    const texts: Record<string, string> = {};
-    if (form.name) texts.name = form.name;
-    if (form.description) texts.description = form.description;
-    if (!standalone && form.floor_info) texts.floor_info = form.floor_info;
-
-    const translated: {
-      name_en: string | null;
-      name_zh: string | null;
-      description_en: string | null;
-      description_zh: string | null;
-      floor_info_en: string | null;
-      floor_info_zh: string | null;
-    } = {
-      name_en: null,
-      name_zh: null,
-      description_en: null,
-      description_zh: null,
-      floor_info_en: null,
-      floor_info_zh: null,
-    };
-
-    if (Object.keys(texts).length > 0) {
-      try {
-        const res = await authedFetch("/api/translate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ texts }),
-        });
-        if (!res.ok) throw new Error("translate failed");
-        const { en, zh } = await res.json();
-        translated.name_en = en.name ?? null;
-        translated.name_zh = zh.name ?? null;
-        translated.description_en = en.description ?? null;
-        translated.description_zh = zh.description ?? null;
-        translated.floor_info_en = en.floor_info ?? null;
-        translated.floor_info_zh = zh.floor_info ?? null;
-      } catch {
-        // 번역 실패해도 시설 저장은 완료 — 기존 번역을 건드리지 않는다
-        return;
-      }
-    }
-
-    await supabase
-      .from("building_facilities")
-      .update(translated)
-      .eq("id", facilityId);
-  }
-
   async function handleSave() {
     const invalid = validateFacilityForm(form, { standalone });
     if (invalid) {
@@ -141,6 +92,7 @@ export default function FacilityFormModal({
       is_installed: form.is_installed,
       lat: form.lat ? parseFloat(form.lat) : null,
       lng: form.lng ? parseFloat(form.lng) : null,
+      translation_status: "pending",
     };
 
     // 주의: `editing` 불리언으로는 facility가 non-null로 좁혀지지 않는다.
@@ -171,13 +123,25 @@ export default function FacilityFormModal({
       facilityId = inserted.id;
     }
 
-    await syncTranslations(facilityId);
+    const translated = await translateFacility({
+      id: facilityId,
+      name: payload.name,
+      description: payload.description,
+      floor_info: payload.floor_info,
+    });
     await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
       () => {},
     );
 
     setSaving(false);
     onSaved();
+    if (!translated) {
+      showToast(
+        "시설은 저장했지만 자동 번역에 실패했어요. 목록에서 재번역해 주세요.",
+        "warning",
+      );
+      return;
+    }
     showToast(editing ? "시설이 수정되었어요!" : "시설이 추가되었어요!");
   }
 

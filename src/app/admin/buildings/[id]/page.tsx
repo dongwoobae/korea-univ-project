@@ -18,6 +18,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
 import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
+import FacilityTranslationControl from "@/components/admin/FacilityTranslationControl";
 import type { Feature, Polygon } from "geojson";
 import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
@@ -744,6 +745,11 @@ export default function BuildingDetail() {
                   installed={f.is_installed}
                   pending={togglingId === f.id}
                   onToggle={() => handleToggleInstalled(f)}
+                />
+                <FacilityTranslationControl
+                  facility={f}
+                  onTranslated={fetchData}
+                  showToast={showToast}
                 />
                 <button
                   onClick={() => setConfirmModal(f)}

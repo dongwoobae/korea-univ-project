@@ -34,6 +34,7 @@ export interface MockState {
   authenticated: boolean;
   buildingPhotoUploadAttempts: number;
   buildingPhotoFailuresRemaining: number;
+  translationFailuresRemaining: number;
   buildings: Row[];
   facilities: Row[];
   feedbackSubmissions: Row[];
@@ -98,6 +99,7 @@ function createState(authenticated: boolean): MockState {
     authenticated,
     buildingPhotoUploadAttempts: 0,
     buildingPhotoFailuresRemaining: 0,
+    translationFailuresRemaining: 0,
     feedbackSubmissions: [],
     buildings: [
       {
@@ -119,6 +121,7 @@ function createState(authenticated: boolean): MockState {
         name: "중앙광장 경사로",
         name_en: "Central Plaza Ramp",
         name_zh: "中央广场坡道",
+        translation_status: "translated",
         description: "정문 방향",
         description_en: "Toward the main gate",
         description_zh: "正门方向",
@@ -142,6 +145,7 @@ function createState(authenticated: boolean): MockState {
         name: "중앙 엘리베이터",
         name_en: "Central Elevator",
         name_zh: "中央电梯",
+        translation_status: "translated",
         description: "1층 로비",
         description_en: "First-floor lobby",
         description_zh: "一层大厅",
@@ -163,6 +167,9 @@ function createState(authenticated: boolean): MockState {
         building_id: null,
         facility_code: "parking",
         name: "공사 중 주차구역",
+        name_en: "Parking area under construction",
+        name_zh: "施工中的停车区",
+        translation_status: "translated",
         is_installed: false,
         lat: 37.5896,
         lng: 127.0328,
@@ -485,6 +492,10 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   }
   if (path.startsWith("/api/revalidate-")) return json(route, { ok: true });
   if (path === "/api/translate") {
+    if (state.translationFailuresRemaining > 0) {
+      state.translationFailuresRemaining -= 1;
+      return json(route, { error: "테스트 번역 실패" }, 500);
+    }
     const { texts } = route.request().postDataJSON() as {
       texts: Record<string, string>;
     };
@@ -578,11 +589,13 @@ export async function installMockBackend(
   options: {
     authenticated?: boolean;
     failBuildingPhotoUploads?: number;
+    failTranslations?: number;
     currentLocation?: { latitude: number; longitude: number };
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
   state.buildingPhotoFailuresRemaining = options.failBuildingPhotoUploads ?? 0;
+  state.translationFailuresRemaining = options.failTranslations ?? 0;
   // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(
     ({ authenticated, currentLocation }) => {
