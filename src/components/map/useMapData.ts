@@ -15,11 +15,7 @@ import type {
 export type SourceStatus = "loading" | "error" | "ready";
 
 export type MapDataSource =
-  | "buildings"
-  | "facilities"
-  | "slopes"
-  | "landmarks"
-  | "facilityTypes";
+  "buildings" | "facilities" | "slopes" | "landmarks" | "facilityTypes";
 
 export type MapDataStatuses = Record<MapDataSource, SourceStatus>;
 export type MapDataRetry = Record<MapDataSource, () => void>;
@@ -152,20 +148,21 @@ export function useMapData() {
   }, []);
 
   useEffect(() => {
-    loadBuildings();
-  }, [loadBuildings]);
-  useEffect(() => {
-    loadFacilities();
-  }, [loadFacilities]);
-  useEffect(() => {
-    loadFacilityTypes();
-  }, [loadFacilityTypes]);
-  useEffect(() => {
-    loadSlopes();
-  }, [loadSlopes]);
-  useEffect(() => {
-    loadLandmarks();
-  }, [loadLandmarks]);
+    const timer = window.setTimeout(() => {
+      loadBuildings();
+      loadFacilities();
+      loadFacilityTypes();
+      loadSlopes();
+      loadLandmarks();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [
+    loadBuildings,
+    loadFacilities,
+    loadFacilityTypes,
+    loadLandmarks,
+    loadSlopes,
+  ]);
 
   const statuses: MapDataStatuses = {
     buildings: buildingsStatus,

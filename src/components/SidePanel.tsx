@@ -45,7 +45,11 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     facilities: false,
     photos: false,
   });
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(() =>
+    buildingId
+      ? loadFavorites().some((favorite) => favorite.id === buildingId)
+      : false,
+  );
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? window.innerWidth < 768 : false,
   );
@@ -78,13 +82,6 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     window.addEventListener("sidePanelShouldClose", handler);
     return () => window.removeEventListener("sidePanelShouldClose", handler);
   }, []);
-
-  // 즐겨찾기 초기 로드
-  useEffect(() => {
-    if (!buildingId) return;
-    const favs = loadFavorites();
-    setIsFavorite(favs.some((f) => f.id === buildingId));
-  }, [buildingId]);
 
   // 데이터 fetch — label_en, label_zh 포함
   const fetchData = useCallback(async () => {
@@ -126,7 +123,8 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
   }, [buildingId]);
 
   useEffect(() => {
-    fetchData();
+    const timer = window.setTimeout(() => void fetchData(), 0);
+    return () => window.clearTimeout(timer);
   }, [fetchData]);
 
   // 언어에 따른 건물명
@@ -239,12 +237,6 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     window.speechSynthesis.speak(utter);
     setIsSpeaking(true);
   }
-
-  // 건물 변경 또는 패널 닫힐 때 TTS 중지
-  useEffect(() => {
-    window.speechSynthesis?.cancel();
-    setIsSpeaking(false);
-  }, [buildingId]);
 
   useEffect(() => {
     return () => window.speechSynthesis?.cancel();

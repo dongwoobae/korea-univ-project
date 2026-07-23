@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import "./admin-ui.css";
 
 export default function AdminLogin() {
@@ -22,7 +23,7 @@ export default function AdminLogin() {
       }
     }
     checkSession();
-  }, []);
+  }, [router]);
 
   async function handleLogin() {
     setLoading(true);
@@ -45,7 +46,7 @@ export default function AdminLogin() {
   return (
     <div className="ku-admin-login-shell">
       <div className="ku-admin-login-card">
-        <img src="/favicon.png" alt="고려대학교" />
+        <Image src="/favicon.png" alt="고려대학교" width={44} height={44} />
         <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
           관리자 로그인
         </div>
@@ -90,7 +91,13 @@ export default function AdminLogin() {
         </div>
 
         {error && (
-          <div style={{ fontSize: 13, color: "var(--ku-danger)", marginBottom: 16 }}>
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--ku-danger)",
+              marginBottom: 16,
+            }}
+          >
             {error}
           </div>
         )}

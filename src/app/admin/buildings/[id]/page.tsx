@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import NextImage from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
@@ -103,6 +104,33 @@ export default function BuildingDetail() {
     setToast({ message, type });
   }
 
+  const fetchData = useCallback(async () => {
+    const [
+      { data: buildingData },
+      { data: facilitiesData },
+      { data: typesData },
+      { data: collegesData },
+    ] = await Promise.all([
+      supabase.from("buildings").select("*").eq("id", id).single(),
+      supabase
+        .from("building_facilities")
+        .select("*, facility_types(label, icon)")
+        .eq("building_id", id),
+      supabase.from("facility_types").select("*"),
+      supabase.from("colleges").select("*").order("name"),
+    ]);
+    setBuilding(buildingData);
+    setFacilities(facilitiesData ?? []);
+    setFacilityTypes(typesData ?? []);
+    setColleges(collegesData ?? []);
+    setSelectedCollegeId(buildingData?.college_id ?? null);
+    setNameForm({
+      name: buildingData?.name ?? "",
+      name_en: buildingData?.name_en ?? "",
+    });
+    setLoading(false);
+  }, [id]);
+
   useEffect(() => {
     async function init() {
       const {
@@ -112,10 +140,10 @@ export default function BuildingDetail() {
         router.push("/admin");
         return;
       }
-      fetchData();
+      await fetchData();
     }
-    init();
-  }, []);
+    void init();
+  }, [fetchData, router]);
 
   useEffect(() => {
     if (loading) return;
@@ -155,33 +183,6 @@ export default function BuildingDetail() {
       return;
     }
     router.push(href);
-  }
-
-  async function fetchData() {
-    const [
-      { data: buildingData },
-      { data: facilitiesData },
-      { data: typesData },
-      { data: collegesData },
-    ] = await Promise.all([
-      supabase.from("buildings").select("*").eq("id", id).single(),
-      supabase
-        .from("building_facilities")
-        .select("*, facility_types(label, icon)")
-        .eq("building_id", id),
-      supabase.from("facility_types").select("*"),
-      supabase.from("colleges").select("*").order("name"),
-    ]);
-    setBuilding(buildingData);
-    setFacilities(facilitiesData ?? []);
-    setFacilityTypes(typesData ?? []);
-    setColleges(collegesData ?? []);
-    setSelectedCollegeId(buildingData?.college_id ?? null);
-    setNameForm({
-      name: buildingData?.name ?? "",
-      name_en: buildingData?.name_en ?? "",
-    });
-    setLoading(false);
   }
 
   async function handleDeleteFacility(facility) {
@@ -899,11 +900,7 @@ function PhotoManager({ buildingId, showToast }) {
   );
   const [savingCaption, setSavingCaption] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchPhotos();
-  }, []);
-
-  async function fetchPhotos() {
+  const fetchPhotos = useCallback(async () => {
     const { data } = await supabase
       .from("building_photos")
       .select("*")
@@ -915,7 +912,12 @@ function PhotoManager({ buildingId, showToast }) {
       initial[p.id] = p.caption ?? "";
     });
     setDraftCaptions(initial);
-  }
+  }, [buildingId]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void fetchPhotos(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchPhotos]);
 
   async function handleSaveCaption(photoId) {
     const caption = draftCaptions[photoId] ?? "";
@@ -1166,12 +1168,13 @@ function PhotoManager({ buildingId, showToast }) {
               style={{ display: "flex", flexDirection: "column", gap: 4 }}
             >
               <div style={{ position: "relative", aspectRatio: "4/3" }}>
-                <img
+                <NextImage
                   src={photo.url}
                   alt={photo.caption ?? ""}
+                  fill
+                  sizes="(max-width: 767px) 30vw, 180px"
+                  unoptimized
                   style={{
-                    width: "100%",
-                    height: "100%",
                     objectFit: "cover",
                     borderRadius: 6,
                   }}

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import {
   FEEDBACK_EMAILS_FALLBACK,
@@ -89,7 +90,7 @@ export default function DashboardLayout({ children }) {
     <div className="ku-admin-shell">
       <header className="ku-admin-header">
         <Link className="ku-admin-brand" href="/admin/dashboard/buildings">
-          <img src="/favicon.png" alt="고려대학교" />
+          <Image src="/favicon.png" alt="고려대학교" width={32} height={32} />
           <span>관리자 콘솔</span>
         </Link>
         <nav className="ku-admin-nav" aria-label="관리자 메뉴">

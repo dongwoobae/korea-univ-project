@@ -14,7 +14,7 @@ export default function Toast({ message, type = "success", onClose }) {
   useEffect(() => {
     const t = setTimeout(onClose, 3000);
     return () => clearTimeout(t);
-  }, [message]);
+  }, [message, onClose]);
 
   return (
     <div

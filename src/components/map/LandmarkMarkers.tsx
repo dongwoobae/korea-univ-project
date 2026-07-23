@@ -1,6 +1,7 @@
 "use client";
 
 import { Marker, Popup, useMap } from "react-leaflet";
+import Image from "next/image";
 import L from "leaflet";
 import type { Landmark } from "@/types/domain";
 import { useLanguage } from "@/lib/LanguageContext";
@@ -131,18 +132,25 @@ export default function LandmarkMarkers({
                   </div>
                 )}
                 {landmark.photo_url && (
-                  <img
-                    src={landmark.photo_url}
-                    alt={name ?? "명소 사진"}
+                  <div
                     style={{
+                      position: "relative",
                       width: "100%",
-                      maxHeight: 150,
-                      objectFit: "cover",
+                      height: 150,
                       borderRadius: 6,
                       marginTop: 8,
-                      display: "block",
+                      overflow: "hidden",
                     }}
-                  />
+                  >
+                    <Image
+                      src={landmark.photo_url}
+                      alt={name ?? "명소 사진"}
+                      fill
+                      sizes="240px"
+                      unoptimized
+                      style={{ objectFit: "cover" }}
+                    />
+                  </div>
                 )}
               </div>
             </Popup>

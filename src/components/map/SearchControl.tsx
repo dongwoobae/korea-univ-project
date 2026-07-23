@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import type { Landmark } from "@/types/domain";
@@ -76,8 +83,6 @@ export default function SearchControl({
   const { lang, t } = useLanguage();
   const listboxId = useId();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [open, setOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -86,16 +91,14 @@ export default function SearchControl({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
 
-  const optionId = (index: number) => `${listboxId}-opt-${index}`;
+  const optionId = useCallback(
+    (index: number) => `${listboxId}-opt-${index}`,
+    [listboxId],
+  );
 
-  useEffect(() => {
+  const matchedResults = useMemo(() => {
     const trimmed = query.trim();
-    if (!trimmed) {
-      setResults([]);
-      setTotalCount(0);
-      setActiveIndex(-1);
-      return;
-    }
+    if (!trimmed) return [];
 
     const normalizedQuery = trimmed.toLocaleLowerCase();
     const buildingMatches: { rank: number; result: SearchResult }[] = [];
@@ -143,11 +146,10 @@ export default function SearchControl({
     // Array.sort는 안정 정렬이라 동순위는 위 삽입 순서를 유지한다.
     const combined = [...buildingMatches, ...landmarkMatches];
     combined.sort((a, b) => a.rank - b.rank);
-
-    setTotalCount(combined.length);
-    setResults(combined.slice(0, 8).map((entry) => entry.result));
-    setActiveIndex(-1);
+    return combined.map((entry) => entry.result);
   }, [query, geoData, lang, landmarks]);
+  const totalCount = matchedResults.length;
+  const results = matchedResults.slice(0, 8);
 
   const hasQuery = query.trim().length > 0;
   const listOpen = open && isFocused && !favoritesOpen && hasQuery;
@@ -161,8 +163,7 @@ export default function SearchControl({
       `#${CSS.escape(optionId(activeIndex))}`,
     );
     option?.scrollIntoView({ block: "nearest" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIndex]);
+  }, [activeIndex, optionId]);
 
   function closeList() {
     setOpen(false);
@@ -218,7 +219,8 @@ export default function SearchControl({
         break;
       case "Enter":
         event.preventDefault();
-        if (activeIndex >= 0 && activeIndex < len) handleSelect(results[activeIndex]);
+        if (activeIndex >= 0 && activeIndex < len)
+          handleSelect(results[activeIndex]);
         else if (len > 0) handleSelect(results[0]);
         break;
       case "Escape":
@@ -288,6 +290,7 @@ export default function SearchControl({
     };
     recognition.onresult = (result) => {
       setQuery(result.results[0][0].transcript);
+      setActiveIndex(-1);
       setIsFocused(true);
       setOpen(true);
       onSearchOpen?.(true);
@@ -322,6 +325,7 @@ export default function SearchControl({
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
+              setActiveIndex(-1);
               setOpen(true);
             }}
             onFocus={() => {

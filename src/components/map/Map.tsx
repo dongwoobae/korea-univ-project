@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import Image from "next/image";
 import {
   MapContainer,
   TileLayer,
@@ -223,7 +224,9 @@ export default function Map() {
     name: string;
   } | null>(null);
   const [showFavorites, setShowFavorites] = useState(false);
-  const [favoritesList, setFavoritesList] = useState<Favorite[]>([]);
+  const [favoritesList, setFavoritesList] = useState<Favorite[]>(
+    loadFavoritesFromStorage,
+  );
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -345,9 +348,6 @@ export default function Map() {
   }, []);
 
   useEffect(() => {
-    const initial = loadFavoritesFromStorage();
-    setFavoritesList(initial);
-    favoriteIdsRef.current = new Set(initial.map((f) => f.id));
     const handler = () => {
       const updated = loadFavoritesFromStorage();
       setFavoritesList(updated);
@@ -643,7 +643,12 @@ export default function Map() {
           isMobile && (mobileFilterOpen || Boolean(selectedBuilding))
         }
       >
-        <img src="/kuis-logo.png" alt="고려대학교 지속가능원" />
+        <Image
+          src="/kuis-logo.png"
+          alt="고려대학교 지속가능원"
+          width={510}
+          height={84}
+        />
         <span className="ku-attribution-separator" aria-hidden="true" />
         <span>
           Leaflet · ©{" "}
@@ -777,6 +782,7 @@ export default function Map() {
 
       {selectedBuilding && (
         <SidePanel
+          key={selectedBuilding.id}
           buildingId={selectedBuilding.id}
           buildingName={selectedBuilding.name}
           onClose={handleClosePanel}

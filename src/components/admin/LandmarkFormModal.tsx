@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { inferCampusFromPoint } from "@/lib/campusGeometry";
@@ -373,17 +374,25 @@ export default function LandmarkFormModal({
 
         <label style={labelStyle}>사진</label>
         {form.photo_url && (
-          <img
-            src={form.photo_url}
-            alt="명소 사진"
+          <div
             style={{
+              position: "relative",
               width: "100%",
-              maxHeight: 180,
-              objectFit: "cover",
+              height: 180,
               borderRadius: 8,
               marginTop: 8,
+              overflow: "hidden",
             }}
-          />
+          >
+            <Image
+              src={form.photo_url}
+              alt="명소 사진"
+              fill
+              sizes="min(528px, calc(100vw - 64px))"
+              unoptimized
+              style={{ objectFit: "cover" }}
+            />
+          </div>
         )}
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <input

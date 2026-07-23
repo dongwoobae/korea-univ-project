@@ -27,7 +27,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && SUPPORTED.includes(saved as LangCode)) {
-      setLangState(saved as LangCode);
+      const timer = window.setTimeout(() => setLangState(saved as LangCode), 0);
+      return () => window.clearTimeout(timer);
     }
   }, []);
 
