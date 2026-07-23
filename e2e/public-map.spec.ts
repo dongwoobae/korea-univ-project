@@ -276,6 +276,57 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     ).toHaveAttribute("fill", "#963A32");
   });
 
+  test("피드백을 서버로 제출하고 개인정보 안내를 제공한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page);
+    await page.goto("/");
+
+    await page.getByTitle("피드백 보내기").click();
+    await expect(
+      page.getByText("이름·연락처는 수집하지 않습니다", { exact: false }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "시설 정보 수정" }).click();
+    await page
+      .getByLabel("내용")
+      .fill("중앙광장 경사로 위치를 다시 확인해주세요.");
+    await page.getByRole("button", { name: "제출하기" }).click();
+
+    await expect(
+      page.getByText("피드백이 접수되었습니다", { exact: false }),
+    ).toBeVisible();
+    expect(state.feedbackSubmissions).toHaveLength(1);
+    expect(state.feedbackSubmissions[0]).toMatchObject({
+      type: "facility",
+      content: "중앙광장 경사로 위치를 다시 확인해주세요.",
+    });
+  });
+
+  test("피드백 서버 제출 실패 시 재시도와 메일 대안을 제공한다", async ({
+    page,
+  }) => {
+    await page.route("**/api/feedback", (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "test failure" }),
+      }),
+    );
+    await page.goto("/");
+
+    await page.getByTitle("피드백 보내기").click();
+    await page.getByLabel("내용").fill("제출 실패 상태를 확인합니다.");
+    await page.getByRole("button", { name: "제출하기" }).click();
+
+    await expect(
+      page.getByRole("alert").filter({ hasText: "서버 제출에 실패했습니다" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: "메일 앱으로 피드백 보내기" }),
+    ).toHaveAttribute("href", /^mailto:/);
+    await expect(page.getByRole("button", { name: "제출하기" })).toBeEnabled();
+  });
+
   test("지도 영역 밖의 현재 위치는 이동하지 않고 안내한다", async ({
     page,
   }) => {

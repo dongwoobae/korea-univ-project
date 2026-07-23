@@ -5,7 +5,11 @@ import type { User } from "@supabase/supabase-js";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
-import { FEEDBACK_EMAILS_FALLBACK, getSetting } from "@/lib/settings";
+import {
+  FEEDBACK_EMAILS_FALLBACK,
+  getSetting,
+  normalizeFeedbackEmails,
+} from "@/lib/settings";
 import FeedbackEmailModal from "@/components/admin/FeedbackEmailModal";
 import "../admin-ui.css";
 
@@ -32,7 +36,7 @@ export default function DashboardLayout({ children }) {
   useEffect(() => {
     let cancelled = false;
     getSetting("feedback_emails", FEEDBACK_EMAILS_FALLBACK).then((value) => {
-      if (!cancelled && value) setFeedbackEmails(value);
+      if (!cancelled) setFeedbackEmails(normalizeFeedbackEmails(value));
     });
     return () => {
       cancelled = true;

@@ -34,6 +34,7 @@ export interface MockState {
   authenticated: boolean;
   buildings: Row[];
   facilities: Row[];
+  feedbackSubmissions: Row[];
   landmarks: Row[];
   slopes: Row[];
   photos: Row[];
@@ -93,6 +94,7 @@ const polygon = {
 function createState(authenticated: boolean): MockState {
   return {
     authenticated,
+    feedbackSubmissions: [],
     buildings: [
       {
         id: 1,
@@ -247,7 +249,16 @@ function rows(state: MockState, name: string, url: URL): Row[] {
   if (name === "facility_types") return types;
   if (name === "colleges") return colleges;
   if (name === "app_settings")
-    return [{ key: "feedback_emails", value: "help@example.com" }];
+    return [
+      {
+        key: "feedback_emails",
+        value: {
+          to: "help@example.com",
+          cc: "cc@example.com",
+          subject: "[테스트] 피드백",
+        },
+      },
+    ];
   let result = [...table(state, name)];
   const id = filterId(url);
   if (id) result = result.filter((row) => String(row.id) === id);
@@ -368,6 +379,11 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     );
   if (path === "/api/landmarks") return json(route, state.landmarks);
   if (path === "/api/slopes") return json(route, state.slopes);
+  if (path === "/api/feedback") {
+    const submission = route.request().postDataJSON() as Row;
+    state.feedbackSubmissions.push(submission);
+    return json(route, { ok: true }, 201);
+  }
   if (path.startsWith("/api/revalidate-")) return json(route, { ok: true });
   if (path === "/api/translate") {
     const { texts } = route.request().postDataJSON() as {

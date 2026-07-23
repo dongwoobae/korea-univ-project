@@ -807,10 +807,44 @@
 .ku-feedback-actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 18px;
 }
+.ku-feedback-privacy {
+  margin-top: 10px;
+  color: var(--ku-text-3);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.ku-feedback-status {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--ku-text-2);
+  background: var(--ku-bg);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ku-feedback-status[data-kind="success"] {
+  color: var(--ku-success-fg);
+  background: var(--ku-success-bg);
+}
+.ku-feedback-status[data-kind="error"] {
+  color: var(--ku-danger);
+  background: color-mix(in srgb, var(--ku-danger) 12%, var(--ku-surface));
+}
+.ku-feedback-honeypot {
+  position: fixed;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
 .ku-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 44px;
   padding: 0 18px;
   border: 1px solid var(--ku-border-input);
@@ -820,6 +854,9 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
+}
+.ku-button--link {
+  text-decoration: none;
 }
 .ku-button--primary {
   border-color: #8c0000;

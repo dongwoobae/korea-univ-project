@@ -32,6 +32,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      feedback_submissions: {
+        Row: {
+          content: string;
+          created_at: string;
+          feedback_type: string;
+          id: string;
+          page_url: string | null;
+          status: string;
+        };
+        Insert: {
+          content: string;
+          created_at?: string;
+          feedback_type: string;
+          id?: string;
+          page_url?: string | null;
+          status?: string;
+        };
+        Update: {
+          content?: string;
+          created_at?: string;
+          feedback_type?: string;
+          id?: string;
+          page_url?: string | null;
+          status?: string;
+        };
+        Relationships: [];
+      };
       building_facilities: {
         Row: {
           building_id: number | null;

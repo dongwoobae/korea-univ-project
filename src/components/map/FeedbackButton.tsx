@@ -1,20 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { FEEDBACK_EMAILS_FALLBACK, getSetting } from "@/lib/settings";
+import { type FormEvent, useEffect, useState } from "react";
+import {
+  FEEDBACK_EMAILS_FALLBACK,
+  getSetting,
+  normalizeFeedbackEmails,
+  type FeedbackEmails,
+} from "@/lib/settings";
+import { FEEDBACK_TYPES, type FeedbackType } from "@/lib/feedback";
 
-const FEEDBACK_TYPES = ["오류 제보", "시설 정보 수정", "기능 제안", "기타"];
+type SubmissionStatus =
+  | { kind: "idle"; message: "" }
+  | { kind: "submitting"; message: string }
+  | { kind: "success"; message: string }
+  | { kind: "error"; message: string };
+
+const IDLE_STATUS: SubmissionStatus = { kind: "idle", message: "" };
 
 export default function FeedbackButton() {
   const [open, setOpen] = useState(false);
-  const [emails, setEmails] = useState(FEEDBACK_EMAILS_FALLBACK);
-  const [type, setType] = useState(FEEDBACK_TYPES[0]);
+  const [emails, setEmails] = useState<FeedbackEmails>(
+    FEEDBACK_EMAILS_FALLBACK,
+  );
+  const [type, setType] = useState<FeedbackType>(FEEDBACK_TYPES[0].value);
   const [content, setContent] = useState("");
+  const [website, setWebsite] = useState("");
+  const [status, setStatus] = useState<SubmissionStatus>(IDLE_STATUS);
 
   useEffect(() => {
     let cancelled = false;
     getSetting("feedback_emails", FEEDBACK_EMAILS_FALLBACK).then((value) => {
-      if (!cancelled && value) setEmails(value);
+      if (!cancelled) setEmails(normalizeFeedbackEmails(value));
     });
     return () => {
       cancelled = true;
@@ -24,20 +40,60 @@ export default function FeedbackButton() {
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape" && status.kind !== "submitting") {
+        setOpen(false);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open]);
+  }, [open, status.kind]);
 
-  function sendFeedback() {
+  function openDialog() {
+    setStatus(IDLE_STATUS);
+    setOpen(true);
+  }
+
+  function mailtoUrl() {
+    const label =
+      FEEDBACK_TYPES.find((item) => item.value === type)?.label ?? "기타";
     const params = new URLSearchParams({
-      subject: `${emails.subject} · ${type}`,
-      body: `유형: ${type}\n\n내용:\n${content.trim()}\n\n페이지: ${window.location.href}`,
+      subject: `${emails.subject} · ${label}`,
+      body: `유형: ${label}\n\n내용:\n${content.trim()}\n\n페이지: ${window.location.origin}${window.location.pathname}`,
     });
     if (emails.cc.length > 0) params.set("cc", emails.cc.join(","));
-    window.location.href = `mailto:${emails.to}?${params.toString()}`;
-    setOpen(false);
+    return `mailto:${emails.to}?${params.toString()}`;
+  }
+
+  async function submitFeedback(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (content.trim().length < 3 || status.kind === "submitting") return;
+
+    setStatus({ kind: "submitting", message: "피드백을 제출하고 있습니다." });
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type,
+          content,
+          pageUrl: `${window.location.origin}${window.location.pathname}`,
+          website,
+        }),
+      });
+      if (!response.ok) throw new Error("Feedback submission failed");
+
+      setContent("");
+      setStatus({
+        kind: "success",
+        message: "피드백이 접수되었습니다. 알려주셔서 감사합니다.",
+      });
+    } catch {
+      setStatus({
+        kind: "error",
+        message:
+          "서버 제출에 실패했습니다. 잠시 후 다시 시도하거나 메일로 보내주세요.",
+      });
+    }
   }
 
   return (
@@ -45,7 +101,7 @@ export default function FeedbackButton() {
       <button
         className="ku-map-action ku-map-action--primary"
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openDialog}
         title="피드백 보내기"
         aria-label="피드백 보내기"
       >
@@ -57,7 +113,12 @@ export default function FeedbackButton() {
           className="ku-feedback-backdrop"
           role="presentation"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setOpen(false);
+            if (
+              event.target === event.currentTarget &&
+              status.kind !== "submitting"
+            ) {
+              setOpen(false);
+            }
           }}
         >
           <div
@@ -75,56 +136,116 @@ export default function FeedbackButton() {
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label="닫기"
+                disabled={status.kind === "submitting"}
               >
                 ✕
               </button>
             </div>
             <p className="ku-feedback-help">
-              발견한 오류나 필요한 접근성 정보를 알려주세요. 메일 앱에서 내용을
-              확인한 뒤 전송할 수 있습니다.
+              발견한 오류나 필요한 접근성 정보를 알려주세요. 서버로 바로
+              접수되며, 원한다면 메일 앱으로도 보낼 수 있습니다.
             </p>
-            <span className="ku-feedback-label">유형</span>
-            <div className="ku-feedback-types">
-              {FEEDBACK_TYPES.map((item) => (
-                <button
-                  className="ku-chip"
-                  type="button"
-                  key={item}
-                  data-active={type === item}
-                  onClick={() => setType(item)}
+
+            {status.kind === "success" ? (
+              <>
+                <p className="ku-feedback-status" data-kind="success">
+                  {status.message}
+                </p>
+                <div className="ku-feedback-actions">
+                  <button
+                    className="ku-button ku-button--primary"
+                    type="button"
+                    onClick={() => setOpen(false)}
+                  >
+                    확인
+                  </button>
+                </div>
+              </>
+            ) : (
+              <form onSubmit={submitFeedback}>
+                <span className="ku-feedback-label" id="feedback-type-label">
+                  유형
+                </span>
+                <div
+                  className="ku-feedback-types"
+                  role="group"
+                  aria-labelledby="feedback-type-label"
                 >
-                  {item}
-                </button>
-              ))}
-            </div>
-            <label className="ku-feedback-label" htmlFor="feedback-content">
-              내용
-            </label>
-            <textarea
-              className="ku-feedback-textarea"
-              id="feedback-content"
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              placeholder="어떤 점을 개선하면 좋을지 적어주세요."
-              autoFocus
-            />
-            <div className="ku-feedback-actions">
-              <button
-                className="ku-button"
-                type="button"
-                onClick={() => setOpen(false)}
-              >
-                취소
-              </button>
-              <button
-                className="ku-button ku-button--primary"
-                type="button"
-                onClick={sendFeedback}
-                disabled={!content.trim()}
-              >
-                보내기
-              </button>
-            </div>
+                  {FEEDBACK_TYPES.map((item) => (
+                    <button
+                      className="ku-chip"
+                      type="button"
+                      key={item.value}
+                      data-active={type === item.value}
+                      onClick={() => setType(item.value)}
+                      disabled={status.kind === "submitting"}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="ku-feedback-label" htmlFor="feedback-content">
+                  내용
+                </label>
+                <textarea
+                  className="ku-feedback-textarea"
+                  id="feedback-content"
+                  value={content}
+                  onChange={(event) => {
+                    setContent(event.target.value);
+                    if (status.kind === "error") setStatus(IDLE_STATUS);
+                  }}
+                  placeholder="어떤 점을 개선하면 좋을지 적어주세요."
+                  minLength={3}
+                  maxLength={2000}
+                  required
+                  autoFocus
+                  disabled={status.kind === "submitting"}
+                />
+                <div className="ku-feedback-honeypot" aria-hidden="true">
+                  <label htmlFor="feedback-website">웹사이트</label>
+                  <input
+                    id="feedback-website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={website}
+                    onChange={(event) => setWebsite(event.target.value)}
+                  />
+                </div>
+                <p className="ku-feedback-privacy">
+                  이름·연락처는 수집하지 않습니다. 작성 내용, 현재 페이지 주소와
+                  제출 시각이 저장됩니다. 민감한 개인정보는 입력하지 마세요.
+                </p>
+                {status.message && (
+                  <p
+                    className="ku-feedback-status"
+                    data-kind={status.kind}
+                    role={status.kind === "error" ? "alert" : "status"}
+                    aria-live="polite"
+                  >
+                    {status.message}
+                  </p>
+                )}
+                <div className="ku-feedback-actions">
+                  <a
+                    className="ku-button ku-button--link"
+                    href={mailtoUrl()}
+                    aria-label="메일 앱으로 피드백 보내기"
+                  >
+                    메일로 보내기
+                  </a>
+                  <button
+                    className="ku-button ku-button--primary"
+                    type="submit"
+                    disabled={
+                      content.trim().length < 3 || status.kind === "submitting"
+                    }
+                  >
+                    {status.kind === "submitting" ? "제출 중…" : "제출하기"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
