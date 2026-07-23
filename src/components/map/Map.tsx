@@ -33,6 +33,8 @@ import MapViewportObserver, {
   containsMapPoint,
   type MapViewport,
 } from "./MapViewportObserver";
+import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
+import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import "./map-ui.css";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
@@ -47,9 +49,7 @@ const userLocationIcon = L.divIcon({
 
 const TILES = {
   street: {
-    url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-    attribution:
-      '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors &middot; &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>',
+    attribution: CARTO_ATTRIBUTION,
     subdomains: "abcd",
   },
   satellite: {
@@ -228,6 +228,7 @@ export default function Map() {
   );
   const [isMobile, setIsMobile] = useState(false);
   const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
+  const prefersDarkMode = usePrefersDarkMode();
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [viewport, setViewport] = useState<MapViewport | null>(null);
@@ -521,8 +522,12 @@ export default function Map() {
         zoomControl={false}
       >
         <TileLayer
-          key={tileMode}
-          url={TILES[tileMode].url}
+          key={`${tileMode}-${prefersDarkMode ? "dark" : "light"}`}
+          url={
+            tileMode === "street"
+              ? getCartoTileUrl(prefersDarkMode)
+              : TILES.satellite.url
+          }
           attribution={TILES[tileMode].attribution}
           subdomains={TILES[tileMode].subdomains}
           maxZoom={19}

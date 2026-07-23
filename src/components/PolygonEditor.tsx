@@ -8,6 +8,8 @@ import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { supabase } from "@/lib/supabaseClient";
 import ConfirmModal from "@/components/ConfirmModal";
+import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
+import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 
 type BuildingPolygon = Feature<Polygon>;
 
@@ -28,12 +30,14 @@ export default function PolygonEditor({
 }: PolygonEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
   const onChangeRef = useRef(onChange);
   const initialGeojsonRef = useRef(geojson);
   const excludeIdRef = useRef(excludeId);
   const [hasPolygon, setHasPolygon] = useState(Boolean(geojson));
   const [confirmReset, setConfirmReset] = useState(false);
+  const prefersDarkMode = usePrefersDarkMode();
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -58,10 +62,10 @@ export default function PolygonEditor({
     }).setView(center, 18);
     mapRef.current = map;
 
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      { attribution: "© OpenStreetMap © CARTO", subdomains: "abcd" },
-    ).addTo(map);
+    tileLayerRef.current = L.tileLayer(getCartoTileUrl(false), {
+      attribution: CARTO_ATTRIBUTION,
+      subdomains: "abcd",
+    }).addTo(map);
 
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
@@ -166,8 +170,13 @@ export default function PolygonEditor({
       cancelled = true;
       map.remove();
       mapRef.current = null;
+      tileLayerRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    tileLayerRef.current?.setUrl(getCartoTileUrl(prefersDarkMode));
+  }, [prefersDarkMode]);
 
   function handleSave() {
     const layers = drawnItemsRef.current?.getLayers() ?? [];

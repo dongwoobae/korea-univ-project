@@ -251,6 +251,25 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     expect(scrollWidth).toBeLessThanOrEqual(390);
   });
 
+  test("시스템 색상 모드에 맞춰 기본 지도 타일을 교체한다", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: "dark" });
+    await page.goto("/");
+
+    await expect(
+      page.locator('.leaflet-tile[src*="/dark_all/"]').first(),
+    ).toBeAttached();
+
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(
+      page.locator('.leaflet-tile[src*="/light_all/"]').first(),
+    ).toBeAttached();
+    await expect(page.locator('.leaflet-tile[src*="/dark_all/"]')).toHaveCount(
+      0,
+    );
+  });
+
   test("지도 영역 밖의 현재 위치는 이동하지 않고 안내한다", async ({
     page,
   }) => {

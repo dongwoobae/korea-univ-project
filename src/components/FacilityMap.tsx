@@ -13,6 +13,8 @@ import L from "leaflet";
 import type { Feature, FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
 import { supabase } from "@/lib/supabaseClient";
+import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
+import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 
 const markerIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -51,6 +53,7 @@ export default function FacilityMap({
   onMapClick: (lat: number, lng: number) => void;
   highlightId?: number;
 }) {
+  const prefersDarkMode = usePrefersDarkMode();
   const [map, setMap] = useState<L.Map | null>(null);
   const [locating, setLocating] = useState(false);
   const [buildingFeatures, setBuildingFeatures] = useState<Feature[] | null>(
@@ -110,8 +113,9 @@ export default function FacilityMap({
         scrollWheelZoom={true}
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          attribution="&copy; OpenStreetMap &copy; CARTO"
+          key={prefersDarkMode ? "dark" : "light"}
+          url={getCartoTileUrl(prefersDarkMode)}
+          attribution={CARTO_ATTRIBUTION}
           subdomains="abcd"
         />
         {buildingFeatures && (
