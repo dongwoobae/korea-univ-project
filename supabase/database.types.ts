@@ -54,6 +54,7 @@ export type Database = {
           video_caption_en: string | null;
           video_caption_zh: string | null;
           video_url: string | null;
+          updated_at: string;
         };
         Insert: {
           building_id?: number | null;
@@ -76,6 +77,7 @@ export type Database = {
           video_caption_en?: string | null;
           video_caption_zh?: string | null;
           video_url?: string | null;
+          updated_at?: string;
         };
         Update: {
           building_id?: number | null;
@@ -98,6 +100,7 @@ export type Database = {
           video_caption_en?: string | null;
           video_caption_zh?: string | null;
           video_url?: string | null;
+          updated_at?: string;
         };
         Relationships: [
           {
@@ -261,6 +264,7 @@ export type Database = {
           name_en: string | null;
           name_zh: string | null;
           photo_url: string | null;
+          updated_at: string;
         };
         Insert: {
           created_at?: string | null;
@@ -276,6 +280,7 @@ export type Database = {
           name_en?: string | null;
           name_zh?: string | null;
           photo_url?: string | null;
+          updated_at?: string;
         };
         Update: {
           created_at?: string | null;
@@ -291,6 +296,7 @@ export type Database = {
           name_en?: string | null;
           name_zh?: string | null;
           photo_url?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -301,6 +307,7 @@ export type Database = {
           id: string;
           name: string;
           segments: Json;
+          updated_at: string;
         };
         Insert: {
           created_at?: string | null;
@@ -308,6 +315,7 @@ export type Database = {
           id?: string;
           name: string;
           segments: Json;
+          updated_at?: string;
         };
         Update: {
           created_at?: string | null;
@@ -315,6 +323,7 @@ export type Database = {
           id?: string;
           name?: string;
           segments?: Json;
+          updated_at?: string;
         };
         Relationships: [];
       };

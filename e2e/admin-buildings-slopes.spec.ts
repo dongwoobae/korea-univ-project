@@ -183,6 +183,16 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.getByRole("button", { name: "업로드 & 저장" }).click();
     await expect(page.getByText("E2E-route", { exact: true })).toBeVisible();
     await expect(page.getByText('"E2E-route" 경로를 등록했어요')).toBeVisible();
+    await page
+      .getByRole("searchbox", { name: "경사도 경로 검색" })
+      .fill("E2E-route.gpx");
+    await expect(page.getByText("정문-중앙광장", { exact: true })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("status", { name: "전체 2개 중 1개 표시" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "초기화" }).click();
     const downloadPromise = page.waitForEvent("download");
     const routeRow = page
       .getByText("E2E-route", { exact: true })

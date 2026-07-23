@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { deleteLandmark } from "@/lib/landmarkDelete";
@@ -8,6 +8,13 @@ import type { Landmark } from "@/types/domain";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import LandmarkFormModal from "@/components/admin/LandmarkFormModal";
+import AdminListControls from "@/components/admin/AdminListControls";
+import {
+  formatAdminUpdatedAt,
+  matchesAdminSearch,
+  sortAdminItems,
+  type AdminListSort,
+} from "@/lib/adminList";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
@@ -21,6 +28,43 @@ export default function LandmarksPage() {
   const [editingLandmark, setEditingLandmark] = useState<Landmark | null>(null);
   const [creating, setCreating] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<Landmark | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [photoFilter, setPhotoFilter] = useState("all");
+  const [sort, setSort] = useState<AdminListSort>("updated-desc");
+
+  const visibleLandmarks = useMemo(() => {
+    const filtered = landmarks.filter((landmark) => {
+      const matchesSearch = matchesAdminSearch(searchQuery, [
+        landmark.name,
+        landmark.name_en,
+        landmark.name_zh,
+        landmark.description,
+      ]);
+      const matchesPhoto =
+        photoFilter === "all" ||
+        (photoFilter === "with-photo"
+          ? Boolean(landmark.photo_url)
+          : !landmark.photo_url);
+      return matchesSearch && matchesPhoto;
+    });
+    return sortAdminItems(
+      filtered,
+      sort,
+      (landmark) => landmark.name,
+      (landmark) => landmark.updated_at,
+    );
+  }, [landmarks, photoFilter, searchQuery, sort]);
+
+  const hasActiveFilters =
+    searchQuery.trim() !== "" ||
+    photoFilter !== "all" ||
+    sort !== "updated-desc";
+
+  function resetControls() {
+    setSearchQuery("");
+    setPhotoFilter("all");
+    setSort("updated-desc");
+  }
 
   function showToast(message: string, type = "success") {
     setToast({ message, type });
@@ -60,7 +104,11 @@ export default function LandmarksPage() {
   }
 
   if (loading)
-    return <div style={{ padding: 40, color: "var(--ku-text-3)" }}>불러오는 중...</div>;
+    return (
+      <div style={{ padding: 40, color: "var(--ku-text-3)" }}>
+        불러오는 중...
+      </div>
+    );
   if (loadError)
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
@@ -103,9 +151,41 @@ export default function LandmarksPage() {
             + 명소 추가
           </button>
         </div>
-        <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 16 }}>
+        <div
+          style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 16 }}
+        >
           지도에 표시할 캠퍼스 명소를 관리해요.
         </div>
+
+        <AdminListControls
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchLabel="명소 검색"
+          searchPlaceholder="명소명 또는 설명 검색"
+          resultCount={visibleLandmarks.length}
+          totalCount={landmarks.length}
+          hasActiveFilters={hasActiveFilters}
+          onReset={resetControls}
+        >
+          <select
+            value={photoFilter}
+            onChange={(event) => setPhotoFilter(event.target.value)}
+            aria-label="명소 사진 필터"
+          >
+            <option value="all">사진 전체</option>
+            <option value="with-photo">사진 있음</option>
+            <option value="without-photo">사진 없음</option>
+          </select>
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as AdminListSort)}
+            aria-label="명소 정렬"
+          >
+            <option value="updated-desc">최근 수정순</option>
+            <option value="updated-asc">오래 수정순</option>
+            <option value="name">이름순</option>
+          </select>
+        </AdminListControls>
 
         {landmarks.length === 0 ? (
           <div
@@ -118,8 +198,10 @@ export default function LandmarksPage() {
           >
             등록된 명소가 없어요
           </div>
+        ) : visibleLandmarks.length === 0 ? (
+          <div className="ku-admin-list-empty">조건에 맞는 명소가 없어요</div>
         ) : (
-          landmarks.map((landmark) => (
+          visibleLandmarks.map((landmark) => (
             <div
               key={landmark.id}
               style={{
@@ -135,7 +217,10 @@ export default function LandmarksPage() {
                 {landmark.icon}
               </div>
               <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 500 }}>
+                <div
+                  data-testid="admin-list-item-name"
+                  style={{ fontSize: 14, fontWeight: 500 }}
+                >
                   {landmark.name}
                 </div>
                 {landmark.description && (
@@ -145,6 +230,9 @@ export default function LandmarksPage() {
                 )}
                 <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
                   위도 {landmark.lat} / 경도 {landmark.lng}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
+                  {formatAdminUpdatedAt(landmark.updated_at)}
                 </div>
               </div>
               <span

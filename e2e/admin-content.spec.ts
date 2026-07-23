@@ -2,6 +2,38 @@ import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
 
 test.describe("독립 시설과 명소 관리자 CRUD", () => {
+  test("독립 시설을 검색·필터·정렬하고 조건을 초기화한다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/admin/dashboard/facilities");
+
+    await expect(
+      page.getByRole("status", { name: "전체 2개 중 2개 표시" }),
+    ).toBeVisible();
+    await page.getByRole("searchbox", { name: "독립 시설 검색" }).fill("공사");
+    await expect(page.getByText("공사 중 주차구역")).toBeVisible();
+    await expect(page.getByText("중앙광장 경사로")).toHaveCount(0);
+
+    await page.getByLabel("설치 상태 필터").selectOption("installed");
+    await expect(
+      page.getByText("조건에 맞는 독립 시설이 없어요"),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("status", { name: "전체 2개 중 0개 표시" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "초기화" }).click();
+    await page.getByLabel("독립 시설 정렬").selectOption("name");
+    await expect(page.getByTestId("admin-list-item-name")).toHaveText([
+      "공사 중 주차구역",
+      "중앙광장 경사로",
+    ]);
+
+    await page.getByLabel("시설 유형 필터").selectOption("ramp");
+    await expect(page.getByText("중앙광장 경사로")).toBeVisible();
+    await expect(page.getByText("공사 중 주차구역")).toHaveCount(0);
+  });
+
   test("독립 시설을 현재 위치에 생성하고 상태 변경 후 삭제한다", async ({
     page,
   }) => {
@@ -116,5 +148,17 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
       .last()
       .click();
     await expect(page.getByText("E2E 포토존")).toHaveCount(0);
+  });
+
+  test("명소를 검색하고 사진 유무로 필터링한다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+
+    await page.getByRole("searchbox", { name: "명소 검색" }).fill("Squirrel");
+    await expect(page.getByText("다람쥐길")).toBeVisible();
+    await page.getByLabel("명소 사진 필터").selectOption("without-photo");
+    await expect(page.getByText("조건에 맞는 명소가 없어요")).toBeVisible();
+    await page.getByRole("button", { name: "초기화" }).click();
+    await expect(page.getByText("다람쥐길")).toBeVisible();
   });
 });

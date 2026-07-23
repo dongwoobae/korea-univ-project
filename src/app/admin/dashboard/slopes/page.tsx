@@ -1,10 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { SlopeSegment } from "@/types/domain";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
+import AdminListControls from "@/components/admin/AdminListControls";
+import {
+  formatAdminUpdatedAt,
+  matchesAdminSearch,
+  sortAdminItems,
+  type AdminListSort,
+} from "@/lib/adminList";
 
 function buildGpx(name, points) {
   const trkpts = points
@@ -45,6 +52,27 @@ export default function SlopesPage() {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sort, setSort] = useState<AdminListSort>("updated-desc");
+
+  const visibleSlopes = useMemo(() => {
+    const filtered = slopes.filter((slope) =>
+      matchesAdminSearch(searchQuery, [slope.name, slope.gpx_file]),
+    );
+    return sortAdminItems(
+      filtered,
+      sort,
+      (slope) => slope.name,
+      (slope) => slope.updated_at,
+    );
+  }, [searchQuery, slopes, sort]);
+
+  const hasActiveFilters = searchQuery.trim() !== "" || sort !== "updated-desc";
+
+  function resetControls() {
+    setSearchQuery("");
+    setSort("updated-desc");
+  }
 
   function showToast(message: string, type = "success") {
     setToast({ message, type });
@@ -57,7 +85,7 @@ export default function SlopesPage() {
   async function fetchSlopes() {
     const { data } = await supabase
       .from("slope_segments")
-      .select("id, name, gpx_file, segments, created_at")
+      .select("*")
       .order("created_at", { ascending: false });
     setSlopes((data ?? []) as unknown as SlopeSegment[]);
     setLoading(false);
@@ -212,6 +240,26 @@ export default function SlopesPage() {
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
           등록된 경로 ({slopes.length}개)
         </div>
+        <AdminListControls
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchLabel="경사도 경로 검색"
+          searchPlaceholder="경로명 또는 GPX 파일명 검색"
+          resultCount={visibleSlopes.length}
+          totalCount={slopes.length}
+          hasActiveFilters={hasActiveFilters}
+          onReset={resetControls}
+        >
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as AdminListSort)}
+            aria-label="경사도 경로 정렬"
+          >
+            <option value="updated-desc">최근 수정순</option>
+            <option value="updated-asc">오래 수정순</option>
+            <option value="name">이름순</option>
+          </select>
+        </AdminListControls>
         {loading ? (
           <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>
             불러오는 중...
@@ -220,9 +268,13 @@ export default function SlopesPage() {
           <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>
             등록된 경로가 없습니다.
           </div>
+        ) : visibleSlopes.length === 0 ? (
+          <div className="ku-admin-list-empty">
+            조건에 맞는 경사도 경로가 없어요
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {slopes.map((s) => (
+            {visibleSlopes.map((s) => (
               <div
                 key={s.id}
                 style={{
@@ -236,6 +288,7 @@ export default function SlopesPage() {
               >
                 <div>
                   <div
+                    data-testid="admin-list-item-name"
                     style={{
                       fontSize: 14,
                       fontWeight: 600,
@@ -252,9 +305,7 @@ export default function SlopesPage() {
                     }}
                   >
                     {s.segments?.length ?? 0}개 포인트 ·{" "}
-                    {s.created_at
-                      ? new Date(s.created_at).toLocaleDateString("ko-KR")
-                      : ""}
+                    {formatAdminUpdatedAt(s.updated_at)}
                     {s.gpx_file && (
                       <span
                         style={{ marginLeft: 8, color: "var(--ku-text-3)" }}

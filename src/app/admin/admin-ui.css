@@ -200,6 +200,71 @@
   background: var(--ku-surface);
   font-size: 14px;
 }
+.ku-admin-list-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  background: var(--ku-bg);
+}
+.ku-admin-list-search {
+  position: relative;
+  flex: 1 1 230px;
+  min-width: 180px;
+}
+.ku-admin-list-search span {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: var(--ku-text-3);
+  pointer-events: none;
+}
+.ku-admin-list-search input,
+.ku-admin-list-controls select {
+  min-height: 40px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font-size: 13px;
+}
+.ku-admin-list-search input {
+  width: 100%;
+  padding: 0 12px 0 34px;
+}
+.ku-admin-list-controls select {
+  flex: 0 1 auto;
+  padding: 0 30px 0 10px;
+}
+.ku-admin-list-reset {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--ku-border);
+  border-radius: 8px;
+  color: var(--ku-primary-text);
+  background: var(--ku-surface);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.ku-admin-list-result-count {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: var(--ku-text-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.ku-admin-list-empty {
+  padding: 24px 0;
+  color: var(--ku-text-3);
+  font-size: 13px;
+  text-align: center;
+}
 .ku-admin-table {
   overflow: hidden;
   border: 1px solid var(--ku-border);
@@ -605,6 +670,27 @@
   .ku-admin-search input {
     height: 44px;
     font-size: 16px;
+  }
+  .ku-admin-list-controls {
+    align-items: stretch;
+  }
+  .ku-admin-list-search {
+    flex-basis: 100%;
+  }
+  .ku-admin-list-search input,
+  .ku-admin-list-controls select,
+  .ku-admin-list-reset {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .ku-admin-list-controls select {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+  }
+  .ku-admin-list-result-count {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
   }
   .ku-admin-table {
     display: none;

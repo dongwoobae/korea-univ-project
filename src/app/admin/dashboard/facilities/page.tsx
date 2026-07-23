@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
@@ -11,6 +11,13 @@ import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityFormModal from "@/components/admin/FacilityFormModal";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
 import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
+import AdminListControls from "@/components/admin/AdminListControls";
+import {
+  formatAdminUpdatedAt,
+  matchesAdminSearch,
+  sortAdminItems,
+  type AdminListSort,
+} from "@/lib/adminList";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
@@ -20,6 +27,10 @@ export default function StandaloneFacilitiesPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [installationFilter, setInstallationFilter] = useState("all");
+  const [sort, setSort] = useState<AdminListSort>("updated-desc");
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -30,6 +41,45 @@ export default function StandaloneFacilitiesPage() {
     useState<FacilityWithType | null>(null);
   const [videoModalFacility, setVideoModalFacility] =
     useState<FacilityWithType | null>(null);
+
+  const visibleFacilities = useMemo(() => {
+    const filtered = facilities.filter((facility) => {
+      const matchesSearch = matchesAdminSearch(searchQuery, [
+        facility.name,
+        facility.name_en,
+        facility.name_zh,
+        facility.description,
+        facility.facility_types?.label,
+      ]);
+      const matchesType =
+        typeFilter === "all" || facility.facility_code === typeFilter;
+      const matchesInstallation =
+        installationFilter === "all" ||
+        (installationFilter === "installed"
+          ? facility.is_installed === true
+          : facility.is_installed !== true);
+      return matchesSearch && matchesType && matchesInstallation;
+    });
+    return sortAdminItems(
+      filtered,
+      sort,
+      (facility) => facility.name ?? facility.facility_types?.label ?? "",
+      (facility) => facility.updated_at,
+    );
+  }, [facilities, installationFilter, searchQuery, sort, typeFilter]);
+
+  const hasActiveFilters =
+    searchQuery.trim() !== "" ||
+    typeFilter !== "all" ||
+    installationFilter !== "all" ||
+    sort !== "updated-desc";
+
+  function resetControls() {
+    setSearchQuery("");
+    setTypeFilter("all");
+    setInstallationFilter("all");
+    setSort("updated-desc");
+  }
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -140,6 +190,48 @@ export default function StandaloneFacilitiesPage() {
           건물에 소속되지 않는 시설(야외 경사로, 독립 주차구역 등)을 관리해요.
         </div>
 
+        <AdminListControls
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchLabel="독립 시설 검색"
+          searchPlaceholder="시설명 또는 설명 검색"
+          resultCount={visibleFacilities.length}
+          totalCount={facilities.length}
+          hasActiveFilters={hasActiveFilters}
+          onReset={resetControls}
+        >
+          <select
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value)}
+            aria-label="시설 유형 필터"
+          >
+            <option value="all">모든 유형</option>
+            {facilityTypes.map((type) => (
+              <option key={type.code} value={type.code}>
+                {type.icon} {type.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={installationFilter}
+            onChange={(event) => setInstallationFilter(event.target.value)}
+            aria-label="설치 상태 필터"
+          >
+            <option value="all">모든 상태</option>
+            <option value="installed">설치</option>
+            <option value="missing">미설치</option>
+          </select>
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as AdminListSort)}
+            aria-label="독립 시설 정렬"
+          >
+            <option value="updated-desc">최근 수정순</option>
+            <option value="updated-asc">오래 수정순</option>
+            <option value="name">이름순</option>
+          </select>
+        </AdminListControls>
+
         {facilities.length === 0 ? (
           <div
             style={{
@@ -151,8 +243,12 @@ export default function StandaloneFacilitiesPage() {
           >
             등록된 독립 시설이 없어요
           </div>
+        ) : visibleFacilities.length === 0 ? (
+          <div className="ku-admin-list-empty">
+            조건에 맞는 독립 시설이 없어요
+          </div>
         ) : (
-          facilities.map((f) => (
+          visibleFacilities.map((f) => (
             <div
               key={f.id}
               style={{
@@ -166,7 +262,10 @@ export default function StandaloneFacilitiesPage() {
             >
               <div style={{ fontSize: 20 }}>{f.facility_types?.icon}</div>
               <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 500 }}>
+                <div
+                  data-testid="admin-list-item-name"
+                  style={{ fontSize: 14, fontWeight: 500 }}
+                >
                   {f.name ?? f.facility_types?.label}
                 </div>
                 {f.description && (
@@ -179,6 +278,9 @@ export default function StandaloneFacilitiesPage() {
                     위도 {f.lat} / 경도 {f.lng}
                   </div>
                 )}
+                <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
+                  {formatAdminUpdatedAt(f.updated_at)}
+                </div>
               </div>
               <button
                 onClick={() => setVideoModalFacility(f)}

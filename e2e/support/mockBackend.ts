@@ -127,6 +127,7 @@ function createState(authenticated: boolean): MockState {
         facility_types: types[1],
         buildings: null,
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T03:00:00Z",
       },
       {
         id: "f-building",
@@ -149,6 +150,7 @@ function createState(authenticated: boolean): MockState {
         facility_types: types[0],
         buildings: { name: "중앙도서관", name_en: "Central Library" },
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T02:00:00Z",
       },
       {
         id: "f-uninstalled",
@@ -161,6 +163,7 @@ function createState(authenticated: boolean): MockState {
         facility_types: types[2],
         buildings: null,
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T01:00:00Z",
       },
     ],
     landmarks: [
@@ -177,6 +180,7 @@ function createState(authenticated: boolean): MockState {
         lng: 127.03225,
         photo_url: "https://cdn.test/landmark.webp",
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T00:00:00Z",
       },
     ],
     slopes: [
@@ -189,6 +193,7 @@ function createState(authenticated: boolean): MockState {
           { lat: 37.5892, lng: 127.0322, ele: 22 },
         ],
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T00:00:00Z",
       },
     ],
     photos: [
@@ -310,6 +315,7 @@ async function handleRest(route: Route, state: MockState, url: URL) {
     const created: Row = {
       id: nextId(name, state),
       created_at: "2026-07-21T01:00:00Z",
+      updated_at: "2026-07-21T01:00:00Z",
       ...input,
     };
     if (name === "building_facilities") {
@@ -324,7 +330,9 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   const id = filterId(url);
   const index = target.findIndex((row) => String(row.id) === id);
   if (method === "PATCH" && index >= 0) {
-    Object.assign(target[index], body);
+    Object.assign(target[index], body, {
+      updated_at: "2026-07-23T00:00:00Z",
+    });
     return json(route, [target[index]]);
   }
   if (method === "DELETE" && index >= 0) {

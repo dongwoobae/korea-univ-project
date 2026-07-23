@@ -1,0 +1,36 @@
+export type AdminListSort = "updated-desc" | "updated-asc" | "name";
+
+export function matchesAdminSearch(
+  query: string,
+  values: Array<string | null | undefined>,
+) {
+  const normalizedQuery = query.trim().toLocaleLowerCase("ko-KR");
+  if (!normalizedQuery) return true;
+  return values.some((value) =>
+    (value ?? "").toLocaleLowerCase("ko-KR").includes(normalizedQuery),
+  );
+}
+
+export function sortAdminItems<T>(
+  items: T[],
+  sort: AdminListSort,
+  getName: (item: T) => string,
+  getUpdatedAt: (item: T) => string | null | undefined,
+) {
+  return [...items].sort((left, right) => {
+    if (sort === "name")
+      return getName(left).localeCompare(getName(right), "ko");
+
+    const leftTime = Date.parse(getUpdatedAt(left) ?? "") || 0;
+    const rightTime = Date.parse(getUpdatedAt(right) ?? "") || 0;
+    return sort === "updated-desc"
+      ? rightTime - leftTime
+      : leftTime - rightTime;
+  });
+}
+
+export function formatAdminUpdatedAt(value: string | null | undefined) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "수정일 없음";
+  return `수정 ${date.toLocaleDateString("ko-KR")}`;
+}
