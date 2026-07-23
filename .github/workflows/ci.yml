@@ -7,6 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   migration-safety:
     name: Migration safety
@@ -25,50 +28,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            echo "Manual run: all committed migrations will be reconciled."
-            changes="$(
-              git ls-files 'supabase/migrations/*.sql' |
-                awk '{ print "A\t" $0 }'
-            )"
-          else
-            if [[ -z "$BASE_SHA" || "$BASE_SHA" == "0000000000000000000000000000000000000000" ]]; then
-              BASE_SHA="$(git hash-object -t tree /dev/null)"
-            fi
-            changes="$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" -- supabase/migrations)"
-          fi
-
-          if [[ -z "$changes" ]]; then
-            echo "has_changes=false" >> "$GITHUB_OUTPUT"
-            echo "No migration changes."
-            exit 0
-          fi
-
-          echo "$changes"
-          echo "has_changes=true" >> "$GITHUB_OUTPUT"
-
-          invalid_changes="$(awk '$1 != "A" { print }' <<< "$changes")"
-          if [[ -n "$invalid_changes" ]]; then
-            echo "::error::Applied migrations are immutable. Add a new migration instead of modifying, deleting, or renaming an existing file."
-            echo "$invalid_changes"
-            exit 1
-          fi
-
-          while IFS=$'\t' read -r status file; do
-            [[ "$status" == "A" ]] || continue
-            filename="$(basename "$file")"
-            if [[ ! "$filename" =~ ^[0-9]{14}_[a-z0-9_]+\.sql$ ]]; then
-              echo "::error file=$file::Migration filenames must match YYYYMMDDHHMMSS_lower_snake_case.sql."
-              exit 1
-            fi
-            if [[ ! -s "$file" ]]; then
-              echo "::error file=$file::Migration file must not be empty."
-              exit 1
-            fi
-          done <<< "$changes"
+        run: bash scripts/check-migrations.sh
 
   lint:
     name: Lint
@@ -234,71 +194,3 @@ jobs:
             all(.[]; .local != "" and .remote != "" and .local == .remote)
           ' <<< "$status_json" > /dev/null
           echo "Local and remote migration histories match."
-
-  migrate:
-    name: Migrate Supabase
-    if: github.event_name != 'pull_request'
-    needs: [lint, format, typecheck, test, e2e]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    concurrency:
-      group: supabase-production-migrations
-      cancel-in-progress: false
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect migration changes
-        id: migration-changes
-        env:
-          BEFORE_SHA: ${{ github.event.before }}
-          AFTER_SHA: ${{ github.sha }}
-          EVENT_NAME: ${{ github.event_name }}
-        run: |
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          elif git diff --quiet "$BEFORE_SHA" "$AFTER_SHA" -- supabase/migrations; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Set up Supabase CLI
-        if: steps.migration-changes.outputs.changed == 'true'
-        uses: supabase/setup-cli@v1
-        with:
-          version: 2.109.1
-
-      - name: Validate migration secrets
-        if: steps.migration-changes.outputs.changed == 'true'
-        env:
-          SUPABASE_DB_URL_TEMPLATE: ${{ secrets.SUPABASE_DB_URL }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: |
-          if [ -z "$SUPABASE_DB_URL_TEMPLATE" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "::error::SUPABASE_DB_URL and SUPABASE_DB_PASSWORD secrets are required."
-            exit 1
-          fi
-          if [[ "$SUPABASE_DB_URL_TEMPLATE" != *"[YOUR-PASSWORD]"* ]]; then
-            echo "::error::SUPABASE_DB_URL must contain the [YOUR-PASSWORD] placeholder."
-            exit 1
-          fi
-
-      - name: Push pending migrations
-        if: steps.migration-changes.outputs.changed == 'true'
-        env:
-          SUPABASE_DB_URL_TEMPLATE: ${{ secrets.SUPABASE_DB_URL }}
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-        run: |
-          encoded_password="$(python3 -c 'import os, urllib.parse; print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe=""))')"
-          db_url="${SUPABASE_DB_URL_TEMPLATE/\[YOUR-PASSWORD\]/$encoded_password}"
-          echo "::add-mask::$encoded_password"
-          echo "::add-mask::$db_url"
-          supabase db push --db-url "$db_url" --dry-run
-          supabase db push --db-url "$db_url" --yes
-
-      - name: No migration changes
-        if: steps.migration-changes.outputs.changed != 'true'
-        run: echo "No Supabase migration changes in this push."
