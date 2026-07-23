@@ -260,6 +260,9 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(
       page.locator('.leaflet-tile[src*="/dark_all/"]').first(),
     ).toBeAttached();
+    await expect(
+      page.locator(".leaflet-overlay-pane path.leaflet-interactive").first(),
+    ).toHaveAttribute("fill", "#FF4D3D");
 
     await page.emulateMedia({ colorScheme: "light" });
     await expect(
@@ -268,6 +271,9 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.locator('.leaflet-tile[src*="/dark_all/"]')).toHaveCount(
       0,
     );
+    await expect(
+      page.locator(".leaflet-overlay-pane path.leaflet-interactive").first(),
+    ).toHaveAttribute("fill", "#963A32");
   });
 
   test("지도 영역 밖의 현재 위치는 이동하지 않고 안내한다", async ({

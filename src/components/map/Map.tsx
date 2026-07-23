@@ -78,16 +78,17 @@ function loadFavoritesFromStorage() {
   }
 }
 
-function buildingColor(feature, tileMode) {
-  const colors = tileMode === "satellite" ? satelliteCampusColor : campusColor;
+function buildingColor(feature, tileMode, prefersDarkMode) {
+  const useBrightColors = tileMode === "satellite" || prefersDarkMode;
+  const colors = useBrightColors ? satelliteCampusColor : campusColor;
   return (
     colors[feature?.properties?.campus] ??
-    (tileMode === "satellite" ? "#FF4D3D" : "#963A32")
+    (useBrightColors ? "#FF4D3D" : "#963A32")
   );
 }
 
-function baseStyle(feature, tileMode) {
-  const color = buildingColor(feature, tileMode);
+function baseStyle(feature, tileMode, prefersDarkMode) {
+  const color = buildingColor(feature, tileMode, prefersDarkMode);
   const satellite = tileMode === "satellite";
   return {
     color,
@@ -98,8 +99,8 @@ function baseStyle(feature, tileMode) {
   };
 }
 
-function hoverStyle(feature, tileMode) {
-  const color = buildingColor(feature, tileMode);
+function hoverStyle(feature, tileMode, prefersDarkMode) {
+  const color = buildingColor(feature, tileMode, prefersDarkMode);
   const satellite = tileMode === "satellite";
   return {
     color,
@@ -300,9 +301,9 @@ export default function Map() {
   const geoJsonStyle = useCallback(
     (feature) =>
       activeBuildingIdRef.current === feature?.properties?.id
-        ? hoverStyle(feature, tileMode)
-        : baseStyle(feature, tileMode),
-    [tileMode],
+        ? hoverStyle(feature, tileMode, prefersDarkMode)
+        : baseStyle(feature, tileMode, prefersDarkMode),
+    [tileMode, prefersDarkMode],
   );
 
   // 모바일 감지
@@ -324,12 +325,13 @@ export default function Map() {
         baseStyle(
           featureMapRef.current[activeBuildingIdRef.current ?? -1],
           tileMode,
+          prefersDarkMode,
         ),
       );
     }
     const layer = layerMapRef.current[bId];
     if (layer) {
-      layer.setStyle(hoverStyle(feature, tileMode));
+      layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = bId;
     }
@@ -356,14 +358,14 @@ export default function Map() {
         const feature = featureMapRef.current[numId];
         layer.setStyle(
           isActive
-            ? hoverStyle(feature, tileMode)
-            : baseStyle(feature, tileMode),
+            ? hoverStyle(feature, tileMode, prefersDarkMode)
+            : baseStyle(feature, tileMode, prefersDarkMode),
         );
       });
     };
     window.addEventListener("favoritesUpdated", handler);
     return () => window.removeEventListener("favoritesUpdated", handler);
-  }, [tileMode]);
+  }, [tileMode, prefersDarkMode]);
 
   function onEachFeature(feature, layer) {
     const bId = feature.properties.id;
@@ -372,7 +374,7 @@ export default function Map() {
     layer.on({
       mouseover(e) {
         if (isMobileRef.current) return;
-        layer.setStyle(hoverStyle(feature, tileMode));
+        layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
         const { clientX, clientY } = e.originalEvent;
         const mapEl = mapRef.current?.getContainer();
         if (!mapEl) return;
@@ -400,7 +402,7 @@ export default function Map() {
       mouseout() {
         setTooltip((prev) => ({ ...prev, visible: false }));
         if (activeLayerRef.current === layer) return;
-        layer.setStyle(baseStyle(feature, tileMode));
+        layer.setStyle(baseStyle(feature, tileMode, prefersDarkMode));
       },
       click() {
         if (activeBuildingIdRef.current === bId) {
@@ -412,10 +414,11 @@ export default function Map() {
             baseStyle(
               featureMapRef.current[activeBuildingIdRef.current ?? -1],
               tileMode,
+              prefersDarkMode,
             ),
           );
         }
-        layer.setStyle(hoverStyle(feature, tileMode));
+        layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
         activeLayerRef.current = layer;
         activeBuildingIdRef.current = bId;
         setSelectedBuilding({ id: bId, name: feature.properties.name });
@@ -429,12 +432,15 @@ export default function Map() {
         baseStyle(
           featureMapRef.current[activeBuildingIdRef.current ?? -1],
           tileMode,
+          prefersDarkMode,
         ),
       );
     }
     const layer = layerMapRef.current[id];
     if (layer) {
-      layer.setStyle(hoverStyle(featureMapRef.current[id], tileMode));
+      layer.setStyle(
+        hoverStyle(featureMapRef.current[id], tileMode, prefersDarkMode),
+      );
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = id;
       mapRef.current?.fitBounds(layer.getBounds(), {
@@ -454,6 +460,7 @@ export default function Map() {
           baseStyle(
             featureMapRef.current[activeBuildingIdRef.current ?? -1],
             tileMode,
+            prefersDarkMode,
           ),
         );
         activeLayerRef.current = null;
@@ -537,7 +544,7 @@ export default function Map() {
         {geoData && (
           <>
             <GeoJSON
-              key={`${tileMode}-${JSON.stringify(geoData)}`}
+              key={`${tileMode}-${prefersDarkMode}-${JSON.stringify(geoData)}`}
               data={geoData}
               style={geoJsonStyle}
               onEachFeature={onEachFeature}
@@ -611,12 +618,16 @@ export default function Map() {
             }
             style={(feature) => ({
               color:
-                campusColor[feature?.properties?.campus] ??
+                (prefersDarkMode
+                  ? satelliteCampusColor[feature?.properties?.campus]
+                  : campusColor[feature?.properties?.campus]) ??
                 feature?.properties?.color,
               weight: 2,
               opacity: 0.45,
               fillColor:
-                campusColor[feature?.properties?.campus] ??
+                (prefersDarkMode
+                  ? satelliteCampusColor[feature?.properties?.campus]
+                  : campusColor[feature?.properties?.campus]) ??
                 feature?.properties?.color,
               fillOpacity: 0.05,
               dashArray: "5 4",
