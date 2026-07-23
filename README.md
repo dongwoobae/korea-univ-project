@@ -33,7 +33,7 @@
 - ⭐ **즐겨찾기** — 자주 찾는 건물 북마크 (localStorage 저장)
 - 🌐 **다국어 지원** — 한국어 / English / 中文 전환
 - 📱 **모바일 반응형** — 스마트폰 현장 조사 대응
-- 💬 **피드백 버튼** — 오류 제보·시설 정보 수정 요청 이메일 템플릿 제공
+- 💬 **피드백 버튼** — 오류 제보·시설 정보 수정 요청을 서버로 접수하고 이메일 전송도 지원
 
 ### 관리자
 
@@ -196,6 +196,29 @@ app_settings
 
 프로젝트 루트에 `.env.local` 파일을 생성하세요.
 변수 목록은 관리자에게 문의하세요.
+
+운영 DB 마이그레이션은 GitHub Actions가 적용한다. 새 스키마 변경은
+`supabase/migrations`에 새 SQL 파일로 추가하고, 이미 적용된 파일은 수정하지
+않는다. GitHub Secrets 설정과 장애 대응 절차는
+[데이터베이스 마이그레이션 운영 문서](docs/database-migrations.md)를 참고한다.
+
+### GitHub Actions 마이그레이션
+
+`main` 브랜치에 `supabase/migrations/**` 변경이 push되면 전체 CI가 통과한 뒤
+대기 중인 마이그레이션을 원격 Supabase에 순서대로 적용합니다. GitHub 저장소의
+**Settings → Secrets and variables → Actions**에 다음 Repository secrets를
+등록해야 합니다.
+
+| Secret                 | 값                                                                   |
+| ---------------------- | -------------------------------------------------------------------- |
+| `SUPABASE_DB_URL`      | Dashboard **Connect → Session pooler**의 URI. `[YOUR-PASSWORD]` 유지 |
+| `SUPABASE_DB_PASSWORD` | 해당 Supabase 프로젝트의 Database password                           |
+
+Session pooler URI는 GitHub Actions의 IPv4 실행 환경에서 사용할 수 있도록 포트
+`5432`인 주소를 사용합니다. 워크플로를 수동 실행하면 변경 감지와 관계없이 원격
+마이그레이션 이력을 다시 확인하며, 이미 적용된 마이그레이션은 재실행하지 않습니다.
+원격 스키마를 Dashboard에서 직접 수정하지 말고 모든 변경을 새 migration 파일로
+추가해야 로컬 파일과 원격 이력이 어긋나지 않습니다.
 
 ---
 
