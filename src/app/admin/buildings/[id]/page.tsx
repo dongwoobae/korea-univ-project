@@ -864,9 +864,28 @@ export default function BuildingDetail() {
   );
 }
 
+type PhotoUploadStatus =
+  "queued" | "compressing" | "uploading" | "success" | "error";
+
+interface PhotoUploadItem {
+  id: string;
+  file: File;
+  status: PhotoUploadStatus;
+  error?: string;
+}
+
+const photoUploadStatusLabel: Record<PhotoUploadStatus, string> = {
+  queued: "대기 중",
+  compressing: "압축 중",
+  uploading: "업로드 중",
+  success: "완료",
+  error: "실패",
+};
+
 function PhotoManager({ buildingId, showToast }) {
   const [photos, setPhotos] = useState<BuildingPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadItems, setUploadItems] = useState<PhotoUploadItem[]>([]);
   const [confirmDeletePhoto, setConfirmDeletePhoto] =
     useState<BuildingPhoto | null>(null);
   const [draftCaptions, setDraftCaptions] = useState<Record<string, string>>(
@@ -973,45 +992,124 @@ function PhotoManager({ buildingId, showToast }) {
     });
   }
 
-  async function handleUpload(e) {
-    const files = Array.from(e.target.files as FileList);
-    if (!files.length) return;
+  function updateUploadItem(
+    id: string,
+    status: PhotoUploadStatus,
+    error?: string,
+  ) {
+    setUploadItems((current) =>
+      current.map((item) =>
+        item.id === id ? { ...item, status, error } : item,
+      ),
+    );
+  }
+
+  async function uploadPhoto(item: PhotoUploadItem) {
+    updateUploadItem(item.id, "compressing");
+    let blob: Blob;
+    try {
+      blob = (await convertToWebP(item.file)) as Blob;
+    } catch (error) {
+      return {
+        ...item,
+        status: "error" as const,
+        error:
+          error instanceof Error ? error.message : "이미지 압축에 실패했어요",
+      };
+    }
+
+    updateUploadItem(item.id, "uploading");
+    const formData = new FormData();
+    formData.append("file", blob, "photo.webp");
+    formData.append("buildingId", String(buildingId));
+    formData.append("originalName", item.file.name);
+
+    try {
+      const res = await authedFetch("/api/upload-building-photo", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        return {
+          ...item,
+          status: "error" as const,
+          error: data.error ?? `서버 응답 오류 (${res.status})`,
+        };
+      }
+      return { ...item, status: "success" as const, error: undefined };
+    } catch {
+      return {
+        ...item,
+        status: "error" as const,
+        error: "네트워크 오류가 발생했어요",
+      };
+    }
+  }
+
+  async function runUploads(
+    targets: PhotoUploadItem[],
+    existingSuccessCount: number,
+  ) {
+    if (targets.length === 0) return;
     setUploading(true);
-
-    let successCount = 0;
-    for (const file of files) {
-      let blob;
-      try {
-        blob = await convertToWebP(file);
-      } catch {
-        showToast(`${file.name} 변환 실패`, "error");
-        continue;
-      }
-
-      const formData = new FormData();
-      formData.append("file", blob, "photo.webp");
-      formData.append("buildingId", buildingId);
-
-      try {
-        const res = await authedFetch("/api/upload-building-photo", {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok || data.error) {
-          showToast(`업로드 실패: ${data.error}`, "error");
-          continue;
-        }
-        successCount++;
-      } catch {
-        showToast("네트워크 오류가 발생했어요", "error");
-      }
+    const results: PhotoUploadItem[] = [];
+    for (const target of targets) {
+      const result = await uploadPhoto(target);
+      results.push(result);
+      updateUploadItem(result.id, result.status, result.error);
     }
 
     await fetchPhotos();
     setUploading(false);
+    const successCount =
+      existingSuccessCount +
+      results.filter((item) => item.status === "success").length;
+    const failureCount = results.filter(
+      (item) => item.status === "error",
+    ).length;
+    showToast(
+      failureCount > 0
+        ? `${successCount}장 업로드 완료 · ${failureCount}장 실패`
+        : `${successCount}장 업로드됐어요!`,
+      failureCount > 0 ? "warning" : "success",
+    );
+  }
+
+  async function handleUpload(e) {
+    const files = Array.from(e.target.files as FileList);
     e.target.value = "";
-    if (successCount > 0) showToast(`${successCount}장 업로드됐어요!`);
+    if (!files.length) return;
+    const batchId = Date.now();
+    const items = files.map((file, index) => ({
+      id: `${batchId}-${index}`,
+      file,
+      status: "queued" as const,
+    }));
+    setUploadItems(items);
+    await runUploads(items, 0);
+  }
+
+  async function handleRetryFailed() {
+    const failed = uploadItems
+      .filter((item) => item.status === "error")
+      .map((item) => ({
+        ...item,
+        status: "queued" as const,
+        error: undefined,
+      }));
+    const failedIds = new Set(failed.map((item) => item.id));
+    setUploadItems((current) =>
+      current.map((item) =>
+        failedIds.has(item.id)
+          ? { ...item, status: "queued", error: undefined }
+          : item,
+      ),
+    );
+    await runUploads(
+      failed,
+      uploadItems.filter((item) => item.status === "success").length,
+    );
   }
 
   async function handleDelete(photo) {
@@ -1146,6 +1244,61 @@ function PhotoManager({ buildingId, showToast }) {
           style={{ display: "none" }}
         />
       </label>
+      {uploadItems.length > 0 && (
+        <div
+          className="ku-photo-upload-panel"
+          aria-label="사진 업로드 진행 상황"
+        >
+          <div
+            className="ku-photo-upload-summary"
+            role="status"
+            aria-live="polite"
+            aria-label={`성공 ${
+              uploadItems.filter((item) => item.status === "success").length
+            }개 · 실패 ${
+              uploadItems.filter((item) => item.status === "error").length
+            }개${uploading ? " · 처리 중" : ""}`}
+          >
+            성공{" "}
+            {uploadItems.filter((item) => item.status === "success").length}개 ·
+            실패 {uploadItems.filter((item) => item.status === "error").length}
+            개{uploading ? " · 처리 중" : ""}
+          </div>
+          <ul className="ku-photo-upload-list">
+            {uploadItems.map((item) => (
+              <li key={item.id} data-status={item.status}>
+                <span className="ku-photo-upload-name" title={item.file.name}>
+                  {item.file.name}
+                </span>
+                <span className="ku-photo-upload-state">
+                  {photoUploadStatusLabel[item.status]}
+                  {item.error ? ` · ${item.error}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {!uploading &&
+            uploadItems.some((item) => item.status === "error") && (
+              <button
+                type="button"
+                className="ku-photo-upload-retry"
+                onClick={handleRetryFailed}
+              >
+                실패한 사진 다시 시도
+              </button>
+            )}
+          {!uploading &&
+            uploadItems.every((item) => item.status === "success") && (
+              <button
+                type="button"
+                className="ku-photo-upload-clear"
+                onClick={() => setUploadItems([])}
+              >
+                업로드 결과 닫기
+              </button>
+            )}
+        </div>
+      )}
       {confirmDeletePhoto && (
         <ConfirmModal
           message="사진을 삭제할까요?"

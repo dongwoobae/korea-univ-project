@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildAdminSearchFilter,
   formatAdminUpdatedAt,
+  getAdminPageCount,
+  getAdminPageRange,
   matchesAdminSearch,
   sortAdminItems,
 } from "./adminList";
@@ -54,5 +57,19 @@ describe("admin list helpers", () => {
     expect(formatAdminUpdatedAt(null)).toBe("수정일 없음");
     expect(formatAdminUpdatedAt("not-a-date")).toBe("수정일 없음");
     expect(formatAdminUpdatedAt("2026-07-23T00:00:00Z")).toMatch(/^수정 /);
+  });
+
+  it("검색어를 PostgREST OR 필터로 안전하게 변환한다", () => {
+    expect(
+      buildAdminSearchFilter(["name", "description"], " ramp,(100%) "),
+    ).toBe("name.ilike.*ramp*100*,description.ilike.*ramp*100*");
+    expect(buildAdminSearchFilter(["name"], " ,()%_ ")).toBeNull();
+  });
+
+  it("1부터 시작하는 페이지를 Supabase range와 페이지 수로 변환한다", () => {
+    expect(getAdminPageRange(1)).toEqual({ from: 0, to: 19 });
+    expect(getAdminPageRange(2)).toEqual({ from: 20, to: 39 });
+    expect(getAdminPageCount(0)).toBe(1);
+    expect(getAdminPageCount(21)).toBe(2);
   });
 });

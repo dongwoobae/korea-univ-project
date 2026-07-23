@@ -23,7 +23,7 @@ export default function AdminListControls({
   onReset,
   children,
 }: AdminListControlsProps) {
-  const resultLabel = `전체 ${totalCount}개 중 ${resultCount}개 표시`;
+  const resultLabel = `총 ${totalCount}개 중 현재 ${resultCount}개 표시`;
 
   return (
     <div className="ku-admin-list-controls">
@@ -48,7 +48,7 @@ export default function AdminListControls({
         role="status"
         aria-label={resultLabel}
       >
-        {resultCount} / {totalCount}개
+        현재 {resultCount}개 / 총 {totalCount}개
       </span>
     </div>
   );

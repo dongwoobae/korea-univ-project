@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
@@ -12,12 +12,15 @@ import FacilityFormModal from "@/components/admin/FacilityFormModal";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
 import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
 import AdminListControls from "@/components/admin/AdminListControls";
+import AdminPagination from "@/components/admin/AdminPagination";
 import {
+  buildAdminSearchFilter,
   formatAdminUpdatedAt,
-  matchesAdminSearch,
-  sortAdminItems,
+  getAdminPageCount,
+  getAdminPageRange,
   type AdminListSort,
 } from "@/lib/adminList";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
@@ -31,6 +34,8 @@ export default function StandaloneFacilitiesPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [installationFilter, setInstallationFilter] = useState("all");
   const [sort, setSort] = useState<AdminListSort>("updated-desc");
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -41,32 +46,7 @@ export default function StandaloneFacilitiesPage() {
     useState<FacilityWithType | null>(null);
   const [videoModalFacility, setVideoModalFacility] =
     useState<FacilityWithType | null>(null);
-
-  const visibleFacilities = useMemo(() => {
-    const filtered = facilities.filter((facility) => {
-      const matchesSearch = matchesAdminSearch(searchQuery, [
-        facility.name,
-        facility.name_en,
-        facility.name_zh,
-        facility.description,
-        facility.facility_types?.label,
-      ]);
-      const matchesType =
-        typeFilter === "all" || facility.facility_code === typeFilter;
-      const matchesInstallation =
-        installationFilter === "all" ||
-        (installationFilter === "installed"
-          ? facility.is_installed === true
-          : facility.is_installed !== true);
-      return matchesSearch && matchesType && matchesInstallation;
-    });
-    return sortAdminItems(
-      filtered,
-      sort,
-      (facility) => facility.name ?? facility.facility_types?.label ?? "",
-      (facility) => facility.updated_at,
-    );
-  }, [facilities, installationFilter, searchQuery, sort, typeFilter]);
+  const debouncedSearch = useDebouncedValue(searchQuery);
 
   const hasActiveFilters =
     searchQuery.trim() !== "" ||
@@ -79,6 +59,7 @@ export default function StandaloneFacilitiesPage() {
     setTypeFilter("all");
     setInstallationFilter("all");
     setSort("updated-desc");
+    setPage(1);
   }
 
   function showToast(message, type = "success") {
@@ -86,31 +67,65 @@ export default function StandaloneFacilitiesPage() {
   }
 
   useEffect(() => {
-    fetchData();
+    void supabase
+      .from("facility_types")
+      .select("*")
+      .then(({ data, error }) => {
+        if (error) {
+          setLoadError(true);
+          setLoading(false);
+          return;
+        }
+        setFacilityTypes(data ?? []);
+      });
   }, []);
 
-  async function fetchData() {
-    const [
-      { data: facilitiesData, error: facilitiesError },
-      { data: typesData, error: typesError },
-    ] = await Promise.all([
-      supabase
-        .from("building_facilities")
-        .select("*, facility_types(label, icon)")
-        .is("building_id", null)
-        .order("created_at"),
-      supabase.from("facility_types").select("*"),
-    ]);
-    if (facilitiesError || typesError) {
+  const fetchData = useCallback(async () => {
+    const { from, to } = getAdminPageRange(page);
+    let query = supabase
+      .from("building_facilities")
+      .select("*, facility_types(label, icon)", { count: "exact" })
+      .is("building_id", null);
+    const searchFilter = buildAdminSearchFilter(
+      ["name", "name_en", "name_zh", "description"],
+      debouncedSearch,
+    );
+    if (searchFilter) query = query.or(searchFilter);
+    if (typeFilter !== "all") query = query.eq("facility_code", typeFilter);
+    if (installationFilter !== "all") {
+      query = query.eq("is_installed", installationFilter === "installed");
+    }
+    query =
+      sort === "name"
+        ? query.order("name", { ascending: true, nullsFirst: false })
+        : query.order("updated_at", {
+            ascending: sort === "updated-asc",
+            nullsFirst: false,
+          });
+    const { data, error, count } = await query
+      .order("id", { ascending: true })
+      .range(from, to);
+    if (error) {
       setLoadError(true);
       setLoading(false);
       return;
     }
+    const nextTotal = count ?? 0;
+    const pageCount = getAdminPageCount(nextTotal);
+    if (page > pageCount) {
+      setPage(pageCount);
+      return;
+    }
     setLoadError(false);
-    setFacilities(facilitiesData ?? []);
-    setFacilityTypes(typesData ?? []);
+    setFacilities(data ?? []);
+    setTotalCount(nextTotal);
     setLoading(false);
-  }
+  }, [debouncedSearch, installationFilter, page, sort, typeFilter]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void fetchData(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchData]);
 
   async function handleDelete(facility) {
     const error = await deleteFacility(facility);
@@ -192,17 +207,23 @@ export default function StandaloneFacilitiesPage() {
 
         <AdminListControls
           searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
+          onSearchChange={(value) => {
+            setSearchQuery(value);
+            setPage(1);
+          }}
           searchLabel="독립 시설 검색"
           searchPlaceholder="시설명 또는 설명 검색"
-          resultCount={visibleFacilities.length}
-          totalCount={facilities.length}
+          resultCount={facilities.length}
+          totalCount={totalCount}
           hasActiveFilters={hasActiveFilters}
           onReset={resetControls}
         >
           <select
             value={typeFilter}
-            onChange={(event) => setTypeFilter(event.target.value)}
+            onChange={(event) => {
+              setTypeFilter(event.target.value);
+              setPage(1);
+            }}
             aria-label="시설 유형 필터"
           >
             <option value="all">모든 유형</option>
@@ -214,7 +235,10 @@ export default function StandaloneFacilitiesPage() {
           </select>
           <select
             value={installationFilter}
-            onChange={(event) => setInstallationFilter(event.target.value)}
+            onChange={(event) => {
+              setInstallationFilter(event.target.value);
+              setPage(1);
+            }}
             aria-label="설치 상태 필터"
           >
             <option value="all">모든 상태</option>
@@ -223,7 +247,10 @@ export default function StandaloneFacilitiesPage() {
           </select>
           <select
             value={sort}
-            onChange={(event) => setSort(event.target.value as AdminListSort)}
+            onChange={(event) => {
+              setSort(event.target.value as AdminListSort);
+              setPage(1);
+            }}
             aria-label="독립 시설 정렬"
           >
             <option value="updated-desc">최근 수정순</option>
@@ -232,7 +259,7 @@ export default function StandaloneFacilitiesPage() {
           </select>
         </AdminListControls>
 
-        {facilities.length === 0 ? (
+        {totalCount === 0 && !hasActiveFilters ? (
           <div
             style={{
               textAlign: "center",
@@ -243,12 +270,12 @@ export default function StandaloneFacilitiesPage() {
           >
             등록된 독립 시설이 없어요
           </div>
-        ) : visibleFacilities.length === 0 ? (
+        ) : totalCount === 0 ? (
           <div className="ku-admin-list-empty">
             조건에 맞는 독립 시설이 없어요
           </div>
         ) : (
-          visibleFacilities.map((f) => (
+          facilities.map((f) => (
             <div
               key={f.id}
               style={{
@@ -336,6 +363,11 @@ export default function StandaloneFacilitiesPage() {
             </div>
           ))
         )}
+        <AdminPagination
+          page={page}
+          totalCount={totalCount}
+          onPageChange={setPage}
+        />
       </div>
 
       {editingFacility && (

@@ -8,7 +8,7 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     await page.goto("/admin/dashboard/facilities");
 
     await expect(
-      page.getByRole("status", { name: "전체 2개 중 2개 표시" }),
+      page.getByRole("status", { name: "총 2개 중 현재 2개 표시" }),
     ).toBeVisible();
     await page.getByRole("searchbox", { name: "독립 시설 검색" }).fill("공사");
     await expect(page.getByText("공사 중 주차구역")).toBeVisible();
@@ -19,7 +19,7 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
       page.getByText("조건에 맞는 독립 시설이 없어요"),
     ).toBeVisible();
     await expect(
-      page.getByRole("status", { name: "전체 2개 중 0개 표시" }),
+      page.getByRole("status", { name: "총 0개 중 현재 0개 표시" }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: "초기화" }).click();
@@ -160,5 +160,40 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     await expect(page.getByText("조건에 맞는 명소가 없어요")).toBeVisible();
     await page.getByRole("button", { name: "초기화" }).click();
     await expect(page.getByText("다람쥐길")).toBeVisible();
+  });
+
+  test("명소를 서버 페이지 단위로 조회하고 모바일에서 이동한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.landmarks.push(
+      ...Array.from({ length: 20 }, (_, index) => ({
+        id: `landmark-${index + 2}`,
+        name: `추가 명소 ${String(index + 1).padStart(2, "0")}`,
+        name_en: `Extra landmark ${index + 1}`,
+        description: "페이지네이션 검증용 명소",
+        icon: "📍",
+        lat: 37.5895,
+        lng: 127.0322,
+        photo_url: null,
+        created_at: "2026-07-21T00:00:00Z",
+        updated_at: `2026-07-${String(index + 1).padStart(2, "0")}T00:00:00Z`,
+      })),
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/admin/dashboard/landmarks");
+
+    await expect(
+      page.getByRole("status", { name: "총 21개 중 현재 20개 표시" }),
+    ).toBeVisible();
+    await expect(page.getByText("1 / 2페이지")).toBeVisible();
+    await page.getByRole("button", { name: "다음" }).click();
+    await expect(
+      page.getByRole("status", { name: "총 21개 중 현재 1개 표시" }),
+    ).toBeVisible();
+    await expect(page.getByText("2 / 2페이지")).toBeVisible();
+    await expect(page.getByRole("button", { name: "다음" })).toBeDisabled();
+    await page.getByRole("button", { name: "이전" }).click();
+    await expect(page.getByText("1 / 2페이지")).toBeVisible();
   });
 });

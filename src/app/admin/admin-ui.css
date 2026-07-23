@@ -265,6 +265,97 @@
   font-size: 13px;
   text-align: center;
 }
+.ku-admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+.ku-admin-pagination button {
+  min-width: 72px;
+  min-height: 40px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-primary-text);
+  background: var(--ku-surface);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ku-admin-pagination button:disabled {
+  color: var(--ku-text-3);
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.ku-admin-pagination span {
+  min-width: 88px;
+  color: var(--ku-text-2);
+  font-size: 13px;
+  text-align: center;
+}
+.ku-photo-upload-panel {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--ku-border);
+  border-radius: 8px;
+  background: var(--ku-bg);
+}
+.ku-photo-upload-summary {
+  margin-bottom: 8px;
+  color: var(--ku-text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ku-photo-upload-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ku-photo-upload-list li {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 32px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: var(--ku-surface);
+  color: var(--ku-text-2);
+  font-size: 12px;
+}
+.ku-photo-upload-list li[data-status="success"] .ku-photo-upload-state {
+  color: var(--ku-success-fg);
+}
+.ku-photo-upload-list li[data-status="error"] .ku-photo-upload-state {
+  color: var(--ku-danger);
+}
+.ku-photo-upload-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ku-text-1);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ku-photo-upload-state {
+  flex: 0 1 auto;
+  text-align: right;
+}
+.ku-photo-upload-retry,
+.ku-photo-upload-clear {
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 0 12px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 7px;
+  color: var(--ku-primary-text);
+  background: var(--ku-surface);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
 .ku-admin-table {
   overflow: hidden;
   border: 1px solid var(--ku-border);
@@ -690,6 +781,9 @@
   .ku-admin-list-result-count {
     display: flex;
     align-items: center;
+    min-height: 44px;
+  }
+  .ku-admin-pagination button {
     min-height: 44px;
   }
   .ku-admin-table {

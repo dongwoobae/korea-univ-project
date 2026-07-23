@@ -32,6 +32,8 @@ import type { Page, Route } from "@playwright/test";
 type Row = Record<string, unknown>;
 export interface MockState {
   authenticated: boolean;
+  buildingPhotoUploadAttempts: number;
+  buildingPhotoFailuresRemaining: number;
   buildings: Row[];
   facilities: Row[];
   feedbackSubmissions: Row[];
@@ -94,6 +96,8 @@ const polygon = {
 function createState(authenticated: boolean): MockState {
   return {
     authenticated,
+    buildingPhotoUploadAttempts: 0,
+    buildingPhotoFailuresRemaining: 0,
     feedbackSubmissions: [],
     buildings: [
       {
@@ -270,6 +274,15 @@ function rows(state: MockState, name: string, url: URL): Row[] {
       result = result.filter(
         (row) => String(row.building_id) === parent.slice(3),
       );
+    if (parent?.startsWith("in.(")) {
+      const ids = new Set(
+        parent
+          .slice(4, -1)
+          .split(",")
+          .map((value) => value.replace(/^"|"$/g, "")),
+      );
+      result = result.filter((row) => ids.has(String(row.building_id)));
+    }
   }
   if (name === "building_photos") {
     const parent = url.searchParams.get("building_id");
@@ -277,6 +290,72 @@ function rows(state: MockState, name: string, url: URL): Row[] {
       result = result.filter(
         (row) => String(row.building_id) === parent.slice(3),
       );
+  }
+  const facilityCode = url.searchParams.get("facility_code");
+  if (facilityCode?.startsWith("eq.")) {
+    result = result.filter(
+      (row) => String(row.facility_code) === facilityCode.slice(3),
+    );
+  }
+  const installed = url.searchParams.get("is_installed");
+  if (installed?.startsWith("eq.")) {
+    result = result.filter(
+      (row) => String(row.is_installed) === installed.slice(3),
+    );
+  }
+  const deleted = url.searchParams.get("is_deleted");
+  if (deleted?.startsWith("eq.")) {
+    result = result.filter(
+      (row) => String(row.is_deleted) === deleted.slice(3),
+    );
+  }
+  const photoUrl = url.searchParams.get("photo_url");
+  if (photoUrl === "is.null")
+    result = result.filter((row) => row.photo_url == null);
+  if (photoUrl === "not.is.null")
+    result = result.filter((row) => row.photo_url != null);
+  if (photoUrl === "neq.")
+    result = result.filter(
+      (row) => row.photo_url != null && row.photo_url !== "",
+    );
+
+  const orFilter = url.searchParams.get("or");
+  if (orFilter) {
+    const clauses = orFilter.replace(/^\(|\)$/g, "").split(",");
+    result = result.filter((row) =>
+      clauses.some((clause) => {
+        const [column, operator, ...patternParts] = clause.split(".");
+        if (operator !== "ilike") return false;
+        const pattern = patternParts.join(".");
+        const expression = pattern
+          .split("*")
+          .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+          .join(".*");
+        return new RegExp(`^${expression}$`, "i").test(
+          String(row[column] ?? ""),
+        );
+      }),
+    );
+  }
+
+  const order = url.searchParams.get("order");
+  if (order) {
+    const rules = order.split(",").map((rule) => {
+      const [column, direction] = rule.split(".");
+      return { column, ascending: direction !== "desc" };
+    });
+    result.sort((left, right) => {
+      for (const rule of rules) {
+        const a = left[rule.column];
+        const b = right[rule.column];
+        if (a == null && b == null) continue;
+        if (a == null) return 1;
+        if (b == null) return -1;
+        const comparison = String(a).localeCompare(String(b), "ko");
+        if (comparison !== 0) return rule.ascending ? comparison : -comparison;
+      }
+      return 0;
+    });
   }
   return result;
 }
@@ -310,12 +389,32 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   }
   if (method === "GET") {
     const single = route.request().headers().accept?.includes("object+json");
+    const rangeHeader = route.request().headers().range;
+    const rangeMatch = rangeHeader?.match(/^(\d+)-(\d+)$/);
+    const offset = url.searchParams.get("offset");
+    const limit = url.searchParams.get("limit");
+    const from = rangeMatch
+      ? Number(rangeMatch[1])
+      : offset
+        ? Number(offset)
+        : 0;
+    const to = rangeMatch
+      ? Number(rangeMatch[2])
+      : limit
+        ? from + Number(limit) - 1
+        : result.length - 1;
+    const paged = rangeMatch || limit ? result.slice(from, to + 1) : result;
+    const contentRange =
+      result.length === 0
+        ? "*/0"
+        : `${from}-${from + Math.max(0, paged.length - 1)}/${result.length}`;
     return json(
       route,
-      single ? (result[0] ?? null) : result,
+      single ? (paged[0] ?? null) : paged,
       single && !result[0] ? 406 : 200,
       {
-        "content-range": `0-${Math.max(0, result.length - 1)}/${result.length}`,
+        "access-control-expose-headers": "Content-Range",
+        "content-range": contentRange,
       },
     );
   }
@@ -404,6 +503,29 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       landmark.photo_url = "https://cdn.test/uploaded-landmark.webp";
     return json(route, { photoUrl: "https://cdn.test/uploaded-landmark.webp" });
   }
+  if (path === "/api/upload-building-photo") {
+    state.buildingPhotoUploadAttempts += 1;
+    if (state.buildingPhotoFailuresRemaining > 0) {
+      state.buildingPhotoFailuresRemaining -= 1;
+      return json(route, { error: "테스트 업로드 실패" }, 500);
+    }
+    const rawBody = route.request().postData() ?? "";
+    const buildingIdMatch = rawBody.match(/name="buildingId"\r?\n\r?\n(\d+)/);
+    const buildingId = Number(buildingIdMatch?.[1] ?? 1);
+    const id =
+      Math.max(0, ...state.photos.map((photo) => Number(photo.id))) + 1;
+    const photo = {
+      id,
+      building_id: buildingId,
+      url: `https://cdn.test/uploaded-building-${id}.webp`,
+      caption: null,
+      caption_en: null,
+      caption_zh: null,
+      created_at: "2026-07-23T00:00:00Z",
+    };
+    state.photos.push(photo);
+    return json(route, { id: photo.id, url: photo.url });
+  }
   if (path === "/api/delete-landmark-photo") {
     const { landmarkId } = route.request().postDataJSON() as {
       landmarkId: string;
@@ -455,10 +577,12 @@ export async function installMockBackend(
   page: Page,
   options: {
     authenticated?: boolean;
+    failBuildingPhotoUploads?: number;
     currentLocation?: { latitude: number; longitude: number };
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
+  state.buildingPhotoFailuresRemaining = options.failBuildingPhotoUploads ?? 0;
   // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(
     ({ authenticated, currentLocation }) => {

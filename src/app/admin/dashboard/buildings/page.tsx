@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { campusColor } from "@/lib/theme";
@@ -9,51 +15,109 @@ import {
   type CampusBoundaryCollection,
 } from "@/lib/campusGeometry";
 import type { Feature } from "geojson";
-import type { Building, Facility } from "@/types/domain";
+import type { Building } from "@/types/domain";
+import AdminListControls from "@/components/admin/AdminListControls";
+import AdminPagination from "@/components/admin/AdminPagination";
+import {
+  buildAdminSearchFilter,
+  getAdminPageCount,
+  getAdminPageRange,
+} from "@/lib/adminList";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 export default function BuildingsPage() {
   const [buildings, setBuildings] = useState<Building[]>([]);
-  const [facilities, setFacilities] = useState<Pick<Facility, "building_id">[]>(
-    [],
+  const [facilityCounts, setFacilityCounts] = useState(
+    new Map<number, number>(),
   );
+  const [totalCount, setTotalCount] = useState(0);
+  const [overallTotalCount, setOverallTotalCount] = useState(0);
+  const [deletedCount, setDeletedCount] = useState(0);
+  const [totalFacilityCount, setTotalFacilityCount] = useState(0);
   const [campusBoundaries, setCampusBoundaries] =
     useState<CampusBoundaryCollection | null>(null);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const debouncedSearch = useDebouncedValue(search);
   const router = useRouter();
 
   useEffect(() => {
-    async function fetchData() {
-      const [{ data: buildingData }, { data: facilityData }, boundaries] =
-        await Promise.all([
-          supabase.from("buildings").select("*").order("name"),
-          supabase
-            .from("building_facilities")
-            .select("building_id")
-            .not("building_id", "is", null),
-          fetch("/campus-boundaries.geojson").then(
-            (response) => response.json() as Promise<CampusBoundaryCollection>,
-          ),
-        ]);
-      setBuildings(buildingData ?? []);
-      setFacilities(facilityData ?? []);
-      setCampusBoundaries(boundaries);
-      setLoading(false);
-    }
-    fetchData();
+    void fetch("/campus-boundaries.geojson")
+      .then((response) => response.json() as Promise<CampusBoundaryCollection>)
+      .then(setCampusBoundaries);
   }, []);
 
-  const facilityCounts = useMemo(() => {
+  useEffect(() => {
+    void Promise.all([
+      supabase.from("buildings").select("id", { count: "exact", head: true }),
+      supabase
+        .from("buildings")
+        .select("id", { count: "exact", head: true })
+        .eq("is_deleted", true),
+      supabase
+        .from("building_facilities")
+        .select("id", { count: "exact", head: true })
+        .not("building_id", "is", null),
+    ]).then(([buildingResult, deletedResult, facilityResult]) => {
+      setOverallTotalCount(buildingResult.count ?? 0);
+      setDeletedCount(deletedResult.count ?? 0);
+      setTotalFacilityCount(facilityResult.count ?? 0);
+    });
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    const { from, to } = getAdminPageRange(page);
+    let query = supabase.from("buildings").select("*", { count: "exact" });
+    const searchFilter = buildAdminSearchFilter(
+      ["name", "name_en"],
+      debouncedSearch,
+    );
+    if (searchFilter) query = query.or(searchFilter);
+    const { data, error, count } = await query
+      .order("is_deleted", { ascending: true })
+      .order("name", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, to);
+    if (error) {
+      setBuildings([]);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
+    const nextTotal = count ?? 0;
+    const pageCount = getAdminPageCount(nextTotal);
+    if (page > pageCount) {
+      setPage(pageCount);
+      return;
+    }
+    const nextBuildings = data ?? [];
+    const buildingIds = nextBuildings.map((building) => building.id);
+    const { data: facilityData } =
+      buildingIds.length === 0
+        ? { data: [] }
+        : await supabase
+            .from("building_facilities")
+            .select("building_id")
+            .in("building_id", buildingIds);
     const counts = new Map<number, number>();
-    facilities.forEach((facility) => {
+    (facilityData ?? []).forEach((facility) => {
       if (facility.building_id !== null)
         counts.set(
           facility.building_id,
           (counts.get(facility.building_id) ?? 0) + 1,
         );
     });
-    return counts;
-  }, [facilities]);
+    setBuildings(nextBuildings);
+    setFacilityCounts(counts);
+    setTotalCount(nextTotal);
+    setLoading(false);
+  }, [debouncedSearch, page]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void fetchData(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchData]);
 
   const campusByBuilding = useMemo(
     () =>
@@ -69,28 +133,13 @@ export default function BuildingsPage() {
     [buildings, campusBoundaries],
   );
 
-  const filtered = useMemo(() => {
-    const normalized = search.trim().toLocaleLowerCase();
-    return buildings
-      .filter(
-        (building) =>
-          !normalized ||
-          building.name?.toLocaleLowerCase().includes(normalized) ||
-          building.name_en?.toLocaleLowerCase().includes(normalized),
-      )
-      .sort((a, b) => Number(a.is_deleted) - Number(b.is_deleted));
-  }, [buildings, search]);
-
-  const deletedCount = buildings.filter(
-    (building) => building.is_deleted,
-  ).length;
   return (
     <div className="ku-admin-main">
       <div className="ku-admin-page-heading">
         <div>
           <h1 className="ku-admin-title">건물 관리</h1>
           <p className="ku-admin-caption">
-            총 {buildings.length}개 · 삭제됨 {deletedCount}개
+            총 {overallTotalCount}개 · 삭제됨 {deletedCount}개
           </p>
         </div>
         <div className="ku-admin-actions">
@@ -112,22 +161,29 @@ export default function BuildingsPage() {
       </div>
 
       <div className="ku-admin-summary-strip" aria-label="시설 등록 현황">
-        등록된 시설 <strong>{facilities.length}</strong>개
+        등록된 시설 <strong>{totalFacilityCount}</strong>개
       </div>
 
-      <div className="ku-admin-search">
-        <span aria-hidden="true">🔍</span>
-        <input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="건물명 검색..."
-          aria-label="건물명 검색"
-        />
-      </div>
+      <AdminListControls
+        searchValue={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        searchPlaceholder="건물명 검색..."
+        searchLabel="건물명 검색"
+        resultCount={buildings.length}
+        totalCount={totalCount}
+        hasActiveFilters={search.trim() !== ""}
+        onReset={() => {
+          setSearch("");
+          setPage(1);
+        }}
+      />
 
       {loading ? (
         <div className="ku-admin-empty">불러오는 중...</div>
-      ) : filtered.length === 0 ? (
+      ) : buildings.length === 0 ? (
         <div className="ku-admin-empty">검색 결과가 없습니다.</div>
       ) : (
         <>
@@ -143,7 +199,7 @@ export default function BuildingsPage() {
               <span>상태</span>
               <span>액션</span>
             </div>
-            {filtered.map((building) => {
+            {buildings.map((building) => {
               const campus = campusByBuilding.get(building.id) ?? "";
               return (
                 <div
@@ -202,7 +258,7 @@ export default function BuildingsPage() {
           </div>
 
           <div className="ku-admin-mobile-list">
-            {filtered.map((building) => {
+            {buildings.map((building) => {
               const campus = campusByBuilding.get(building.id) ?? "";
               return (
                 <button
@@ -243,6 +299,11 @@ export default function BuildingsPage() {
               );
             })}
           </div>
+          <AdminPagination
+            page={page}
+            totalCount={totalCount}
+            onPageChange={setPage}
+          />
         </>
       )}
     </div>

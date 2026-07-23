@@ -1,5 +1,32 @@
 export type AdminListSort = "updated-desc" | "updated-asc" | "name";
 
+export const ADMIN_PAGE_SIZE = 20;
+
+export function buildAdminSearchFilter(columns: string[], query: string) {
+  const safeTerms = query
+    .trim()
+    .replace(/[\\,"'().*%_]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (safeTerms.length === 0) return null;
+  const pattern = `*${safeTerms.join("*")}*`;
+  return columns.map((column) => `${column}.ilike.${pattern}`).join(",");
+}
+
+export function getAdminPageRange(page: number, pageSize = ADMIN_PAGE_SIZE) {
+  const safePage = Math.max(1, Math.floor(page));
+  const from = (safePage - 1) * pageSize;
+  return { from, to: from + pageSize - 1 };
+}
+
+export function getAdminPageCount(
+  totalCount: number,
+  pageSize = ADMIN_PAGE_SIZE,
+) {
+  return Math.max(1, Math.ceil(Math.max(0, totalCount) / pageSize));
+}
+
 export function matchesAdminSearch(
   query: string,
   values: Array<string | null | undefined>,

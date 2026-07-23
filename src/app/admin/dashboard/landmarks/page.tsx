@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { deleteLandmark } from "@/lib/landmarkDelete";
@@ -9,12 +9,15 @@ import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import LandmarkFormModal from "@/components/admin/LandmarkFormModal";
 import AdminListControls from "@/components/admin/AdminListControls";
+import AdminPagination from "@/components/admin/AdminPagination";
 import {
+  buildAdminSearchFilter,
   formatAdminUpdatedAt,
-  matchesAdminSearch,
-  sortAdminItems,
+  getAdminPageCount,
+  getAdminPageRange,
   type AdminListSort,
 } from "@/lib/adminList";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
@@ -31,29 +34,9 @@ export default function LandmarksPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [photoFilter, setPhotoFilter] = useState("all");
   const [sort, setSort] = useState<AdminListSort>("updated-desc");
-
-  const visibleLandmarks = useMemo(() => {
-    const filtered = landmarks.filter((landmark) => {
-      const matchesSearch = matchesAdminSearch(searchQuery, [
-        landmark.name,
-        landmark.name_en,
-        landmark.name_zh,
-        landmark.description,
-      ]);
-      const matchesPhoto =
-        photoFilter === "all" ||
-        (photoFilter === "with-photo"
-          ? Boolean(landmark.photo_url)
-          : !landmark.photo_url);
-      return matchesSearch && matchesPhoto;
-    });
-    return sortAdminItems(
-      filtered,
-      sort,
-      (landmark) => landmark.name,
-      (landmark) => landmark.updated_at,
-    );
-  }, [landmarks, photoFilter, searchQuery, sort]);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const debouncedSearch = useDebouncedValue(searchQuery);
 
   const hasActiveFilters =
     searchQuery.trim() !== "" ||
@@ -64,30 +47,54 @@ export default function LandmarksPage() {
     setSearchQuery("");
     setPhotoFilter("all");
     setSort("updated-desc");
+    setPage(1);
   }
 
   function showToast(message: string, type = "success") {
     setToast({ message, type });
   }
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
-    const { data, error } = await supabase
-      .from("landmarks")
-      .select("*")
-      .order("created_at", { ascending: true });
+  const fetchData = useCallback(async () => {
+    const { from, to } = getAdminPageRange(page);
+    let query = supabase.from("landmarks").select("*", { count: "exact" });
+    const searchFilter = buildAdminSearchFilter(
+      ["name", "name_en", "name_zh", "description"],
+      debouncedSearch,
+    );
+    if (searchFilter) query = query.or(searchFilter);
+    if (photoFilter === "with-photo") query = query.neq("photo_url", "");
+    if (photoFilter === "without-photo") query = query.is("photo_url", null);
+    query =
+      sort === "name"
+        ? query.order("name", { ascending: true })
+        : query.order("updated_at", {
+            ascending: sort === "updated-asc",
+            nullsFirst: false,
+          });
+    const { data, error, count } = await query
+      .order("id", { ascending: true })
+      .range(from, to);
     if (error) {
       setLoadError(true);
       setLoading(false);
       return;
     }
+    const nextTotal = count ?? 0;
+    const pageCount = getAdminPageCount(nextTotal);
+    if (page > pageCount) {
+      setPage(pageCount);
+      return;
+    }
     setLoadError(false);
     setLandmarks(data ?? []);
+    setTotalCount(nextTotal);
     setLoading(false);
-  }
+  }, [debouncedSearch, page, photoFilter, sort]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void fetchData(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchData]);
 
   async function handleDelete(landmark: Landmark) {
     const error = await deleteLandmark(landmark);
@@ -159,17 +166,23 @@ export default function LandmarksPage() {
 
         <AdminListControls
           searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
+          onSearchChange={(value) => {
+            setSearchQuery(value);
+            setPage(1);
+          }}
           searchLabel="명소 검색"
           searchPlaceholder="명소명 또는 설명 검색"
-          resultCount={visibleLandmarks.length}
-          totalCount={landmarks.length}
+          resultCount={landmarks.length}
+          totalCount={totalCount}
           hasActiveFilters={hasActiveFilters}
           onReset={resetControls}
         >
           <select
             value={photoFilter}
-            onChange={(event) => setPhotoFilter(event.target.value)}
+            onChange={(event) => {
+              setPhotoFilter(event.target.value);
+              setPage(1);
+            }}
             aria-label="명소 사진 필터"
           >
             <option value="all">사진 전체</option>
@@ -178,7 +191,10 @@ export default function LandmarksPage() {
           </select>
           <select
             value={sort}
-            onChange={(event) => setSort(event.target.value as AdminListSort)}
+            onChange={(event) => {
+              setSort(event.target.value as AdminListSort);
+              setPage(1);
+            }}
             aria-label="명소 정렬"
           >
             <option value="updated-desc">최근 수정순</option>
@@ -187,7 +203,7 @@ export default function LandmarksPage() {
           </select>
         </AdminListControls>
 
-        {landmarks.length === 0 ? (
+        {totalCount === 0 && !hasActiveFilters ? (
           <div
             style={{
               textAlign: "center",
@@ -198,10 +214,10 @@ export default function LandmarksPage() {
           >
             등록된 명소가 없어요
           </div>
-        ) : visibleLandmarks.length === 0 ? (
+        ) : totalCount === 0 ? (
           <div className="ku-admin-list-empty">조건에 맞는 명소가 없어요</div>
         ) : (
-          visibleLandmarks.map((landmark) => (
+          landmarks.map((landmark) => (
             <div
               key={landmark.id}
               style={{
@@ -278,6 +294,11 @@ export default function LandmarksPage() {
             </div>
           ))
         )}
+        <AdminPagination
+          page={page}
+          totalCount={totalCount}
+          onPageChange={setPage}
+        />
       </div>
 
       {creating && (

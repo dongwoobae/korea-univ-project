@@ -2,6 +2,38 @@ import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
 
 test.describe("건물과 경사도 관리자 흐름", () => {
+  test("건물 목록을 서버 페이지 단위로 조회하고 모바일에서 이동한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.buildings.push(
+      ...Array.from({ length: 20 }, (_, index) => ({
+        id: index + 2,
+        name: `추가 건물 ${String(index + 1).padStart(2, "0")}`,
+        name_en: `Extra building ${index + 1}`,
+        campus: null,
+        college_id: null,
+        is_deleted: false,
+        geojson: state.buildings[0].geojson,
+        last_updated: "2026-07-23",
+      })),
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/admin/dashboard/buildings");
+
+    await expect(
+      page.getByRole("status", { name: "총 21개 중 현재 20개 표시" }),
+    ).toBeVisible();
+    await expect(page.getByText("1 / 2페이지")).toBeVisible();
+    await page.getByRole("button", { name: "다음" }).click();
+    await expect(
+      page.getByRole("status", { name: "총 21개 중 현재 1개 표시" }),
+    ).toBeVisible();
+    await expect(page.getByText("2 / 2페이지")).toBeVisible();
+    await page.getByRole("button", { name: "이전" }).click();
+    await expect(page.getByText("1 / 2페이지")).toBeVisible();
+  });
+
   test("건물 생성 필수값을 검증하고 폴리곤을 그려 저장한다", async ({
     page,
   }) => {
@@ -151,6 +183,50 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     ).toBeVisible();
   });
 
+  test("건물 사진의 파일별 성공·실패를 표시하고 실패만 재시도한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, {
+      authenticated: true,
+      failBuildingPhotoUploads: 1,
+    });
+    await page.goto("/admin/buildings/1");
+    const photoSection = page.locator("#building-photos");
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9WlAAAAABJRU5ErkJggg==",
+      "base64",
+    );
+
+    await photoSection.locator('input[type="file"]').setInputFiles([
+      { name: "정문.png", mimeType: "image/png", buffer: png },
+      { name: "후문.png", mimeType: "image/png", buffer: png },
+    ]);
+
+    const progress = photoSection.getByLabel("사진 업로드 진행 상황");
+    await expect(progress.getByText("정문.png")).toBeVisible();
+    await expect(progress.getByText("후문.png")).toBeVisible();
+    await expect(progress.getByText("실패 · 테스트 업로드 실패")).toBeVisible();
+    await expect(progress.getByText("완료", { exact: true })).toBeVisible();
+    await expect(
+      progress.getByRole("status", { name: /성공 1개 · 실패 1개/ }),
+    ).toBeVisible();
+    await progress
+      .getByRole("button", { name: "실패한 사진 다시 시도" })
+      .click();
+
+    await expect(
+      progress.getByRole("status", { name: /성공 2개 · 실패 0개/ }),
+    ).toBeVisible();
+    await expect(
+      progress.getByRole("button", { name: "실패한 사진 다시 시도" }),
+    ).toHaveCount(0);
+    await expect(
+      progress.getByRole("button", { name: "업로드 결과 닫기" }),
+    ).toBeVisible();
+    expect(state.buildingPhotoUploadAttempts).toBe(3);
+    expect(state.photos).toHaveLength(3);
+  });
+
   test("잘못된 GPX를 오류 메시지와 함께 거부한다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
@@ -190,7 +266,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       0,
     );
     await expect(
-      page.getByRole("status", { name: "전체 2개 중 1개 표시" }),
+      page.getByRole("status", { name: "총 1개 중 현재 1개 표시" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "초기화" }).click();
     const downloadPromise = page.waitForEvent("download");

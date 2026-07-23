@@ -1,17 +1,20 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { SlopeSegment } from "@/types/domain";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AdminListControls from "@/components/admin/AdminListControls";
+import AdminPagination from "@/components/admin/AdminPagination";
 import {
+  buildAdminSearchFilter,
   formatAdminUpdatedAt,
-  matchesAdminSearch,
-  sortAdminItems,
+  getAdminPageCount,
+  getAdminPageRange,
   type AdminListSort,
 } from "@/lib/adminList";
+import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
 function buildGpx(name, points) {
   const trkpts = points
@@ -54,42 +57,63 @@ export default function SlopesPage() {
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [sort, setSort] = useState<AdminListSort>("updated-desc");
-
-  const visibleSlopes = useMemo(() => {
-    const filtered = slopes.filter((slope) =>
-      matchesAdminSearch(searchQuery, [slope.name, slope.gpx_file]),
-    );
-    return sortAdminItems(
-      filtered,
-      sort,
-      (slope) => slope.name,
-      (slope) => slope.updated_at,
-    );
-  }, [searchQuery, slopes, sort]);
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const debouncedSearch = useDebouncedValue(searchQuery);
 
   const hasActiveFilters = searchQuery.trim() !== "" || sort !== "updated-desc";
 
   function resetControls() {
     setSearchQuery("");
     setSort("updated-desc");
+    setPage(1);
   }
 
   function showToast(message: string, type = "success") {
     setToast({ message, type });
   }
 
-  useEffect(() => {
-    fetchSlopes();
-  }, []);
-
-  async function fetchSlopes() {
-    const { data } = await supabase
-      .from("slope_segments")
-      .select("*")
-      .order("created_at", { ascending: false });
+  const fetchSlopes = useCallback(async () => {
+    const { from, to } = getAdminPageRange(page);
+    let query = supabase.from("slope_segments").select("*", { count: "exact" });
+    const searchFilter = buildAdminSearchFilter(
+      ["name", "gpx_file"],
+      debouncedSearch,
+    );
+    if (searchFilter) query = query.or(searchFilter);
+    query =
+      sort === "name"
+        ? query.order("name", { ascending: true })
+        : query.order("updated_at", {
+            ascending: sort === "updated-asc",
+            nullsFirst: false,
+          });
+    const { data, error, count } = await query
+      .order("id", { ascending: true })
+      .range(from, to);
+    if (error) {
+      setLoading(false);
+      setToast({
+        message: "경사도 경로를 불러오지 못했어요",
+        type: "error",
+      });
+      return;
+    }
+    const nextTotal = count ?? 0;
+    const pageCount = getAdminPageCount(nextTotal);
+    if (page > pageCount) {
+      setPage(pageCount);
+      return;
+    }
     setSlopes((data ?? []) as unknown as SlopeSegment[]);
+    setTotalCount(nextTotal);
     setLoading(false);
-  }
+  }, [debouncedSearch, page, sort]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void fetchSlopes(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchSlopes]);
 
   async function handleUpload() {
     if (!selectedFile) return;
@@ -238,21 +262,27 @@ export default function SlopesPage() {
         }}
       >
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-          등록된 경로 ({slopes.length}개)
+          등록된 경로 (총 {totalCount}개)
         </div>
         <AdminListControls
           searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
+          onSearchChange={(value) => {
+            setSearchQuery(value);
+            setPage(1);
+          }}
           searchLabel="경사도 경로 검색"
           searchPlaceholder="경로명 또는 GPX 파일명 검색"
-          resultCount={visibleSlopes.length}
-          totalCount={slopes.length}
+          resultCount={slopes.length}
+          totalCount={totalCount}
           hasActiveFilters={hasActiveFilters}
           onReset={resetControls}
         >
           <select
             value={sort}
-            onChange={(event) => setSort(event.target.value as AdminListSort)}
+            onChange={(event) => {
+              setSort(event.target.value as AdminListSort);
+              setPage(1);
+            }}
             aria-label="경사도 경로 정렬"
           >
             <option value="updated-desc">최근 수정순</option>
@@ -264,17 +294,17 @@ export default function SlopesPage() {
           <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>
             불러오는 중...
           </div>
-        ) : slopes.length === 0 ? (
+        ) : totalCount === 0 && !hasActiveFilters ? (
           <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>
             등록된 경로가 없습니다.
           </div>
-        ) : visibleSlopes.length === 0 ? (
+        ) : totalCount === 0 ? (
           <div className="ku-admin-list-empty">
             조건에 맞는 경사도 경로가 없어요
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {visibleSlopes.map((s) => (
+            {slopes.map((s) => (
               <div
                 key={s.id}
                 style={{
@@ -350,6 +380,11 @@ export default function SlopesPage() {
             ))}
           </div>
         )}
+        <AdminPagination
+          page={page}
+          totalCount={totalCount}
+          onPageChange={setPage}
+        />
       </div>
 
       {toast && (
