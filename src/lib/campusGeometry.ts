@@ -62,6 +62,26 @@ function pointInArea(point: Position, geometry: CampusAreaGeometry) {
   return polygons.some((polygon) => pointInPolygon(point, polygon));
 }
 
+export function inferCampusFromPoint(
+  point: Position | null | undefined,
+  boundaries: CampusBoundaryCollection | null | undefined,
+) {
+  if (!point || point.length < 2 || !boundaries) return null;
+
+  for (const boundary of boundaries.features) {
+    const campus = boundary.properties?.campus;
+    if (
+      campus &&
+      isAreaGeometry(boundary.geometry) &&
+      pointInArea(point, boundary.geometry)
+    ) {
+      return campus;
+    }
+  }
+
+  return null;
+}
+
 function exteriorPoints(geometry: CampusAreaGeometry) {
   const polygons =
     geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;

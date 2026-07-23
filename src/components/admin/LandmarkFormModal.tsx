@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
+import { inferCampusFromPoint } from "@/lib/campusGeometry";
+import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
 import type { Landmark } from "@/types/domain";
 
 const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
@@ -43,6 +45,14 @@ export default function LandmarkFormModal({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
+  const { boundaries, error: boundariesError } = useCampusBoundaries();
+  const positionCampus = useMemo(() => {
+    if (!form.lat || !form.lng) return null;
+    return inferCampusFromPoint(
+      [parseFloat(form.lng), parseFloat(form.lat)],
+      boundaries,
+    );
+  }, [form.lat, form.lng, boundaries]);
 
   async function fillTranslations() {
     const texts: Record<string, string> = {};
@@ -339,8 +349,25 @@ export default function LandmarkFormModal({
         </div>
 
         {form.lat && form.lng && (
-          <div style={{ fontSize: 12, color: "#2563EB", marginTop: 8 }}>
-            선택된 위치: {form.lat}, {form.lng}
+          <div aria-live="polite" style={{ fontSize: 12, marginTop: 8 }}>
+            <div style={{ color: "#2563EB" }}>
+              선택된 위치: {form.lat}, {form.lng}
+            </div>
+            <div
+              style={{
+                color: positionCampus ? "#166534" : "#B45309",
+                marginTop: 4,
+                fontWeight: 500,
+              }}
+            >
+              {!boundaries && !boundariesError
+                ? "캠퍼스 영역 확인 중..."
+                : positionCampus
+                  ? `${positionCampus} 영역입니다.`
+                  : boundariesError
+                    ? "캠퍼스 영역을 확인하지 못했습니다. 저장은 가능합니다."
+                    : "캠퍼스 영역 밖입니다. 인접 지역 명소라면 그대로 저장할 수 있습니다."}
+            </div>
           </div>
         )}
 

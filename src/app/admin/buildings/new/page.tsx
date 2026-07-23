@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
+import { inferCampusFromGeometry } from "@/lib/campusGeometry";
+import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
+import type { Feature, Polygon } from "geojson";
+import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
 
 const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
@@ -34,9 +38,13 @@ export default function NewBuilding() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [nameEn, setNameEn] = useState("");
-  const [campus, setCampus] = useState("서울");
-  const [geojson, setGeojson] = useState(null);
+  const [geojson, setGeojson] = useState<Feature<Polygon> | null>(null);
   const [saving, setSaving] = useState(false);
+  const { boundaries, error: boundariesError } = useCampusBoundaries();
+  const campus = useMemo(
+    () => inferCampusFromGeometry(geojson, boundaries),
+    [geojson, boundaries],
+  );
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -54,7 +62,7 @@ export default function NewBuilding() {
       if (!user) router.push("/admin");
     }
     check();
-  }, []);
+  }, [router]);
 
   async function handleSave() {
     if (!name.trim()) {
@@ -63,6 +71,13 @@ export default function NewBuilding() {
     }
     if (!geojson) {
       showToast("폴리곤을 그려주세요", "error");
+      return;
+    }
+    if (!boundaries && !boundariesError) {
+      showToast(
+        "캠퍼스 영역을 확인하고 있어요. 잠시 후 다시 저장해주세요",
+        "info",
+      );
       return;
     }
 
@@ -76,7 +91,7 @@ export default function NewBuilding() {
       name: name.trim(),
       name_en: nameEn.trim() || null,
       campus,
-      geojson,
+      geojson: geojson as unknown as Json,
     });
 
     setSaving(false);
@@ -157,16 +172,27 @@ export default function NewBuilding() {
           </div>
 
           <div>
-            <label style={labelStyle}>캠퍼스</label>
-            <select
-              value={campus}
-              onChange={(e) => setCampus(e.target.value)}
-              style={inputStyle}
+            <div style={labelStyle}>캠퍼스 자동 판정</div>
+            <div
+              role="status"
+              style={{
+                ...inputStyle,
+                color: campus
+                  ? "var(--ku-status-installed-fg)"
+                  : "var(--ku-text-2)",
+                background: "var(--ku-surface-raised)",
+              }}
             >
-              <option value="서울">서울</option>
-              <option value="의료원">의료원</option>
-              <option value="녹지">녹지</option>
-            </select>
+              {!geojson
+                ? "폴리곤을 저장하면 캠퍼스를 자동으로 판정합니다."
+                : !boundaries && !boundariesError
+                  ? "캠퍼스 판정 중..."
+                  : campus
+                    ? campus
+                    : boundariesError
+                      ? "캠퍼스 경계를 불러오지 못했습니다. 캠퍼스 미지정으로 저장됩니다."
+                      : "캠퍼스 영역 밖입니다. 캠퍼스 미지정으로 저장할 수 있습니다."}
+            </div>
           </div>
         </div>
 
@@ -183,7 +209,13 @@ export default function NewBuilding() {
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>
             건물 폴리곤 *
           </div>
-          <div style={{ fontSize: 13, color: "var(--ku-text-2)", marginBottom: 16 }}>
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--ku-text-2)",
+              marginBottom: 16,
+            }}
+          >
             지도에서 건물 외곽선을 따라 폴리곤을 그려주세요.
           </div>
           <PolygonEditor
