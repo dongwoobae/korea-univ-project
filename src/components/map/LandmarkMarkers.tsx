@@ -1,9 +1,10 @@
 "use client";
 
-import { Marker, Popup } from "react-leaflet";
+import { Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import type { Landmark } from "@/types/domain";
 import { useLanguage } from "@/lib/LanguageContext";
+import { groupByPixelGrid } from "@/lib/mapMarkerLayout";
 
 function escapeHtml(value: string): string {
   return value
@@ -13,15 +14,27 @@ function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
-const landmarkMarkerIcon = (landmark: Landmark, name: string) => {
+const landmarkMarkerIcon = (
+  landmark: Landmark,
+  name: string,
+  showLabel: boolean,
+) => {
   const icon = escapeHtml(landmark.icon || "✨");
   return L.divIcon({
     className: "",
-    html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${landmark.id}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 7px rgba(28,25,23,0.22);">${icon}</div><span style="padding:2px 5px;border-radius:999px;color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span></div>`,
+    html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${landmark.id}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 7px rgba(28,25,23,0.22);">${icon}</div>${showLabel ? `<span data-testid="landmark-label" style="padding:2px 5px;border-radius:999px;color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span>` : ""}</div>`,
     iconAnchor: [17, 17],
     popupAnchor: [0, -20],
   });
 };
+
+const landmarkClusterIcon = (count: number) =>
+  L.divIcon({
+    className: "",
+    html: `<div class="ku-marker-cluster ku-marker-cluster--landmark" data-testid="landmark-marker-cluster"><span aria-hidden="true">✨</span><strong>${count}</strong></div>`,
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+  });
 
 function localizedText(
   landmark: Landmark,
@@ -42,18 +55,54 @@ function localizedText(
 interface LandmarkMarkersProps {
   landmarks: Landmark[];
   showLandmarks: boolean;
+  zoom: number;
 }
 
 export default function LandmarkMarkers({
   landmarks,
   showLandmarks,
+  zoom,
 }: LandmarkMarkersProps) {
   const { lang } = useLanguage();
+  const map = useMap();
   if (!showLandmarks) return null;
+
+  const groups =
+    zoom < 18
+      ? groupByPixelGrid(landmarks, (landmark) =>
+          map.project(L.latLng(landmark.lat, landmark.lng), zoom),
+        )
+      : landmarks.map((landmark) => [landmark]);
 
   return (
     <>
-      {landmarks.map((landmark) => {
+      {groups.map((group) => {
+        if (group.length > 1) {
+          const bounds = L.latLngBounds(
+            group.map((landmark) => [landmark.lat, landmark.lng]),
+          );
+          return (
+            <Marker
+              key={`landmark-cluster-${group.map((item) => item.id).join("-")}`}
+              position={bounds.getCenter()}
+              icon={landmarkClusterIcon(group.length)}
+              title={`${group.length} ${lang === "en" ? "landmarks" : lang === "zh" ? "个景点" : "명소"}`}
+              alt={`${group.length} ${lang === "en" ? "landmarks" : lang === "zh" ? "个景点" : "명소"}`}
+              zIndexOffset={670}
+              eventHandlers={{
+                click() {
+                  map.fitBounds(bounds, {
+                    padding: [48, 48],
+                    maxZoom: 18,
+                    animate: true,
+                  });
+                },
+              }}
+            />
+          );
+        }
+
+        const landmark = group[0];
         const name = localizedText(landmark, "name", lang);
         const description = localizedText(landmark, "description", lang);
 
@@ -61,7 +110,13 @@ export default function LandmarkMarkers({
           <Marker
             key={landmark.id}
             position={[landmark.lat, landmark.lng]}
-            icon={landmarkMarkerIcon(landmark, name ?? landmark.name)}
+            icon={landmarkMarkerIcon(
+              landmark,
+              name ?? landmark.name,
+              zoom >= 18,
+            )}
+            title={name ?? landmark.name}
+            alt={name ?? landmark.name}
             zIndexOffset={650}
           >
             <Popup>

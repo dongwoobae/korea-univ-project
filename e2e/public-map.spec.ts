@@ -150,6 +150,66 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByRole("checkbox", { name: /경사도/ })).toBeChecked();
   });
 
+  test("낮은 줌에서 라벨과 가까운 마커를 정리하고 확대하면 펼친다", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    await expect(page.getByTestId("landmark-label")).toHaveCount(0);
+    await expect(page.getByTestId("subway-label")).toHaveCount(0);
+
+    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: /경사로/ }).click();
+    await page.getByRole("button", { name: /엘리베이터/ }).click();
+
+    await expect(page.getByTestId("facility-marker-cluster")).toHaveCount(1);
+    await page
+      .getByTestId("facility-marker-cluster")
+      .locator("..")
+      .evaluate((marker: HTMLElement) => marker.click());
+
+    await expect(page.getByTestId("facility-marker-cluster")).toHaveCount(0);
+    await expect(
+      page.locator(
+        '[data-testid^="facility-marker-"]:not([data-testid$="cluster"])',
+      ),
+    ).toHaveCount(2);
+    await expect(page.getByTestId("landmark-label")).toBeVisible();
+    await expect(page.getByTestId("subway-label").first()).toBeVisible();
+  });
+
+  test("현재 지도 범위의 시설과 명소를 목록으로 탐색한다", async ({ page }) => {
+    await page.goto("/");
+
+    const browseTrigger = page.getByRole("button", {
+      name: /현재 지도 목록 1/,
+    });
+    await expect(browseTrigger).toBeVisible();
+    await browseTrigger.click();
+    await expect(
+      page.getByRole("heading", { name: "현재 지도 안의 시설과 명소" }),
+    ).toBeVisible();
+    await expect(page.getByText("다람쥐길", { exact: true })).toBeVisible();
+
+    await page.getByRole("button", { name: "현재 지도 목록 닫기" }).click();
+    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: /경사로/ }).click();
+    await expect(
+      page.getByRole("button", { name: /현재 지도 목록 2/ }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /현재 지도 목록 2/ }).click();
+    await page
+      .getByRole("button", { name: /중앙광장 경사로.*지도 보기/ })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "현재 지도 안의 시설과 명소" }),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="facility-marker-f-installed"]'),
+    ).toBeVisible();
+  });
+
   test("영어와 중국어에서 시설과 명소 팝업을 번역한다", async ({ page }) => {
     await page.goto("/");
     await page.getByTitle("English").click();

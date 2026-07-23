@@ -513,6 +513,168 @@
   animation: ku-locate-pulse 0.9s ease-in-out infinite;
 }
 
+.ku-marker-cluster {
+  display: grid;
+  grid-template-columns: auto auto;
+  place-content: center;
+  width: 42px;
+  height: 42px;
+  gap: 2px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: #8c0000;
+  box-shadow: 0 2px 9px rgba(28, 25, 23, 0.32);
+  font-size: 13px;
+}
+.ku-marker-cluster--landmark {
+  color: #4b3508;
+  background: #f3ce79;
+}
+.ku-marker-cluster strong {
+  font-size: 13px;
+}
+
+.ku-map-browse {
+  position: absolute;
+  z-index: 1050;
+  bottom: 62px;
+  left: 20px;
+}
+.ku-map-browse-trigger {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 10px;
+  color: var(--ku-text-1);
+  background: var(--ku-map-control);
+  box-shadow: var(--ku-shadow-raised);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+.ku-map-browse-trigger strong {
+  display: grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  color: #fff;
+  background: #8c0000;
+  font-size: 11px;
+}
+.ku-map-browse-panel {
+  position: absolute;
+  bottom: 50px;
+  left: 0;
+  width: 340px;
+  max-height: min(460px, calc(100dvh - 150px));
+  overflow: hidden;
+  border: 1px solid var(--ku-border);
+  border-radius: 16px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  box-shadow: var(--ku-shadow-overlay);
+}
+.ku-map-browse-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid var(--ku-divider);
+}
+.ku-map-browse-heading h2 {
+  font-size: 15px;
+  line-height: 1.4;
+}
+.ku-map-browse-heading p {
+  margin-top: 3px;
+  color: var(--ku-text-3);
+  font-size: 11.5px;
+}
+.ku-map-browse-heading button {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ku-text-2);
+  background: var(--ku-bg);
+  cursor: pointer;
+  font-size: 20px;
+}
+.ku-map-browse-list {
+  max-height: min(350px, calc(100dvh - 250px));
+  overflow-y: auto;
+  list-style: none;
+}
+.ku-map-browse-list li + li {
+  border-top: 1px solid var(--ku-divider);
+}
+.ku-map-browse-list li > button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 58px;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 0;
+  color: var(--ku-text-1);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.ku-map-browse-list li > button:hover,
+.ku-map-browse-list li > button:focus-visible {
+  background: var(--ku-crimson-50);
+}
+.ku-map-browse-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid var(--ku-border);
+  border-radius: 9px;
+  background: var(--ku-bg);
+}
+.ku-map-browse-copy {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+  gap: 2px;
+}
+.ku-map-browse-copy strong,
+.ku-map-browse-copy span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ku-map-browse-copy strong {
+  font-size: 13px;
+}
+.ku-map-browse-copy span {
+  color: var(--ku-text-3);
+  font-size: 11.5px;
+}
+.ku-map-browse-move {
+  flex: 0 0 auto;
+  color: var(--ku-crimson-600);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.ku-map-browse-empty {
+  padding: 22px 16px;
+  color: var(--ku-text-3);
+  font-size: 13px;
+  text-align: center;
+}
+
 .ku-user-location-dot {
   display: block;
   width: 14px;
@@ -1013,6 +1175,25 @@
   }
   .ku-map-zoom {
     display: none;
+  }
+  .ku-map-browse {
+    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+  }
+  .ku-map-browse-trigger {
+    min-height: 44px;
+    border-radius: 12px;
+  }
+  .ku-map-browse-panel {
+    position: fixed;
+    right: 16px;
+    bottom: calc(122px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+    width: auto;
+    max-height: calc(100dvh - 210px);
+  }
+  .ku-map-browse-list {
+    max-height: calc(100dvh - 320px);
   }
   .ku-attribution {
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));

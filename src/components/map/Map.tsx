@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -12,7 +12,7 @@ import {
 import L from "leaflet";
 import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
-import type { Favorite } from "@/types/domain";
+import type { Favorite, Landmark, MapFacility } from "@/types/domain";
 import { campusColor, satelliteCampusColor } from "@/lib/theme";
 import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
@@ -28,6 +28,11 @@ import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
 import { useMapData } from "./useMapData";
 import MapErrorBanner from "./MapErrorBanner";
+import MapBrowseList, { type MapBrowseItem } from "./MapBrowseList";
+import MapViewportObserver, {
+  containsMapPoint,
+  type MapViewport,
+} from "./MapViewportObserver";
 import "./map-ui.css";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
@@ -105,6 +110,92 @@ function hoverStyle(feature, tileMode) {
   };
 }
 
+function localizedValue(
+  ko: string | null | undefined,
+  en: string | null | undefined,
+  zh: string | null | undefined,
+  lang: "ko" | "en" | "zh",
+) {
+  return lang === "en" ? (en ?? ko) : lang === "zh" ? (zh ?? ko) : ko;
+}
+
+function facilityBrowseItem(
+  facility: MapFacility,
+  lang: "ko" | "en" | "zh",
+): MapBrowseItem {
+  const name =
+    localizedValue(
+      facility.name ?? facility.facility_types?.label,
+      facility.name_en ?? facility.facility_types?.label_en,
+      facility.name_zh ?? facility.facility_types?.label_zh,
+      lang,
+    ) ?? "";
+  const type =
+    localizedValue(
+      facility.facility_types?.label,
+      facility.facility_types?.label_en,
+      facility.facility_types?.label_zh,
+      lang,
+    ) ?? "";
+  const location =
+    localizedValue(
+      facility.buildings?.name,
+      facility.buildings?.name_en,
+      undefined,
+      lang,
+    ) ??
+    localizedValue(
+      facility.floor_info,
+      facility.floor_info_en,
+      facility.floor_info_zh,
+      lang,
+    );
+
+  return {
+    key: `facility-${facility.id}`,
+    kind: "facility",
+    icon: facility.facility_types?.icon ?? "♿",
+    name,
+    detail: [type, location].filter(Boolean).join(" · "),
+    lat: facility.lat!,
+    lng: facility.lng!,
+  };
+}
+
+function landmarkBrowseItem(
+  landmark: Landmark,
+  lang: "ko" | "en" | "zh",
+  detail: string,
+): MapBrowseItem {
+  return {
+    key: `landmark-${landmark.id}`,
+    kind: "landmark",
+    icon: landmark.icon || "✨",
+    name:
+      localizedValue(landmark.name, landmark.name_en, landmark.name_zh, lang) ??
+      landmark.name,
+    detail,
+    lat: landmark.lat,
+    lng: landmark.lng,
+  };
+}
+
+function mapDistanceMeters(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+) {
+  const earthRadius = 6_371_000;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const latitudeDelta = toRadians(to.lat - from.lat);
+  const longitudeDelta = toRadians(to.lng - from.lng);
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(toRadians(from.lat)) *
+      Math.cos(toRadians(to.lat)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+  return earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function Map() {
   const {
     geoData,
@@ -139,6 +230,7 @@ export default function Map() {
   const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -153,6 +245,45 @@ export default function Map() {
     자연계: false,
   });
   const { lang, setLang, t } = useLanguage();
+
+  const browseItems = useMemo(() => {
+    const facilityItems = facilities
+      .filter(
+        (facility) =>
+          activeTypes[facility.facility_types?.code ?? ""] &&
+          containsMapPoint(viewport, facility.lat!, facility.lng!),
+      )
+      .map((facility) => facilityBrowseItem(facility, lang));
+    const landmarkItems = showLandmarks
+      ? landmarks
+          .filter((landmark) =>
+            containsMapPoint(viewport, landmark.lat, landmark.lng),
+          )
+          .map((landmark) =>
+            landmarkBrowseItem(landmark, lang, t("landmarkItem")),
+          )
+      : [];
+
+    const origin = userLocation ?? {
+      lat: ((viewport?.north ?? 0) + (viewport?.south ?? 0)) / 2,
+      lng: ((viewport?.east ?? 0) + (viewport?.west ?? 0)) / 2,
+    };
+
+    return [...facilityItems, ...landmarkItems].sort(
+      (a, b) =>
+        mapDistanceMeters(origin, a) - mapDistanceMeters(origin, b) ||
+        a.name.localeCompare(b.name, lang),
+    );
+  }, [
+    activeTypes,
+    facilities,
+    lang,
+    landmarks,
+    showLandmarks,
+    t,
+    userLocation,
+    viewport,
+  ]);
 
   const mapRef = useRef<L.Map | null>(null);
   const activeLayerRef = useRef<L.Polygon | null>(null);
@@ -397,6 +528,7 @@ export default function Map() {
           maxZoom={19}
         />
         <BoundsController />
+        <MapViewportObserver onChange={setViewport} />
         {geoData && (
           <>
             <GeoJSON
@@ -442,10 +574,19 @@ export default function Map() {
             />
           </>
         )}
-        <FacilityMarkers facilities={facilities} activeTypes={activeTypes} />
-        <LandmarkMarkers landmarks={landmarks} showLandmarks={showLandmarks} />
+        <FacilityMarkers
+          facilities={facilities}
+          activeTypes={activeTypes}
+          zoom={viewport?.zoom ?? 16}
+        />
+        <LandmarkMarkers
+          landmarks={landmarks}
+          showLandmarks={showLandmarks}
+          zoom={viewport?.zoom ?? 16}
+        />
         <SubwayMarkers
           lang={lang}
+          zoom={viewport?.zoom ?? 16}
           onSelect={(station) => setSelectedBuilding(station)}
         />
         {showSlope && slopes.length > 0 && <SlopeLayer slopes={slopes} />}
@@ -584,6 +725,15 @@ export default function Map() {
         setLang={setLang}
         panelOpen={Boolean(selectedBuilding)}
       />
+
+      {!selectedBuilding && !mobileFilterOpen && (
+        <MapBrowseList
+          items={browseItems}
+          onSelect={(item) => {
+            mapRef.current?.flyTo([item.lat, item.lng], 18, { animate: true });
+          }}
+        />
+      )}
 
       <FilterPanel
         isMobile={isMobile}
