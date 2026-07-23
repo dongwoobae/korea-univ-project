@@ -362,7 +362,17 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      get_admin_building_summary: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          missing_facility_count: number;
+          missing_location_count: number;
+          missing_photo_count: number;
+          registered_facility_count: number;
+          stale_update_count: number;
+          translation_needed_count: number;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;

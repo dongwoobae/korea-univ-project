@@ -110,6 +110,7 @@ function createState(authenticated: boolean): MockState {
         college_id: 1,
         is_deleted: false,
         geojson: polygon,
+        last_updated: "2026-07-22",
         colleges: colleges[0],
       },
     ],
@@ -384,6 +385,43 @@ function nextId(name: string, state: MockState) {
 async function handleRest(route: Route, state: MockState, url: URL) {
   const name = url.pathname.split("/rest/v1/")[1];
   const method = route.request().method();
+  if (name === "rpc/get_admin_building_summary") {
+    const activeBuildings = state.buildings.filter(
+      (building) => !building.is_deleted,
+    );
+    const activeIds = new Set(activeBuildings.map((building) => building.id));
+    const summary = {
+      registered_facility_count: state.facilities.filter(
+        (facility) =>
+          facility.building_id != null && activeIds.has(facility.building_id),
+      ).length,
+      missing_facility_count: activeBuildings.filter(
+        (building) =>
+          !state.facilities.some(
+            (facility) => facility.building_id === building.id,
+          ),
+      ).length,
+      missing_photo_count: activeBuildings.filter(
+        (building) =>
+          !state.photos.some((photo) => photo.building_id === building.id),
+      ).length,
+      missing_location_count: activeBuildings.filter(
+        (building) => building.geojson == null,
+      ).length,
+      stale_update_count: activeBuildings.filter(
+        (building) =>
+          building.last_updated == null ||
+          String(building.last_updated) < "2025-07-23",
+      ).length,
+      translation_needed_count: state.facilities.filter(
+        (facility) =>
+          facility.building_id != null &&
+          activeIds.has(facility.building_id) &&
+          facility.translation_status !== "translated",
+      ).length,
+    };
+    return json(route, summary);
+  }
   const result = rows(state, name, url);
   if (method === "HEAD") {
     return route.fulfill({

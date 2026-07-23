@@ -2,6 +2,81 @@ import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
 
 test.describe("건물과 경사도 관리자 흐름", () => {
+  test("건물 보완 필요 현황을 서버 집계로 표시한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.buildings.push(
+      {
+        id: 2,
+        name: "정보 부족 건물",
+        name_en: null,
+        campus: null,
+        college_id: null,
+        is_deleted: false,
+        geojson: null,
+        last_updated: "2026-07-23",
+      },
+      {
+        id: 3,
+        name: "갱신 필요 건물",
+        name_en: "Building to update",
+        campus: null,
+        college_id: null,
+        is_deleted: false,
+        geojson: state.buildings[0].geojson,
+        last_updated: "2024-01-01",
+      },
+    );
+    state.facilities.push({
+      id: "f-needs-translation",
+      building_id: 3,
+      facility_code: "ramp",
+      name: "후문 경사로",
+      name_en: null,
+      name_zh: null,
+      translation_status: "failed",
+      is_installed: true,
+      lat: 37.5894,
+      lng: 127.0325,
+      facility_types: null,
+      created_at: "2026-07-21T00:00:00Z",
+      updated_at: "2026-07-22T00:00:00Z",
+    });
+    state.photos.push({
+      id: 2,
+      building_id: 3,
+      url: "https://cdn.test/building-3.webp",
+      caption: null,
+      caption_en: null,
+      caption_zh: null,
+      created_at: "2026-07-22T00:00:00Z",
+    });
+
+    await page.goto("/admin/dashboard/buildings");
+
+    const overview = page.getByRole("group", {
+      name: "관리자 보완 현황",
+    });
+    await expect(overview).toBeVisible();
+    await expect(overview.getByText("등록된 시설").locator("..")).toContainText(
+      "2개",
+    );
+    await expect(
+      overview.getByText("시설 정보 없음").locator(".."),
+    ).toContainText("1개");
+    await expect(overview.getByText("사진 없음").locator("..")).toContainText(
+      "1개",
+    );
+    await expect(overview.getByText("위치 없음").locator("..")).toContainText(
+      "1개",
+    );
+    await expect(
+      overview.getByText("갱신일 오래됨").locator(".."),
+    ).toContainText("1개");
+    await expect(overview.getByText("번역 필요").locator("..")).toContainText(
+      "1개",
+    );
+  });
+
   test("건물 목록을 서버 페이지 단위로 조회하고 모바일에서 이동한다", async ({
     page,
   }) => {

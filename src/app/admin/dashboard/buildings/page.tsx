@@ -25,6 +25,58 @@ import {
 } from "@/lib/adminList";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
+interface AdminBuildingSummary {
+  registered_facility_count: number;
+  missing_facility_count: number;
+  missing_photo_count: number;
+  missing_location_count: number;
+  stale_update_count: number;
+  translation_needed_count: number;
+}
+
+const summaryItems: {
+  key: keyof AdminBuildingSummary;
+  label: string;
+  description: string;
+  warning?: boolean;
+}[] = [
+  {
+    key: "registered_facility_count",
+    label: "등록된 시설",
+    description: "공개 건물에 등록된 시설",
+  },
+  {
+    key: "missing_facility_count",
+    label: "시설 정보 없음",
+    description: "등록된 시설이 없는 공개 건물",
+    warning: true,
+  },
+  {
+    key: "missing_photo_count",
+    label: "사진 없음",
+    description: "사진이 없는 공개 건물",
+    warning: true,
+  },
+  {
+    key: "missing_location_count",
+    label: "위치 없음",
+    description: "지도 위치가 없는 공개 건물",
+    warning: true,
+  },
+  {
+    key: "stale_update_count",
+    label: "갱신일 오래됨",
+    description: "갱신일이 없거나 1년 이상 지난 공개 건물",
+    warning: true,
+  },
+  {
+    key: "translation_needed_count",
+    label: "번역 필요",
+    description: "번역 대기 또는 실패 상태인 시설",
+    warning: true,
+  },
+];
+
 export default function BuildingsPage() {
   const [buildings, setBuildings] = useState<Building[]>([]);
   const [facilityCounts, setFacilityCounts] = useState(
@@ -33,7 +85,7 @@ export default function BuildingsPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [overallTotalCount, setOverallTotalCount] = useState(0);
   const [deletedCount, setDeletedCount] = useState(0);
-  const [totalFacilityCount, setTotalFacilityCount] = useState(0);
+  const [summary, setSummary] = useState<AdminBuildingSummary | null>(null);
   const [campusBoundaries, setCampusBoundaries] =
     useState<CampusBoundaryCollection | null>(null);
   const [search, setSearch] = useState("");
@@ -55,14 +107,11 @@ export default function BuildingsPage() {
         .from("buildings")
         .select("id", { count: "exact", head: true })
         .eq("is_deleted", true),
-      supabase
-        .from("building_facilities")
-        .select("id", { count: "exact", head: true })
-        .not("building_id", "is", null),
-    ]).then(([buildingResult, deletedResult, facilityResult]) => {
+      supabase.rpc("get_admin_building_summary").single(),
+    ]).then(([buildingResult, deletedResult, summaryResult]) => {
       setOverallTotalCount(buildingResult.count ?? 0);
       setDeletedCount(deletedResult.count ?? 0);
-      setTotalFacilityCount(facilityResult.count ?? 0);
+      setSummary(summaryResult.data);
     });
   }, []);
 
@@ -160,9 +209,29 @@ export default function BuildingsPage() {
         </div>
       </div>
 
-      <div className="ku-admin-summary-strip" aria-label="시설 등록 현황">
-        등록된 시설 <strong>{totalFacilityCount}</strong>개
-      </div>
+      <dl
+        className="ku-admin-overview"
+        role="group"
+        aria-label="관리자 보완 현황"
+      >
+        {summaryItems.map(({ key, label, description, warning }) => {
+          const value = summary?.[key];
+          return (
+            <div
+              className="ku-admin-overview-item"
+              data-warning={Boolean(warning && value)}
+              key={key}
+              title={description}
+            >
+              <dt>{label}</dt>
+              <dd>
+                <strong>{value ?? "—"}</strong>
+                {value !== undefined && <span>개</span>}
+              </dd>
+            </div>
+          );
+        })}
+      </dl>
 
       <AdminListControls
         searchValue={search}
