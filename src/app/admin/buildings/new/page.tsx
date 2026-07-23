@@ -219,16 +219,9 @@ export default function NewBuilding() {
             지도에서 건물 외곽선을 따라 폴리곤을 그려주세요.
           </div>
           <PolygonEditor
-            geojson={null}
+            geojson={geojson}
             excludeId={null}
-            onSave={(newGeojson) => {
-              setGeojson(newGeojson);
-              showToast(
-                "폴리곤이 저장되었어요. 아래 저장 버튼을 눌러 완료하세요.",
-                "info",
-              );
-            }}
-            onCancel={() => router.push("/admin/dashboard")}
+            onChange={setGeojson}
           />
           {geojson && (
             <div
@@ -239,7 +232,7 @@ export default function NewBuilding() {
                 fontWeight: 500,
               }}
             >
-              ✅ 폴리곤 준비 완료
+              ✅ 폴리곤 입력 완료 — 아래 건물 저장 버튼으로 함께 저장됩니다.
             </div>
           )}
         </div>

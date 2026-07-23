@@ -29,8 +29,61 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     for (const position of points) await map.click({ position });
     await map.click({ position: points[0] });
 
-    await page.getByRole("button", { name: "저장", exact: true }).click();
-    await expect(page.getByText("✅ 폴리곤 준비 완료")).toBeVisible();
+    await expect(
+      page.getByText(
+        "✅ 폴리곤 입력 완료 — 아래 건물 저장 버튼으로 함께 저장됩니다.",
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "폴리곤 변경 저장" }),
+    ).toHaveCount(0);
+
+    await page
+      .getByRole("button", { name: "폴리곤 지우고 다시 그리기" })
+      .click();
+    const resetConfirm = page
+      .getByText("그린 폴리곤을 지우고 다시 그릴까요?")
+      .locator("..");
+    await expect(resetConfirm).toBeVisible();
+    await resetConfirm
+      .getByRole("button", { name: "취소", exact: true })
+      .click();
+    await expect(
+      page.getByText(
+        "✅ 폴리곤 입력 완료 — 아래 건물 저장 버튼으로 함께 저장됩니다.",
+      ),
+    ).toBeVisible();
+
+    await page
+      .getByRole("button", { name: "폴리곤 지우고 다시 그리기" })
+      .click();
+    const confirmedReset = page
+      .getByText("그린 폴리곤을 지우고 다시 그릴까요?")
+      .locator("..");
+    await confirmedReset
+      .getByRole("button", { name: "지우고 다시 그리기", exact: true })
+      .click();
+    await expect(
+      page.getByText(
+        "✅ 폴리곤 입력 완료 — 아래 건물 저장 버튼으로 함께 저장됩니다.",
+      ),
+    ).toHaveCount(0);
+    await expect(map).toHaveClass(/geoman-draw-cursor/);
+
+    const replacementPoints = [
+      { x: 360, y: 110 },
+      { x: 490, y: 110 },
+      { x: 490, y: 240 },
+      { x: 360, y: 240 },
+    ];
+    for (const position of replacementPoints) await map.click({ position });
+    await map.click({ position: replacementPoints[0] });
+    await expect(
+      page.getByText(
+        "✅ 폴리곤 입력 완료 — 아래 건물 저장 버튼으로 함께 저장됩니다.",
+      ),
+    ).toBeVisible();
+
     await page.getByRole("button", { name: "건물 저장" }).click();
     await expect(page).toHaveURL(/admin\/buildings\/-\d+$/);
     expect(

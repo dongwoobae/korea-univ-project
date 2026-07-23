@@ -17,6 +17,8 @@ import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
+import type { Feature, Polygon } from "geojson";
+import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
 
 const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
@@ -468,12 +470,15 @@ export default function BuildingDetail() {
 
           {editingPolygon && (
             <PolygonEditor
-              geojson={building?.geojson ?? null}
+              geojson={
+                (building?.geojson as unknown as Feature<Polygon> | null) ??
+                null
+              }
               excludeId={id}
               onSave={async (newGeojson) => {
                 const { error } = await supabase
                   .from("buildings")
-                  .update({ geojson: newGeojson })
+                  .update({ geojson: newGeojson as unknown as Json })
                   .eq("id", id);
                 if (error) {
                   showToast("저장에 실패했어요", "error");
