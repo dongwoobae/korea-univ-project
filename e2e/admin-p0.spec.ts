@@ -53,7 +53,9 @@ test.describe("관리자 P0 개선 (모바일 메뉴·상태변경 오류)", () 
     });
     await page.goto("/admin/buildings/1");
 
-    const toggle = page.getByRole("button", { name: "설치", exact: true });
+    const status = page.getByRole("status", { name: "현재 상태: 설치" });
+    const toggle = page.getByRole("button", { name: "미설치로 변경" });
+    await expect(status).toBeVisible();
     await expect(toggle).toBeVisible();
     await toggle.click();
 
@@ -61,6 +63,7 @@ test.describe("관리자 P0 개선 (모바일 메뉴·상태변경 오류)", () 
     await expect(page.getByText("설치로 변경되었어요")).toHaveCount(0);
     await expect(page.getByText("미설치로 변경되었어요")).toHaveCount(0);
     // 상태가 바뀌지 않고 원복된다
-    await expect(toggle).toHaveText("설치");
+    await expect(status).toBeVisible();
+    await expect(toggle).toHaveText("미설치로 변경");
   });
 });

@@ -93,14 +93,40 @@ test.describe("건물과 경사도 관리자 흐름", () => {
 
   test("건물명 수정과 소프트 삭제·복원을 수행한다", async ({ page }) => {
     const state = await installMockBackend(page, { authenticated: true });
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/admin/buildings/1");
 
-    const nameCard = page.getByText("건물명 수정").locator("..");
+    const sectionNav = page.getByRole("navigation", {
+      name: "건물 상세 섹션",
+    });
+    await expect(sectionNav).toBeVisible();
+    await expect(sectionNav.getByRole("link")).toHaveCount(6);
+    await sectionNav.getByRole("link", { name: "시설", exact: true }).click();
+    await expect(page).toHaveURL(/#building-facilities$/);
+
+    const nameCard = page.locator("#building-name");
     await nameCard.locator("input").first().fill("중앙도서관 E2E");
+    await expect(
+      page.getByRole("status", { name: "저장하지 않은 변경 1개" }),
+    ).toBeVisible();
+    await expect(nameCard.getByText("저장 안 됨")).toBeVisible();
+
+    await page.getByRole("button", { name: "지도 보기" }).click();
+    await expect(
+      page.getByText("저장하지 않은 변경사항이 있어요"),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "취소", exact: true }).click();
+    await expect(page).toHaveURL(/admin\/buildings\/1#building-facilities$/);
+
     await nameCard.getByRole("button", { name: "저장" }).click();
     await expect(page.getByText("건물명이 저장되었어요!")).toBeVisible();
+    await expect(
+      page.getByRole("status", { name: "저장하지 않은 변경 1개" }),
+    ).toHaveCount(0);
+    await expect(nameCard.getByText("저장 안 됨")).toHaveCount(0);
     expect(state.buildings[0].name).toBe("중앙도서관 E2E");
 
+    await page.setViewportSize({ width: 1280, height: 800 });
     await page.getByRole("button", { name: "건물 삭제" }).click();
     await page.getByText(/건물을 삭제 처리할까요/).waitFor();
     await page

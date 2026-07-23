@@ -28,6 +28,15 @@ const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
+const DETAIL_SECTIONS = [
+  { id: "building-photos", label: "사진" },
+  { id: "building-name", label: "이름" },
+  { id: "building-college", label: "소속" },
+  { id: "building-polygon", label: "폴리곤" },
+  { id: "building-facilities", label: "시설" },
+  { id: "building-danger", label: "삭제·복구" },
+] as const;
+
 function getBuildingCenter(building): [number, number] {
   const geom = building?.geojson?.geometry;
   if (!geom) return KU_CENTER;
@@ -66,8 +75,28 @@ export default function BuildingDetail() {
     null,
   );
   const [confirmDeleteBuilding, setConfirmDeleteBuilding] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(
+    null,
+  );
+  const [activeSection, setActiveSection] = useState<string>(
+    DETAIL_SECTIONS[0].id,
+  );
   const [videoModalFacility, setVideoModalFacility] =
     useState<FacilityWithType | null>(null);
+
+  const hasUnsavedNameChanges = Boolean(
+    building &&
+    (nameForm.name !== building.name ||
+      nameForm.name_en !== (building.name_en ?? "")),
+  );
+  const hasUnsavedCollegeChanges = Boolean(
+    building && selectedCollegeId !== building.college_id,
+  );
+  const unsavedChangeCount =
+    Number(hasUnsavedNameChanges) +
+    Number(hasUnsavedCollegeChanges) +
+    Number(editingPolygon);
+  const hasUnsavedChanges = unsavedChangeCount > 0;
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -86,6 +115,46 @@ export default function BuildingDetail() {
     }
     init();
   }, []);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntry = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visibleEntry) setActiveSection(visibleEntry.target.id);
+      },
+      { rootMargin: "-140px 0px -55% 0px", threshold: [0, 0.2, 0.6] },
+    );
+
+    DETAIL_SECTIONS.forEach(({ id: sectionId }) => {
+      const section = document.getElementById(sectionId);
+      if (section) observer.observe(section);
+    });
+
+    return () => observer.disconnect();
+  }, [loading]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  function navigateWithUnsavedCheck(href: string) {
+    if (hasUnsavedChanges) {
+      setPendingNavigation(href);
+      return;
+    }
+    router.push(href);
+  }
 
   async function fetchData() {
     const [
@@ -169,7 +238,7 @@ export default function BuildingDetail() {
       showToast("저장에 실패했어요", "error");
       return;
     }
-    fetchData();
+    await fetchData();
     showToast("건물명이 저장되었어요!");
   }
 
@@ -184,7 +253,7 @@ export default function BuildingDetail() {
       showToast("저장에 실패했어요", "error");
       return;
     }
-    fetchData();
+    await fetchData();
     showToast("소속 단과대학이 저장되었어요!");
   }
 
@@ -236,7 +305,8 @@ export default function BuildingDetail() {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
-            onClick={() => router.push("/admin/dashboard")}
+            onClick={() => navigateWithUnsavedCheck("/admin/dashboard")}
+            aria-label="건물 목록으로 돌아가기"
             style={{
               background: "none",
               border: "none",
@@ -255,7 +325,7 @@ export default function BuildingDetail() {
           </div>
         </div>
         <button
-          onClick={() => router.push("/")}
+          onClick={() => navigateWithUnsavedCheck("/")}
           style={{
             fontSize: 13,
             color: "var(--ku-text-2)",
@@ -270,9 +340,44 @@ export default function BuildingDetail() {
         </button>
       </div>
 
+      <nav className="ku-admin-detail-section-nav" aria-label="건물 상세 섹션">
+        <div className="ku-admin-detail-section-nav-inner">
+          <div className="ku-admin-detail-section-links">
+            {DETAIL_SECTIONS.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                aria-current={
+                  activeSection === section.id ? "location" : undefined
+                }
+                onClick={() => setActiveSection(section.id)}
+              >
+                {section.label}
+              </a>
+            ))}
+          </div>
+          <div
+            className="ku-admin-detail-save-status"
+            data-unsaved={hasUnsavedChanges}
+            role="status"
+            aria-label={
+              hasUnsavedChanges
+                ? `저장하지 않은 변경 ${unsavedChangeCount}개`
+                : "모든 변경 저장됨"
+            }
+          >
+            {hasUnsavedChanges
+              ? `저장하지 않은 변경 ${unsavedChangeCount}개`
+              : "모든 변경 저장됨"}
+          </div>
+        </div>
+      </nav>
+
       <div className="ku-admin-detail-grid">
         {/* 건물 사진 */}
         <div
+          id="building-photos"
+          className="ku-admin-detail-card"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -289,6 +394,8 @@ export default function BuildingDetail() {
 
         {/* 건물명 수정 */}
         <div
+          id="building-name"
+          className="ku-admin-detail-card"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -297,8 +404,18 @@ export default function BuildingDetail() {
             marginBottom: 20,
           }}
         >
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
-            건물명 수정
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              marginBottom: 16,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: 600 }}>건물명 수정</span>
+            {hasUnsavedNameChanges && (
+              <span className="ku-admin-detail-unsaved-label">저장 안 됨</span>
+            )}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
@@ -378,6 +495,8 @@ export default function BuildingDetail() {
 
         {/* 소속 단과대학 */}
         <div
+          id="building-college"
+          className="ku-admin-detail-card"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -386,8 +505,18 @@ export default function BuildingDetail() {
             marginBottom: 20,
           }}
         >
-          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
-            소속 단과대학
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              gap: 8,
+              marginBottom: 16,
+            }}
+          >
+            <span style={{ fontSize: 15, fontWeight: 600 }}>소속 단과대학</span>
+            {hasUnsavedCollegeChanges && (
+              <span className="ku-admin-detail-unsaved-label">저장 안 됨</span>
+            )}
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <select
@@ -435,6 +564,8 @@ export default function BuildingDetail() {
 
         {/* 폴리곤 편집 */}
         <div
+          id="building-polygon"
+          className="ku-admin-detail-card"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -452,7 +583,14 @@ export default function BuildingDetail() {
             }}
           >
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>건물 폴리곤</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 15, fontWeight: 600 }}>
+                  건물 폴리곤
+                </span>
+                {editingPolygon && (
+                  <span className="ku-admin-detail-unsaved-label">편집 중</span>
+                )}
+              </div>
               {!editingPolygon && (
                 <div
                   style={{
@@ -504,7 +642,7 @@ export default function BuildingDetail() {
                   return;
                 }
                 setEditingPolygon(false);
-                fetchData();
+                await fetchData();
                 showToast("폴리곤이 저장되었어요!");
               }}
               onCancel={() => setEditingPolygon(false)}
@@ -514,6 +652,8 @@ export default function BuildingDetail() {
 
         {/* 시설 목록 */}
         <div
+          id="building-facilities"
+          className="ku-admin-detail-card"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -622,6 +762,8 @@ export default function BuildingDetail() {
           )}
         </div>
         <div
+          id="building-danger"
+          className="ku-admin-detail-danger"
           style={{
             display: "flex",
             justifyContent: "center",
@@ -691,6 +833,20 @@ export default function BuildingDetail() {
           confirmLabel="삭제"
           onConfirm={handleDeleteBuilding}
           onCancel={() => setConfirmDeleteBuilding(false)}
+        />
+      )}
+
+      {pendingNavigation && (
+        <ConfirmModal
+          message="저장하지 않은 변경사항이 있어요"
+          description="지금 이동하면 건물 이름, 소속 또는 폴리곤 편집 내용이 사라질 수 있어요."
+          confirmLabel="저장하지 않고 이동"
+          onConfirm={() => {
+            const href = pendingNavigation;
+            setPendingNavigation(null);
+            router.push(href);
+          }}
+          onCancel={() => setPendingNavigation(null)}
         />
       )}
       {videoModalFacility && (
