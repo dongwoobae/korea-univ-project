@@ -427,6 +427,7 @@ async function handleRest(route: Route, state: MockState, url: URL) {
     return route.fulfill({
       status: 200,
       headers: {
+        "access-control-expose-headers": "Content-Range",
         "content-range": `0-${Math.max(0, result.length - 1)}/${result.length}`,
       },
       body: "",

@@ -231,14 +231,20 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     await expect(
       page.getByRole("status", { name: "총 21개 중 현재 20개 표시" }),
     ).toBeVisible();
-    await expect(page.getByText("1 / 2페이지")).toBeVisible();
-    await page.getByRole("button", { name: "다음" }).click();
+    await expect(
+      page.getByRole("button", { name: "1 페이지" }),
+    ).toHaveAttribute("aria-current", "page");
+    await page.getByRole("button", { name: "2 페이지" }).click();
     await expect(
       page.getByRole("status", { name: "총 21개 중 현재 1개 표시" }),
     ).toBeVisible();
-    await expect(page.getByText("2 / 2페이지")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "2 페이지" }),
+    ).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("button", { name: "다음" })).toBeDisabled();
     await page.getByRole("button", { name: "이전" }).click();
-    await expect(page.getByText("1 / 2페이지")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "1 페이지" }),
+    ).toHaveAttribute("aria-current", "page");
   });
 });

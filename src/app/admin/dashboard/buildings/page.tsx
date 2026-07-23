@@ -91,6 +91,7 @@ export default function BuildingsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const debouncedSearch = useDebouncedValue(search);
   const router = useRouter();
 
@@ -100,20 +101,24 @@ export default function BuildingsPage() {
       .then(setCampusBoundaries);
   }, []);
 
-  useEffect(() => {
-    void Promise.all([
+  const fetchSummary = useCallback(async () => {
+    const [buildingResult, deletedResult, summaryResult] = await Promise.all([
       supabase.from("buildings").select("id", { count: "exact", head: true }),
       supabase
         .from("buildings")
         .select("id", { count: "exact", head: true })
         .eq("is_deleted", true),
       supabase.rpc("get_admin_building_summary").single(),
-    ]).then(([buildingResult, deletedResult, summaryResult]) => {
-      setOverallTotalCount(buildingResult.count ?? 0);
-      setDeletedCount(deletedResult.count ?? 0);
-      setSummary(summaryResult.data);
-    });
+    ]);
+    setOverallTotalCount(buildingResult.count ?? 0);
+    setDeletedCount(deletedResult.count ?? 0);
+    setSummary(summaryResult.data);
   }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => void fetchSummary(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchSummary]);
 
   const fetchData = useCallback(async () => {
     const { from, to } = getAdminPageRange(page);
@@ -163,6 +168,15 @@ export default function BuildingsPage() {
     setLoading(false);
   }, [debouncedSearch, page]);
 
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([fetchSummary(), fetchData()]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchData, fetchSummary]);
+
   useEffect(() => {
     const timer = window.setTimeout(() => void fetchData(), 0);
     return () => window.clearTimeout(timer);
@@ -195,9 +209,10 @@ export default function BuildingsPage() {
           <button
             className="ku-admin-button"
             type="button"
-            onClick={() => window.location.reload()}
+            disabled={refreshing}
+            onClick={() => void handleRefresh()}
           >
-            ↻ 새로고침
+            {refreshing ? "갱신 중..." : "↻ 새로고침"}
           </button>
           <button
             className="ku-admin-button ku-admin-button--accent"

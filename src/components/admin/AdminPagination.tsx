@@ -1,4 +1,8 @@
-import { ADMIN_PAGE_SIZE, getAdminPageCount } from "@/lib/adminList";
+import {
+  ADMIN_PAGE_SIZE,
+  getAdminPageCount,
+  getAdminPaginationPages,
+} from "@/lib/adminList";
 
 interface AdminPaginationProps {
   page: number;
@@ -15,6 +19,7 @@ export default function AdminPagination({
 }: AdminPaginationProps) {
   const pageCount = getAdminPageCount(totalCount, pageSize);
   if (pageCount <= 1) return null;
+  const pages = getAdminPaginationPages(page, pageCount);
 
   return (
     <nav className="ku-admin-pagination" aria-label="목록 페이지 이동">
@@ -25,7 +30,21 @@ export default function AdminPagination({
       >
         이전
       </button>
-      <span aria-live="polite">
+      <div className="ku-admin-pagination-pages">
+        {pages.map((pageNumber) => (
+          <button
+            className="ku-admin-pagination-number"
+            type="button"
+            aria-label={`${pageNumber} 페이지`}
+            aria-current={pageNumber === page ? "page" : undefined}
+            key={pageNumber}
+            onClick={() => onPageChange(pageNumber)}
+          >
+            {pageNumber}
+          </button>
+        ))}
+      </div>
+      <span className="ku-sr-only" aria-live="polite">
         {page} / {pageCount}페이지
       </span>
       <button

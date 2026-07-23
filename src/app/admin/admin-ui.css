@@ -310,7 +310,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 8px;
   margin-top: 16px;
 }
 .ku-admin-pagination button {
@@ -324,16 +324,34 @@
   font-size: 13px;
   font-weight: 600;
 }
+.ku-admin-pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ku-admin-pagination .ku-admin-pagination-number {
+  min-width: 40px;
+  padding: 0 10px;
+}
+.ku-admin-pagination-number[aria-current="page"] {
+  color: #fff;
+  border-color: var(--ku-crimson-700);
+  background: var(--ku-crimson-700);
+}
 .ku-admin-pagination button:disabled {
   color: var(--ku-text-3);
   cursor: not-allowed;
   opacity: 0.55;
 }
-.ku-admin-pagination span {
-  min-width: 88px;
-  color: var(--ku-text-2);
-  font-size: 13px;
-  text-align: center;
+.ku-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 .ku-photo-upload-panel {
   margin-top: 12px;
@@ -831,7 +849,20 @@
     min-height: 44px;
   }
   .ku-admin-pagination button {
+    min-width: 50px;
     min-height: 44px;
+    padding: 0 6px;
+    font-size: 12px;
+  }
+  .ku-admin-pagination {
+    gap: 4px;
+  }
+  .ku-admin-pagination-pages {
+    gap: 3px;
+  }
+  .ku-admin-pagination .ku-admin-pagination-number {
+    min-width: 36px;
+    padding: 0 4px;
   }
   .ku-admin-table {
     display: none;

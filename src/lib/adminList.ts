@@ -27,6 +27,21 @@ export function getAdminPageCount(
   return Math.max(1, Math.ceil(Math.max(0, totalCount) / pageSize));
 }
 
+export function getAdminPaginationPages(
+  page: number,
+  pageCount: number,
+  windowSize = 5,
+) {
+  const safePageCount = Math.max(1, Math.floor(pageCount));
+  const safeWindowSize = Math.max(1, Math.floor(windowSize));
+  const visibleCount = Math.min(safeWindowSize, safePageCount);
+  const safePage = Math.min(Math.max(1, Math.floor(page)), safePageCount);
+  const halfWindow = Math.floor(visibleCount / 2);
+  const maxStart = safePageCount - visibleCount + 1;
+  const start = Math.min(Math.max(1, safePage - halfWindow), maxStart);
+  return Array.from({ length: visibleCount }, (_, index) => start + index);
+}
+
 export function matchesAdminSearch(
   query: string,
   values: Array<string | null | undefined>,

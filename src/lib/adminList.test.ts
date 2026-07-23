@@ -3,6 +3,7 @@ import {
   buildAdminSearchFilter,
   formatAdminUpdatedAt,
   getAdminPageCount,
+  getAdminPaginationPages,
   getAdminPageRange,
   matchesAdminSearch,
   sortAdminItems,
@@ -71,5 +72,12 @@ describe("admin list helpers", () => {
     expect(getAdminPageRange(2)).toEqual({ from: 20, to: 39 });
     expect(getAdminPageCount(0)).toBe(1);
     expect(getAdminPageCount(21)).toBe(2);
+  });
+
+  it("현재 페이지 주변에 최대 5개의 페이지 번호를 만든다", () => {
+    expect(getAdminPaginationPages(1, 3)).toEqual([1, 2, 3]);
+    expect(getAdminPaginationPages(1, 10)).toEqual([1, 2, 3, 4, 5]);
+    expect(getAdminPaginationPages(5, 10)).toEqual([3, 4, 5, 6, 7]);
+    expect(getAdminPaginationPages(10, 10)).toEqual([6, 7, 8, 9, 10]);
   });
 });

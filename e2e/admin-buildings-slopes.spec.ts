@@ -75,6 +75,36 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(overview.getByText("번역 필요").locator("..")).toContainText(
       "1개",
     );
+
+    await page.evaluate(() => {
+      window.sessionStorage.setItem("admin-refresh-sentinel", "kept");
+    });
+    state.buildings.push({
+      id: 4,
+      name: "새로 추가된 건물",
+      name_en: "New building",
+      campus: null,
+      college_id: null,
+      is_deleted: false,
+      geojson: state.buildings[0].geojson,
+      last_updated: "2026-07-23",
+    });
+    await page.getByRole("button", { name: "새로고침" }).click();
+
+    await expect(page.getByText("총 4개 · 삭제됨 0개")).toBeVisible();
+    await expect(
+      page
+        .getByRole("table", { name: "건물 목록" })
+        .getByText("새로 추가된 건물"),
+    ).toBeVisible();
+    await expect(
+      overview.getByText("시설 정보 없음").locator(".."),
+    ).toContainText("2개");
+    expect(
+      await page.evaluate(() =>
+        window.sessionStorage.getItem("admin-refresh-sentinel"),
+      ),
+    ).toBe("kept");
   });
 
   test("건물 목록을 서버 페이지 단위로 조회하고 모바일에서 이동한다", async ({
@@ -99,14 +129,20 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(
       page.getByRole("status", { name: "총 21개 중 현재 20개 표시" }),
     ).toBeVisible();
-    await expect(page.getByText("1 / 2페이지")).toBeVisible();
-    await page.getByRole("button", { name: "다음" }).click();
+    await expect(
+      page.getByRole("button", { name: "1 페이지" }),
+    ).toHaveAttribute("aria-current", "page");
+    await page.getByRole("button", { name: "2 페이지" }).click();
     await expect(
       page.getByRole("status", { name: "총 21개 중 현재 1개 표시" }),
     ).toBeVisible();
-    await expect(page.getByText("2 / 2페이지")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "2 페이지" }),
+    ).toHaveAttribute("aria-current", "page");
     await page.getByRole("button", { name: "이전" }).click();
-    await expect(page.getByText("1 / 2페이지")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "1 페이지" }),
+    ).toHaveAttribute("aria-current", "page");
   });
 
   test("건물 생성 필수값을 검증하고 폴리곤을 그려 저장한다", async ({
