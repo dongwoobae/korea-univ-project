@@ -22,8 +22,16 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     ).toBeTruthy();
 
     const row = page.getByText("E2E 경사로").locator("xpath=../..");
-    await row.getByRole("button", { name: "설치" }).click();
-    await expect(row.getByRole("button", { name: "미설치" })).toBeVisible();
+    await expect(
+      row.getByRole("status", { name: "현재 상태: 설치" }),
+    ).toBeVisible();
+    await row.getByRole("button", { name: "미설치로 변경" }).click();
+    await expect(
+      row.getByRole("status", { name: "현재 상태: 미설치" }),
+    ).toBeVisible();
+    await expect(
+      row.getByRole("button", { name: "설치로 변경" }),
+    ).toBeVisible();
     expect(
       state.facilities.find((facility) => facility.name === "E2E 경사로")
         ?.is_installed,

@@ -17,6 +17,7 @@ import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
+import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
 import type { Feature, Polygon } from "geojson";
 import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
@@ -205,10 +206,16 @@ export default function BuildingDetail() {
   }
 
   if (loading)
-    return <div style={{ padding: 40, color: "var(--ku-text-3)" }}>불러오는 중...</div>;
+    return (
+      <div style={{ padding: 40, color: "var(--ku-text-3)" }}>
+        불러오는 중...
+      </div>
+    );
   if (!building)
     return (
-      <div style={{ padding: 40, color: "var(--ku-text-3)" }}>건물을 찾을 수 없어요</div>
+      <div style={{ padding: 40, color: "var(--ku-text-3)" }}>
+        건물을 찾을 수 없어요
+      </div>
     );
 
   const buildingCenter = getBuildingCenter(building);
@@ -295,7 +302,13 @@ export default function BuildingDetail() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
-              <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 4 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--ku-text-2)",
+                  marginBottom: 4,
+                }}
+              >
                 한국어
               </div>
               <input
@@ -316,7 +329,13 @@ export default function BuildingDetail() {
               />
             </div>
             <div>
-              <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 4 }}>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--ku-text-2)",
+                  marginBottom: 4,
+                }}
+              >
                 영어
               </div>
               <input
@@ -538,13 +557,14 @@ export default function BuildingDetail() {
                 style={{
                   display: "flex",
                   alignItems: "center",
+                  flexWrap: "wrap",
                   gap: 12,
                   padding: "12px 0",
                   borderBottom: "1px solid var(--ku-border)",
                 }}
               >
                 <div style={{ fontSize: 20 }}>{f.facility_types?.icon}</div>
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 500 }}>
                     {f.name ?? f.facility_types?.label}
                   </div>
@@ -580,30 +600,11 @@ export default function BuildingDetail() {
                 >
                   {f.video_url ? "동영상 ✓" : "동영상"}
                 </button>
-                <button
-                  onClick={() => handleToggleInstalled(f)}
-                  disabled={togglingId === f.id}
-                  style={{
-                    fontSize: 12,
-                    padding: "4px 10px",
-                    borderRadius: 20,
-                    border: "none",
-                    cursor: togglingId === f.id ? "wait" : "pointer",
-                    fontWeight: 500,
-                    background: f.is_installed
-                      ? "var(--ku-status-installed-bg)"
-                      : "var(--ku-status-missing-bg)",
-                    color: f.is_installed
-                      ? "var(--ku-status-installed-fg)"
-                      : "var(--ku-status-missing-fg)",
-                  }}
-                >
-                  {togglingId === f.id
-                    ? "변경 중"
-                    : f.is_installed
-                      ? "설치"
-                      : "미설치"}
-                </button>
+                <FacilityInstallationControl
+                  installed={f.is_installed}
+                  pending={togglingId === f.id}
+                  onToggle={() => handleToggleInstalled(f)}
+                />
                 <button
                   onClick={() => setConfirmModal(f)}
                   style={{

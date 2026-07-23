@@ -10,6 +10,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityFormModal from "@/components/admin/FacilityFormModal";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
+import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
@@ -93,7 +94,11 @@ export default function StandaloneFacilitiesPage() {
   }
 
   if (loading)
-    return <div style={{ padding: 40, color: "var(--ku-text-3)" }}>불러오는 중...</div>;
+    return (
+      <div style={{ padding: 40, color: "var(--ku-text-3)" }}>
+        불러오는 중...
+      </div>
+    );
   if (loadError)
     return (
       <div style={{ padding: 40, textAlign: "center" }}>
@@ -129,7 +134,9 @@ export default function StandaloneFacilitiesPage() {
             showToast={showToast}
           />
         </div>
-        <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 16 }}>
+        <div
+          style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 16 }}
+        >
           건물에 소속되지 않는 시설(야외 경사로, 독립 주차구역 등)을 관리해요.
         </div>
 
@@ -195,30 +202,11 @@ export default function StandaloneFacilitiesPage() {
               >
                 {f.video_url ? "동영상 ✓" : "동영상"}
               </button>
-              <button
-                onClick={() => handleToggleInstalled(f)}
-                disabled={togglingId === f.id}
-                style={{
-                  fontSize: 12,
-                  padding: "4px 10px",
-                  borderRadius: 20,
-                  border: "none",
-                  cursor: togglingId === f.id ? "wait" : "pointer",
-                  fontWeight: 500,
-                  background: f.is_installed
-                    ? "var(--ku-status-installed-bg)"
-                    : "var(--ku-status-missing-bg)",
-                  color: f.is_installed
-                    ? "var(--ku-status-installed-fg)"
-                    : "var(--ku-status-missing-fg)",
-                }}
-              >
-                {togglingId === f.id
-                  ? "변경 중"
-                  : f.is_installed
-                    ? "설치"
-                    : "미설치"}
-              </button>
+              <FacilityInstallationControl
+                installed={f.is_installed}
+                pending={togglingId === f.id}
+                onToggle={() => handleToggleInstalled(f)}
+              />
               <button
                 onClick={() => setEditingFacility(f)}
                 style={{

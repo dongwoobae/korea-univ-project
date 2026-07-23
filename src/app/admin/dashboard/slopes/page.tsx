@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { SlopeSegment } from "@/types/domain";
+import Toast from "@/components/Toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
 function buildGpx(name, points) {
   const trkpts = points
@@ -38,6 +40,15 @@ export default function SlopesPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<SlopeSegment | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(
+    null,
+  );
+
+  function showToast(message: string, type = "success") {
+    setToast({ message, type });
+  }
 
   useEffect(() => {
     fetchSlopes();
@@ -75,10 +86,9 @@ export default function SlopesPage() {
         .filter((p) => !isNaN(p.lat) && !isNaN(p.lng) && !isNaN(p.ele));
 
       if (points.length < 2) {
-        alert(
+        throw new Error(
           "유효한 GPS 포인트가 부족합니다 (고도 데이터 포함 최소 2개 필요).",
         );
-        return;
       }
 
       // 원본 포인트를 그대로 저장 — 경사도 계산은 렌더링 시 클라이언트에서 수행
@@ -98,24 +108,28 @@ export default function SlopesPage() {
       setSelectedFile(null);
       (document.getElementById("gpx-input") as HTMLInputElement).value = "";
       await fetchSlopes();
+      showToast(`"${name}" 경로를 등록했어요`);
     } catch (err) {
-      alert("업로드 실패: " + (err as Error).message);
+      showToast("업로드 실패: " + (err as Error).message, "error");
     } finally {
       setUploading(false);
     }
   }
 
-  async function handleDelete(id, name) {
-    if (!confirm(`"${name}" 경로를 삭제하시겠습니까?`)) return;
+  async function handleDelete(route: SlopeSegment) {
+    setDeletingId(route.id);
     const { error } = await supabase
       .from("slope_segments")
       .delete()
-      .eq("id", id);
+      .eq("id", route.id);
+    setDeletingId(null);
+    setConfirmDelete(null);
     if (error) {
-      alert("삭제 실패: " + error.message);
+      showToast("삭제 실패: " + error.message, "error");
       return;
     }
     await fetchSlopes();
+    showToast(`"${route.name}" 경로를 삭제했어요`);
   }
 
   return (
@@ -174,7 +188,9 @@ export default function SlopesPage() {
           </button>
         </div>
         {selectedFile && (
-          <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 4 }}>
+          <div
+            style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 4 }}
+          >
             경로명: <strong>{selectedFile.name.replace(/\.gpx$/i, "")}</strong>
           </div>
         )}
@@ -197,7 +213,9 @@ export default function SlopesPage() {
           등록된 경로 ({slopes.length}개)
         </div>
         {loading ? (
-          <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>불러오는 중...</div>
+          <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>
+            불러오는 중...
+          </div>
         ) : slopes.length === 0 ? (
           <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>
             등록된 경로가 없습니다.
@@ -218,17 +236,29 @@ export default function SlopesPage() {
               >
                 <div>
                   <div
-                  style={{ fontSize: 14, fontWeight: 600, color: "var(--ku-text-1)" }}
-                >
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "var(--ku-text-1)",
+                    }}
+                  >
                     {s.name}
                   </div>
-                  <div style={{ fontSize: 12, color: "var(--ku-text-2)", marginTop: 2 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--ku-text-2)",
+                      marginTop: 2,
+                    }}
+                  >
                     {s.segments?.length ?? 0}개 포인트 ·{" "}
                     {s.created_at
                       ? new Date(s.created_at).toLocaleDateString("ko-KR")
                       : ""}
                     {s.gpx_file && (
-                      <span style={{ marginLeft: 8, color: "var(--ku-text-3)" }}>
+                      <span
+                        style={{ marginLeft: 8, color: "var(--ku-text-3)" }}
+                      >
                         ({s.gpx_file})
                       </span>
                     )}
@@ -250,7 +280,8 @@ export default function SlopesPage() {
                     다운로드
                   </button>
                   <button
-                    onClick={() => handleDelete(s.id, s.name)}
+                    onClick={() => setConfirmDelete(s)}
+                    disabled={deletingId === s.id}
                     style={{
                       fontSize: 13,
                       color: "var(--ku-danger)",
@@ -258,7 +289,7 @@ export default function SlopesPage() {
                       border: "1px solid var(--ku-danger)",
                       borderRadius: 6,
                       padding: "6px 12px",
-                      cursor: "pointer",
+                      cursor: deletingId === s.id ? "wait" : "pointer",
                     }}
                   >
                     삭제
@@ -269,6 +300,26 @@ export default function SlopesPage() {
           </div>
         )}
       </div>
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
+      {confirmDelete && (
+        <ConfirmModal
+          message={`"${confirmDelete.name}" 경로를 삭제할까요?`}
+          description="삭제한 경사도 경로는 복구할 수 없어요."
+          confirmLabel="경로 삭제"
+          pending={deletingId === confirmDelete.id}
+          pendingLabel="삭제 중..."
+          onConfirm={() => handleDelete(confirmDelete)}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
     </div>
   );
 }
