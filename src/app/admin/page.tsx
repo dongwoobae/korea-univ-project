@@ -53,6 +53,7 @@ export default function AdminLogin() {
 
         <div style={{ marginBottom: 16 }}>
           <label
+            htmlFor="admin-login-email"
             style={{
               fontSize: 13,
               color: "var(--ku-text-2)",
@@ -63,15 +64,18 @@ export default function AdminLogin() {
             이메일
           </label>
           <input
+            id="admin-login-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            aria-describedby={error ? "admin-login-error" : undefined}
             className="ku-admin-login-input"
           />
         </div>
 
         <div style={{ marginBottom: 24 }}>
           <label
+            htmlFor="admin-login-password"
             style={{
               fontSize: 13,
               color: "var(--ku-text-2)",
@@ -82,16 +86,20 @@ export default function AdminLogin() {
             비밀번호
           </label>
           <input
+            id="admin-login-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleLogin()}
+            aria-describedby={error ? "admin-login-error" : undefined}
             className="ku-admin-login-input"
           />
         </div>
 
         {error && (
           <div
+            id="admin-login-error"
+            role="alert"
             style={{
               fontSize: 13,
               color: "var(--ku-danger)",

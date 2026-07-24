@@ -18,6 +18,10 @@ export default function Toast({ message, type = "success", onClose }) {
 
   return (
     <div
+      className="ku-toast"
+      role={type === "error" ? "alert" : "status"}
+      aria-live={type === "error" ? "assertive" : "polite"}
+      aria-atomic="true"
       style={{
         position: "fixed",
         top: 24,
@@ -40,10 +44,12 @@ export default function Toast({ message, type = "success", onClose }) {
         wordBreak: "keep-all", // ← 한국어 단어 단위로 줄바꿈
       }}
     >
-      <span>{s.icon}</span>
+      <span aria-hidden="true">{s.icon}</span>
       <span style={{ flex: 1 }}>{message}</span>
       <button
+        type="button"
         onClick={onClose}
+        aria-label="알림 닫기"
         style={{
           background: "none",
           border: "none",

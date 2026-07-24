@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import {
   FEEDBACK_EMAILS_FALLBACK,
   getSetting,
@@ -8,6 +8,7 @@ import {
   type FeedbackEmails,
 } from "@/lib/settings";
 import { FEEDBACK_TYPES, type FeedbackType } from "@/lib/feedback";
+import { useModalFocus } from "@/lib/useModalFocus";
 
 type SubmissionStatus =
   | { kind: "idle"; message: "" }
@@ -26,6 +27,13 @@ export default function FeedbackButton() {
   const [content, setContent] = useState("");
   const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<SubmissionStatus>(IDLE_STATUS);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const dialogRef = useModalFocus<HTMLDivElement>({
+    active: open,
+    onClose: () => setOpen(false),
+    closeOnEscape: status.kind !== "submitting",
+    initialFocusRef: contentRef,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -36,17 +44,6 @@ export default function FeedbackButton() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && status.kind !== "submitting") {
-        setOpen(false);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, status.kind]);
 
   function openDialog() {
     setStatus(IDLE_STATUS);
@@ -122,6 +119,7 @@ export default function FeedbackButton() {
           }}
         >
           <div
+            ref={dialogRef}
             className="ku-feedback-modal"
             role="dialog"
             aria-modal="true"
@@ -188,6 +186,7 @@ export default function FeedbackButton() {
                   내용
                 </label>
                 <textarea
+                  ref={contentRef}
                   className="ku-feedback-textarea"
                   id="feedback-content"
                   value={content}
@@ -199,7 +198,6 @@ export default function FeedbackButton() {
                   minLength={3}
                   maxLength={2000}
                   required
-                  autoFocus
                   disabled={status.kind === "submitting"}
                 />
                 <div className="ku-feedback-honeypot" aria-hidden="true">

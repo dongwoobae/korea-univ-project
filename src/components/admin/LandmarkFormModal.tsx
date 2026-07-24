@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useId, useMemo, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { inferCampusFromPoint } from "@/lib/campusGeometry";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
+import { useModalFocus } from "@/lib/useModalFocus";
 import type { Landmark } from "@/types/domain";
 
 const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
@@ -46,6 +47,12 @@ export default function LandmarkFormModal({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
+  const titleId = useId();
+  const fieldId = useId();
+  const dialogRef = useModalFocus<HTMLDivElement>({
+    onClose,
+    closeOnEscape: !saving && !uploading,
+  });
   const { boundaries, error: boundariesError } = useCampusBoundaries();
   const positionCampus = useMemo(() => {
     if (!form.lat || !form.lng) return null;
@@ -227,8 +234,10 @@ export default function LandmarkFormModal({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
       style={{
         position: "fixed",
         inset: 0,
@@ -250,20 +259,29 @@ export default function LandmarkFormModal({
           overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
+        <div
+          id={titleId}
+          style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}
+        >
           {editing ? "명소 수정" : "명소 추가"}
         </div>
 
-        <label style={labelStyle}>이름 *</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-name`}>
+          이름 *
+        </label>
         <input
+          id={`${fieldId}-name`}
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           placeholder="예: 다람쥐길"
           style={inputStyle}
         />
 
-        <label style={labelStyle}>설명</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-description`}>
+          설명
+        </label>
         <textarea
+          id={`${fieldId}-description`}
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           placeholder="명소 설명"
@@ -287,43 +305,58 @@ export default function LandmarkFormModal({
           자동번역 채우기
         </button>
 
-        <label style={labelStyle}>영문 이름</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-name-en`}>
+          영문 이름
+        </label>
         <input
+          id={`${fieldId}-name-en`}
           value={form.name_en}
           onChange={(e) => setForm({ ...form, name_en: e.target.value })}
           style={inputStyle}
         />
 
-        <label style={labelStyle}>중문 이름</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-name-zh`}>
+          중문 이름
+        </label>
         <input
+          id={`${fieldId}-name-zh`}
           value={form.name_zh}
           onChange={(e) => setForm({ ...form, name_zh: e.target.value })}
           style={inputStyle}
         />
 
-        <label style={labelStyle}>영문 설명</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-description-en`}>
+          영문 설명
+        </label>
         <textarea
+          id={`${fieldId}-description-en`}
           value={form.description_en}
           onChange={(e) => setForm({ ...form, description_en: e.target.value })}
           style={{ ...inputStyle, minHeight: 60, resize: "vertical" }}
         />
 
-        <label style={labelStyle}>중문 설명</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-description-zh`}>
+          중문 설명
+        </label>
         <textarea
+          id={`${fieldId}-description-zh`}
           value={form.description_zh}
           onChange={(e) => setForm({ ...form, description_zh: e.target.value })}
           style={{ ...inputStyle, minHeight: 60, resize: "vertical" }}
         />
 
-        <label style={labelStyle}>이모지 *</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-icon`}>
+          이모지 *
+        </label>
         <input
+          id={`${fieldId}-icon`}
           value={form.icon}
           onChange={(e) => setForm({ ...form, icon: e.target.value })}
           maxLength={4}
           style={{ ...inputStyle, width: 90, fontSize: 20 }}
         />
 
-        <label style={labelStyle}>위치 (지도에서 클릭해서 선택) *</label>
+        <div style={labelStyle}>위치 (지도에서 클릭해서 선택) *</div>
         <div
           style={{
             marginTop: 4,
@@ -372,7 +405,9 @@ export default function LandmarkFormModal({
           </div>
         )}
 
-        <label style={labelStyle}>사진</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-photo`}>
+          사진
+        </label>
         {form.photo_url && (
           <div
             style={{
@@ -396,6 +431,7 @@ export default function LandmarkFormModal({
         )}
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <input
+            id={`${fieldId}-photo`}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
             disabled={uploading || saving}
@@ -412,6 +448,7 @@ export default function LandmarkFormModal({
               type="button"
               onClick={handleDeletePhoto}
               disabled={uploading || saving}
+              className="ku-admin-row-action ku-admin-row-action--danger"
               style={{
                 padding: "7px 10px",
                 border: "1px solid #DC2626",

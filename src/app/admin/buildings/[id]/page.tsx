@@ -421,16 +421,19 @@ export default function BuildingDetail() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
-              <div
+              <label
+                htmlFor="building-edit-name"
                 style={{
+                  display: "block",
                   fontSize: 12,
                   color: "var(--ku-text-2)",
                   marginBottom: 4,
                 }}
               >
                 한국어
-              </div>
+              </label>
               <input
+                id="building-edit-name"
                 type="text"
                 value={nameForm.name}
                 onChange={(e) =>
@@ -448,16 +451,19 @@ export default function BuildingDetail() {
               />
             </div>
             <div>
-              <div
+              <label
+                htmlFor="building-edit-name-en"
                 style={{
+                  display: "block",
                   fontSize: 12,
                   color: "var(--ku-text-2)",
                   marginBottom: 4,
                 }}
               >
                 영어
-              </div>
+              </label>
               <input
+                id="building-edit-name-en"
                 type="text"
                 value={nameForm.name_en}
                 onChange={(e) =>
@@ -522,6 +528,7 @@ export default function BuildingDetail() {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <select
+              aria-label="소속 단과대학 선택"
               value={selectedCollegeId ?? ""}
               onChange={(e) =>
                 setSelectedCollegeId(
@@ -722,6 +729,7 @@ export default function BuildingDetail() {
                 </div>
                 <button
                   onClick={() => setVideoModalFacility(f)}
+                  className="ku-admin-row-action"
                   style={{
                     fontSize: 11,
                     padding: "4px 8px",
@@ -754,6 +762,7 @@ export default function BuildingDetail() {
                 />
                 <button
                   onClick={() => setConfirmModal(f)}
+                  className="ku-admin-row-action ku-admin-row-action--danger"
                   style={{
                     fontSize: 12,
                     color: "var(--ku-danger)",
@@ -1181,6 +1190,8 @@ function PhotoManager({ buildingId, showToast }) {
                 />
                 <button
                   onClick={() => setConfirmDeletePhoto(photo)}
+                  className="ku-photo-delete-button"
+                  aria-label="사진 삭제"
                   style={{
                     position: "absolute",
                     top: 4,
@@ -1210,6 +1221,7 @@ function PhotoManager({ buildingId, showToast }) {
                   }))
                 }
                 onBlur={() => handleSaveCaption(photo.id)}
+                aria-label="사진 설명"
                 placeholder="설명 추가..."
                 maxLength={100}
                 style={{
@@ -1231,8 +1243,11 @@ function PhotoManager({ buildingId, showToast }) {
         </div>
       )}
       <label
+        className="ku-admin-row-action"
         style={{
-          display: "inline-block",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
           marginTop: 12,
           padding: "8px 16px",
           background: "var(--ku-primary)",

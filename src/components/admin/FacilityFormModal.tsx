@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useId, useMemo, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
@@ -8,6 +8,7 @@ import { validateFacilityForm } from "@/lib/facilityForm";
 import { inferCampusFromPoint } from "@/lib/campusGeometry";
 import { translateFacility } from "@/lib/facilityTranslation";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
+import { useModalFocus } from "@/lib/useModalFocus";
 import type { FacilityType, FacilityWithType } from "@/types/domain";
 
 const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
@@ -47,6 +48,12 @@ export default function FacilityFormModal({
     lng: facility?.lng != null ? String(facility.lng) : "",
   });
   const [saving, setSaving] = useState(false);
+  const titleId = useId();
+  const fieldId = useId();
+  const dialogRef = useModalFocus<HTMLDivElement>({
+    onClose,
+    closeOnEscape: !saving,
+  });
   const { boundaries, error: boundariesError } = useCampusBoundaries();
   const positionCampus = useMemo(() => {
     if (!form.lat || !form.lng) return null;
@@ -164,9 +171,11 @@ export default function FacilityFormModal({
 
   return (
     <div
+      ref={dialogRef}
       className="ku-facility-modal-backdrop"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
       style={{
         position: "fixed",
         inset: 0,
@@ -189,12 +198,18 @@ export default function FacilityFormModal({
           overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
+        <div
+          id={titleId}
+          style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}
+        >
           {editing ? "시설 수정" : "시설 추가"}
         </div>
 
-        <label style={labelStyle}>시설 유형 *</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-code`}>
+          시설 유형 *
+        </label>
         <select
+          id={`${fieldId}-code`}
           value={form.facility_code}
           onChange={(e) => setForm({ ...form, facility_code: e.target.value })}
           style={inputStyle}
@@ -207,16 +222,22 @@ export default function FacilityFormModal({
           ))}
         </select>
 
-        <label style={labelStyle}>시설 이름 (선택)</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-name`}>
+          시설 이름 (선택)
+        </label>
         <input
+          id={`${fieldId}-name`}
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           placeholder="예: 정문 엘리베이터"
           style={inputStyle}
         />
 
-        <label style={labelStyle}>설명 (선택)</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-description`}>
+          설명 (선택)
+        </label>
         <input
+          id={`${fieldId}-description`}
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           placeholder="예: 정문 우측 내부"
@@ -225,8 +246,11 @@ export default function FacilityFormModal({
 
         {!standalone && (
           <>
-            <label style={labelStyle}>층 정보 (선택)</label>
+            <label style={labelStyle} htmlFor={`${fieldId}-floor`}>
+              층 정보 (선택)
+            </label>
             <input
+              id={`${fieldId}-floor`}
               value={form.floor_info}
               onChange={(e) => setForm({ ...form, floor_info: e.target.value })}
               placeholder="예: 1층~4층"
@@ -235,9 +259,9 @@ export default function FacilityFormModal({
           </>
         )}
 
-        <label style={labelStyle}>
+        <div style={labelStyle}>
           위치 (지도에서 클릭해서 선택){standalone ? " *" : ""}
-        </label>
+        </div>
         <div
           className="ku-facility-map-frame"
           style={{

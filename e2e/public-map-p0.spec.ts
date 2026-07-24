@@ -37,7 +37,9 @@ test.describe("공개 지도 P0 개선 (모바일·데이터 오류)", () => {
     await expect(page.getByRole("listbox")).toHaveCount(0);
   });
 
-  test("모바일에서 즐겨찾기 진입점과 개수 배지를 노출한다", async ({ page }) => {
+  test("모바일에서 즐겨찾기 진입점과 개수 배지를 노출한다", async ({
+    page,
+  }) => {
     await installMockBackend(page);
     await page.addInitScript(() => {
       localStorage.setItem(
@@ -55,7 +57,11 @@ test.describe("공개 지도 P0 개선 (모바일·데이터 오류)", () => {
     await expect(page.locator(".ku-favorite-badge")).toHaveText("1");
 
     await favBtn.click();
-    await expect(page.getByText("중앙도서관", { exact: true })).toBeVisible();
+    await expect(
+      page
+        .locator(".ku-favorites-list")
+        .getByText("중앙도서관", { exact: true }),
+    ).toBeVisible();
   });
 
   test("시설 API 실패를 오류 배너로 알리고 재시도로 복구한다", async ({
@@ -74,18 +80,16 @@ test.describe("공개 지도 P0 개선 (모바일·데이터 오류)", () => {
     });
     await page.goto("/");
 
-    await expect(
-      page.getByText("시설 정보를 불러오지 못했어요"),
-    ).toBeVisible();
+    await expect(page.getByText("시설 정보를 불러오지 못했어요")).toBeVisible();
     const retry = page.getByRole("button", { name: "다시 시도" });
     await expect(retry).toBeVisible();
 
     // 재시도 성공 시 배너가 사라진다
     failFacilities = false;
     await retry.click();
-    await expect(
-      page.getByText("시설 정보를 불러오지 못했어요"),
-    ).toHaveCount(0);
+    await expect(page.getByText("시설 정보를 불러오지 못했어요")).toHaveCount(
+      0,
+    );
   });
 
   test("건물 상세의 시설 조회 실패를 빈 상태가 아닌 오류로 구분한다", async ({
@@ -110,8 +114,6 @@ test.describe("공개 지도 P0 개선 (모바일·데이터 오류)", () => {
       page.getByText("접근성 정보를 불러오지 못했어요"),
     ).toBeVisible();
     // 오류를 "정보 없음"으로 오인하지 않는다
-    await expect(
-      page.getByText("등록된 접근성 정보가 없어요"),
-    ).toHaveCount(0);
+    await expect(page.getByText("등록된 접근성 정보가 없어요")).toHaveCount(0);
   });
 });

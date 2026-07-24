@@ -216,6 +216,7 @@ export default function SlopesPage() {
             id="gpx-input"
             type="file"
             accept=".gpx"
+            aria-label="GPX 파일 선택"
             onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
             style={{ fontSize: 13 }}
           />
@@ -348,6 +349,7 @@ export default function SlopesPage() {
                 <div style={{ display: "flex", gap: 8 }}>
                   <button
                     onClick={() => downloadGpx(s)}
+                    className="ku-admin-row-action"
                     style={{
                       fontSize: 13,
                       color: "var(--ku-primary-text)",
@@ -363,6 +365,7 @@ export default function SlopesPage() {
                   <button
                     onClick={() => setConfirmDelete(s)}
                     disabled={deletingId === s.id}
+                    className="ku-admin-row-action ku-admin-row-action--danger"
                     style={{
                       fontSize: 13,
                       color: "var(--ku-danger)",

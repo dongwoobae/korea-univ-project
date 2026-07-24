@@ -16,9 +16,16 @@ export interface MapBrowseItem {
 interface MapBrowseListProps {
   items: MapBrowseItem[];
   onSelect: (item: MapBrowseItem) => void;
+  isFront: boolean;
+  onActivate: () => void;
 }
 
-export default function MapBrowseList({ items, onSelect }: MapBrowseListProps) {
+export default function MapBrowseList({
+  items,
+  onSelect,
+  isFront,
+  onActivate,
+}: MapBrowseListProps) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -28,13 +35,22 @@ export default function MapBrowseList({ items, onSelect }: MapBrowseListProps) {
   }, [open]);
 
   return (
-    <div className="ku-map-browse" data-open={open}>
+    <div
+      className="ku-map-browse"
+      data-open={open}
+      data-front={isFront}
+      onPointerDownCapture={onActivate}
+      onFocusCapture={onActivate}
+    >
       <button
         className="ku-map-browse-trigger"
         type="button"
         aria-expanded={open}
         aria-controls="map-browse-panel"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          onActivate();
+          setOpen((value) => !value);
+        }}
       >
         <span aria-hidden="true">☷</span>
         <span>{t("mapBrowse")}</span>

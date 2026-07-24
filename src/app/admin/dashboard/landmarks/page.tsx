@@ -269,6 +269,7 @@ export default function LandmarksPage() {
               </span>
               <button
                 onClick={() => setEditingLandmark(landmark)}
+                className="ku-admin-row-action"
                 style={{
                   fontSize: 12,
                   color: "var(--ku-primary-text)",
@@ -281,6 +282,7 @@ export default function LandmarksPage() {
               </button>
               <button
                 onClick={() => setConfirmDelete(landmark)}
+                className="ku-admin-row-action ku-admin-row-action--danger"
                 style={{
                   fontSize: 12,
                   color: "var(--ku-danger)",

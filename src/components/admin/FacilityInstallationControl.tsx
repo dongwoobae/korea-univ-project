@@ -45,6 +45,7 @@ export default function FacilityInstallationControl({
         type="button"
         onClick={onToggle}
         disabled={pending}
+        className="ku-admin-row-action"
         aria-label={pending ? "시설 상태 변경 중" : `${nextStatus}로 변경`}
         style={{
           fontSize: 12,

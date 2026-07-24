@@ -8,6 +8,7 @@ import {
   GeoJSON,
   Marker,
   Circle,
+  Pane,
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
@@ -237,6 +238,9 @@ export default function Map() {
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [frontMapPanel, setFrontMapPanel] = useState<"filter" | "browse">(
+    "filter",
+  );
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
@@ -250,6 +254,7 @@ export default function Map() {
     자연계: false,
   });
   const { lang, setLang, t } = useLanguage();
+  const buildingLabelsVisible = (viewport?.zoom ?? 16) >= (isMobile ? 18 : 17);
 
   const browseItems = useMemo(() => {
     const facilityItems = facilities
@@ -367,13 +372,62 @@ export default function Map() {
     return () => window.removeEventListener("favoritesUpdated", handler);
   }, [tileMode, prefersDarkMode]);
 
+  useEffect(() => {
+    Object.entries(layerMapRef.current).forEach(([id, layer]) => {
+      const feature = featureMapRef.current[Number(id)];
+      if (
+        !feature ||
+        typeof feature !== "object" ||
+        !("properties" in feature)
+      ) {
+        return;
+      }
+      const properties = feature.properties as Record<
+        string,
+        string | null | undefined
+      >;
+      const label = localizedValue(
+        properties.name,
+        properties.name_en,
+        properties.name_zh,
+        lang,
+      );
+      if (label) layer.getTooltip()?.setContent(label);
+    });
+  }, [lang]);
+
+  useEffect(() => {
+    if (!buildingLabelsVisible) return;
+    setTooltip((previous) =>
+      previous.visible ? { ...previous, visible: false } : previous,
+    );
+  }, [buildingLabelsVisible]);
+
   function onEachFeature(feature, layer) {
     const bId = feature.properties.id;
     layerMapRef.current[bId] = layer;
     featureMapRef.current[bId] = feature;
+    const label = localizedValue(
+      feature.properties.name,
+      feature.properties.name_en,
+      feature.properties.name_zh,
+      lang,
+    );
+    if (label) {
+      layer.bindTooltip(label, {
+        permanent: true,
+        direction: "center",
+        className: "ku-building-label",
+        opacity: 1,
+        interactive: false,
+        pane: "buildingLabels",
+      });
+    }
     layer.on({
       mouseover(e) {
-        if (isMobileRef.current) return;
+        if (isMobileRef.current || (mapRef.current?.getZoom() ?? 16) >= 17) {
+          return;
+        }
         layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
         const { clientX, clientY } = e.originalEvent;
         const mapEl = mapRef.current?.getContainer();
@@ -388,7 +442,9 @@ export default function Map() {
         });
       },
       mousemove(e) {
-        if (isMobileRef.current) return;
+        if (isMobileRef.current || (mapRef.current?.getZoom() ?? 16) >= 17) {
+          return;
+        }
         const { clientX, clientY } = e.originalEvent;
         const mapEl = mapRef.current?.getContainer();
         if (!mapEl) return;
@@ -507,7 +563,10 @@ export default function Map() {
   }
 
   return (
-    <div className="ku-map-shell">
+    <div
+      className="ku-map-shell"
+      data-building-labels-visible={buildingLabelsVisible}
+    >
       {/* 로딩 오버레이 */}
       {loadingMap && (
         <div className="ku-map-loading">
@@ -541,6 +600,10 @@ export default function Map() {
         />
         <BoundsController />
         <MapViewportObserver onChange={setViewport} />
+        <Pane
+          name="buildingLabels"
+          style={{ zIndex: 450, pointerEvents: "none" }}
+        />
         {geoData && (
           <>
             <GeoJSON
@@ -750,6 +813,8 @@ export default function Map() {
       {!selectedBuilding && !mobileFilterOpen && (
         <MapBrowseList
           items={browseItems}
+          isFront={frontMapPanel === "browse"}
+          onActivate={() => setFrontMapPanel("browse")}
           onSelect={(item) => {
             mapRef.current?.flyTo([item.lat, item.lng], 18, { animate: true });
           }}
@@ -768,6 +833,8 @@ export default function Map() {
         showLandmarks={showLandmarks}
         setShowLandmarks={setShowLandmarks}
         onOpenChange={setMobileFilterOpen}
+        isFront={frontMapPanel === "filter"}
+        onActivate={() => setFrontMapPanel("filter")}
       />
 
       {/* 툴팁 — 데스크탑만 */}

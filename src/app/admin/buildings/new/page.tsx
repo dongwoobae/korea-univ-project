@@ -150,8 +150,11 @@ export default function NewBuilding() {
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>건물 이름 *</label>
+            <label style={labelStyle} htmlFor="building-new-name">
+              건물 이름 *
+            </label>
             <input
+              id="building-new-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -161,8 +164,11 @@ export default function NewBuilding() {
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>영문 이름</label>
+            <label style={labelStyle} htmlFor="building-new-name-en">
+              영문 이름
+            </label>
             <input
+              id="building-new-name-en"
               type="text"
               value={nameEn}
               onChange={(e) => setNameEn(e.target.value)}
