@@ -146,4 +146,68 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
         .filter({ hasText: "미설치로 변경되었어요" }),
     ).toBeVisible();
   });
+
+  test("로그인 폼 레이블이 연결되고 오류를 alert로 알린다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.goto("/admin");
+
+    const emailInput = page.getByLabel("이메일");
+    const passwordInput = page.getByLabel("비밀번호");
+    await emailInput.fill("wrong@example.com");
+    await passwordInput.fill("wrong-password");
+    await page.getByRole("button", { name: "로그인", exact: true }).click();
+
+    const alert = page.locator("#admin-login-error");
+    await expect(alert).toHaveAttribute("role", "alert");
+    await expect(alert).toContainText("이메일 또는 비밀번호가 올바르지 않아요");
+    await expect(emailInput).toHaveAttribute(
+      "aria-describedby",
+      "admin-login-error",
+    );
+    await expect(passwordInput).toHaveAttribute(
+      "aria-describedby",
+      "admin-login-error",
+    );
+  });
+
+  test("관리자 모달 폼 레이블이 입력과 프로그램적으로 연결된다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+
+    await page.goto("/admin/dashboard/facilities");
+    await page.getByRole("button", { name: "+ 시설 추가" }).click();
+    const facilityDialog = page.getByRole("dialog", { name: "시설 추가" });
+    await expect(facilityDialog.getByLabel("시설 유형 *")).toBeVisible();
+    await expect(facilityDialog.getByLabel("시설 이름 (선택)")).toBeEditable();
+    await expect(facilityDialog.getByLabel("설명 (선택)")).toBeEditable();
+    await page.keyboard.press("Escape");
+
+    const settingsTrigger = page.getByRole("button", { name: "설정" });
+    await settingsTrigger.click();
+    const settingsDialog = page.getByRole("dialog", {
+      name: "피드백 이메일 변경",
+    });
+    await expect(settingsDialog.getByLabel("수신")).toBeEditable();
+    await expect(
+      settingsDialog.getByLabel("참조 1", { exact: true }),
+    ).toBeEditable();
+    await expect(settingsDialog.getByLabel("제목")).toBeEditable();
+    await page.keyboard.press("Escape");
+
+    await page.goto("/admin/dashboard/landmarks");
+    await page.getByRole("button", { name: "+ 명소 추가" }).click();
+    const landmarkDialog = page.getByRole("dialog", { name: "명소 추가" });
+    await expect(
+      landmarkDialog.getByLabel("이름 *", { exact: true }),
+    ).toBeEditable();
+    await expect(landmarkDialog.getByLabel("영문 이름")).toBeEditable();
+    await expect(landmarkDialog.getByLabel("이모지 *")).toBeEditable();
+    await expect(landmarkDialog.getByLabel("사진")).toHaveAttribute(
+      "type",
+      "file",
+    );
+  });
 });

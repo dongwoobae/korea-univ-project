@@ -333,6 +333,7 @@ export default function FacilityVideoModal({
                   value={draftCaption}
                   onChange={(e) => setDraftCaption(e.target.value)}
                   onBlur={handleSaveCaption}
+                  aria-label="동영상 설명"
                   placeholder="동영상 설명 추가..."
                   maxLength={150}
                   style={{

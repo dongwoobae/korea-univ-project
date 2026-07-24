@@ -49,6 +49,7 @@ export default function FacilityFormModal({
   });
   const [saving, setSaving] = useState(false);
   const titleId = useId();
+  const fieldId = useId();
   const dialogRef = useModalFocus<HTMLDivElement>({
     onClose,
     closeOnEscape: !saving,
@@ -204,8 +205,11 @@ export default function FacilityFormModal({
           {editing ? "시설 수정" : "시설 추가"}
         </div>
 
-        <label style={labelStyle}>시설 유형 *</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-code`}>
+          시설 유형 *
+        </label>
         <select
+          id={`${fieldId}-code`}
           value={form.facility_code}
           onChange={(e) => setForm({ ...form, facility_code: e.target.value })}
           style={inputStyle}
@@ -218,16 +222,22 @@ export default function FacilityFormModal({
           ))}
         </select>
 
-        <label style={labelStyle}>시설 이름 (선택)</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-name`}>
+          시설 이름 (선택)
+        </label>
         <input
+          id={`${fieldId}-name`}
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           placeholder="예: 정문 엘리베이터"
           style={inputStyle}
         />
 
-        <label style={labelStyle}>설명 (선택)</label>
+        <label style={labelStyle} htmlFor={`${fieldId}-description`}>
+          설명 (선택)
+        </label>
         <input
+          id={`${fieldId}-description`}
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           placeholder="예: 정문 우측 내부"
@@ -236,8 +246,11 @@ export default function FacilityFormModal({
 
         {!standalone && (
           <>
-            <label style={labelStyle}>층 정보 (선택)</label>
+            <label style={labelStyle} htmlFor={`${fieldId}-floor`}>
+              층 정보 (선택)
+            </label>
             <input
+              id={`${fieldId}-floor`}
               value={form.floor_info}
               onChange={(e) => setForm({ ...form, floor_info: e.target.value })}
               placeholder="예: 1층~4층"
@@ -246,9 +259,9 @@ export default function FacilityFormModal({
           </>
         )}
 
-        <label style={labelStyle}>
+        <div style={labelStyle}>
           위치 (지도에서 클릭해서 선택){standalone ? " *" : ""}
-        </label>
+        </div>
         <div
           className="ku-facility-map-frame"
           style={{

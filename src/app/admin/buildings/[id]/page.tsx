@@ -421,16 +421,19 @@ export default function BuildingDetail() {
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <div>
-              <div
+              <label
+                htmlFor="building-edit-name"
                 style={{
+                  display: "block",
                   fontSize: 12,
                   color: "var(--ku-text-2)",
                   marginBottom: 4,
                 }}
               >
                 한국어
-              </div>
+              </label>
               <input
+                id="building-edit-name"
                 type="text"
                 value={nameForm.name}
                 onChange={(e) =>
@@ -448,16 +451,19 @@ export default function BuildingDetail() {
               />
             </div>
             <div>
-              <div
+              <label
+                htmlFor="building-edit-name-en"
                 style={{
+                  display: "block",
                   fontSize: 12,
                   color: "var(--ku-text-2)",
                   marginBottom: 4,
                 }}
               >
                 영어
-              </div>
+              </label>
               <input
+                id="building-edit-name-en"
                 type="text"
                 value={nameForm.name_en}
                 onChange={(e) =>
@@ -522,6 +528,7 @@ export default function BuildingDetail() {
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <select
+              aria-label="소속 단과대학 선택"
               value={selectedCollegeId ?? ""}
               onChange={(e) =>
                 setSelectedCollegeId(
@@ -1210,6 +1217,7 @@ function PhotoManager({ buildingId, showToast }) {
                   }))
                 }
                 onBlur={() => handleSaveCaption(photo.id)}
+                aria-label="사진 설명"
                 placeholder="설명 추가..."
                 maxLength={100}
                 style={{

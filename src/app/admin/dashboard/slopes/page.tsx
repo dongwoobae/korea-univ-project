@@ -216,6 +216,7 @@ export default function SlopesPage() {
             id="gpx-input"
             type="file"
             accept=".gpx"
+            aria-label="GPX 파일 선택"
             onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
             style={{ fontSize: 13 }}
           />

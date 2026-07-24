@@ -19,6 +19,8 @@ export default function FeedbackEmailModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const titleId = useId();
+  const fieldId = useId();
+  const errorId = useId();
   const dialogRef = useModalFocus<HTMLDivElement>({
     onClose,
     closeOnEscape: !saving,
@@ -119,8 +121,11 @@ export default function FeedbackEmailModal({
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>수신</label>
+          <label style={labelStyle} htmlFor={`${fieldId}-to`}>
+            수신
+          </label>
           <input
+            id={`${fieldId}-to`}
             type="email"
             value={to}
             onChange={(e) => setTo(e.target.value)}
@@ -129,13 +134,14 @@ export default function FeedbackEmailModal({
         </div>
 
         <div style={{ marginBottom: 14 }}>
-          <label style={labelStyle}>참조</label>
+          <div style={labelStyle}>참조</div>
           {ccList.map((v, i) => (
             <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <input
                 type="email"
                 value={v}
                 onChange={(e) => updateCc(i, e.target.value)}
+                aria-label={`참조 ${i + 1}`}
                 style={inputStyle}
               />
               <button
@@ -151,7 +157,7 @@ export default function FeedbackEmailModal({
                   borderRadius: 6,
                   cursor: "pointer",
                 }}
-                aria-label="삭제"
+                aria-label={`참조 ${i + 1} 삭제`}
               >
                 −
               </button>
@@ -175,8 +181,11 @@ export default function FeedbackEmailModal({
         </div>
 
         <div style={{ marginBottom: 18 }}>
-          <label style={labelStyle}>제목</label>
+          <label style={labelStyle} htmlFor={`${fieldId}-subject`}>
+            제목
+          </label>
           <input
+            id={`${fieldId}-subject`}
             type="text"
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
@@ -185,7 +194,11 @@ export default function FeedbackEmailModal({
         </div>
 
         {error && (
-          <div style={{ fontSize: 12, color: "#DC2626", marginBottom: 12 }}>
+          <div
+            id={errorId}
+            role="alert"
+            style={{ fontSize: 12, color: "#DC2626", marginBottom: 12 }}
+          >
             {error}
           </div>
         )}
