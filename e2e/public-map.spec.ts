@@ -86,6 +86,12 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     expect(filterBox?.height).toBeLessThan(400);
     const attributionBox = await page.locator(".ku-attribution").boundingBox();
     expect(attributionBox?.x).toBe(20);
+    const browseBox = await page
+      .locator(".ku-map-browse-trigger")
+      .boundingBox();
+    expect(browseBox!.y + browseBox!.height).toBeLessThanOrEqual(
+      attributionBox!.y,
+    );
     const providerLinks = page.locator(".ku-attribution a");
     await expect(providerLinks).toHaveText(["OpenStreetMap", "CARTO"]);
     await expect(providerLinks.nth(0)).toHaveAttribute("target", "_blank");

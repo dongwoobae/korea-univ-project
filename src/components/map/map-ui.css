@@ -541,7 +541,8 @@
 .ku-map-browse {
   position: absolute;
   z-index: 1050;
-  bottom: 62px;
+  /* 세로 스택 출처 박스(약 96px)와 겹치지 않도록 그 위에 배치 */
+  bottom: 110px;
   left: 20px;
 }
 .ku-map-browse[data-front="true"] {
@@ -1253,7 +1254,7 @@
     display: none;
   }
   .ku-map-browse {
-    bottom: calc(66px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
     left: 16px;
   }
   .ku-map-browse-trigger {
@@ -1263,13 +1264,13 @@
   .ku-map-browse-panel {
     position: fixed;
     right: 16px;
-    bottom: calc(122px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(148px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     width: auto;
-    max-height: calc(100dvh - 210px);
+    max-height: calc(100dvh - 236px);
   }
   .ku-map-browse-list {
-    max-height: calc(100dvh - 320px);
+    max-height: calc(100dvh - 346px);
   }
   .ku-attribution {
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));
