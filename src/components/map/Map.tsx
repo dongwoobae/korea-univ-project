@@ -714,30 +714,31 @@ export default function Map() {
         />
         <span className="ku-attribution-separator" aria-hidden="true" />
         <span>
-          Leaflet · ©{" "}
+          ©{" "}
           <a
-            href={
-              tileMode === "street"
-                ? "https://www.openstreetmap.org/copyright"
-                : "https://www.esri.com"
-            }
+            href="https://www.openstreetmap.org/copyright"
             target="_blank"
             rel="noopener noreferrer"
           >
-            {tileMode === "street" ? "OpenStreetMap" : "Esri"}
-          </a>
-          {tileMode === "street" && (
-            <>
-              {" "}
-              · ©{" "}
-              <a
-                href="https://carto.com/attributions"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                CARTO
-              </a>
-            </>
+            OpenStreetMap
+          </a>{" "}
+          · ©{" "}
+          {tileMode === "street" ? (
+            <a
+              href="https://carto.com/attributions"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              CARTO
+            </a>
+          ) : (
+            <a
+              href="https://www.esri.com"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Esri
+            </a>
           )}
         </span>
       </div>

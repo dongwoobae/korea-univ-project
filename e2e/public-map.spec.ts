@@ -103,9 +103,11 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     );
 
     await page.getByRole("button", { name: "항공사진으로 전환" }).click();
-    await expect(providerLinks).toHaveCount(1);
-    await expect(providerLinks).toHaveText("Esri");
-    await expect(providerLinks).toHaveAttribute("href", "https://www.esri.com");
+    await expect(providerLinks).toHaveText(["OpenStreetMap", "Esri"]);
+    await expect(providerLinks.nth(1)).toHaveAttribute(
+      "href",
+      "https://www.esri.com",
+    );
     await expect(page.locator(".leaflet-control-attribution")).toContainText(
       "Esri",
     );
