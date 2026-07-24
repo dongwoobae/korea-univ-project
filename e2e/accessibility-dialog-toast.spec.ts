@@ -66,6 +66,38 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     await expect(trigger).toBeFocused();
   });
 
+  test("동영상 삭제 성공 시 실행 버튼이 사라져도 초점이 남은 모달 안으로 복귀한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    const facility = state.facilities.find((item) => item.id === "f-installed");
+    if (facility) facility.video_url = "https://cdn.test/video.mp4";
+    await page.goto("/admin/dashboard/facilities");
+
+    const row = page.getByText("중앙광장 경사로").locator("xpath=../..");
+    await row.getByRole("button", { name: "동영상" }).click();
+
+    const videoDialog = page.getByRole("dialog", { name: "동영상 관리" });
+    const deleteButton = videoDialog.getByRole("button", {
+      name: "동영상 삭제",
+    });
+    await deleteButton.click();
+
+    const confirmDialog = page.getByRole("dialog", {
+      name: "동영상을 삭제할까요?",
+    });
+    await confirmDialog.getByRole("button", { name: "삭제" }).click();
+
+    await expect(confirmDialog).toHaveCount(0);
+    await expect(deleteButton).toHaveCount(0);
+    await expect(videoDialog).toBeVisible();
+    await expect
+      .poll(() =>
+        videoDialog.evaluate((el) => el.contains(document.activeElement)),
+      )
+      .toBe(true);
+  });
+
   test("관리자 설정과 명소 모달도 Escape 후 실행 버튼으로 복귀한다", async ({
     page,
   }) => {

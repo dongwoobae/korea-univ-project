@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useState } from "react";
 import { useModalFocus } from "@/lib/useModalFocus";
 
 interface ConfirmModalProps {
@@ -26,10 +26,22 @@ export default function ConfirmModal({
 }: ConfirmModalProps) {
   const titleId = useId();
   const descriptionId = useId();
+  // onConfirm이 Promise를 반환하면 완료까지 내부적으로 pending 처리해
+  // 진행 중 Escape·백드롭 닫기와 중복 실행을 막는다. 외부 pending과 병행 가능.
+  const [internalPending, setInternalPending] = useState(false);
+  const busy = pending || internalPending;
   const dialogRef = useModalFocus<HTMLDivElement>({
     onClose: onCancel,
-    closeOnEscape: !pending,
+    closeOnEscape: !busy,
   });
+
+  function handleConfirm() {
+    const result = onConfirm();
+    if (result instanceof Promise) {
+      setInternalPending(true);
+      result.finally(() => setInternalPending(false));
+    }
+  }
 
   return (
     <div
@@ -42,7 +54,7 @@ export default function ConfirmModal({
         alignItems: "center",
         justifyContent: "center",
       }}
-      onClick={pending ? undefined : onCancel}
+      onClick={busy ? undefined : onCancel}
     >
       <div
         ref={dialogRef}
@@ -88,7 +100,7 @@ export default function ConfirmModal({
           <button
             type="button"
             onClick={onCancel}
-            disabled={pending}
+            disabled={busy}
             style={{
               flex: 1,
               padding: "10px",
@@ -96,17 +108,17 @@ export default function ConfirmModal({
               border: "1px solid #ddd",
               borderRadius: 8,
               fontSize: 13,
-              cursor: pending ? "not-allowed" : "pointer",
+              cursor: busy ? "not-allowed" : "pointer",
               color: "#555",
-              opacity: pending ? 0.65 : 1,
+              opacity: busy ? 0.65 : 1,
             }}
           >
             취소
           </button>
           <button
             type="button"
-            onClick={onConfirm}
-            disabled={pending}
+            onClick={handleConfirm}
+            disabled={busy}
             style={{
               flex: 1,
               padding: "10px",
@@ -115,12 +127,12 @@ export default function ConfirmModal({
               border: "none",
               borderRadius: 8,
               fontSize: 13,
-              cursor: pending ? "wait" : "pointer",
+              cursor: busy ? "wait" : "pointer",
               fontWeight: 500,
-              opacity: pending ? 0.75 : 1,
+              opacity: busy ? 0.75 : 1,
             }}
           >
-            {pending ? pendingLabel : confirmLabel}
+            {busy ? pendingLabel : confirmLabel}
           </button>
         </div>
       </div>

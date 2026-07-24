@@ -87,10 +87,20 @@ export function useModalFocus<T extends HTMLElement>({
 
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      const current =
+        document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+      // 초점이 모달 밖에 있으면(예: 초점을 갖던 요소가 제거된 직후) 모달 안으로 되돌린다
+      if (!current || !dialog.contains(current)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+        return;
+      }
+      if (event.shiftKey && current === first) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (!event.shiftKey && current === last) {
         event.preventDefault();
         first.focus();
       }
@@ -103,7 +113,15 @@ export function useModalFocus<T extends HTMLElement>({
       const stackIndex = dialogStack.lastIndexOf(dialog);
       if (stackIndex >= 0) dialogStack.splice(stackIndex, 1);
       if (addedTabIndex) dialog.removeAttribute("tabindex");
-      if (previouslyFocused?.isConnected) previouslyFocused.focus();
+      if (previouslyFocused?.isConnected) {
+        previouslyFocused.focus();
+      } else {
+        // 복귀 대상이 사라졌으면(예: 삭제 성공으로 실행 버튼 제거) 남은 최상단 모달로 복귀
+        const nextDialog = dialogStack.at(-1);
+        if (nextDialog?.isConnected) {
+          (focusableElements(nextDialog)[0] ?? nextDialog).focus();
+        }
+      }
     };
   }, [active, initialFocusRef]);
 
