@@ -994,3 +994,29 @@
   cursor: wait;
   opacity: 0.65;
 }
+
+/* 사진 삭제(✕)는 시각 크기(22px)를 유지하고 보이지 않는 히트 영역만 44px로 확장 */
+.ku-photo-delete-button::after {
+  content: "";
+  position: absolute;
+  inset: -11px;
+}
+
+/* A11Y-P2-01: 모바일에서 행 동작(수정·삭제·상태·동영상 등) 버튼의
+   최소 터치 영역 44px 확보. 위험 동작은 인접 버튼과 간격을 추가로 벌린다. */
+@media (max-width: 767px) {
+  .ku-admin-row-action {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .ku-admin-row-action--danger {
+    margin-left: 6px;
+  }
+  .ku-facility-translation-control button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .ku-admin-confirm-actions button {
+    min-height: 44px;
+  }
+}

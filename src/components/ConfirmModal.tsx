@@ -84,7 +84,7 @@ export default function ConfirmModal({
             {description}
           </div>
         )}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className="ku-admin-confirm-actions" style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
             onClick={onCancel}

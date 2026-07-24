@@ -147,6 +147,7 @@ export default function FeedbackEmailModal({
               <button
                 type="button"
                 onClick={() => removeCc(i)}
+                className="ku-admin-row-action ku-admin-row-action--danger"
                 style={{
                   flexShrink: 0,
                   width: 32,

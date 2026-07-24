@@ -312,6 +312,7 @@ export default function StandaloneFacilitiesPage() {
               </div>
               <button
                 onClick={() => setVideoModalFacility(f)}
+                className="ku-admin-row-action"
                 style={{
                   fontSize: 11,
                   padding: "4px 8px",
@@ -344,6 +345,7 @@ export default function StandaloneFacilitiesPage() {
               />
               <button
                 onClick={() => setEditingFacility(f)}
+                className="ku-admin-row-action"
                 style={{
                   fontSize: 12,
                   color: "var(--ku-primary-text)",
@@ -356,6 +358,7 @@ export default function StandaloneFacilitiesPage() {
               </button>
               <button
                 onClick={() => setConfirmDelete(f)}
+                className="ku-admin-row-action ku-admin-row-action--danger"
                 style={{
                   fontSize: 12,
                   color: "var(--ku-danger)",

@@ -210,4 +210,22 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
       "file",
     );
   });
+
+  test("모바일에서 관리자 행 동작 버튼이 44px 터치 영역을 확보한다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/admin/dashboard/facilities");
+
+    const row = page.getByText("중앙광장 경사로").locator("xpath=../..");
+    for (const name of ["동영상", "미설치로 변경", "수정", "삭제"]) {
+      const button = row.getByRole("button", { name, exact: true });
+      await expect(button, name).toBeVisible();
+      const box = await button.boundingBox();
+      expect(box, name).not.toBeNull();
+      expect(box!.width, name).toBeGreaterThanOrEqual(44);
+      expect(box!.height, name).toBeGreaterThanOrEqual(44);
+    }
+  });
 });

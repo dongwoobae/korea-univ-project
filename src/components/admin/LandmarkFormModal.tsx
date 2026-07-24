@@ -448,6 +448,7 @@ export default function LandmarkFormModal({
               type="button"
               onClick={handleDeletePhoto}
               disabled={uploading || saving}
+              className="ku-admin-row-action ku-admin-row-action--danger"
               style={{
                 padding: "7px 10px",
                 border: "1px solid #DC2626",

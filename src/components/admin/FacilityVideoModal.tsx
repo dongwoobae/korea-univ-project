@@ -350,8 +350,12 @@ export default function FacilityVideoModal({
                 />
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <label
+                    className="ku-admin-row-action"
                     style={{
                       flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       textAlign: "center",
                       padding: "8px",
                       border: "1px solid #2563EB",
@@ -374,6 +378,7 @@ export default function FacilityVideoModal({
                   <button
                     onClick={() => setConfirmDelete(true)}
                     disabled={deleting || busy}
+                    className="ku-admin-row-action ku-admin-row-action--danger"
                     style={{
                       flex: 1,
                       padding: "8px",

@@ -729,6 +729,7 @@ export default function BuildingDetail() {
                 </div>
                 <button
                   onClick={() => setVideoModalFacility(f)}
+                  className="ku-admin-row-action"
                   style={{
                     fontSize: 11,
                     padding: "4px 8px",
@@ -761,6 +762,7 @@ export default function BuildingDetail() {
                 />
                 <button
                   onClick={() => setConfirmModal(f)}
+                  className="ku-admin-row-action ku-admin-row-action--danger"
                   style={{
                     fontSize: 12,
                     color: "var(--ku-danger)",
@@ -1188,6 +1190,8 @@ function PhotoManager({ buildingId, showToast }) {
                 />
                 <button
                   onClick={() => setConfirmDeletePhoto(photo)}
+                  className="ku-photo-delete-button"
+                  aria-label="사진 삭제"
                   style={{
                     position: "absolute",
                     top: 4,
@@ -1239,8 +1243,11 @@ function PhotoManager({ buildingId, showToast }) {
         </div>
       )}
       <label
+        className="ku-admin-row-action"
         style={{
-          display: "inline-block",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
           marginTop: 12,
           padding: "8px 16px",
           background: "var(--ku-primary)",
