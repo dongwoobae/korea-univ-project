@@ -1,6 +1,61 @@
 import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
 
+test("건물명 라벨은 가까이 확대하면 은은하게 표시되고 언어를 반영한다", async ({
+  page,
+}) => {
+  await installMockBackend(page);
+  await page.goto("/");
+
+  const map = page.locator(".leaflet-container");
+  const mapShell = page.locator(".ku-map-shell");
+  const buildingLabel = page.locator(".ku-building-label");
+
+  await expect(buildingLabel).toHaveCount(1);
+  await expect(mapShell).toHaveAttribute(
+    "data-building-labels-visible",
+    "false",
+  );
+  await expect(buildingLabel).toBeHidden();
+
+  await page.getByTitle("English").click();
+  await expect(buildingLabel).toHaveText("Central Library");
+
+  await map.dblclick({ position: { x: 600, y: 400 } });
+  await expect(mapShell).toHaveAttribute(
+    "data-building-labels-visible",
+    "true",
+  );
+  await expect(buildingLabel).toBeVisible();
+
+  await page
+    .locator(".leaflet-overlay-pane path.leaflet-interactive")
+    .first()
+    .dispatchEvent("mouseover", { clientX: 600, clientY: 400 });
+  await expect(page.locator(".ku-map-tooltip")).toHaveCount(0);
+});
+
+test("겹친 필터와 시설 목록은 마지막으로 누른 패널이 앞으로 온다", async ({
+  page,
+}) => {
+  await installMockBackend(page);
+  await page.goto("/");
+
+  const filterPanel = page.locator(".ku-filter-panel");
+  const browsePanel = page.locator(".ku-map-browse");
+
+  await expect(filterPanel).toHaveAttribute("data-front", "true");
+  await expect(browsePanel).toHaveAttribute("data-front", "false");
+
+  await page.locator(".ku-map-browse-trigger").click();
+  await expect(browsePanel).toHaveAttribute("data-front", "true");
+  await expect(filterPanel).toHaveAttribute("data-front", "false");
+
+  await page.locator(".ku-filter-heading").first().click();
+  await expect(filterPanel).toHaveAttribute("data-front", "true");
+  await expect(browsePanel).toHaveAttribute("data-front", "false");
+});
+
 test.describe("공개 지도 핵심 사용자 흐름", () => {
   test.beforeEach(async ({ page }) => {
     await installMockBackend(page);

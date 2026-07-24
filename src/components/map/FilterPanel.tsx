@@ -71,6 +71,8 @@ export default function FilterPanel({
   showLandmarks,
   setShowLandmarks,
   onOpenChange,
+  isFront,
+  onActivate,
 }) {
   const [campusSectionOpen, setCampusSectionOpen] = useState(false);
   const [facilitySectionOpen, setFacilitySectionOpen] = useState(false);
@@ -206,6 +208,9 @@ export default function FilterPanel({
   return (
     <div
       className="ku-filter-panel"
+      data-front={isFront}
+      onPointerDownCapture={onActivate}
+      onFocusCapture={onActivate}
       onDoubleClickCapture={(event) => event.stopPropagation()}
     >
       {isMobile ? (
@@ -213,7 +218,10 @@ export default function FilterPanel({
           <button
             className="ku-mobile-filter-trigger"
             type="button"
-            onClick={() => setMobileFilterOpen((open) => !open)}
+            onClick={() => {
+              onActivate();
+              setMobileFilterOpen((open) => !open);
+            }}
             aria-expanded={mobileFilterOpen}
           >
             <span>{t("filterTitle")}</span>
