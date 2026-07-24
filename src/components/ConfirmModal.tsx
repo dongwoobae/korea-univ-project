@@ -1,5 +1,8 @@
 "use client";
 
+import { useId } from "react";
+import { useModalFocus } from "@/lib/useModalFocus";
+
 interface ConfirmModalProps {
   message: string;
   description?: string;
@@ -21,6 +24,13 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogRef = useModalFocus<HTMLDivElement>({
+    onClose: onCancel,
+    closeOnEscape: !pending,
+  });
+
   return (
     <div
       style={{
@@ -35,6 +45,11 @@ export default function ConfirmModal({
       onClick={pending ? undefined : onCancel}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
         style={{
           background: "#fff",
           borderRadius: 12,
@@ -44,18 +59,21 @@ export default function ConfirmModal({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div
+        <h2
+          id={titleId}
           style={{
             fontSize: 16,
             fontWeight: 600,
             color: "#111",
             marginBottom: description ? 8 : 20,
+            marginTop: 0,
           }}
         >
           {message}
-        </div>
+        </h2>
         {description && (
           <div
+            id={descriptionId}
             style={{
               fontSize: 13,
               color: "#888",
@@ -68,6 +86,7 @@ export default function ConfirmModal({
         )}
         <div style={{ display: "flex", gap: 8 }}>
           <button
+            type="button"
             onClick={onCancel}
             disabled={pending}
             style={{
@@ -85,6 +104,7 @@ export default function ConfirmModal({
             취소
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={pending}
             style={{

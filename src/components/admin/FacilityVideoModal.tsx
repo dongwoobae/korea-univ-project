@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import ConfirmModal from "@/components/ConfirmModal";
+import { useModalFocus } from "@/lib/useModalFocus";
 
 export default function FacilityVideoModal({
   facility,
@@ -24,6 +25,10 @@ export default function FacilityVideoModal({
   const xhrRef = useRef<XMLHttpRequest | null>(null);
 
   const busy = phase !== null;
+  const titleId = useId();
+  const dialogRef = useModalFocus<HTMLDivElement>({
+    onClose: handleCloseRequest,
+  });
 
   function handleCloseRequest() {
     if (busy) {
@@ -200,6 +205,10 @@ export default function FacilityVideoModal({
       />
       {/* 모달 카드 */}
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         style={{
           position: "fixed",
           inset: 0,
@@ -236,12 +245,17 @@ export default function FacilityVideoModal({
                 {facility.facility_types?.icon}{" "}
                 {facility.name ?? facility.facility_types?.label}
               </div>
-              <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>
+              <div
+                id={titleId}
+                style={{ fontSize: 12, color: "#888", marginTop: 2 }}
+              >
                 동영상 관리
               </div>
             </div>
             <button
+              type="button"
               onClick={handleCloseRequest}
+              aria-label="닫기"
               style={{
                 background: "none",
                 border: "none",

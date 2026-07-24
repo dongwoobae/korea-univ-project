@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useId, useMemo, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { inferCampusFromPoint } from "@/lib/campusGeometry";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
+import { useModalFocus } from "@/lib/useModalFocus";
 import type { Landmark } from "@/types/domain";
 
 const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
@@ -46,6 +47,11 @@ export default function LandmarkFormModal({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
+  const titleId = useId();
+  const dialogRef = useModalFocus<HTMLDivElement>({
+    onClose,
+    closeOnEscape: !saving && !uploading,
+  });
   const { boundaries, error: boundariesError } = useCampusBoundaries();
   const positionCampus = useMemo(() => {
     if (!form.lat || !form.lng) return null;
@@ -227,8 +233,10 @@ export default function LandmarkFormModal({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
       style={{
         position: "fixed",
         inset: 0,
@@ -250,7 +258,10 @@ export default function LandmarkFormModal({
           overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
+        <div
+          id={titleId}
+          style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}
+        >
           {editing ? "명소 수정" : "명소 추가"}
         </div>
 

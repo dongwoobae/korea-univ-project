@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useId, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useModalFocus } from "@/lib/useModalFocus";
 
 export default function FeedbackEmailModal({
   initialEmails,
@@ -17,14 +18,11 @@ export default function FeedbackEmailModal({
   const [subject, setSubject] = useState(initialEmails?.subject ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  const titleId = useId();
+  const dialogRef = useModalFocus<HTMLDivElement>({
+    onClose,
+    closeOnEscape: !saving,
+  });
 
   function updateCc(i, value) {
     setCcList((list) => list.map((v, idx) => (idx === i ? value : v)));
@@ -98,6 +96,10 @@ export default function FeedbackEmailModal({
       }}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "#fff",
@@ -109,7 +111,10 @@ export default function FeedbackEmailModal({
           overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 18 }}>
+        <div
+          id={titleId}
+          style={{ fontSize: 16, fontWeight: 600, marginBottom: 18 }}
+        >
           피드백 이메일 변경
         </div>
 

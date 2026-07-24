@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useId, useMemo, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
@@ -8,6 +8,7 @@ import { validateFacilityForm } from "@/lib/facilityForm";
 import { inferCampusFromPoint } from "@/lib/campusGeometry";
 import { translateFacility } from "@/lib/facilityTranslation";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
+import { useModalFocus } from "@/lib/useModalFocus";
 import type { FacilityType, FacilityWithType } from "@/types/domain";
 
 const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
@@ -47,6 +48,11 @@ export default function FacilityFormModal({
     lng: facility?.lng != null ? String(facility.lng) : "",
   });
   const [saving, setSaving] = useState(false);
+  const titleId = useId();
+  const dialogRef = useModalFocus<HTMLDivElement>({
+    onClose,
+    closeOnEscape: !saving,
+  });
   const { boundaries, error: boundariesError } = useCampusBoundaries();
   const positionCampus = useMemo(() => {
     if (!form.lat || !form.lng) return null;
@@ -164,9 +170,11 @@ export default function FacilityFormModal({
 
   return (
     <div
+      ref={dialogRef}
       className="ku-facility-modal-backdrop"
       role="dialog"
       aria-modal="true"
+      aria-labelledby={titleId}
       style={{
         position: "fixed",
         inset: 0,
@@ -189,7 +197,10 @@ export default function FacilityFormModal({
           overflowY: "auto",
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}>
+        <div
+          id={titleId}
+          style={{ fontSize: 16, fontWeight: 600, marginBottom: 16 }}
+        >
           {editing ? "시설 수정" : "시설 추가"}
         </div>
 

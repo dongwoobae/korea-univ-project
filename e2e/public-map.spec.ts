@@ -132,7 +132,11 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.reload();
     await page.getByTitle("즐겨찾기").click();
     await expect(page.getByText("즐겨찾기 (1)")).toBeVisible();
-    await expect(page.getByText("중앙도서관", { exact: true })).toBeVisible();
+    await expect(
+      page
+        .locator(".ku-favorites-list")
+        .getByText("중앙도서관", { exact: true }),
+    ).toBeVisible();
   });
 
   test("지도 위 UI의 더블클릭과 건물 툴팁을 지도에서 분리한다", async ({
