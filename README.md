@@ -84,25 +84,25 @@
 
 ## 🛠️ 기술 스택
 
-| 구분 | 기술 |
-| --- | --- |
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript 5.9 (`strict`) |
-| UI | React 19 (React Compiler 활성화) |
-| 지도 | Leaflet + react-leaflet, CARTO Positron/Dark Matter, Esri World Imagery |
-| 폴리곤 편집 | leaflet-geoman |
-| Backend | Next.js Route Handlers |
-| DB / Auth | Supabase (PostgreSQL, Auth, RLS) |
-| Storage | Supabase Storage(건물 사진) + Cloudflare R2(명소 사진·시설 영상) |
-| 번역 | Papago NMT API |
-| 영상 처리 | ffmpeg.wasm (업로드 전 압축) |
-| 스타일 | CSS 파일 + CSS 변수 디자인 토큰(`--ku-*`), 라이트/다크 정의 (Tailwind 미사용) |
-| Font | Pretendard |
-| Test | Vitest(단위) + Playwright(E2E) |
-| Lint/Format | ESLint 9 (flat config), Prettier |
-| CI | GitHub Actions (migration-safety·lint·format·typecheck·test·e2e → migrate) |
-| Analytics | Vercel Analytics, Speed Insights |
-| 배포 | Vercel (`hnd1` 리전) |
+| 구분        | 기술                                                                          |
+| ----------- | ----------------------------------------------------------------------------- |
+| Framework   | Next.js 16 (App Router)                                                       |
+| Language    | TypeScript 5.9 (`strict`)                                                     |
+| UI          | React 19 (React Compiler 활성화)                                              |
+| 지도        | Leaflet + react-leaflet, CARTO Positron/Dark Matter, Esri World Imagery       |
+| 폴리곤 편집 | leaflet-geoman                                                                |
+| Backend     | Next.js Route Handlers                                                        |
+| DB / Auth   | Supabase (PostgreSQL, Auth, RLS)                                              |
+| Storage     | Supabase Storage(건물 사진) + Cloudflare R2(명소 사진·시설 영상)              |
+| 번역        | Papago NMT API                                                                |
+| 영상 처리   | ffmpeg.wasm (업로드 전 압축)                                                  |
+| 스타일      | CSS 파일 + CSS 변수 디자인 토큰(`--ku-*`), 라이트/다크 정의 (Tailwind 미사용) |
+| Font        | Pretendard                                                                    |
+| Test        | Vitest(단위) + Playwright(E2E)                                                |
+| Lint/Format | ESLint 9 (flat config), Prettier                                              |
+| CI          | GitHub Actions (migration-safety·lint·format·typecheck·test·e2e → migrate)    |
+| Analytics   | Vercel Analytics, Speed Insights                                              |
+| 배포        | Vercel (`hnd1` 리전)                                                          |
 
 ---
 
@@ -322,13 +322,13 @@ get_admin_building_summary()
 
 관리 작업은 브라우저에서 직접 쓰지 않고 **API Route의 service_role**을 경유합니다.
 
-| 테이블 | anon | authenticated | 비고 |
-| --- | --- | --- | --- |
-| buildings, building_facilities, facility_types, building_photos, colleges | SELECT | SELECT | 쓰기는 service_role 전용 |
-| slope_segments, landmarks | SELECT | ALL | |
-| app_settings | SELECT | SELECT | 쓰기 정책 없음 → service_role 전용 |
-| feedback_submissions | 없음 | 없음 | `revoke all` — `POST /api/feedback`만 접근 |
-| `get_admin_building_summary()` | revoke from public | grant execute | |
+| 테이블                                                                    | anon               | authenticated | 비고                                       |
+| ------------------------------------------------------------------------- | ------------------ | ------------- | ------------------------------------------ |
+| buildings, building_facilities, facility_types, building_photos, colleges | SELECT             | SELECT        | 쓰기는 service_role 전용                   |
+| slope_segments, landmarks                                                 | SELECT             | ALL           |                                            |
+| app_settings                                                              | SELECT             | SELECT        | 쓰기 정책 없음 → service_role 전용         |
+| feedback_submissions                                                      | 없음               | 없음          | `revoke all` — `POST /api/feedback`만 접근 |
+| `get_admin_building_summary()`                                            | revoke from public | grant execute |                                            |
 
 `rls_auto_enable()` 함수의 외부 EXECUTE 권한은 회수되어 있습니다.
 
@@ -410,20 +410,20 @@ npm run test:e2e:ui   # Playwright UI 모드
 
 **Playwright E2E (12개 spec, 약 55개 시나리오)**
 
-| 파일 | 검증 대상 |
-| --- | --- |
-| `public-map.spec.ts` | 지도 로드, 건물 라벨 줌·언어 반영, 패널 z-order, 검색→상세→즐겨찾기 영속, 필터, 마커 군집, 둘러보기 목록, 다국어 팝업, **시스템 색상 모드별 타일 교체**, 피드백 성공/실패, TTS·음성검색 미지원 안내 |
-| `public-map-p0.spec.ts` | 모바일 언어 드롭다운, 모바일 즐겨찾기, **API 실패 → 오류 배너 → 재시도 복구**, 조회 실패와 빈 상태 구분 |
-| `public-map-p1.spec.ts` | 현재위치 성공/권한거부, 모바일 필터 배지, 캠퍼스 필터 |
-| `public-map-p1-remainder.spec.ts` | 시설 영상 접근 이름·자막, 상세 패널 스와이프 닫기, 음성인식 실패 구분 |
-| `public-map-search.spec.ts` | 영문 부분일치, 키보드 이동·Enter 선택, Escape 동작, 결과 없음, 라벨 언어 추종, 총 개수 안내 |
-| `admin-auth.spec.ts` | 비로그인 리다이렉트, 로그인/로그아웃, 피드백 이메일 변경 |
-| `admin-buildings-slopes.spec.ts` | **보완 현황 서버 집계 표시**, 서버 페이지네이션, 건물 생성 검증·폴리곤 저장, 소프트 삭제/복원, **사진 파일별 성공/실패 + 실패만 재시도**, GPX 거부/등록/삭제 |
-| `admin-content.spec.ts` | 독립 시설 검색·필터·정렬, 시설 CRUD, **저장 성공과 번역 실패 분리 + 재번역**, 영상 업로드→자막→삭제, 명소 CRUD·필터·페이지네이션 |
-| `accessibility-dialog-toast.spec.ts` | 모달 초점 트랩·복귀, **중첩 모달 초점 복원**, 실행 버튼 소멸 시 대체 복귀, **오류=alert / 성공=status**, 폼 라벨 연결, **모바일 44px 터치 영역** |
-| `admin-p0.spec.ts` | 모바일 계정 메뉴, 상태 변경 실패 시 성공 메시지 미표시 |
-| `admin-dark.spec.ts` | 다크 모드 대비 회귀 가드 — 하드코딩 밝은 색·근검정 텍스트 0건 단언 |
-| `admin-campus-boundaries.spec.ts` | 캠퍼스 밖 시설 경고하되 저장 허용 |
+| 파일                                 | 검증 대상                                                                                                                                                                                           |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `public-map.spec.ts`                 | 지도 로드, 건물 라벨 줌·언어 반영, 패널 z-order, 검색→상세→즐겨찾기 영속, 필터, 마커 군집, 둘러보기 목록, 다국어 팝업, **시스템 색상 모드별 타일 교체**, 피드백 성공/실패, TTS·음성검색 미지원 안내 |
+| `public-map-p0.spec.ts`              | 모바일 언어 드롭다운, 모바일 즐겨찾기, **API 실패 → 오류 배너 → 재시도 복구**, 조회 실패와 빈 상태 구분                                                                                             |
+| `public-map-p1.spec.ts`              | 현재위치 성공/권한거부, 모바일 필터 배지, 캠퍼스 필터                                                                                                                                               |
+| `public-map-p1-remainder.spec.ts`    | 시설 영상 접근 이름·자막, 상세 패널 스와이프 닫기, 음성인식 실패 구분                                                                                                                               |
+| `public-map-search.spec.ts`          | 영문 부분일치, 키보드 이동·Enter 선택, Escape 동작, 결과 없음, 라벨 언어 추종, 총 개수 안내                                                                                                         |
+| `admin-auth.spec.ts`                 | 비로그인 리다이렉트, 로그인/로그아웃, 피드백 이메일 변경                                                                                                                                            |
+| `admin-buildings-slopes.spec.ts`     | **보완 현황 서버 집계 표시**, 서버 페이지네이션, 건물 생성 검증·폴리곤 저장, 소프트 삭제/복원, **사진 파일별 성공/실패 + 실패만 재시도**, GPX 거부/등록/삭제                                        |
+| `admin-content.spec.ts`              | 독립 시설 검색·필터·정렬, 시설 CRUD, **저장 성공과 번역 실패 분리 + 재번역**, 영상 업로드→자막→삭제, 명소 CRUD·필터·페이지네이션                                                                    |
+| `accessibility-dialog-toast.spec.ts` | 모달 초점 트랩·복귀, **중첩 모달 초점 복원**, 실행 버튼 소멸 시 대체 복귀, **오류=alert / 성공=status**, 폼 라벨 연결, **모바일 44px 터치 영역**                                                    |
+| `admin-p0.spec.ts`                   | 모바일 계정 메뉴, 상태 변경 실패 시 성공 메시지 미표시                                                                                                                                              |
+| `admin-dark.spec.ts`                 | 다크 모드 대비 회귀 가드 — 하드코딩 밝은 색·근검정 텍스트 0건 단언                                                                                                                                  |
+| `admin-campus-boundaries.spec.ts`    | 캠퍼스 밖 시설 경고하되 저장 허용                                                                                                                                                                   |
 
 E2E는 `e2e/support/mockBackend.ts`(774줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다.
 
@@ -433,15 +433,15 @@ E2E는 `e2e/support/mockBackend.ts`(774줄)가 PostgREST·Next 라우트·Auth�
 
 `.github/workflows/ci.yml` — `main` push / PR / 수동 실행에서 6개 잡을 수행합니다.
 
-| 잡 | 내용 |
-| --- | --- |
-| `migration-safety` | `scripts/check-migrations.sh` — 마이그레이션 변경 검사 |
-| `lint` | ESLint |
-| `format` | Prettier 검사 |
-| `typecheck` | `tsc --noEmit` |
-| `test` | Vitest |
-| `e2e` | Playwright (실패 시 `test-results/` 아티팩트 7일 보존) |
-| `migrate` | 위 전부 통과 + 마이그레이션 변경 있음 + push/수동일 때만 실행 |
+| 잡                 | 내용                                                          |
+| ------------------ | ------------------------------------------------------------- |
+| `migration-safety` | `scripts/check-migrations.sh` — 마이그레이션 변경 검사        |
+| `lint`             | ESLint                                                        |
+| `format`           | Prettier 검사                                                 |
+| `typecheck`        | `tsc --noEmit`                                                |
+| `test`             | Vitest                                                        |
+| `e2e`              | Playwright (실패 시 `test-results/` 아티팩트 7일 보존)        |
+| `migrate`          | 위 전부 통과 + 마이그레이션 변경 있음 + push/수동일 때만 실행 |
 
 **마이그레이션 안전 검사**(`scripts/check-migrations.sh`)는 다음을 강제합니다.
 
@@ -456,25 +456,25 @@ E2E는 `e2e/support/mockBackend.ts`(774줄)가 PostgREST·Next 라우트·Auth�
 
 ## 🗺️ 지도 설정
 
-| 항목 | 값 |
-| --- | --- |
-| 중심 좌표 | 37.5893, 127.0327 |
-| Bounds SW | 37.578, 127.018 |
-| Bounds NE | 37.600, 127.048 |
-| minZoom / maxZoom | 15 / 19 |
-| maxBoundsViscosity | 0.7 |
-| 건물 라벨 표시 줌 | 데스크톱 17 / 모바일 18 이상 |
-| 마커 군집 해제 줌 | 18 이상 |
+| 항목               | 값                           |
+| ------------------ | ---------------------------- |
+| 중심 좌표          | 37.5893, 127.0327            |
+| Bounds SW          | 37.578, 127.018              |
+| Bounds NE          | 37.600, 127.048              |
+| minZoom / maxZoom  | 15 / 19                      |
+| maxBoundsViscosity | 0.7                          |
+| 건물 라벨 표시 줌  | 데스크톱 17 / 모바일 18 이상 |
+| 마커 군집 해제 줌  | 18 이상                      |
 
 ---
 
 ## 📦 스토리지
 
-| 자산 | 위치 | 경로 |
-| --- | --- | --- |
-| 건물 사진 | Supabase Storage `building-photos` (public) | `{buildingId}/{timestamp}-{rand}.webp` |
-| 명소 사진 | Cloudflare R2 | presigned 업로드, 삭제 시 R2 객체 선정리 후 DB row 삭제 |
-| 시설 영상 | Cloudflare R2 | presigned PUT → 업로드 확인 → DB 반영 |
+| 자산      | 위치                                        | 경로                                                    |
+| --------- | ------------------------------------------- | ------------------------------------------------------- |
+| 건물 사진 | Supabase Storage `building-photos` (public) | `{buildingId}/{timestamp}-{rand}.webp`                  |
+| 명소 사진 | Cloudflare R2                               | presigned 업로드, 삭제 시 R2 객체 선정리 후 DB row 삭제 |
+| 시설 영상 | Cloudflare R2                               | presigned PUT → 업로드 확인 → DB 반영                   |
 
 업로드 이미지는 webp로 변환해 저장하며, 영상은 브라우저에서 ffmpeg.wasm으로 압축한 뒤 업로드합니다.
 
@@ -536,12 +536,12 @@ UI 고정 문자열은 `src/lib/translations.ts`(키 192개)에서 관리합니�
 
 ## 🙋 프로젝트 정보
 
-| 항목 | 내용 |
-| --- | --- |
-| 팀명 | The짱돌 |
-| 소속 | 고려대학교 에너지환경대학원 |
-| 운영기간 | 2026.05 ~ 2027.12 |
-| 주관 | 고려대학교 지속가능원 |
+| 항목     | 내용                        |
+| -------- | --------------------------- |
+| 팀명     | The짱돌                     |
+| 소속     | 고려대학교 에너지환경대학원 |
+| 운영기간 | 2026.05 ~ 2027.12           |
+| 주관     | 고려대학교 지속가능원       |
 
 ---
 

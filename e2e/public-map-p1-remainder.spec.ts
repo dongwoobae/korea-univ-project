@@ -160,8 +160,6 @@ test.describe("공개 지도 P1 잔여 개선", () => {
     await page.goto("/");
 
     await page.getByTitle("음성 검색").click();
-    await expect(
-      page.getByText("마이크 권한이 거부되었어요"),
-    ).toBeVisible();
+    await expect(page.getByText("마이크 권한이 거부되었어요")).toBeVisible();
   });
 });

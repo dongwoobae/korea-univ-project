@@ -49,7 +49,10 @@ test.describe("공개 지도 P1 개선 (현재 위치·필터 배지·라벨)", 
             _success: PositionCallback,
             error: PositionErrorCallback,
           ) {
-            error({ code: 1, PERMISSION_DENIED: 1 } as GeolocationPositionError);
+            error({
+              code: 1,
+              PERMISSION_DENIED: 1,
+            } as GeolocationPositionError);
           },
         },
       });

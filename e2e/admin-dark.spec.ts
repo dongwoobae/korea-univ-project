@@ -60,9 +60,9 @@ async function scanContrast(page: import("@playwright/test").Page) {
       }
     }
     return {
-      darkActive: getComputedStyle(document.documentElement).colorScheme.includes(
-        "dark",
-      ),
+      darkActive: getComputedStyle(
+        document.documentElement,
+      ).colorScheme.includes("dark"),
       bodyBg: getComputedStyle(document.body).backgroundColor,
       nearWhiteBg,
       nearBlackText,

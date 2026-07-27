@@ -20,14 +20,17 @@
 ### P0-01. 모바일 언어 선택 드롭다운
 
 **대상 파일**
+
 - `src/components/map/LanguageSwitcher.tsx` (현재 무상태 3버튼)
 - `src/components/map/map-ui.css:695-741` (`@media (max-width: 767px)`에서 비활성 버튼 `display:none`)
 
 **현재 상태**
+
 - `map-ui.css:731-738` 모바일에서 `.ku-language button { display:none }`, `:741` `[aria-pressed="true"]`만 재노출 → 활성 언어 버튼 1개만 보임.
 - 컴포넌트는 `onClick={() => setLang(code)}`뿐, 펼침 상태 없음 → 그 버튼을 눌러도 같은 언어 재선택.
 
 **구현 방식**
+
 1. `LanguageSwitcher`를 트리거 + 팝오버 구조로 변경.
    - `useState(false)` open 상태, 트리거 버튼에 `aria-haspopup="listbox"`, `aria-expanded={open}`.
    - 데스크톱은 기존 3버튼 인라인 유지, 모바일은 트리거→목록 방식. **CSS 미디어쿼리로 표현만 분기**(컴포넌트 로직은 공통)하는 것을 우선 검토; 어려우면 `isMobile` 분기.
@@ -36,6 +39,7 @@
 3. `map-ui.css` 모바일 규칙 수정: 트리거만 보이고, open 시 목록이 팝오버로 뜨도록. `display:none`으로 언어를 지우는 현재 규칙 제거/대체.
 
 **완료 기준**
+
 - 390px 폭에서 ko/en/zh 모두 선택 가능.
 - 키보드: Tab으로 트리거 진입 → Enter/Space로 열림 → ↑↓로 이동(선택) 또는 Tab, Escape로 닫힘 + 초점 복귀.
 - 스크린리더로 현재 선택 언어와 옵션 목록이 읽힘.
@@ -47,12 +51,14 @@
 ### P0-02. 모바일 즐겨찾기 진입점 복구
 
 **대상 파일**
+
 - `src/components/map/map-ui.css:712-714` (`.ku-favorite-button { display:none }` @ max-width 767px)
 - 즐겨찾기 버튼/목록 렌더 지점(검색 컨트롤 인근) 및 개수 소스
 
 **현재 상태**: 모바일에서 즐겨찾기 버튼이 완전히 숨겨져 저장 목록 접근 불가.
 
 **구현 방식**
+
 1. `map-ui.css`의 `display:none` 제거. 모바일에서 검색창 내부/옆 또는 모바일 필터 트리거 옆에 즐겨찾기 진입점 유지.
 2. 저장 개수 배지 표시(0개면 배지 숨김, 빈 상태 안내 노출).
 3. 터치 영역 44×44px 이상 확보(인접 버튼과 간격).
@@ -66,12 +72,14 @@
 ### P0-06. 모바일 관리자 계정/설정 메뉴 복구
 
 **대상 파일**
+
 - `src/app/admin/admin-ui.css:399-419` (`@media (max-width:767px)`에서 `.ku-admin-email, .ku-admin-settings, .ku-admin-map-link { display:none }`)
 - `src/app/admin/dashboard/layout.tsx:78-101` (`.ku-admin-account` 헤더, 자식 4개: 이메일/설정/지도보기/로그아웃)
 
 **현재 상태**: 모바일 헤더에 로그아웃만 남음. 이메일 설정·공개 지도 보기 접근 불가.
 
 **구현 방식**
+
 1. `layout.tsx` 헤더에 모바일용 "더보기/계정" 메뉴(케밥 또는 계정 아이콘) 추가.
    - 메뉴 항목: 피드백 이메일 설정, 공개 지도 보기, 로그아웃.
    - `aria-haspopup="menu"`, `aria-expanded`, `role="menu"`/`role="menuitem"`, Escape·바깥클릭 닫힘·초점 복귀.
@@ -95,6 +103,7 @@
 ### P0-03. 관리자 인라인 색상 → 디자인 토큰 전환
 
 **대상 파일 (하드코딩 색상 offender)**
+
 - `src/app/admin/page.tsx` — 57,76,93,104,105,123,124
 - `src/app/admin/dashboard/facilities/page.tsx` — 96,109,112,132,140,157,166,171,185–187,202,203,216,228
 - `src/app/admin/dashboard/slopes/page.tsx` — 130,132,161,162,174,178,187,189,197,199,212,217,220,226,237,239,251,253
@@ -104,6 +113,7 @@
 - 토큰 정의: `src/app/globals.css` — light `:root` (3-28), dark `@media prefers-color-scheme` (30-57): `--ku-surface #211d1a`, `--ku-text-1 #f7f3ef`, `--ku-border #453e38` 등.
 
 **구현 방식 (매핑 규칙)**
+
 - 표면 `#fff`/`background:"#fff"` → `var(--ku-surface)`
 - 본문 텍스트 `#111`,`#1c1917` → `var(--ku-text-1)`; 보조 `#555`,`#888` → `var(--ku-text-2)`; 흐린 `#aaa`,`#bbb` → `var(--ku-text-3)`
 - 경계 `#e5e7eb`,`#ddd`,`#f5f5f5`,`#d1d5db` → `var(--ku-border)`
@@ -124,11 +134,13 @@
 **대상 파일**: `src/components/map/useMapData.ts`
 
 **현재 상태**
+
 - 빈 catch: `:48`(facilities), `:66`(slopes). 명소 실패는 `:73` 빈 배열 대체. `facility_types` 쿼리(51-59)는 오류 처리 없음.
 - 모든 fetch가 `.then(r => r.json())`로 `.ok` 미확인.
 - 상태: `loadingMap`은 buildings+boundaries `Promise.all`만 커버(30/41). facilities·slopes·landmarks·facilityTypes는 로딩/에러 플래그 없음.
 
 **구현 방식**
+
 1. 데이터 소스별 `{ status: 'loading' | 'error' | 'ready', retry }` 상태 도입(buildings, facilities, slopes, landmarks, facilityTypes).
 2. 각 fetch에서 `res.ok` 확인 → 실패 시 `error` 상태로. **접근성 시설/경사도 오류는 빈 배열로 대체 금지**(오류로 유지).
 3. 재시도: 각 소스 refetch 함수를 반환하거나 `retry()` 노출.
@@ -145,10 +157,12 @@
 **대상 파일**: `src/components/SidePanel.tsx` (병렬 조회 84-106)
 
 **현재 상태**
+
 - `Promise.all`에서 `{ data }`만 구조분해, Supabase `error` 미사용(84-103). `:104-106` 데이터만 상태 저장.
 - 실패 시 `facilities`가 `[]` → `FacilityList`(`:29-30`)가 `등록된 접근성 정보가 없어요`(translations.ts:27) 렌더 → 오류를 "정보 없음"으로 오인. `loading` 상태만 존재, error 상태 없음.
 
 **구현 방식**
+
 1. 세 조회(building/facilities/photos) 각각 `error` 구조분해.
 2. 섹션별 `error` 상태 추가 — 어느 조회가 실패했는지 구분.
 3. 실패 섹션에 재시도 버튼 + 오류 안내. `FacilityList`에 "오류" 브랜치 추가(빈 상태와 별개).
@@ -166,10 +180,12 @@
 **현재 상태**: `await supabase...update()` 결과의 `error`를 확인하지 않고 `fetchData()` + 성공 토스트 호출 → 실패해도 성공으로 표시.
 
 **구현 방식**: 형제 핸들러와 동일 패턴 적용(참조: `handleDeleteBuilding` 126-135, `handleSaveName` 156-170).
+
 ```
 const { error } = await supabase.from("building_facilities").update(...).eq("id", ...);
 if (error) { showToast("변경에 실패했어요", "error"); return; }
 ```
+
 - 처리 중 버튼 비활성화(중복 클릭 방지). 낙관적 갱신을 쓸 경우 실패 시 롤백.
 
 **완료 기준**: 변경 실패 시 성공 토스트 미표시 + 오류 토스트 노출, 상태 원복.

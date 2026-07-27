@@ -30,7 +30,9 @@ test.describe("공개 지도 통합 검색 · 콤보박스", () => {
     );
     await expect(landmarkOption).toBeVisible();
     // 명소임을 시각적으로 구분: "명소" 태그
-    await expect(landmarkOption.getByText("명소", { exact: true })).toBeVisible();
+    await expect(
+      landmarkOption.getByText("명소", { exact: true }),
+    ).toBeVisible();
 
     await landmarkOption.click();
 
@@ -64,7 +66,11 @@ test.describe("공개 지도 통합 검색 · 콤보박스", () => {
             {
               type: "Feature",
               geometry: poly(0),
-              properties: { id: 1, name: "중앙도서관", name_en: "Central Library" },
+              properties: {
+                id: 1,
+                name: "중앙도서관",
+                name_en: "Central Library",
+              },
             },
             {
               type: "Feature",
