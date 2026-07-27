@@ -30,6 +30,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Playwright e2e 실행용 로컬 빌드 산출물 (.gitignore 대상).
+    ".next-e2e/**",
   ]),
 ]);
 
