@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Marker, Popup, useMap } from "react-leaflet";
 import Image from "next/image";
 import L from "leaflet";
@@ -15,27 +16,46 @@ function escapeHtml(value: string): string {
     .replaceAll('"', "&quot;");
 }
 
+// divIcon은 키별로 캐시해 참조를 유지 — 렌더마다 새 인스턴스를 만들면
+// react-leaflet이 매번 setIcon으로 마커 DOM을 교체한다.
+const iconCache = new Map<string, L.DivIcon>();
+
+function cachedIcon(key: string, create: () => L.DivIcon) {
+  let icon = iconCache.get(key);
+  if (!icon) {
+    icon = create();
+    iconCache.set(key, icon);
+  }
+  return icon;
+}
+
 const landmarkMarkerIcon = (
   landmark: Landmark,
   name: string,
   showLabel: boolean,
 ) => {
   const icon = escapeHtml(landmark.icon || "✨");
-  return L.divIcon({
-    className: "",
-    html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${landmark.id}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 7px rgba(28,25,23,0.22);">${icon}</div>${showLabel ? `<span data-testid="landmark-label" style="padding:2px 5px;border-radius:999px;color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span>` : ""}</div>`,
-    iconAnchor: [17, 17],
-    popupAnchor: [0, -20],
-  });
+  return cachedIcon(
+    `landmark|${landmark.id}|${icon}|${name}|${showLabel}`,
+    () =>
+      L.divIcon({
+        className: "",
+        html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${landmark.id}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 7px rgba(28,25,23,0.22);">${icon}</div>${showLabel ? `<span data-testid="landmark-label" style="padding:2px 5px;border-radius:999px;color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span>` : ""}</div>`,
+        iconAnchor: [17, 17],
+        popupAnchor: [0, -20],
+      }),
+  );
 };
 
 const landmarkClusterIcon = (count: number) =>
-  L.divIcon({
-    className: "",
-    html: `<div class="ku-marker-cluster ku-marker-cluster--landmark" data-testid="landmark-marker-cluster"><span aria-hidden="true">✨</span><strong>${count}</strong></div>`,
-    iconSize: [42, 42],
-    iconAnchor: [21, 21],
-  });
+  cachedIcon(`cluster|${count}`, () =>
+    L.divIcon({
+      className: "",
+      html: `<div class="ku-marker-cluster ku-marker-cluster--landmark" data-testid="landmark-marker-cluster"><span aria-hidden="true">✨</span><strong>${count}</strong></div>`,
+      iconSize: [42, 42],
+      iconAnchor: [21, 21],
+    }),
+  );
 
 function localizedText(
   landmark: Landmark,
@@ -59,7 +79,7 @@ interface LandmarkMarkersProps {
   zoom: number;
 }
 
-export default function LandmarkMarkers({
+function LandmarkMarkers({
   landmarks,
   showLandmarks,
   zoom,
@@ -160,3 +180,6 @@ export default function LandmarkMarkers({
     </>
   );
 }
+
+// 부모(Map)가 툴팁/뷰포트 갱신으로 리렌더될 때 마커 재생성을 건너뛴다.
+export default memo(LandmarkMarkers);

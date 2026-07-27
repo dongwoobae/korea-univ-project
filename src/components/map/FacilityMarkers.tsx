@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import type { MapFacility } from "@/types/domain";
@@ -7,21 +8,38 @@ import { useLanguage } from "@/lib/LanguageContext";
 import { groupByPixelGrid } from "@/lib/mapMarkerLayout";
 import { FACILITY_COLORS } from "./facilityColors";
 
+// divIcon은 키별로 캐시해 참조를 유지 — 렌더마다 새 인스턴스를 만들면
+// react-leaflet이 매번 setIcon으로 마커 DOM을 교체한다.
+const iconCache = new Map<string, L.DivIcon>();
+
+function cachedIcon(key: string, create: () => L.DivIcon) {
+  let icon = iconCache.get(key);
+  if (!icon) {
+    icon = create();
+    iconCache.set(key, icon);
+  }
+  return icon;
+}
+
 const facilityMarkerIcon = (code: string, icon: string, id: string) =>
-  L.divIcon({
-    className: "",
-    html: `<div data-testid="facility-marker-${id}" style="width:34px;height:34px;background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};border:2px solid white;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 7px rgba(28,25,23,0.28);transform:rotate(-45deg);"><span style="transform:rotate(45deg)">${icon}</span></div>`,
-    iconAnchor: [17, 30],
-    popupAnchor: [0, -30],
-  });
+  cachedIcon(`facility|${code}|${icon}|${id}`, () =>
+    L.divIcon({
+      className: "",
+      html: `<div data-testid="facility-marker-${id}" style="width:34px;height:34px;background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};border:2px solid white;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 7px rgba(28,25,23,0.28);transform:rotate(-45deg);"><span style="transform:rotate(45deg)">${icon}</span></div>`,
+      iconAnchor: [17, 30],
+      popupAnchor: [0, -30],
+    }),
+  );
 
 const facilityClusterIcon = (count: number) =>
-  L.divIcon({
-    className: "",
-    html: `<div class="ku-marker-cluster" data-testid="facility-marker-cluster"><span aria-hidden="true">♿</span><strong>${count}</strong></div>`,
-    iconSize: [42, 42],
-    iconAnchor: [21, 21],
-  });
+  cachedIcon(`cluster|${count}`, () =>
+    L.divIcon({
+      className: "",
+      html: `<div class="ku-marker-cluster" data-testid="facility-marker-cluster"><span aria-hidden="true">♿</span><strong>${count}</strong></div>`,
+      iconSize: [42, 42],
+      iconAnchor: [21, 21],
+    }),
+  );
 
 interface FacilityMarkersProps {
   facilities: MapFacility[];
@@ -38,7 +56,7 @@ function localized(
   return lang === "en" ? (en ?? ko) : lang === "zh" ? (zh ?? ko) : ko;
 }
 
-export default function FacilityMarkers({
+function FacilityMarkers({
   facilities,
   activeTypes,
   zoom,
@@ -161,3 +179,6 @@ export default function FacilityMarkers({
     </>
   );
 }
+
+// 부모(Map)가 툴팁/뷰포트 갱신으로 리렌더될 때 마커 재생성을 건너뛴다.
+export default memo(FacilityMarkers);

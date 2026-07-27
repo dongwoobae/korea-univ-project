@@ -30,6 +30,9 @@ export type MapDataRetry = Record<MapDataSource, () => void>;
  */
 export function useMapData() {
   const [geoData, setGeoData] = useState<FeatureCollection | null>(null);
+  // geoData가 교체될 때마다 증가 — 소비자가 GeoJSON 레이어 리마운트 key로
+  // 사용한다(전체 데이터를 직렬화해 비교하는 비용 회피).
+  const [geoDataVersion, setGeoDataVersion] = useState(0);
   const [loadingMap, setLoadingMap] = useState(true);
   const [facilities, setFacilities] = useState<MapFacility[]>([]);
   const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
@@ -68,6 +71,7 @@ export function useMapData() {
         }
         setCampusBoundaries(boundaries);
         setGeoData(assignCampusesToBuildings(buildings, boundaries));
+        setGeoDataVersion((version) => version + 1);
         setBuildingsStatus("ready");
       })
       .catch((err) => {
@@ -182,6 +186,7 @@ export function useMapData() {
 
   return {
     geoData,
+    geoDataVersion,
     loadingMap,
     facilities,
     facilityTypes,

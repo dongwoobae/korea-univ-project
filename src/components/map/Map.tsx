@@ -202,6 +202,7 @@ function mapDistanceMeters(
 export default function Map() {
   const {
     geoData,
+    geoDataVersion,
     loadingMap,
     facilities,
     facilityTypes,
@@ -305,6 +306,9 @@ export default function Map() {
   );
   // isMobile을 ref로도 관리 — onEachFeature 클로저에서 항상 최신값 참조
   const isMobileRef = useRef(false);
+  // 툴팁 좌표는 mousemove마다 바뀌므로 React state 대신 DOM을 직접 갱신
+  // (state로 두면 마우스 이동마다 Map 전체가 리렌더되어 드래그가 무거워짐)
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   const geoJsonStyle = useCallback(
     (feature) =>
@@ -445,15 +449,13 @@ export default function Map() {
         if (isMobileRef.current || (mapRef.current?.getZoom() ?? 16) >= 17) {
           return;
         }
-        const { clientX, clientY } = e.originalEvent;
+        const tooltipEl = tooltipRef.current;
         const mapEl = mapRef.current?.getContainer();
-        if (!mapEl) return;
+        if (!tooltipEl || !mapEl) return;
+        const { clientX, clientY } = e.originalEvent;
         const rect = mapEl.getBoundingClientRect();
-        setTooltip((prev) => ({
-          ...prev,
-          x: clientX - rect.left + 12,
-          y: clientY - rect.top - 36,
-        }));
+        tooltipEl.style.left = `${clientX - rect.left + 12}px`;
+        tooltipEl.style.top = `${clientY - rect.top - 36}px`;
       },
       mouseout() {
         setTooltip((prev) => ({ ...prev, visible: false }));
@@ -607,7 +609,7 @@ export default function Map() {
         {geoData && (
           <>
             <GeoJSON
-              key={`${tileMode}-${prefersDarkMode}-${JSON.stringify(geoData)}`}
+              key={`${tileMode}-${prefersDarkMode}-${geoDataVersion}`}
               data={geoData}
               style={geoJsonStyle}
               onEachFeature={onEachFeature}
@@ -662,7 +664,7 @@ export default function Map() {
         <SubwayMarkers
           lang={lang}
           zoom={viewport?.zoom ?? 16}
-          onSelect={(station) => setSelectedBuilding(station)}
+          onSelect={setSelectedBuilding}
         />
         {showSlope && slopes.length > 0 && <SlopeLayer slopes={slopes} />}
         {campusBoundaries && (
@@ -841,6 +843,7 @@ export default function Map() {
       {/* 툴팁 — 데스크탑만 */}
       {!isMobile && tooltip.visible && (
         <div
+          ref={tooltipRef}
           className="ku-map-tooltip"
           style={{ left: tooltip.x, top: tooltip.y }}
         >
