@@ -1,5 +1,10 @@
+import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
+
+// 업로드 전 재생 가능 여부 검사(isVideoPlayable)를 통과해야 변환 없이 업로드로
+// 진행되므로, 더미 바이트가 아닌 실제 H.264 파일을 올린다.
+const PLAYABLE_VIDEO = path.join(__dirname, "fixtures/tiny-h264.mp4");
 
 test.describe("독립 시설과 명소 관리자 CRUD", () => {
   test("독립 시설을 검색·필터·정렬하고 조건을 초기화한다", async ({ page }) => {
@@ -131,11 +136,9 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     await row.getByRole("button", { name: "동영상" }).click();
     await expect(page.getByText("동영상 관리")).toBeVisible();
 
-    await page.locator('input[type="file"][accept^="video/"]').setInputFiles({
-      name: "ramp.mp4",
-      mimeType: "video/mp4",
-      buffer: Buffer.from("fake video"),
-    });
+    await page
+      .locator('input[type="file"][accept^="video/"]')
+      .setInputFiles(PLAYABLE_VIDEO);
     await expect(page.locator("video")).toBeVisible();
 
     const caption = page.getByPlaceholder("동영상 설명 추가...");

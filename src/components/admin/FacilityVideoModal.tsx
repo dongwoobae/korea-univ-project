@@ -1,10 +1,12 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import ConfirmModal from "@/components/ConfirmModal";
 import { useModalFocus } from "@/lib/useModalFocus";
+import { isVideoPlayable } from "@/lib/videoPlayback";
+import { compressVideo, terminateFFmpeg } from "@/lib/compressVideo";
 
 export default function FacilityVideoModal({
   facility,
@@ -12,7 +14,8 @@ export default function FacilityVideoModal({
   showToast,
   onClose,
 }) {
-  const [phase, setPhase] = useState<string | null>(null); // null | "loading" | "compressing" | "uploading"
+  // null | "checking" | "loading" | "compressing" | "preparing" | "uploading"
+  const [phase, setPhase] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -29,6 +32,9 @@ export default function FacilityVideoModal({
   const dialogRef = useModalFocus<HTMLDivElement>({
     onClose: handleCloseRequest,
   });
+
+  // ffmpeg 인스턴스는 세션 내 재업로드를 위해 캐싱되므로, 모달이 닫힐 때 정리한다.
+  useEffect(() => terminateFFmpeg, []);
 
   function handleCloseRequest() {
     if (busy) {
@@ -88,15 +94,37 @@ export default function FacilityVideoModal({
     if (!file) return;
 
     try {
-      // 1. Presigned URL 발급
+      // 1. 브라우저가 이 파일의 비디오 트랙을 디코드할 수 있는지 먼저 확인한다.
+      //    아이폰 기본 촬영물(HEVC)은 mp4/mov 컨테이너라 형식 검사를 통과하지만
+      //    공개 화면에서 소리만 나고 화면이 검게 나오므로, 재생 불가일 때만
+      //    H.264로 변환해 올린다. 이미 재생 가능한 파일은 변환하지 않는다.
+      setPhase("checking");
+      let payload: Blob = file;
+      let contentType = file.type;
+
+      if (!(await isVideoPlayable(file))) {
+        try {
+          payload = await compressVideo(file, setProgress, setPhase);
+          contentType = "video/mp4";
+        } catch {
+          showToast(
+            "이 영상은 브라우저에서 재생할 수 없고 변환도 실패했어요. H.264(mp4)로 저장해 다시 올려주세요",
+            "error",
+          );
+          return;
+        }
+      }
+
+      // 2. Presigned URL 발급
       setPhase("preparing");
+      setProgress(0);
       const presignRes = await authedFetch("/api/facility-video-presign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           facilityId: facility.id,
-          contentType: file.type,
-          fileSize: file.size,
+          contentType,
+          fileSize: payload.size,
         }),
       });
       const presignData = await presignRes.json();
@@ -105,7 +133,7 @@ export default function FacilityVideoModal({
         return;
       }
 
-      // 2. R2에 직접 업로드
+      // 3. R2에 직접 업로드
       setPhase("uploading");
       setProgress(0);
       const xhr = new XMLHttpRequest();
@@ -119,8 +147,8 @@ export default function FacilityVideoModal({
         xhr.onerror = () => reject(new Error("네트워크 오류"));
         xhr.onabort = () => reject(new Error("업로드 취소됨"));
         xhr.open("PUT", presignData.presignedUrl);
-        xhr.setRequestHeader("Content-Type", file.type);
-        xhr.send(file);
+        xhr.setRequestHeader("Content-Type", contentType);
+        xhr.send(payload);
       });
 
       if (xhr.status !== 200) {
@@ -128,7 +156,7 @@ export default function FacilityVideoModal({
         return;
       }
 
-      // 3. DB에 URL 저장
+      // 4. DB에 URL 저장
       const confirmRes = await authedFetch("/api/facility-video-confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -184,11 +212,21 @@ export default function FacilityVideoModal({
   }
 
   const phaseLabel =
-    phase === "preparing"
-      ? "업로드 준비 중..."
-      : phase === "uploading"
-        ? `업로드 중... ${progress}%`
-        : null;
+    phase === "checking"
+      ? "영상 확인 중..."
+      : phase === "loading"
+        ? "변환 도구 불러오는 중..."
+        : phase === "compressing"
+          ? `재생 가능한 형식으로 변환 중... ${progress}%`
+          : phase === "preparing"
+            ? "업로드 준비 중..."
+            : phase === "uploading"
+              ? `업로드 중... ${progress}%`
+              : null;
+
+  // 진행률을 알 수 없는 단계는 불확정(shimmer) 바로 표시한다.
+  const indeterminate =
+    phase === "checking" || phase === "loading" || phase === "preparing";
 
   return (
     <>
@@ -292,7 +330,7 @@ export default function FacilityVideoModal({
                     overflow: "hidden",
                   }}
                 >
-                  {phase === "preparing" ? (
+                  {indeterminate ? (
                     <div
                       style={{
                         height: "100%",

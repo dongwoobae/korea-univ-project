@@ -63,7 +63,7 @@
 - 🏗️ **건물 추가** — 지도에서 폴리곤 직접 그리기 + 폴리곤 기반 **캠퍼스 자동 판정**
 - ✏️ **건물 상세 관리** — 이름·단과대·시설 CRUD, 다중 사진 업로드, 시설 영상 업로드, 폴리곤 편집. 섹션 내비게이션과 **미저장 이탈 경고** 포함
 - 🖼️ **사진 업로드 진행 상황** — 파일별 성공/실패를 개별 표시하고 **실패한 항목만 재시도**
-- 🎞️ **시설 영상 업로드** — presigned URL로 R2 직접 업로드, 퍼센트 진행률 표시, 자막 저장
+- 🎞️ **시설 영상 업로드** — presigned URL로 R2 직접 업로드, 퍼센트 진행률 표시, 자막 저장. 업로드 전 **브라우저 재생 가능 여부를 검사**해 디코드 불가한 코덱(아이폰 HEVC 등)만 H.264로 변환
 - 🧩 **독립 시설 관리** — 건물에 속하지 않는 시설 CRUD, 검색·유형·설치여부 필터·정렬
 - 🌍 **번역 실패 표시** — 자동 번역 실패를 "번역 필요" 배지로 드러내고 **재번역** 버튼 제공 (저장 성공과 번역 실패를 분리)
 - 🏞️ **명소 관리** — 캠퍼스 명소 CRUD, 사진 유무 필터, 사진 포함 단일 저장
@@ -198,6 +198,7 @@ src/
     facilityTranslation.ts / facilityTranslationState.ts
     feedback.ts                      # 피드백 유형 정의·입력 검증
     settings.ts / compressVideo.ts
+    videoPlayback.ts                 # 업로드 전 비디오 트랙 디코드 가능 여부 판별
   scripts/
     syncBuildings.ts                 # Overpass → Supabase 건물 동기화
   types/
@@ -474,9 +475,9 @@ E2E는 `e2e/support/mockBackend.ts`(774줄)가 PostgREST·Next 라우트·Auth�
 | --------- | ------------------------------------------- | ------------------------------------------------------- |
 | 건물 사진 | Supabase Storage `building-photos` (public) | `{buildingId}/{timestamp}-{rand}.webp`                  |
 | 명소 사진 | Cloudflare R2                               | presigned 업로드, 삭제 시 R2 객체 선정리 후 DB row 삭제 |
-| 시설 영상 | Cloudflare R2                               | presigned PUT → 업로드 확인 → DB 반영                   |
+| 시설 영상 | Cloudflare R2                               | 재생 가능 검사 → (필요 시 변환) → presigned PUT → 확인  |
 
-업로드 이미지는 webp로 변환해 저장하며, 영상은 브라우저에서 ffmpeg.wasm으로 압축한 뒤 업로드합니다.
+업로드 이미지는 webp로 변환해 저장합니다. 영상은 `isVideoPlayable()`로 브라우저가 비디오 트랙을 디코드할 수 있는지 먼저 확인하고, **재생 불가한 경우에만** ffmpeg.wasm으로 H.264(+faststart)로 변환해 업로드합니다. MIME만으로는 걸러지지 않는 HEVC(hvc1) 영상이 "소리만 나고 화면은 검은" 상태로 배포되는 것을 막기 위한 장치입니다.
 
 ---
 
