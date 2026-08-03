@@ -55,7 +55,22 @@
 
 이 변경으로 **상세 페이지를 열 때마다 전체 건물 폴리곤을 조회하게 된다.** 지금은 편집 버튼을 눌러야 나가던 쿼리다. 현재 쿼리에는 `limit`도 bounds 필터도 없어, 목록을 훑으며 건물 10개를 열면 전체 조회가 10번 반복된다.
 
-건물 96개 규모에서는 감당 가능하므로 이번에는 쿼리 자체를 바꾸지 않는다. 다만 **주변 건물 조회 결과를 모듈 수준에서 캐시**해 같은 세션 안에서 상세 페이지를 여러 번 열어도 조회가 한 번만 나가게 한다. 폴리곤을 저장하면 캐시를 무효화한다.
+건물 96개 규모에서는 감당 가능하므로 이번에는 쿼리 자체를 바꾸지 않는다. 다만 **주변 건물 조회 결과를 모듈 수준에서 캐시**해 같은 세션 안에서 상세 페이지를 여러 번 열어도 조회가 한 번만 나가게 한다.
+
+**무효화는 폴리곤 저장만으로 부족하다.** 캐시가 담는 것은 `select("id, name, geojson")`의 결과이고 조회 조건에 `is_deleted`가 들어간다. 즉 이름·존재 여부·폴리곤이 모두 캐시 대상이므로, 이 셋 중 하나라도 바꾸는 경로는 전부 무효화해야 한다. 실제 `buildings` 변이 지점은 여섯이다:
+
+| 경로           | 위치                               | 캐시에 미치는 영향        |
+| -------------- | ---------------------------------- | ------------------------- |
+| 소프트 삭제    | `admin/buildings/[id]` 삭제 핸들러 | 삭제한 건물이 계속 그려짐 |
+| 복구           | 같은 파일 복구 핸들러              | 복구한 건물이 안 그려짐   |
+| 건물명 저장    | 같은 파일 이름 저장 핸들러         | 툴팁에 이전 이름이 남음   |
+| 소속 저장      | 같은 파일 소속 저장 핸들러         | 없음 — 무효화 불필요      |
+| 폴리곤 저장    | 같은 파일 폴리곤 저장 핸들러       | 이전 폴리곤이 그려짐      |
+| 신규 건물 등록 | `admin/buildings/new`              | 새 건물이 안 그려짐       |
+
+소속 저장을 뺀 **다섯 경로**가 성공했을 때 `invalidateNeighborBuildings()`를 호출한다. 이 함수를 `neighborBuildings.ts`가 공개 API로 내보내며, 무효화 책임이 호출부에 있다는 사실을 모듈 주석에 남긴다.
+
+캐시는 **in-flight Promise를 공유**한다. 상세 페이지 두 개가 거의 동시에 열리면 결과가 아니라 진행 중인 Promise를 돌려줘야 조회가 한 번만 나간다. 조회가 실패하면 캐시를 비워 다음 호출이 재시도하게 한다 — 실패한 Promise를 남기면 세션 내내 주변 건물이 안 그려진다.
 
 건물 수가 수백 개로 늘면 bounds 기반 조회로 바꿔야 한다. 그 시점의 작업으로 남긴다.
 
@@ -155,7 +170,9 @@
 
 `translation_status` 컬럼도 함께 밀려 있었다. 즉 요약 함수가 존재했더라도 그 컬럼을 참조하는 `translation_needed_count` 집계에서 실패했을 것이다. 두 마이그레이션이 한 세트로 밀린 셈이다.
 
-**조치(코드):** `fetchSummary`가 `summaryResult.error`를 확인하지 않는다. 그래서 RPC 실패와 "집계 결과가 비어 있음"이 화면에서 구분되지 않는다. 오류를 상태로 잡아 요약 영역에 실패했음을 드러낸다.
+**조치(코드):** `fetchSummary`는 **세 요청 중 어느 것의 오류도 확인하지 않는다.** RPC(`summaryResult`)뿐 아니라 전체 건물 수·삭제 건물 수 count 두 개도 실패하면 `count ?? 0`을 거쳐 `0`이 된다. RPC만 고치면 count 실패는 여전히 `총 0개 · 삭제됨 0개`라는 정상처럼 보이는 거짓말로 남는다.
+
+세 결과 각각의 `error`를 확인하고, 하나라도 실패하면 요약 영역 전체를 실패 상태로 전환한다. 부분 성공을 부분 표시하지 않는다 — 어느 숫자가 진짜인지 화면에서 구분할 수 없으면 전부 못 믿는 편이 낫다.
 
 단, **오류 원문을 화면에 렌더링하지 않는다.** PostgREST 오류의 `message`·`details`·`hint`에는 함수 시그니처, relation·column 이름, schema cache 힌트가 담긴다. 화면에는 `요약을 불러오지 못했어요` 수준의 문구와 재시도 수단만 두고, 원문은 `console.error`로 보낸다.
 
@@ -172,7 +189,9 @@ jq: parse error: Invalid numeric literal at line 3, column 9
 
 둘째, 이 검증이 `migrate` 잡 안에만 있다. 그 잡이 skip되면 검증도 함께 사라져 드리프트가 감지되지 않는다 — 이번 사고가 열흘 넘게 안 보인 이유가 이것이다. 별도 잡으로 분리해 마이그레이션 변경 여부와 무관하게 실행한다.
 
-분리한 잡은 두 조건을 지켜야 한다. **그러지 않으면 고치려던 것보다 나쁜 것을 만든다.**
+분리한 잡은 세 조건을 지켜야 한다. **그러지 않으면 고치려던 것보다 나쁜 것을 만든다.**
+
+- **`migrate` 이후에 돈다.** 이것을 빼면 새 마이그레이션을 담은 푸시에서 검증이 `migrate`와 경쟁해 **적용 전** 원격을 조회하고, 정상 푸시가 드리프트로 빨간불이 된다. 그렇다고 `needs: migrate`만 붙이면 `has_changes=false`로 `migrate`가 skip되는 평상시에 검증도 함께 skip돼 **분리한 의미가 사라진다** — 지금과 똑같은 사각지대다. `needs: [migrate]` + `if: always() && needs.migrate.result != 'failure'`처럼 "적용 성공 또는 정상 skip 후 실행"을 명시한다. 운영 DB에 동시 접속하지 않도록 `migrate`와 같은 concurrency 그룹(`supabase-production-migrations`)에 넣는다.
 
 - **PR에서는 돌리지 않는다.** `push`와 `workflow_dispatch`로 한정한다. `ci.yml`은 `pull_request`에서도 도는데, 포크 PR에는 secrets가 주어지지 않아 DB URL 검사에서 `exit 1`이 난다. 항상 빨간불이 되면 드리프트 신호로서 무의미해지고, 이를 무마하려 `pull_request_target`으로 우회하는 압박이 생긴다.
 - **마스킹을 그대로 복사한다.** 기존 잡은 URL 인코딩된 비밀번호와 완성 DB URL을 `::add-mask::`로 가린다. 원본 secret은 자동 마스킹되지만 `[YOUR-PASSWORD]` 치환 후의 인코딩된 파생 값은 별도 마스킹 없이는 로그에 그대로 남는다.
@@ -213,14 +232,33 @@ jq: parse error: Invalid numeric literal at line 3, column 9
 | `missing_facility`   | 등록된 시설이 없다                                             |
 | `missing_photo`      | 사진이 없다                                                    |
 | `missing_location`   | `geojson`이 null이다                                           |
-| `stale_update`       | `last_updated`가 null이거나 1년 이상 지났다                    |
+| `stale_update`       | `last_updated`가 null이거나 `< current_date - 365`             |
 | `translation_needed` | `translation_status <> 'translated'`인 시설을 하나 이상 갖는다 |
 
 삭제된 건물(`is_deleted`)은 뷰에서 제외한다. 기존 함수의 `active_buildings` 정의와 같다.
 
+**조건식은 기존 함수의 SQL을 그대로 옮긴다.** 특히 `stale_update`는 `interval '1 year'`가 아니라 `current_date - 365`다. 카드 설명 문구가 "1년 이상"이라 자연스러운 표현으로 고쳐 쓰고 싶어지지만, 그러면 윤년이 낀 구간에서 기존 `stale_update_count`가 조용히 바뀐다. 뷰가 기존 정의를 그대로 물려받아야 이번 변경이 숫자를 건드리지 않는다.
+
 **`security_invoker = on`으로 만든다.** 뷰는 기본적으로 소유자 권한으로 실행되어 RLS를 우회한다. 기존 함수가 `security invoker`인 것과 posture를 맞춘다. 권한도 함수와 같이 간다 — `revoke ... from public`, `grant select ... to authenticated`.
 
-같은 마이그레이션에서 `get_admin_building_summary()`를 `create or replace`로 갱신해 4개 건물 단위 집계를 이 뷰에서 가져오게 한다. `registered_facility_count`는 시설 총계라 뷰 대상이 아니므로 그대로 둔다.
+### 함수 갱신은 `create or replace`로 안 된다
+
+같은 마이그레이션에서 `get_admin_building_summary()`가 4개 건물 단위 집계를 이 뷰에서 가져오게 하고, `translation_needed_building_count`를 추가한다. `registered_facility_count`는 시설 총계라 뷰 대상이 아니므로 그대로 둔다.
+
+**그런데 `create or replace`로는 이 변경을 적용할 수 없다.** 기존 함수는 `returns table (...)`로 6개 컬럼을 반환한다. `RETURNS TABLE`의 컬럼 목록은 함수의 반환 타입이고, PostgreSQL은 `CREATE OR REPLACE FUNCTION`으로 반환 타입 변경을 허용하지 않는다 — `cannot change return type of existing function`으로 실패한다. 컬럼을 하나 늘리는 것이 정확히 그 변경이다.
+
+순서는 이렇다:
+
+```
+drop function if exists public.get_admin_building_summary();
+create function public.get_admin_building_summary() returns table (... 7개 컬럼 ...) ...;
+revoke execute on function public.get_admin_building_summary() from public;
+grant execute on function public.get_admin_building_summary() to authenticated;
+```
+
+**권한 재부여를 빠뜨리면 안 된다.** `drop`은 권한도 함께 지운다. 재생성한 함수는 기본 권한(`public`에 execute)으로 돌아가므로, 기존 마이그레이션의 `revoke`/`grant` 두 줄을 그대로 다시 실행해야 posture가 유지된다.
+
+이 건은 4-1과 같은 실패 모드를 만든다는 점에서 특히 중요하다. `create or replace`로 적었다면 `supabase db push`가 실패하고, `migrate` 잡이 빨간불이 되며, 뷰도 함수도 적용되지 않은 채 화면만 새 컬럼을 기대하게 된다.
 
 마이그레이션 적용 후 `supabase/database.types.ts`를 재생성한다.
 
@@ -245,11 +283,33 @@ jq: parse error: Invalid numeric literal at line 3, column 9
 - `AdminListControls`의 `hasActiveFilters`·`onReset`이 이미 있으므로 필터 해제 경로는 그것을 쓴다. 지금은 검색어만 보고 있으므로 필터 상태도 함께 보도록 넓힌다.
 - 필터 결과가 0건이면 기존 `검색 결과가 없습니다.` 대신 어떤 필터 때문인지 알 수 있는 문구를 낸다.
 
-카드는 현재 `<div>`다. 클릭 대상이 되므로 `<button>`으로 바꾼다 — 키보드 접근과 포커스 표시가 따라온다. 이때 `text-align`을 명시한다. 4-2와 같은 원인으로 카드 안 텍스트가 가운데 정렬되기 때문이다.
+### 카드를 버튼으로 바꾸려면 `<dl>`을 함께 바꿔야 한다
+
+카드는 현재 `<div>`이고, 그 `<div>`는 `<dl>`의 자식으로서 `<dt>`와 `<dd>`를 묶고 있다. `<dl role="group">` > `<div>` > `<dt>` + `<dd>` 구조다.
+
+**이 `<div>`만 `<button>`으로 바꾸면 안 된다.** `<dl>`의 직계 자식으로 허용되는 것은 `<dt>`·`<dd>`와 그 둘을 묶는 `<div>`뿐이라 `<button>`은 유효하지 않고, 반대로 `<dt>`·`<dd>`는 `<button>` 안에 들어갈 수 있는 내용이 아니다. 양쪽 모두에서 깨지므로 브라우저가 DOM을 교정하고, React는 중첩 경고를 낸다. 접근성 트리의 정의목록 의미도 함께 무너진다.
+
+컨테이너를 `<dl>`에서 일반 `<div>`로 바꾸고, 카드를 `<button>`, 카드 안의 `<dt>`·`<dd>`를 `<span>`으로 바꾼다. 정의목록 시맨틱을 잃지만 이 요약 영역은 원래 용어-정의 쌍이 아니라 **지표 타일**이고, 그중 다섯이 필터 컨트롤이 된다. 버튼으로서의 의미가 정의목록으로서의 의미보다 사용자에게 값이 크다.
+
+`role="group"`과 `aria-label="관리자 보완 현황"`은 새 컨테이너에 그대로 옮긴다. 클릭 대상이 아닌 `등록된 시설` 카드는 `<button>`이 아니라 `<div>`로 남긴다 — 눌리지 않는 버튼을 두면 키보드 사용자가 포커스를 받고도 아무 일이 없는 상태를 만난다.
+
+버튼에는 `text-align`을 명시한다. 4-2와 같은 원인으로 카드 안 텍스트가 가운데 정렬되기 때문이다.
 
 ### 목록 쿼리
 
 기존 목록 쿼리는 `buildings`를 직접 조회한다. 필터가 켜지면 `admin_building_flags`에서 해당 플래그가 참인 `building_id`를 받아 `.in("id", ids)`로 좁힌다.
+
+**플래그 조회 결과를 그대로 `.in()`에 넘기면 안 된다.** 세 갈래로 나눈다:
+
+| 플래그 조회 결과 | 처리                                                             |
+| ---------------- | ---------------------------------------------------------------- |
+| 오류             | 목록을 실패 상태로. "필터 결과 없음"과 구분해 재시도 수단을 준다 |
+| 성공 · 0건       | 건물 쿼리를 **생략**하고 빈 목록으로 확정                        |
+| 성공 · 1건 이상  | `.in("id", ids)`로 좁힌다                                        |
+
+0건을 생략하는 이유는 supabase-js가 빈 배열을 `id=in.()`으로 직렬화하기 때문이다. PostgREST가 이를 파싱 오류로 돌려주면 "경고 0건인 카드를 눌렀더니 목록이 깨진다"가 된다. 같은 파일의 시설 개수 조회가 이미 `buildingIds.length === 0`으로 이 경로를 막고 있으므로 그 방식을 그대로 따른다.
+
+오류를 빈 배열로 뭉개면 뷰 미적용·RLS 거부·네트워크 실패가 모두 "해당 건물 없음"으로 보인다. 4-1이 정확히 그 실패 모드였다.
 
 건물 96개 규모에서 id 배열은 작다. 수백 개로 늘어 URL 길이가 문제가 되면 뷰를 조인하는 방식으로 바꾼다. 그 시점의 작업으로 남긴다.
 
@@ -271,7 +331,16 @@ jq: parse error: Invalid numeric literal at line 3, column 9
 - 필터를 켠 채 검색어를 넣어 AND로 걸리는지, 필터를 끄면 원래 목록으로 돌아오는지 확인한다.
 - 키보드만으로 카드를 눌러 필터를 켜고 끌 수 있는지 확인한다.
 - 요약 RPC가 실패했을 때 화면에 오류 원문이 아니라 일반 문구가 뜨는지 확인한다.
+- **RPC가 아닌** 전체/삭제 건물 count만 실패시켰을 때도 요약 영역이 실패 상태가 되는지 확인한다. `총 0개 · 삭제됨 0개`가 정상처럼 뜨면 안 된다.
+- 경고 숫자가 **0인 카드**를 눌러 목록이 빈 상태로 정상 표시되는지 확인한다. 요청 URL에 `id=in.()`이 나가면 안 된다.
+- 플래그 조회를 실패시켰을 때 "결과 없음"이 아니라 오류로 표시되는지 확인한다.
+- 이름을 바꾼 뒤 같은 세션에서 다른 건물 상세를 열어 **툴팁에 새 이름**이 뜨는지, 건물을 삭제한 뒤 시설 지도에서 사라지는지 확인한다. 캐시 무효화 회귀는 이 두 가지로 잡는다.
+- 브라우저 콘솔에 DOM 중첩 경고가 없는지 확인한다. 요약 컨테이너 구조 변경의 회귀 신호다.
+- 마이그레이션을 **실제로 적용**해 `supabase db push`가 성공하는지 확인한다. `drop`+재생성 순서와 권한 재부여가 맞는지는 적용해봐야만 드러난다.
+- 적용 후 `stale_update_count`와 `translation_needed_count`가 **적용 전과 같은 값**인지 확인한다. 뷰로 옮기면서 조건식이 바뀌지 않았다는 증거다.
 - 기존 E2E 스위트를 돌려 위 변경으로 깨지는 것이 없는지 확인한다.
+
+**E2E는 이번 핵심 계약을 잡지 못한다.** mock 백엔드는 모르는 relation에 빈 배열을 돌려주므로 `admin_building_flags`가 항상 0건이 되고, id 필터도 `eq.`만 처리해 `in.(...)`을 모른다. 요약 mock의 stale 기준도 고정 날짜라 DB의 `current_date - 365`와 이미 갈라져 있다. 따라서 "카드 숫자와 목록 개수 일치"는 **수동 검증으로만 확인된다.** mock을 확장하기 전까지 이 항목에 초록불을 근거로 삼지 않는다.
 
 ## 이번 범위 밖
 
@@ -280,3 +349,14 @@ jq: parse error: Invalid numeric literal at line 3, column 9
 - 주변 건물 조회를 bounds 기반으로 좁히는 것. 캐시로 이번 규모는 감당되며, 건물 수가 수백 개가 될 때 다룬다.
 - 목록 필터를 여러 조건 동시 적용으로 확장하는 것.
 - `README.md`의 RLS 서술 정정. README는 관리 작업이 API Route의 service_role을 경유하고 `buildings` 쓰기가 service_role 전용이라고 적지만, 건물명 저장·소속 저장·소프트 삭제·시설 토글이 모두 브라우저에서 `supabase.from("buildings").update(...)`로 직접 나간다. 관리자 화면이 실제로 동작하므로 README 쪽이 사실과 다르다. 이 스펙과 무관한 선재 문제라 별도로 다룬다.
+
+## 후속 과제
+
+이 스펙을 검토하며 드러났지만 이번에 다루지 않는 것들. 근거를 남겨 다음 리뷰에서 다시 발견되지 않게 한다.
+
+- **E2E mock에 뷰와 `in.(...)` 필터를 추가하는 것.** 위 검증 절에 적었듯 이번 핵심 계약이 자동 검증되지 않는다. mock 상태에서 뷰 행을 같은 조건으로 만들고 RPC가 그 행을 집계하게 하면 "카드와 목록이 같은 정의를 본다"를 테스트로 고정할 수 있다. 이번 범위로 넣으면 스펙이 두 배가 되므로 분리한다.
+- **Point geometry 처리 정책.** 지하철역 3건이 폴리곤이 아니라 `Point` geojson을 갖는다. 상세 페이지의 중심점 계산은 이미 `Point`를 분기 처리하지만, 새 프리뷰의 렌더 조건은 geojson 유무뿐이라 Point 건물에서 폴리곤 없는 지도가 뜬다. 마커로 그릴지·주변 레이어에서 뺄지·편집 불가로 표시할지를 정해야 한다. 프리뷰가 없는 지금은 드러나지 않던 문제다.
+- **기반 테이블의 RLS 정책이 마이그레이션에 없다.** `buildings`·`building_facilities`의 SELECT 정책은 repo 어디에도 없고 Dashboard에서 수동 생성됐다(`20260514000000_security_fixes.sql`은 DROP만 한다). 그래서 `security_invoker` 뷰가 어떤 롤에 무엇을 돌려줄지 repo만으로는 검증할 수 없다. 4-1과 같은 계열의 드리프트이므로 같은 묶음에서 다룬다.
+- **`schema_migrations` 대조는 스키마 드리프트를 못 잡는다.** 새 검증 잡은 "적용되지 않은 버전"은 잡지만, 운영에서 뷰를 지우거나 권한을 바꿔도 이력 행은 남아 초록불이 된다. 뷰·함수·grant 존재를 확인하는 SQL smoke check는 별건으로 남긴다.
+- **`AdminBuildingSummary` 수기 인터페이스 제거.** 생성 타입에 이미 RPC 반환 타입이 있는데 화면이 같은 모양을 손으로 한 벌 더 들고 있다. `Database["public"]["Functions"][...]["Returns"][number]` 별칭으로 바꾸면 타입 재생성이 곧 소비자 갱신이 된다. 이번에 컬럼이 하나 늘어 양쪽을 다 고쳐야 하지만, 타입 정리까지 묶으면 변경 범위가 흐려진다.
+- **필터 연타 시 응답 경합.** 목록 조회에 요청 세대나 abort가 없어, 느린 네트워크에서 카드를 연속으로 누르면 늦게 끝난 이전 요청이 새 상태를 덮어쓸 수 있다. 검색어는 debounce가 완화해주지만 카드 클릭은 즉시라 확률이 올라간다. 선재 문제이고 이번 변경이 원인은 아니다.
