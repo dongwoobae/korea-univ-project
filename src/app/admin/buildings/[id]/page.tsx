@@ -5,6 +5,7 @@ import NextImage from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
+import { invalidateNeighborBuildings } from "@/lib/neighborBuildings";
 import type {
   Building,
   BuildingPhoto,
@@ -211,6 +212,7 @@ export default function BuildingDetail() {
       showToast("삭제에 실패했어요", "error");
       return;
     }
+    invalidateNeighborBuildings();
     router.push("/admin/dashboard");
   }
 
@@ -223,6 +225,7 @@ export default function BuildingDetail() {
       showToast("복구에 실패했어요", "error");
       return;
     }
+    invalidateNeighborBuildings();
     showToast("건물이 복구되었어요!");
     fetchData();
   }
@@ -245,6 +248,7 @@ export default function BuildingDetail() {
       showToast("저장에 실패했어요", "error");
       return;
     }
+    invalidateNeighborBuildings();
     await fetchData();
     showToast("건물명이 저장되었어요!");
   }
@@ -665,6 +669,7 @@ export default function BuildingDetail() {
                   showToast("저장에 실패했어요", "error");
                   return;
                 }
+                invalidateNeighborBuildings();
                 setEditingPolygon(false);
                 await fetchData();
                 showToast("폴리곤이 저장되었어요!");
