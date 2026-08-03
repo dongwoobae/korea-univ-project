@@ -2,14 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import type { Feature, FeatureCollection, Polygon } from "geojson";
+import type { Feature, Polygon } from "geojson";
 import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
-import {
-  NEIGHBOR_STYLE,
-  fetchNeighborBuildings,
-} from "@/lib/neighborBuildings";
+import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
+import { addNeighborLayer } from "@/lib/neighborLayer";
 import { getPolygonRingCenter } from "@/lib/polygonCenter";
 import ConfirmModal from "@/components/ConfirmModal";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
@@ -82,26 +80,7 @@ export default function PolygonEditor({
     void fetchNeighborBuildings()
       .then((neighbors) => {
         if (cancelled || !mapRef.current) return;
-        const features = neighbors.filter(
-          (feature) =>
-            String(feature.properties?.bid) !== String(initialExcludeId ?? ""),
-        );
-        L.geoJSON(
-          { type: "FeatureCollection", features } as FeatureCollection,
-          {
-            style: NEIGHBOR_STYLE,
-            interactive: false,
-            onEachFeature: (f, layer) => {
-              if (f.properties?.name) {
-                layer.bindTooltip(f.properties.name, {
-                  permanent: true,
-                  direction: "center",
-                  className: "bldg-label",
-                });
-              }
-            },
-          },
-        ).addTo(map);
+        addNeighborLayer(map, neighbors, initialExcludeId);
       })
       .catch(() => {
         // 주변 건물은 보조 정보다. 실패해도 편집 자체는 계속할 수 있다.

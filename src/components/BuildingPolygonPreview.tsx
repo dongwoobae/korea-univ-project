@@ -2,14 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import L from "leaflet";
-import type { Feature, FeatureCollection, Polygon } from "geojson";
+import type { Feature, Polygon } from "geojson";
 import "leaflet/dist/leaflet.css";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
-import {
-  NEIGHBOR_STYLE,
-  fetchNeighborBuildings,
-} from "@/lib/neighborBuildings";
+import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
+import { addNeighborLayer } from "@/lib/neighborLayer";
 import { getPolygonRingCenter } from "@/lib/polygonCenter";
 
 interface BuildingPolygonPreviewProps {
@@ -64,25 +62,7 @@ export default function BuildingPolygonPreview({
     void fetchNeighborBuildings()
       .then((neighbors) => {
         if (cancelled || !mapRef.current) return;
-        const features = neighbors.filter(
-          (feature) => String(feature.properties?.bid) !== String(excludeId),
-        );
-        L.geoJSON(
-          { type: "FeatureCollection", features } as FeatureCollection,
-          {
-            style: NEIGHBOR_STYLE,
-            interactive: false,
-            onEachFeature: (f, layer) => {
-              if (f.properties?.name) {
-                layer.bindTooltip(f.properties.name, {
-                  permanent: true,
-                  direction: "center",
-                  className: "bldg-label",
-                });
-              }
-            },
-          },
-        ).addTo(map);
+        addNeighborLayer(map, neighbors, excludeId);
       })
       .catch(() => {
         // 주변 건물은 보조 정보다. 실패해도 이 건물 폴리곤은 그린다.
