@@ -149,30 +149,7 @@ jobs:
 
       - name: Build masked database connection
         shell: bash
-        run: |
-          set -euo pipefail
-
-          if [[ -z "$SUPABASE_DB_URL_TEMPLATE" || -z "$SUPABASE_DB_PASSWORD" ]]; then
-            echo "::error::Configure SUPABASE_DB_URL and SUPABASE_DB_PASSWORD in the production environment or repository secrets."
-            exit 1
-          fi
-          if [[ "$SUPABASE_DB_URL_TEMPLATE" != *".pooler.supabase.com:5432/"* ]]; then
-            echo "::error::SUPABASE_DB_URL must be the IPv4-compatible Session pooler URI on port 5432."
-            exit 1
-          fi
-          if [[ "$SUPABASE_DB_URL_TEMPLATE" != *"[YOUR-PASSWORD]"* ]]; then
-            echo "::error::SUPABASE_DB_URL must retain the [YOUR-PASSWORD] placeholder."
-            exit 1
-          fi
-
-          encoded_password="$(
-            node -e 'process.stdout.write(encodeURIComponent(process.env.SUPABASE_DB_PASSWORD))'
-          )"
-          database_url="${SUPABASE_DB_URL_TEMPLATE/\[YOUR-PASSWORD\]/$encoded_password}"
-
-          echo "::add-mask::$encoded_password"
-          echo "::add-mask::$database_url"
-          echo "SUPABASE_MIGRATION_DB_URL=$database_url" >> "$GITHUB_ENV"
+        run: bash scripts/build-supabase-db-url.sh
 
       - name: Preview pending migrations
         run: supabase db push --db-url "$SUPABASE_MIGRATION_DB_URL" --dry-run
@@ -180,17 +157,52 @@ jobs:
       - name: Apply pending migrations
         run: supabase db push --db-url "$SUPABASE_MIGRATION_DB_URL" --yes
 
-      - name: Verify local and remote migration history
+  verify-migration-history:
+    name: Verify migration history
+    # migrate 성공 또는 정상 skip 후에 돈다. always()가 없으면 has_changes=false로
+    # migrate가 skip되는 평상시에 검증도 함께 사라져 지금과 같은 사각지대가 된다.
+    # pull_request에서는 돌리지 않는다 — 포크 PR에 secrets가 없어 항상 빨간불이 된다.
+    if: >-
+      always() &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      needs.migrate.result != 'failure'
+    needs: [migrate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    concurrency:
+      group: supabase-production-migrations
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    env:
+      SUPABASE_DB_URL_TEMPLATE: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build masked database connection
+        shell: bash
+        run: bash scripts/build-supabase-db-url.sh
+
+      - name: Compare migration files with applied versions
         shell: bash
         run: |
           set -euo pipefail
-          status_json="$(
-            supabase migration list \
-              --db-url "$SUPABASE_MIGRATION_DB_URL" \
-              --output json
-          )"
-          jq -e '
-            .migrations | length > 0 and
-            all(.[]; .local != "" and .remote != "" and .local == .remote)
-          ' <<< "$status_json" > /dev/null
+
+          # CLI 출력 포맷에 의존하지 않는다. supabase migration list --output json은
+          # JSON 앞에 진행 메시지를 stdout으로 흘려 jq 파싱을 깨뜨린다.
+          psql "$SUPABASE_MIGRATION_DB_URL" --no-align --tuples-only \
+            --command "select version from supabase_migrations.schema_migrations" \
+            | sed '/^$/d' | sort > /tmp/applied-versions.txt
+
+          git ls-files 'supabase/migrations/*.sql' \
+            | xargs -n1 basename \
+            | sed 's/_.*//' \
+            | sort > /tmp/local-versions.txt
+
+          if ! diff -u /tmp/local-versions.txt /tmp/applied-versions.txt; then
+            echo "::error::Local migration files and applied versions differ."
+            exit 1
+          fi
           echo "Local and remote migration histories match."
