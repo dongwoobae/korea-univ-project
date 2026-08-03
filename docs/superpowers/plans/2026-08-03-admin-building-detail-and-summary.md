@@ -35,6 +35,7 @@
 | `src/lib/adminBuildingSummary.ts`                                | 요약 타입·카드 설정·요약 결과 판정·플래그 필터 판정         |
 | `src/lib/adminBuildingSummary.test.ts`                           | 위 모듈 단위 테스트                                          |
 | `supabase/migrations/20260803000000_create_admin_building_flags.sql` | `admin_building_flags` 뷰 + 요약 함수 재생성            |
+| `scripts/build-supabase-db-url.sh`                               | 마스킹된 DB URL 구성 (migrate·verify 두 잡이 공유)          |
 
 **수정**
 
@@ -51,8 +52,8 @@
 | `e2e/support/mockBackend.ts`                  | RPC mock에 `translation_needed_building_count` 추가             |
 | `e2e/admin-buildings-slopes.spec.ts`          | 섹션 내비 단언 제거, 해시 URL 단언 수정                          |
 
-**작업 순서:** Task 1–7(상세 페이지) → Task 8–9(DB·CI) → Task 10–13(목록 화면) → Task 14(수동 검증).
-Task 13은 Task 8의 뷰가 있어야 실제로 동작하므로 순서를 지킨다.
+**작업 순서:** Task 1–7(상세 페이지) → Task 8–9(DB·CI) → Task 10–12(목록 화면) → Task 13(수동 검증).
+Task 12는 Task 8의 뷰와 생성 타입이 있어야 타입체크가 통과하므로 순서를 지킨다.
 
 ---
 
@@ -1444,19 +1445,65 @@ git commit -m "feat(db): 건물별 보완 플래그 뷰 추가하고 요약 함�
 
 **Files:**
 
-- Modify: `.github/workflows/ci.yml:183-197` (스텝 제거), 파일 끝에 새 잡 추가
+- Create: `scripts/build-supabase-db-url.sh`
+- Modify: `.github/workflows/ci.yml:150-197` (마스킹 스텝을 스크립트 호출로, 검증 스텝 제거), 파일 끝에 새 잡 추가
 
 **분리한 잡이 지켜야 할 세 조건:**
 
 - `migrate` 이후에 돈다. `needs: [migrate]` + `if: always() && needs.migrate.result != 'failure'` — "적용 성공 **또는** 정상 skip 후 실행". `needs`만 붙이면 평상시(`has_changes=false`) 함께 skip돼 분리한 의미가 사라지고, `needs` 없이 두면 새 마이그레이션 푸시에서 **적용 전** 원격을 조회해 정상 푸시가 빨간불이 된다.
 - **PR에서는 돌리지 않는다.** 포크 PR에는 secrets가 없어 DB URL 검사에서 `exit 1`이 난다. 항상 빨간불이면 드리프트 신호로서 무의미하다.
-- **마스킹을 그대로 복사한다.** 원본 secret은 자동 마스킹되지만 `[YOUR-PASSWORD]` 치환 후의 인코딩된 파생 값은 별도 마스킹 없이 로그에 남는다.
+- **마스킹이 두 잡 모두에 걸린다.** 원본 secret은 자동 마스킹되지만 `[YOUR-PASSWORD]` 치환 후의 인코딩된 파생 값은 별도 마스킹 없이 로그에 남는다. 스펙은 "마스킹을 그대로 복사한다"고 적었지만, **30줄을 두 벌 두는 대신 공유 스크립트로 뺀다** — 마스킹·검증 로직은 그대로 보존되고 한쪽만 고쳐지는 사고를 막는다. `scripts/check-migrations.sh`가 이미 같은 패턴이다.
 
-- [ ] **Step 1: `migrate`에서 검증 스텝을 뺀다**
+- [ ] **Step 1: DB URL 구성을 공유 스크립트로 뺀다**
+
+`scripts/build-supabase-db-url.sh` (신규):
+
+```bash
+#!/usr/bin/env bash
+
+# `migrate`와 `verify-migration-history` 잡이 공유한다.
+# 원본 secret은 자동 마스킹되지만 `[YOUR-PASSWORD]` 치환 후의 인코딩된 파생 값은
+# 별도 마스킹 없이는 로그에 그대로 남는다. 두 잡이 같은 마스킹을 받도록
+# 로직을 한 곳에만 둔다.
+
+set -euo pipefail
+
+if [[ -z "${SUPABASE_DB_URL_TEMPLATE:-}" || -z "${SUPABASE_DB_PASSWORD:-}" ]]; then
+  echo "::error::Configure SUPABASE_DB_URL and SUPABASE_DB_PASSWORD in the production environment or repository secrets."
+  exit 1
+fi
+if [[ "$SUPABASE_DB_URL_TEMPLATE" != *".pooler.supabase.com:5432/"* ]]; then
+  echo "::error::SUPABASE_DB_URL must be the IPv4-compatible Session pooler URI on port 5432."
+  exit 1
+fi
+if [[ "$SUPABASE_DB_URL_TEMPLATE" != *"[YOUR-PASSWORD]"* ]]; then
+  echo "::error::SUPABASE_DB_URL must retain the [YOUR-PASSWORD] placeholder."
+  exit 1
+fi
+
+encoded_password="$(
+  node -e 'process.stdout.write(encodeURIComponent(process.env.SUPABASE_DB_PASSWORD))'
+)"
+database_url="${SUPABASE_DB_URL_TEMPLATE/\[YOUR-PASSWORD\]/$encoded_password}"
+
+echo "::add-mask::$encoded_password"
+echo "::add-mask::$database_url"
+echo "SUPABASE_MIGRATION_DB_URL=$database_url" >> "$GITHUB_ENV"
+```
+
+`.github/workflows/ci.yml` — `migrate` 잡의 `Build masked database connection` 스텝(150–175행) **전체**를 아래로 줄인다:
+
+```yaml
+      - name: Build masked database connection
+        shell: bash
+        run: bash scripts/build-supabase-db-url.sh
+```
+
+- [ ] **Step 2: `migrate`에서 검증 스텝을 빼고 새 잡을 추가한다**
 
 `.github/workflows/ci.yml` — 183–197행의 `Verify local and remote migration history` 스텝 전체를 삭제한다. `migrate` 잡은 `Apply pending migrations`에서 끝난다.
 
-- [ ] **Step 2: 새 잡을 추가한다**
+파일 끝에 새 잡을 추가한다:
 
 `.github/workflows/ci.yml` 파일 끝에 추가:
 
@@ -1487,30 +1534,7 @@ git commit -m "feat(db): 건물별 보완 플래그 뷰 추가하고 요약 함�
 
       - name: Build masked database connection
         shell: bash
-        run: |
-          set -euo pipefail
-
-          if [[ -z "$SUPABASE_DB_URL_TEMPLATE" || -z "$SUPABASE_DB_PASSWORD" ]]; then
-            echo "::error::Configure SUPABASE_DB_URL and SUPABASE_DB_PASSWORD in the production environment or repository secrets."
-            exit 1
-          fi
-          if [[ "$SUPABASE_DB_URL_TEMPLATE" != *".pooler.supabase.com:5432/"* ]]; then
-            echo "::error::SUPABASE_DB_URL must be the IPv4-compatible Session pooler URI on port 5432."
-            exit 1
-          fi
-          if [[ "$SUPABASE_DB_URL_TEMPLATE" != *"[YOUR-PASSWORD]"* ]]; then
-            echo "::error::SUPABASE_DB_URL must retain the [YOUR-PASSWORD] placeholder."
-            exit 1
-          fi
-
-          encoded_password="$(
-            node -e 'process.stdout.write(encodeURIComponent(process.env.SUPABASE_DB_PASSWORD))'
-          )"
-          database_url="${SUPABASE_DB_URL_TEMPLATE/\[YOUR-PASSWORD\]/$encoded_password}"
-
-          echo "::add-mask::$encoded_password"
-          echo "::add-mask::$database_url"
-          echo "SUPABASE_MIGRATION_DB_URL=$database_url" >> "$GITHUB_ENV"
+        run: bash scripts/build-supabase-db-url.sh
 
       - name: Compare migration files with applied versions
         shell: bash
@@ -1542,13 +1566,16 @@ git commit -m "feat(db): 건물별 보완 플래그 뷰 추가하고 요약 함�
 Run: `npx --yes yaml-lint .github/workflows/ci.yml` (없으면 `node -e "require('fs').readFileSync('.github/workflows/ci.yml','utf8')"` 대신 GitHub Actions 탭에서 파싱 오류를 확인)
 Expected: 파싱 오류 없음
 
+Run: `bash -n scripts/build-supabase-db-url.sh`
+Expected: 문법 오류 없음
+
 Run: `npm run format:check`
 Expected: 통과 (Prettier가 YAML도 검사한다. 실패하면 `npx prettier --write .github/workflows/ci.yml`)
 
 - [ ] **Step 4: 커밋**
 
 ```bash
-git add .github/workflows/ci.yml
+git add .github/workflows/ci.yml scripts/build-supabase-db-url.sh
 git commit -m "ci: 마이그레이션 이력 검증을 별도 잡으로 분리하고 jq 의존 제거"
 ```
 
@@ -1960,7 +1987,9 @@ git commit -m "fix(admin): 모바일 건물 카드 텍스트를 왼쪽 정렬"
 
 ---
 
-### Task 12: 요약 카드 마크업 전환과 실패 상태
+### Task 12: 요약 카드 전환·실패 상태·경고 카드 필터
+
+**마크업 전환과 필터 배선을 한 태스크로 묶는다.** 둘을 나누면 중간 커밋에 "눌러도 아무 일 없는 버튼"이 남는데, 그것은 스펙이 총계 카드에 대해 명시적으로 금지한 상태다(`눌리지 않는 버튼을 두면 키보드 사용자가 포커스를 받고도 아무 일이 없는 상태를 만난다`).
 
 카드를 `<button>`으로 바꾸려면 `<dl>`을 함께 바꿔야 한다. `<dl>`의 직계 자식으로 허용되는 것은 `<dt>`·`<dd>`와 그 둘을 묶는 `<div>`뿐이라 `<button>`은 유효하지 않고, 반대로 `<dt>`·`<dd>`는 `<button>` 안에 들어갈 수 있는 내용이 아니다. 양쪽에서 깨지므로 브라우저가 DOM을 교정하고 React는 중첩 경고를 낸다.
 
@@ -1968,14 +1997,14 @@ git commit -m "fix(admin): 모바일 건물 카드 텍스트를 왼쪽 정렬"
 
 **Files:**
 
-- Modify: `src/app/admin/dashboard/buildings/page.tsx:28-78`(로컬 타입·상수 제거), `:104-121`(fetchSummary), `:199-249`(헤딩·요약)
+- Modify: `src/app/admin/dashboard/buildings/page.tsx:28-78`(로컬 타입·상수 제거), `:104-121`(fetchSummary), `:123-169`(fetchData), `:199-271`(헤딩·요약·컨트롤·빈 상태)
 - Modify: `src/app/admin/admin-ui.css:180-220`
 - Modify: `e2e/support/mockBackend.ts:388-424`
 
 **Interfaces:**
 
-- Consumes: Task 10의 `ADMIN_SUMMARY_ITEMS`, `AdminBuildingSummary`, `resolveSummary`
-- Produces: `activeFlag` 상태와 `toggleFlag`는 Task 13에서 붙인다. 이 태스크에서는 **필터 없이** 마크업·실패 상태만 바꾼다.
+- Consumes: Task 10의 `ADMIN_SUMMARY_ITEMS`, `ADMIN_BUILDING_FLAG_LABELS`, `AdminBuildingSummary`, `AdminBuildingFlagKey`, `resolveSummary`, `resolveFlagFilter`; Task 8의 `admin_building_flags` 뷰와 그 생성 타입
+- Produces: 없음 (화면 종단)
 
 - [ ] **Step 1: mock RPC에 새 컬럼을 추가한다**
 
@@ -1993,27 +2022,45 @@ git commit -m "fix(admin): 모바일 건물 카드 텍스트를 왼쪽 정렬"
 
 이걸 빼면 `번역 필요` 카드가 `건물 undefined개`로 렌더된다.
 
-- [ ] **Step 2: 페이지에서 로컬 타입·상수를 걷어낸다**
+- [ ] **Step 2: 로컬 타입·상수를 걷어내고 상태·토글을 추가한다**
 
 `src/app/admin/dashboard/buildings/page.tsx` — 28–78행의 `interface AdminBuildingSummary`와 `const summaryItems` 블록을 **전부 삭제**하고, import에 추가한다:
 
 ```ts
 import {
+  ADMIN_BUILDING_FLAG_LABELS,
   ADMIN_SUMMARY_ITEMS,
+  resolveFlagFilter,
   resolveSummary,
+  type AdminBuildingFlagKey,
   type AdminBuildingSummary,
 } from "@/lib/adminBuildingSummary";
 ```
 
-- [ ] **Step 3: `fetchSummary`가 세 결과의 오류를 모두 본다**
-
-`src/app/admin/dashboard/buildings/page.tsx` — 상태에 추가:
+컴포넌트 상태에 셋을 추가한다:
 
 ```ts
   const [summaryError, setSummaryError] = useState(false);
+  const [activeFlag, setActiveFlag] = useState<AdminBuildingFlagKey | null>(
+    null,
+  );
+  const [listError, setListError] = useState(false);
 ```
 
-`fetchSummary`를 아래로 바꾼다:
+`campusByBuilding` useMemo 위에 토글 함수를 둔다:
+
+```ts
+  // 필터는 한 번에 하나만. 같은 카드를 다시 누르면 꺼진다.
+  // 페이지를 1로 되돌리지 않으면 결과가 1페이지뿐인데 3페이지에 머무는 일이 생긴다.
+  function toggleFlag(flag: AdminBuildingFlagKey) {
+    setActiveFlag((current) => (current === flag ? null : flag));
+    setPage(1);
+  }
+```
+
+- [ ] **Step 3: `fetchSummary`가 세 결과의 오류를 모두 본다**
+
+`src/app/admin/dashboard/buildings/page.tsx` — `fetchSummary`를 아래로 바꾼다:
 
 ```ts
   const fetchSummary = useCallback(async () => {
@@ -2041,242 +2088,7 @@ import {
   }, []);
 ```
 
-- [ ] **Step 4: 헤딩 캡션도 실패 상태를 따른다**
-
-`총 N개 · 삭제됨 M개`는 실패한 count에서 온 값일 수 있다. 요약이 실패하면 숫자를 보여주지 않는다:
-
-```tsx
-          <h1 className="ku-admin-title">건물 관리</h1>
-          <p className="ku-admin-caption">
-            {summaryError
-              ? "건물 수를 불러오지 못했어요"
-              : `총 ${overallTotalCount}개 · 삭제됨 ${deletedCount}개`}
-          </p>
-```
-
-- [ ] **Step 5: `<dl>`을 `<div>`로 바꾸고 카드를 그린다**
-
-`src/app/admin/dashboard/buildings/page.tsx` — `<dl className="ku-admin-overview"> … </dl>` 전체를 아래로 교체한다:
-
-```tsx
-      {summaryError ? (
-        <div className="ku-admin-overview-error" role="status">
-          <span>요약을 불러오지 못했어요.</span>
-          <button
-            className="ku-admin-button"
-            type="button"
-            disabled={refreshing}
-            onClick={() => void handleRefresh()}
-          >
-            다시 시도
-          </button>
-        </div>
-      ) : (
-        <div
-          className="ku-admin-overview"
-          role="group"
-          aria-label="관리자 보완 현황"
-        >
-          {ADMIN_SUMMARY_ITEMS.map((item) => {
-            const body = (
-              <>
-                <span className="ku-admin-overview-label">{item.label}</span>
-                <span className="ku-admin-overview-value">
-                  {summary ? (
-                    item.parts(summary).map((part, index) => (
-                      <span
-                        className="ku-admin-overview-part"
-                        key={part.prefix ?? index}
-                      >
-                        {part.prefix && <span>{part.prefix}</span>}
-                        <strong>{part.value}</strong>
-                        <span>개</span>
-                      </span>
-                    ))
-                  ) : (
-                    <strong>—</strong>
-                  )}
-                </span>
-              </>
-            );
-            const warning = Boolean(
-              item.flag && summary && item.warningValue(summary) > 0,
-            );
-            // 클릭 대상이 아닌 총계 카드는 button으로 만들지 않는다.
-            // 눌리지 않는 버튼은 키보드 사용자가 포커스를 받고도 아무 일이 없다.
-            return item.flag ? (
-              <button
-                className="ku-admin-overview-item"
-                type="button"
-                data-warning={warning}
-                key={item.id}
-                title={item.description}
-              >
-                {body}
-              </button>
-            ) : (
-              <div
-                className="ku-admin-overview-item"
-                data-warning={warning}
-                key={item.id}
-                title={item.description}
-              >
-                {body}
-              </div>
-            );
-          })}
-        </div>
-      )}
-```
-
-- [ ] **Step 6: CSS의 `dt`·`dd` 선택자를 클래스로 바꾸고 버튼 스타일을 넣는다**
-
-`src/app/admin/admin-ui.css` — 186–220행을 아래로 교체한다:
-
-```css
-.ku-admin-overview-item {
-  display: block;
-  min-width: 0;
-  padding: 12px 13px;
-  border: 1px solid var(--ku-border);
-  border-radius: 10px;
-  /* button은 브라우저 기본값이 text-align: center이고 color도 상속하지 않는다.
-     둘 다 명시하지 않으면 카드 안 텍스트가 가운데로 가고 색이 어긋난다.
-     (globals.css 리셋은 button에 font: inherit만 준다) */
-  text-align: left;
-  color: var(--ku-text-1);
-  background: var(--ku-surface);
-}
-button.ku-admin-overview-item {
-  cursor: pointer;
-}
-.ku-admin-overview-item[aria-pressed="true"] {
-  border-color: var(--ku-crimson-600);
-  box-shadow: inset 0 0 0 1px var(--ku-crimson-600);
-}
-.ku-admin-overview-label {
-  display: block;
-  overflow: hidden;
-  color: var(--ku-text-3);
-  font-size: 11.5px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ku-admin-overview-value {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 3px;
-  margin: 5px 0 0;
-  color: var(--ku-text-2);
-  font-size: 12px;
-}
-.ku-admin-overview-part {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 3px;
-}
-.ku-admin-overview-part + .ku-admin-overview-part::before {
-  content: "·";
-  margin-right: 3px;
-}
-.ku-admin-overview-item strong {
-  color: var(--ku-text-1);
-  font-size: 20px;
-  line-height: 1;
-}
-.ku-admin-overview-item[data-warning="true"] {
-  border-color: color-mix(in srgb, #d97706 45%, var(--ku-border));
-  background: color-mix(in srgb, #fffbeb 60%, var(--ku-surface));
-}
-.ku-admin-overview-item[data-warning="true"] strong {
-  color: #92400e;
-}
-.ku-admin-overview-error {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 0 0 16px;
-  padding: 12px 13px;
-  border: 1px solid var(--ku-border);
-  border-radius: 10px;
-  color: var(--ku-text-2);
-  background: var(--ku-surface);
-  font-size: 13px;
-}
-```
-
-원래 186–192행의 `.ku-admin-overview-item` 정의와 193–220행의 `dt`/`dd`/`strong`/`data-warning` 규칙을 위 블록이 대체한다. 180–185행의 `.ku-admin-overview` 그리드 규칙과 820–825행의 모바일 규칙은 **그대로 둔다.**
-
-- [ ] **Step 7: 검증**
-
-Run: `npm run typecheck && npm run lint && npm run test`
-Expected: 통과
-
-Run: `npx playwright test e2e/admin-buildings-slopes.spec.ts -g "건물 보완 필요 현황"`
-Expected: PASS. `overview.getByText("등록된 시설").locator("..")`는 이제 카드 `<div>`를 가리키고 여전히 `2개`를 담는다. `번역 필요`는 `시설 1개 · 건물 1개`라 `1개`를 담는다.
-
-수동: `npm run dev` → `/admin/dashboard/buildings` → DevTools 콘솔
-Expected: **DOM 중첩 경고가 없다.** 이것이 컨테이너 구조 변경의 회귀 신호다.
-
-- [ ] **Step 8: 커밋**
-
-```bash
-npx prettier --write src/app/admin/dashboard/buildings/page.tsx src/app/admin/admin-ui.css e2e/support/mockBackend.ts
-git add src/app/admin/dashboard/buildings/page.tsx src/app/admin/admin-ui.css e2e/support/mockBackend.ts
-git commit -m "fix(admin): 요약 조회 실패를 화면에 드러내고 카드를 버튼 가능 구조로 전환"
-```
-
----
-
-### Task 13: 경고 카드 클릭 → 목록 필터
-
-**Files:**
-
-- Modify: `src/app/admin/dashboard/buildings/page.tsx` — 상태·`fetchData`·요약 카드 `onClick`/`aria-pressed`·`AdminListControls`·빈 상태
-
-**Interfaces:**
-
-- Consumes: Task 10의 `AdminBuildingFlagKey`, `ADMIN_BUILDING_FLAG_LABELS`, `resolveFlagFilter`; Task 8의 `admin_building_flags` 뷰와 그 생성 타입
-
-- [ ] **Step 1: 상태와 토글을 추가한다**
-
-`src/app/admin/dashboard/buildings/page.tsx` — import를 넓힌다:
-
-```ts
-import {
-  ADMIN_BUILDING_FLAG_LABELS,
-  ADMIN_SUMMARY_ITEMS,
-  resolveFlagFilter,
-  resolveSummary,
-  type AdminBuildingFlagKey,
-  type AdminBuildingSummary,
-} from "@/lib/adminBuildingSummary";
-```
-
-상태를 추가한다:
-
-```ts
-  const [activeFlag, setActiveFlag] = useState<AdminBuildingFlagKey | null>(
-    null,
-  );
-  const [listError, setListError] = useState(false);
-```
-
-`campusByBuilding` useMemo 위에 토글 함수를 둔다:
-
-```ts
-  // 필터는 한 번에 하나만. 같은 카드를 다시 누르면 꺼진다.
-  // 페이지를 1로 되돌리지 않으면 결과가 1페이지뿐인데 3페이지에 머무는 일이 생긴다.
-  function toggleFlag(flag: AdminBuildingFlagKey) {
-    setActiveFlag((current) => (current === flag ? null : flag));
-    setPage(1);
-  }
-```
-
-- [ ] **Step 2: `fetchData`가 플래그를 먼저 조회한다**
+- [ ] **Step 4: `fetchData`가 플래그를 먼저 조회한다**
 
 `src/app/admin/dashboard/buildings/page.tsx` — `fetchData`를 아래로 바꾼다:
 
@@ -2363,11 +2175,70 @@ import {
   }, [activeFlag, debouncedSearch, page]);
 ```
 
-- [ ] **Step 3: 카드에 클릭과 눌린 상태를 붙인다**
+- [ ] **Step 5: 헤딩 캡션도 실패 상태를 따른다**
 
-Task 12에서 만든 `<button className="ku-admin-overview-item">`에 두 속성을 추가한다:
+`총 N개 · 삭제됨 M개`는 실패한 count에서 온 값일 수 있다. 요약이 실패하면 숫자를 보여주지 않는다:
 
 ```tsx
+          <h1 className="ku-admin-title">건물 관리</h1>
+          <p className="ku-admin-caption">
+            {summaryError
+              ? "건물 수를 불러오지 못했어요"
+              : `총 ${overallTotalCount}개 · 삭제됨 ${deletedCount}개`}
+          </p>
+```
+
+- [ ] **Step 6: `<dl>`을 `<div>`로 바꾸고 카드를 그린다**
+
+`src/app/admin/dashboard/buildings/page.tsx` — `<dl className="ku-admin-overview"> … </dl>` 전체를 아래로 교체한다:
+
+```tsx
+      {summaryError ? (
+        <div className="ku-admin-overview-error" role="status">
+          <span>요약을 불러오지 못했어요.</span>
+          <button
+            className="ku-admin-button"
+            type="button"
+            disabled={refreshing}
+            onClick={() => void handleRefresh()}
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : (
+        <div
+          className="ku-admin-overview"
+          role="group"
+          aria-label="관리자 보완 현황"
+        >
+          {ADMIN_SUMMARY_ITEMS.map((item) => {
+            const body = (
+              <>
+                <span className="ku-admin-overview-label">{item.label}</span>
+                <span className="ku-admin-overview-value">
+                  {summary ? (
+                    item.parts(summary).map((part, index) => (
+                      <span
+                        className="ku-admin-overview-part"
+                        key={part.prefix ?? index}
+                      >
+                        {part.prefix && <span>{part.prefix}</span>}
+                        <strong>{part.value}</strong>
+                        <span>개</span>
+                      </span>
+                    ))
+                  ) : (
+                    <strong>—</strong>
+                  )}
+                </span>
+              </>
+            );
+            const warning = Boolean(
+              item.flag && summary && item.warningValue(summary) > 0,
+            );
+            // 클릭 대상이 아닌 총계 카드는 button으로 만들지 않는다.
+            // 눌리지 않는 버튼은 키보드 사용자가 포커스를 받고도 아무 일이 없다.
+            return item.flag ? (
               <button
                 className="ku-admin-overview-item"
                 type="button"
@@ -2379,9 +2250,103 @@ Task 12에서 만든 `<button className="ku-admin-overview-item">`에 두 속성
               >
                 {body}
               </button>
+            ) : (
+              <div
+                className="ku-admin-overview-item"
+                data-warning={warning}
+                key={item.id}
+                title={item.description}
+              >
+                {body}
+              </div>
+            );
+          })}
+        </div>
+      )}
 ```
 
-- [ ] **Step 4: 초기화 경로가 필터도 본다**
+- [ ] **Step 7: CSS의 `dt`·`dd` 선택자를 클래스로 바꾸고 버튼 스타일을 넣는다**
+
+`src/app/admin/admin-ui.css` — 186–220행을 아래로 교체한다:
+
+```css
+.ku-admin-overview-item {
+  display: block;
+  min-width: 0;
+  padding: 12px 13px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  /* button은 브라우저 기본값이 text-align: center이고 color도 상속하지 않는다.
+     둘 다 명시하지 않으면 카드 안 텍스트가 가운데로 가고 색이 어긋난다.
+     (globals.css 리셋은 button에 font: inherit만 준다) */
+  text-align: left;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+}
+button.ku-admin-overview-item {
+  cursor: pointer;
+}
+.ku-admin-overview-item[aria-pressed="true"] {
+  border-color: var(--ku-crimson-600);
+  box-shadow: inset 0 0 0 1px var(--ku-crimson-600);
+}
+.ku-admin-overview-label {
+  display: block;
+  overflow: hidden;
+  color: var(--ku-text-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ku-admin-overview-value {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 5px 0 0;
+  color: var(--ku-text-2);
+  font-size: 12px;
+}
+.ku-admin-overview-part {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.ku-admin-overview-part + .ku-admin-overview-part::before {
+  content: "·";
+  margin-right: 3px;
+}
+.ku-admin-overview-item strong {
+  color: var(--ku-text-1);
+  font-size: 20px;
+  line-height: 1;
+}
+.ku-admin-overview-item[data-warning="true"] {
+  border-color: color-mix(in srgb, #d97706 45%, var(--ku-border));
+  background: color-mix(in srgb, #fffbeb 60%, var(--ku-surface));
+}
+.ku-admin-overview-item[data-warning="true"] strong {
+  color: #92400e;
+}
+.ku-admin-overview-error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 13px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  color: var(--ku-text-2);
+  background: var(--ku-surface);
+  font-size: 13px;
+}
+```
+
+원래 186–192행의 `.ku-admin-overview-item` 정의와 193–220행의 `dt`/`dd`/`strong`/`data-warning` 규칙을 위 블록이 대체한다. 180–185행의 `.ku-admin-overview` 그리드 규칙과 820–825행의 모바일 규칙은 **그대로 둔다.**
+
+- [ ] **Step 8: 초기화 경로와 빈·오류 상태**
 
 `AdminListControls` 호출을 바꾼다. 지금은 검색어만 보고 있다:
 
@@ -2394,7 +2359,7 @@ Task 12에서 만든 `<button className="ku-admin-overview-item">`에 두 속성
         }}
 ```
 
-- [ ] **Step 5: 빈 상태와 오류 상태를 구분한다**
+목록 분기를 아래로 바꾼다:
 
 ```tsx
       {loading ? (
@@ -2420,25 +2385,28 @@ Task 12에서 만든 `<button className="ku-admin-overview-item">`에 두 속성
       ) : (
 ```
 
-- [ ] **Step 6: 검증**
+- [ ] **Step 9: 검증**
 
 Run: `npm run typecheck && npm run lint && npm run test`
 Expected: 통과. `supabase.from("admin_building_flags")`가 타입 오류를 내면 Task 8 Step 3의 `database.types.ts` 편집이 빠진 것이다.
 
 Run: `npx playwright test e2e/admin-buildings-slopes.spec.ts`
-Expected: PASS (7 tests). mock은 `admin_building_flags`를 모르는 relation으로 보고 빈 배열을 돌려주므로, 카드를 누르면 항상 0건이 된다 — **기존 테스트는 카드를 누르지 않으므로 영향이 없다.**
+Expected: PASS (7 tests). `overview.getByText("등록된 시설").locator("..")`는 이제 카드 `<div>`를 가리키고 여전히 `2개`를 담는다. `번역 필요`는 `시설 1개 · 건물 1개`라 `1개`를 담는다. mock은 `admin_building_flags`를 모르는 relation으로 보고 빈 배열을 돌려주지만 **기존 테스트는 카드를 누르지 않으므로 영향이 없다.**
 
-- [ ] **Step 7: 커밋**
+수동: `npm run dev` → `/admin/dashboard/buildings` → DevTools 콘솔
+Expected: **DOM 중첩 경고가 없다.** 이것이 컨테이너 구조 변경의 회귀 신호다.
+
+- [ ] **Step 10: 커밋**
 
 ```bash
-npx prettier --write src/app/admin/dashboard/buildings/page.tsx
-git add src/app/admin/dashboard/buildings/page.tsx
-git commit -m "feat(admin): 경고 카드를 눌러 해당 건물만 목록에 거른다"
+npx prettier --write src/app/admin/dashboard/buildings/page.tsx src/app/admin/admin-ui.css e2e/support/mockBackend.ts
+git add src/app/admin/dashboard/buildings/page.tsx src/app/admin/admin-ui.css e2e/support/mockBackend.ts
+git commit -m "feat(admin): 요약 실패를 화면에 드러내고 경고 카드로 목록을 거른다"
 ```
 
 ---
 
-### Task 14: 수동 검증
+### Task 13: 수동 검증
 
 **E2E는 이번 핵심 계약을 잡지 못한다.** mock 백엔드는 모르는 relation에 빈 배열을 돌려주므로 `admin_building_flags`가 항상 0건이 되고, id 필터도 `eq.`만 처리해 `in.(...)`을 모른다. 요약 mock의 stale 기준도 고정 날짜라 DB의 `current_date - 365`와 이미 갈라져 있다. **"카드 숫자와 목록 개수 일치"는 수동 검증으로만 확인된다.** 이 항목에 E2E 초록불을 근거로 삼지 않는다.
 
