@@ -12,7 +12,10 @@ import {
 import L from "leaflet";
 import type { Feature, FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
-import { supabase } from "@/lib/supabaseClient";
+import {
+  NEIGHBOR_STYLE,
+  fetchNeighborBuildings,
+} from "@/lib/neighborBuildings";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 
@@ -62,28 +65,12 @@ export default function FacilityMap({
 
   useEffect(() => {
     let cancelled = false;
-    supabase
-      .from("buildings")
-      .select("id, name, geojson")
-      .eq("is_deleted", false)
-      .not("geojson", "is", null)
-      .then(({ data }) => {
-        if (cancelled) return;
-        setBuildingFeatures(
-          (data ?? [])
-            .filter((b) => (b.geojson as unknown as Feature | null)?.geometry)
-            .map((b) => {
-              const g = b.geojson as unknown as Feature;
-              return {
-                ...g,
-                properties: {
-                  ...(g.properties ?? {}),
-                  bid: b.id,
-                  name: b.name,
-                },
-              };
-            }),
-        );
+    void fetchNeighborBuildings()
+      .then((features) => {
+        if (!cancelled) setBuildingFeatures(features);
+      })
+      .catch(() => {
+        // 배경 건물은 보조 정보다. 실패해도 시설 위치 선택은 계속할 수 있다.
       });
     return () => {
       cancelled = true;
@@ -135,12 +122,7 @@ export default function FacilityMap({
                     fillColor: "#2563EB",
                     fillOpacity: 0.15,
                   }
-                : {
-                    color: "#9ca3af",
-                    weight: 1,
-                    fillColor: "#9ca3af",
-                    fillOpacity: 0.2,
-                  }
+                : NEIGHBOR_STYLE
             }
             interactive={false}
             onEachFeature={(f, layer) => {
