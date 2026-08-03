@@ -28,6 +28,11 @@ const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
   ssr: false,
 });
 
+const BuildingPolygonPreview = dynamic(
+  () => import("@/components/BuildingPolygonPreview"),
+  { ssr: false },
+);
+
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
 const DETAIL_SECTIONS = [
@@ -633,6 +638,16 @@ export default function BuildingDetail() {
               </button>
             )}
           </div>
+
+          {!editingPolygon && building.geojson && (
+            <div style={{ marginTop: 16 }}>
+              <BuildingPolygonPreview
+                key={JSON.stringify(building.geojson)}
+                geojson={building.geojson as unknown as Feature<Polygon>}
+                buildingId={id}
+              />
+            </div>
+          )}
 
           {editingPolygon && (
             <PolygonEditor
