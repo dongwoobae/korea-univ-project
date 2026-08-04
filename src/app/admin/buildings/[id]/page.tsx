@@ -18,6 +18,7 @@ import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
+import BulkRetranslateButton from "@/components/admin/BulkRetranslateButton";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
 import FacilityDetailModal from "@/components/admin/FacilityDetailModal";
 import { getFacilityBadges } from "@/lib/facilityBadges";
@@ -673,14 +674,21 @@ export default function BuildingDetail() {
             }}
           >
             <div style={{ fontSize: 15, fontWeight: 600 }}>시설 현황</div>
-            <AddFacilityButton
-              buildingId={id}
-              center={buildingCenter}
-              facilityTypes={facilityTypes}
-              onAdd={fetchData}
-              showToast={showToast}
-              buttonRef={addFacilityRef}
-            />
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <BulkRetranslateButton
+                facilities={facilities}
+                onDone={fetchData}
+                showToast={showToast}
+              />
+              <AddFacilityButton
+                buildingId={id}
+                center={buildingCenter}
+                facilityTypes={facilityTypes}
+                onAdd={fetchData}
+                showToast={showToast}
+                buttonRef={addFacilityRef}
+              />
+            </div>
           </div>
 
           {facilities.length === 0 ? (

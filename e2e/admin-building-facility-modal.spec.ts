@@ -107,4 +107,32 @@ test.describe("건물 상세 시설 모달", () => {
       page.getByText("이 시설의 동영상도 함께 삭제됩니다"),
     ).toHaveCount(0);
   });
+
+  test("번역 필요 건수를 헤더에 드러내고 일괄 재번역하면 배지가 사라진다", async ({
+    page,
+  }) => {
+    const bulk = page.getByRole("button", { name: /전부 재번역/ });
+    await expect(bulk).toContainText("번역 필요 1건");
+    await bulk.click();
+    await expect(
+      page.getByRole("button", { name: /지하 1층 엘리베이터/ }),
+    ).not.toContainText("번역 필요");
+    await expect(bulk).toHaveCount(0);
+  });
+
+  test("번역이 다시 실패하면 배지가 그대로 남는다", async ({ page }) => {
+    await page.route("**/api/translate", (route) =>
+      route.fulfill({ status: 500, json: { error: "translate failed" } }),
+    );
+
+    await page.getByRole("button", { name: /전부 재번역/ }).click();
+
+    await expect(page.getByText("1건은 다시 실패했어요")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /지하 1층 엘리베이터/ }),
+    ).toContainText("번역 필요");
+    await expect(
+      page.getByRole("button", { name: /전부 재번역/ }),
+    ).toBeVisible();
+  });
 });
