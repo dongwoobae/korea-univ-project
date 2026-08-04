@@ -338,7 +338,7 @@ export default function BuildingDetail() {
         {/* 건물 사진 */}
         <div
           id="building-photos"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--photos"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -356,7 +356,7 @@ export default function BuildingDetail() {
         {/* 건물명 수정 */}
         <div
           id="building-name"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--name"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -463,7 +463,7 @@ export default function BuildingDetail() {
         {/* 소속 단과대학 */}
         <div
           id="building-college"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--college"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -533,7 +533,7 @@ export default function BuildingDetail() {
         {/* 폴리곤 편집 */}
         <div
           id="building-polygon"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--polygon"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -632,7 +632,7 @@ export default function BuildingDetail() {
         {/* 시설 목록 */}
         <div
           id="building-facilities"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--facilities"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -762,12 +762,12 @@ export default function BuildingDetail() {
             <button
               onClick={handleRestoreBuilding}
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 color: "#fff",
                 background: "var(--ku-primary)",
-                border: "none",
+                border: "1px solid var(--ku-primary)",
                 borderRadius: 6,
-                padding: "8px 20px",
+                padding: "6px 14px",
                 cursor: "pointer",
               }}
             >
@@ -778,12 +778,12 @@ export default function BuildingDetail() {
             <button
               onClick={() => setConfirmDeleteBuilding(true)}
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 color: "var(--ku-danger)",
                 background: "none",
                 border: "1px solid var(--ku-danger)",
                 borderRadius: 6,
-                padding: "8px 20px",
+                padding: "6px 14px",
                 cursor: "pointer",
               }}
             >

@@ -579,32 +579,37 @@
   margin: 0 auto;
   padding: 24px;
 }
-.ku-admin-detail-grid > div {
+.ku-admin-detail-grid > .ku-admin-detail-card {
   margin: 0 !important;
   color: var(--ku-text-1);
   border-color: var(--ku-border) !important;
   border-radius: 12px !important;
   background: var(--ku-surface) !important;
 }
-.ku-admin-detail-grid > div:nth-child(1) {
+/* DOM 순서가 아니라 카드의 의미로 배치한다. nth-child로 두면 카드를 하나
+   더 붙일 때 배치 규칙 없는 자식이 다시 생긴다. */
+.ku-admin-detail-card--photos {
   grid-column: 1;
   grid-row: 2;
 }
-.ku-admin-detail-grid > div:nth-child(2) {
+.ku-admin-detail-card--name {
   grid-column: 1;
   grid-row: 1;
 }
-.ku-admin-detail-grid > div:nth-child(3) {
+.ku-admin-detail-card--college {
   grid-column: 1;
   grid-row: 3;
 }
-.ku-admin-detail-grid > div:nth-child(4) {
+.ku-admin-detail-card--polygon {
   grid-column: 2;
   grid-row: 2 / span 2;
 }
-.ku-admin-detail-grid > div:nth-child(5) {
+.ku-admin-detail-card--facilities {
   grid-column: 2;
   grid-row: 1;
+}
+.ku-admin-detail-danger {
+  grid-column: 1 / -1;
 }
 .ku-admin-detail-grid input,
 .ku-admin-detail-grid select,
