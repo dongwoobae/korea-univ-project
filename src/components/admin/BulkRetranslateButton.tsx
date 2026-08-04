@@ -17,16 +17,17 @@ export default function BulkRetranslateButton({
   onDone,
   showToast,
 }: BulkRetranslateButtonProps) {
-  const [progress, setProgress] = useState<number | null>(null);
+  const [run, setRun] = useState<{ total: number; done: number } | null>(null);
   const targets = facilities.filter(facilityNeedsTranslation);
 
   if (targets.length === 0) return null;
 
   async function handleClick() {
+    const batch = targets;
     let failed = 0;
     // 파파고를 병렬로 두들기지 않는다.
-    for (const [index, facility] of targets.entries()) {
-      setProgress(index + 1);
+    for (const [index, facility] of batch.entries()) {
+      setRun({ total: batch.length, done: index + 1 });
       const ok = await translateFacility(facility);
       if (!ok) failed += 1;
     }
@@ -34,11 +35,11 @@ export default function BulkRetranslateButton({
     await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
       () => {},
     );
-    setProgress(null);
+    setRun(null);
     await onDone();
     showToast(
       failed === 0
-        ? `${targets.length}건을 번역했어요`
+        ? `${batch.length}건을 번역했어요`
         : `${failed}건은 다시 실패했어요`,
       failed === 0 ? "success" : "warning",
     );
@@ -48,7 +49,7 @@ export default function BulkRetranslateButton({
     <button
       type="button"
       onClick={handleClick}
-      disabled={progress !== null}
+      disabled={run !== null}
       className="ku-admin-row-action"
       style={{
         fontSize: 12,
@@ -58,12 +59,12 @@ export default function BulkRetranslateButton({
         background: "var(--ku-surface)",
         color: "#92400e",
         fontWeight: 600,
-        cursor: progress !== null ? "wait" : "pointer",
+        cursor: run !== null ? "wait" : "pointer",
         whiteSpace: "nowrap",
       }}
     >
-      {progress !== null
-        ? `${targets.length}건 중 ${progress}건`
+      {run
+        ? `${run.total}건 중 ${run.done}건`
         : `번역 필요 ${targets.length}건 · 전부 재번역`}
     </button>
   );

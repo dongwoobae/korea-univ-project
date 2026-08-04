@@ -671,10 +671,19 @@ export default function BuildingDetail() {
               justifyContent: "space-between",
               alignItems: "center",
               marginBottom: 16,
+              flexWrap: "wrap",
+              gap: 8,
             }}
           >
             <div style={{ fontSize: 15, fontWeight: 600 }}>시설 현황</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
               <BulkRetranslateButton
                 facilities={facilities}
                 onDone={fetchData}
