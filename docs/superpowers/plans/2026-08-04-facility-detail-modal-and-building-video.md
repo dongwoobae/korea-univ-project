@@ -32,15 +32,15 @@
 
 **수정**
 
-| 파일                                         | 변경                                                          |
-| -------------------------------------------- | ------------------------------------------------------------- |
-| `src/app/admin/admin-ui.css`                 | 시설 행·배지·동영상 섹션 클래스                               |
-| `src/components/admin/AddFacilityButton.tsx` | 선택적 `buttonRef` prop                                       |
-| `src/app/admin/buildings/[id]/page.tsx`      | 행 단순화 · 모달 연결 · 정렬 · 동영상 카드 · 헤더 일괄 재번역 |
-| `e2e/support/mockBackend.ts`                 | 건물 1에 미설치·번역 필요·동영상 시설 픽스처 추가             |
-| `e2e/admin-p0.spec.ts`                       | 상태 토글 계약을 모달 흐름으로 이관                           |
-| `e2e/admin-buildings-slopes.spec.ts`         | 상태 토글 계약을 모달 흐름으로 이관                           |
-| `e2e/admin-building-facility-modal.spec.ts`  | 신규 스펙                                                     |
+| 파일                                         | 변경                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------ |
+| `src/app/admin/admin-ui.css`                 | 시설 행·배지·동영상 섹션 클래스                                          |
+| `src/components/admin/AddFacilityButton.tsx` | 선택적 `buttonRef` prop                                                  |
+| `src/app/admin/buildings/[id]/page.tsx`      | 행 단순화 · 모달 연결 · 정렬 · 동영상 카드 · 헤더 일괄 재번역            |
+| `e2e/support/mockBackend.ts`                 | 건물 1에 미설치·번역 필요·동영상 시설 픽스처 추가                        |
+| `e2e/admin-p0.spec.ts`                       | 집계·selector 정리(Task 3) → 상태 토글 계약을 모달 흐름으로 이관(Task 7) |
+| `e2e/admin-buildings-slopes.spec.ts`         | 집계·selector 정리(Task 3) → 상태 토글 계약을 모달 흐름으로 이관(Task 7) |
+| `e2e/admin-building-facility-modal.spec.ts`  | 신규 스펙                                                                |
 
 ---
 
@@ -402,15 +402,51 @@ git commit -m "style(admin): 시설 행·배지·동영상 섹션 클래스 추�
       },
 ```
 
-- [ ] **Step 2: 기존 E2E가 여전히 통과하는지 확인한다**
+- [ ] **Step 2: 픽스처가 바꾼 집계 단언을 같은 커밋에서 갱신한다**
+
+mock의 `rpc/get_admin_building_summary`는 **전역 카운트**다 — 활성 건물에 속한 모든 시설을 센다. 건물 1에 3건을 더하면 `admin-buildings-slopes.spec.ts`의 하드코딩된 개수가 바로 어긋난다. 픽스처가 만든 변화이므로 같은 커밋에서 고친다.
+
+`e2e/admin-buildings-slopes.spec.ts`의 "건물 보완 필요 현황을 서버 집계로 표시한다" 테스트에서 두 곳만 바꾼다:
+
+```ts
+await expect(overview.getByText("등록된 시설").locator("..")).toContainText(
+  "5개",
+);
+```
+
+```ts
+await expect(overview.getByText("번역 필요").locator("..")).toContainText(
+  "2개",
+);
+```
+
+`등록된 시설`은 2→5(`f-building` + 건물 3의 `f-needs-translation` + 새 3건). `번역 필요`는 1→2(`f-needs-translation` + `f-building-untranslated`). `시설 정보 없음`·`사진 없음`·`위치 없음`·`갱신일 오래됨`은 건물 단위 집계라 **바뀌지 않는다. 건드리지 마라.**
+
+- [ ] **Step 3: 취약해진 selector의 범위를 좁힌다**
+
+`e2e/admin-p0.spec.ts`의 "시설 상태 변경이 실패하면 성공 메시지를 표시하지 않는다"는 `getByRole("status", { name: "현재 상태: 설치" })`를 페이지 전역에서 잡는다. 건물 1에 설치 상태 시설이 3건이 되면 strict mode 위반이 난다.
+
+`중앙 엘리베이터` 행으로 범위를 좁힌다:
+
+```ts
+const row = page.getByText("중앙 엘리베이터").locator("xpath=../..");
+const status = row.getByRole("status", { name: "현재 상태: 설치" });
+const toggle = row.getByRole("button", { name: "미설치로 변경" });
+```
+
+이 테스트가 지키는 계약(저장 실패 시 성공 토스트를 내지 않고 상태를 원복한다)은 그대로다. Task 7이 이 블록을 모달 흐름으로 다시 쓰지만, 그때도 대상은 `중앙 엘리베이터` 하나다 — 지금 좁혀두는 방향과 같다.
+
+- [ ] **Step 4: 게이트 — 기존 E2E가 전부 통과하는지 확인한다**
 
 Run: `npx playwright test e2e/admin-p0.spec.ts e2e/admin-buildings-slopes.spec.ts e2e/accessibility-dialog-toast.spec.ts`
-Expected: 전부 PASS. 실패하면 픽스처가 기존 단언을 깨뜨린 것이므로 **여기서 멈추고 원인을 고친다** — 이후 태스크가 그 실패를 자기 실패로 오인한다.
+Expected: 전부 PASS.
 
-- [ ] **Step 3: 커밋**
+**여전히 실패하면 멈추고 보고한다.** 이후 태스크가 그 실패를 자기 실패로 오인한다. 특히 **행 구조를 바꾸는 수정으로 통과시키려 하지 마라** — 그건 Task 6의 일이다.
+
+- [ ] **Step 5: 커밋**
 
 ```bash
-git add e2e/support/mockBackend.ts
+git add e2e/support/mockBackend.ts e2e/admin-buildings-slopes.spec.ts e2e/admin-p0.spec.ts
 git commit -m "test(e2e): 건물 1에 미설치·번역실패·동영상 시설 픽스처 추가"
 ```
 
@@ -468,9 +504,12 @@ git commit -m "feat(admin): AddFacilityButton에 선택적 buttonRef 추가"
 
 - [ ] **Step 1: 컴포넌트를 만든다**
 
+이 저장소의 모달 껍데기는 **인라인 스타일 + 다크모드 오버라이드 클래스** 조합이다. `ku-admin-modal-*` 같은 클래스는 없다. `FacilityFormModal.tsx:172-200`의 구조를 그대로 따른다 — `dialogRef`·`role="dialog"`·`aria-labelledby`가 **백드롭 div**에 붙고, 백드롭에 `ku-facility-modal-backdrop`, 안쪽 카드에 `ku-facility-modal`을 준다. 이 두 클래스가 다크모드 배경·테두리를 담당한다.
+
 ```tsx
 "use client";
 
+import { useId } from "react";
 import { useModalFocus } from "@/lib/useModalFocus";
 import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
 import FacilityTranslationControl from "@/components/admin/FacilityTranslationControl";
@@ -495,20 +534,45 @@ export default function FacilityDetailModal({
   onClose,
   showToast,
 }: FacilityDetailModalProps) {
+  const titleId = useId();
   const dialogRef = useModalFocus<HTMLDivElement>({ onClose });
   const title = facility.name ?? facility.facility_types?.label ?? "시설";
 
   return (
-    <div className="ku-admin-modal-backdrop" onClick={onClose}>
+    <div
+      ref={dialogRef}
+      className="ku-facility-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        zIndex: 2000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
       <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="ku-admin-modal"
-        onClick={(event) => event.stopPropagation()}
+        className="ku-facility-modal"
+        style={{
+          background: "#fff",
+          borderRadius: 12,
+          padding: 24,
+          width: "min(420px, calc(100vw - 32px))",
+          boxSizing: "border-box",
+          maxHeight: "90vh",
+          overflowY: "auto",
+        }}
       >
-        <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>{title}</h2>
+        <div
+          id={titleId}
+          style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}
+        >
+          {title}
+        </div>
 
         <div className="ku-facility-modal-field">
           <span className="ku-facility-modal-field-label">상태</span>
@@ -537,15 +601,37 @@ export default function FacilityDetailModal({
           </span>
         </div>
 
-        <div className="ku-admin-modal-actions">
-          <button type="button" onClick={onClose}>
+        <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              flex: 1,
+              padding: "10px",
+              background: "none",
+              border: "1px solid #ddd",
+              borderRadius: 8,
+              fontSize: 13,
+              color: "#555",
+              cursor: "pointer",
+            }}
+          >
             닫기
           </button>
           <button
             type="button"
-            className="ku-admin-row-action--danger"
-            style={{ color: "var(--ku-danger)" }}
             onClick={onRequestDelete}
+            className="ku-admin-row-action ku-admin-row-action--danger"
+            style={{
+              flex: 1,
+              padding: "10px",
+              background: "none",
+              border: "1px solid #DC2626",
+              borderRadius: 8,
+              fontSize: 13,
+              color: "#DC2626",
+              cursor: "pointer",
+            }}
           >
             삭제
           </button>
@@ -558,10 +644,12 @@ export default function FacilityDetailModal({
 
 `FacilityTranslationControl`은 번역이 필요 없으면 스스로 `null`을 돌려주므로 호출부에서 조건을 걸지 않는다. 번역 줄에 라벨만 남는 것은 의도한 모양이다.
 
-- [ ] **Step 2: 모달 껍데기 클래스가 있는지 확인한다**
+백드롭 클릭으로 닫는 동작은 넣지 않는다. `FacilityFormModal`도 넣지 않았고, 시설 삭제가 들어 있는 모달에서 바깥 클릭으로 닫히면 실수가 늘어난다. ESC와 `닫기` 버튼으로 충분하다.
 
-Run: `npx rg -n "ku-admin-modal-backdrop|ku-admin-modal-actions|\.ku-admin-modal\b" src/app/admin/admin-ui.css`
-Expected: 세 클래스가 모두 나온다. **하나라도 없으면** 이 저장소의 다른 모달(`ConfirmModal.tsx`, `FacilityFormModal.tsx`)이 쓰는 실제 클래스명을 읽어 그 이름으로 바꾼다. 새 모달 껍데기 CSS를 만들지 마라
+- [ ] **Step 2: 모달 껍데기 클래스가 실제로 있는지 확인한다**
+
+Run: `npx rg -n "ku-facility-modal-backdrop|\.ku-facility-modal\b" src/app/admin/admin-ui.css`
+Expected: 두 클래스가 모두 나온다. 없으면 멈추고 보고하라 — 새 모달 껍데기 CSS를 만들지 마라
 
 - [ ] **Step 3: 타입 검사**
 
