@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useId, useRef } from "react";
 import { useModalFocus } from "@/lib/useModalFocus";
 import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
 import FacilityTranslationControl from "@/components/admin/FacilityTranslationControl";
@@ -26,7 +26,11 @@ export default function FacilityDetailModal({
   showToast,
 }: FacilityDetailModalProps) {
   const titleId = useId();
-  const dialogRef = useModalFocus<HTMLDivElement>({ onClose });
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useModalFocus<HTMLDivElement>({
+    onClose,
+    initialFocusRef: closeButtonRef,
+  });
   const title = facility.name ?? facility.facility_types?.label ?? "시설";
 
   return (
@@ -94,6 +98,7 @@ export default function FacilityDetailModal({
 
         <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             style={{
