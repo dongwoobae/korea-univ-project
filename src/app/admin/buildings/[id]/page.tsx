@@ -21,6 +21,7 @@ import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
 import FacilityDetailModal from "@/components/admin/FacilityDetailModal";
 import { getFacilityBadges } from "@/lib/facilityBadges";
+import type { FacilityBadge } from "@/lib/facilityBadges";
 import type { Feature, Polygon } from "geojson";
 import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
@@ -35,6 +36,16 @@ const BuildingPolygonPreview = dynamic(
 );
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
+
+const FACILITY_BADGE_LABELS: Record<FacilityBadge, string> = {
+  missing: "미설치",
+  translation_needed: "번역 필요",
+};
+
+const FACILITY_BADGE_CLASSES: Record<FacilityBadge, string> = {
+  missing: "ku-facility-row-badge--missing",
+  translation_needed: "ku-facility-row-badge--translation",
+};
 
 function getBuildingCenter(building): [number, number] {
   const geom = building?.geojson?.geometry;
@@ -119,7 +130,7 @@ export default function BuildingDetail() {
         .from("building_facilities")
         .select("*, facility_types(label, icon)")
         .eq("building_id", id)
-        .order("created_at")
+        .order("created_at", { nullsFirst: true })
         .order("id"),
       supabase.from("facility_types").select("*"),
       supabase.from("colleges").select("*").order("name"),
@@ -704,23 +715,14 @@ export default function BuildingDetail() {
                   </span>
                 </span>
                 <span className="ku-facility-row-badges">
-                  {getFacilityBadges(f).map((badge) =>
-                    badge === "missing" ? (
-                      <span
-                        key={badge}
-                        className="ku-facility-row-badge ku-facility-row-badge--missing"
-                      >
-                        미설치
-                      </span>
-                    ) : (
-                      <span
-                        key={badge}
-                        className="ku-facility-row-badge ku-facility-row-badge--translation"
-                      >
-                        번역 필요
-                      </span>
-                    ),
-                  )}
+                  {getFacilityBadges(f).map((badge) => (
+                    <span
+                      key={badge}
+                      className={`ku-facility-row-badge ${FACILITY_BADGE_CLASSES[badge]}`}
+                    >
+                      {FACILITY_BADGE_LABELS[badge]}
+                    </span>
+                  ))}
                 </span>
                 <span className="ku-facility-row-chevron" aria-hidden="true">
                   ›

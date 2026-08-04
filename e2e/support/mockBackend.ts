@@ -422,16 +422,20 @@ function rows(state: MockState, name: string, url: URL): Row[] {
   const order = url.searchParams.get("order");
   if (order) {
     const rules = order.split(",").map((rule) => {
-      const [column, direction] = rule.split(".");
-      return { column, ascending: direction !== "desc" };
+      const [column, direction, nulls] = rule.split(".");
+      return {
+        column,
+        ascending: direction !== "desc",
+        nullsFirst: nulls === "nullsfirst",
+      };
     });
     result.sort((left, right) => {
       for (const rule of rules) {
         const a = left[rule.column];
         const b = right[rule.column];
         if (a == null && b == null) continue;
-        if (a == null) return 1;
-        if (b == null) return -1;
+        if (a == null) return rule.nullsFirst ? -1 : 1;
+        if (b == null) return rule.nullsFirst ? 1 : -1;
         const comparison = String(a).localeCompare(String(b), "ko");
         if (comparison !== 0) return rule.ascending ? comparison : -comparison;
       }

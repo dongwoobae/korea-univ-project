@@ -47,6 +47,21 @@ test.describe("건물 상세 시설 모달", () => {
     await expect(row).toBeFocused();
   });
 
+  test("ESC로 모달을 닫아도 포커스가 열었던 행으로 돌아온다", async ({
+    page,
+  }) => {
+    const row = page.getByRole("button", { name: /중앙 엘리베이터/ });
+    await row.click();
+    await expect(
+      page.getByRole("dialog", { name: "중앙 엘리베이터" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByRole("dialog", { name: "중앙 엘리베이터" }),
+    ).toHaveCount(0);
+    await expect(row).toBeFocused();
+  });
+
   test("모달에서 시설을 삭제하면 모달이 닫히고 포커스가 시설 추가로 간다", async ({
     page,
   }) => {
