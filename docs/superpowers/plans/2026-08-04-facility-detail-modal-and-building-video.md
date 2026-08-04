@@ -438,8 +438,10 @@ const toggle = row.getByRole("button", { name: "미설치로 변경" });
 
 - [ ] **Step 4: 게이트 — 기존 E2E가 전부 통과하는지 확인한다**
 
-Run: `npx playwright test e2e/admin-p0.spec.ts e2e/admin-buildings-slopes.spec.ts e2e/accessibility-dialog-toast.spec.ts`
+Run: `npm run test:e2e`
 Expected: 전부 PASS.
+
+**스펙 파일 몇 개만 골라 돌리지 마라.** 이 픽스처는 전역 상태(`state.facilities`)를 늘리므로, 시설 개수나 지도 마커 개수를 하드코딩한 **관리자 밖 스펙까지** 건드린다. 실제로 `admin-campus-boundaries.spec.ts`와 `public-map.spec.ts`가 그렇다 — 좁은 게이트로 돌리면 이 둘을 놓치고 Task 7에 가서야 드러난다.
 
 **여전히 실패하면 멈추고 보고한다.** 이후 태스크가 그 실패를 자기 실패로 오인한다. 특히 **행 구조를 바꾸는 수정으로 통과시키려 하지 마라** — 그건 Task 6의 일이다.
 
@@ -1036,7 +1038,29 @@ await expect(
 Run: `git diff --name-only`
 Expected: `e2e/accessibility-dialog-toast.spec.ts`와 `src/app/admin/dashboard/**`가 **목록에 없다.** 있으면 되돌린다 — 그 화면은 범위 밖이고 옛 행 UI를 그대로 검증해야 한다
 
-- [ ] **Step 5: 전체 E2E를 돌린다**
+- [ ] **Step 5: Task 3 픽스처가 남긴 전역 개수 단언을 고친다**
+
+Task 3이 건물 1에 시설 3건을 더하면서 전역 시설 개수와 공개 지도 마커 개수를 하드코딩한 스펙 둘이 깨졌다.
+
+`e2e/admin-campus-boundaries.spec.ts` — 이 테스트가 지키는 계약은 "저장하면 시설이 **한 건 늘어난다**"이지 "총 4건이 된다"가 아니다. 전역 개수 대신 증분으로 바꿔 픽스처가 또 늘어도 안 깨지게 한다:
+
+```ts
+const before = state.facilities.length;
+```
+
+를 `+ 시설 추가` 클릭 전에 두고, `toHaveLength(4)`를 바꾼다:
+
+```ts
+expect(state.facilities).toHaveLength(before + 1);
+```
+
+`e2e/public-map.spec.ts` — 클러스터를 펼쳤을 때 나오는 개별 마커 수가 2에서 3으로 늘었다. 새 `지하 1층 엘리베이터`가 `is_installed: true`라 공개 API(`is_installed`가 참인 것만 내려보냄)를 통과하고, 이 테스트가 켜는 필터(경사로·엘리베이터)에 걸리기 때문이다. `후문 경사로`는 미설치라 공개에 안 나오고 `지하 주차장 진입로`는 주차라 필터 밖이다. 숫자를 실제값으로 고친다:
+
+```ts
+    ).toHaveCount(3);
+```
+
+- [ ] **Step 6: 전체 E2E를 돌린다**
 
 Run: `npm run test:e2e`
 Expected: 전부 PASS
