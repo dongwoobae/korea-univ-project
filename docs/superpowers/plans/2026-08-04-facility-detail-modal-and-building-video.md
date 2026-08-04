@@ -1230,7 +1230,7 @@ import BulkRetranslateButton from "@/components/admin/BulkRetranslateButton";
 - [ ] **Step 5: 통과를 확인한다**
 
 Run: `npx playwright test e2e/admin-building-facility-modal.spec.ts`
-Expected: 9 passed
+Expected: 10 passed (Task 6이 8건, 이 태스크가 2건)
 
 - [ ] **Step 6: 타입·린트**
 
