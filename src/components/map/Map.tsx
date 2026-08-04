@@ -588,6 +588,10 @@ export default function Map() {
         maxBoundsViscosity={0.7}
         ref={mapRef}
         zoomControl={false}
+        // 표기는 아래 .ku-attribution 오버레이가 대신한다. 기본 컨트롤을 만들어
+        // 두고 CSS로 가리면 그 규칙이 전역이라 관리자 지도의 표기까지 함께
+        // 지워진다 — 그쪽에는 대신할 오버레이가 없다.
+        attributionControl={false}
       >
         <TileLayer
           key={`${tileMode}-${prefersDarkMode ? "dark" : "light"}`}
@@ -741,7 +745,15 @@ export default function Map() {
             >
               Esri
             </a>
-          )}
+          )}{" "}
+          ·{" "}
+          <a
+            href="https://leafletjs.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Leaflet
+          </a>
         </span>
       </div>
 
