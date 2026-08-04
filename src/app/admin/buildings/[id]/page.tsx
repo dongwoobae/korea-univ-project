@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import NextImage from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
@@ -19,8 +19,8 @@ import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
-import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
-import FacilityTranslationControl from "@/components/admin/FacilityTranslationControl";
+import FacilityDetailModal from "@/components/admin/FacilityDetailModal";
+import { getFacilityBadges } from "@/lib/facilityBadges";
 import type { Feature, Polygon } from "geojson";
 import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
@@ -79,6 +79,15 @@ export default function BuildingDetail() {
   );
   const [videoModalFacility, setVideoModalFacility] =
     useState<FacilityWithType | null>(null);
+  const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(
+    null,
+  );
+  const addFacilityRef = useRef<HTMLButtonElement>(null);
+
+  // 객체가 아니라 id를 들고 매 렌더 목록에서 찾는다.
+  // 객체를 붙들면 fetchData() 뒤 모달이 옛 값을 보여준다.
+  const selectedFacility =
+    facilities.find((f) => f.id === selectedFacilityId) ?? null;
 
   const hasUnsavedNameChanges = Boolean(
     building &&
@@ -109,7 +118,9 @@ export default function BuildingDetail() {
       supabase
         .from("building_facilities")
         .select("*, facility_types(label, icon)")
-        .eq("building_id", id),
+        .eq("building_id", id)
+        .order("created_at")
+        .order("id"),
       supabase.from("facility_types").select("*"),
       supabase.from("colleges").select("*").order("name"),
     ]);
@@ -165,7 +176,9 @@ export default function BuildingDetail() {
       showToast(error, "error");
       return;
     }
-    fetchData();
+    setSelectedFacilityId(null);
+    await fetchData();
+    addFacilityRef.current?.focus();
     showToast("시설이 삭제되었어요");
   }
 
@@ -655,6 +668,7 @@ export default function BuildingDetail() {
               facilityTypes={facilityTypes}
               onAdd={fetchData}
               showToast={showToast}
+              buttonRef={addFacilityRef}
             />
           </div>
 
@@ -671,79 +685,47 @@ export default function BuildingDetail() {
             </div>
           ) : (
             facilities.map((f) => (
-              <div
+              <button
                 key={f.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: 12,
-                  padding: "12px 0",
-                  borderBottom: "1px solid var(--ku-border)",
-                }}
+                type="button"
+                className="ku-facility-row"
+                onClick={() => setSelectedFacilityId(f.id)}
               >
-                <div style={{ fontSize: 20 }}>{f.facility_types?.icon}</div>
-                <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 500 }}>
+                <span className="ku-facility-row-icon">
+                  {f.facility_types?.icon}
+                </span>
+                <span className="ku-facility-row-body">
+                  <span className="ku-facility-row-name">
                     {f.name ?? f.facility_types?.label}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--ku-text-2)" }}>
+                  </span>
+                  <span className="ku-facility-row-desc">
                     {f.description}
                     {f.floor_info && ` · ${f.floor_info}`}
-                  </div>
-                  {f.lat && (
-                    <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
-                      위도 {f.lat} / 경도 {f.lng}
-                    </div>
+                  </span>
+                </span>
+                <span className="ku-facility-row-badges">
+                  {getFacilityBadges(f).map((badge) =>
+                    badge === "missing" ? (
+                      <span
+                        key={badge}
+                        className="ku-facility-row-badge ku-facility-row-badge--missing"
+                      >
+                        미설치
+                      </span>
+                    ) : (
+                      <span
+                        key={badge}
+                        className="ku-facility-row-badge ku-facility-row-badge--translation"
+                      >
+                        번역 필요
+                      </span>
+                    ),
                   )}
-                </div>
-                <button
-                  onClick={() => setVideoModalFacility(f)}
-                  className="ku-admin-row-action"
-                  style={{
-                    fontSize: 11,
-                    padding: "4px 8px",
-                    borderRadius: 6,
-                    border: "1px solid",
-                    cursor: "pointer",
-                    fontWeight: 500,
-                    background: f.video_url
-                      ? "var(--ku-primary-soft-bg)"
-                      : "none",
-                    borderColor: f.video_url
-                      ? "var(--ku-primary-text)"
-                      : "var(--ku-border)",
-                    color: f.video_url
-                      ? "var(--ku-primary-text)"
-                      : "var(--ku-text-2)",
-                  }}
-                >
-                  {f.video_url ? "동영상 ✓" : "동영상"}
-                </button>
-                <FacilityInstallationControl
-                  installed={f.is_installed}
-                  pending={togglingId === f.id}
-                  onToggle={() => handleToggleInstalled(f)}
-                />
-                <FacilityTranslationControl
-                  facility={f}
-                  onTranslated={fetchData}
-                  showToast={showToast}
-                />
-                <button
-                  onClick={() => setConfirmModal(f)}
-                  className="ku-admin-row-action ku-admin-row-action--danger"
-                  style={{
-                    fontSize: 12,
-                    color: "var(--ku-danger)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                  }}
-                >
-                  삭제
-                </button>
-              </div>
+                </span>
+                <span className="ku-facility-row-chevron" aria-hidden="true">
+                  ›
+                </span>
+              </button>
             ))
           )}
         </div>
@@ -802,16 +784,6 @@ export default function BuildingDetail() {
         />
       )}
 
-      {/* 삭제 확인 모달 */}
-      {confirmModal && (
-        <ConfirmModal
-          message="시설을 삭제할까요?"
-          description="삭제한 시설은 복구할 수 없어요."
-          confirmLabel="삭제"
-          onConfirm={() => handleDeleteFacility(confirmModal)}
-          onCancel={() => setConfirmModal(null)}
-        />
-      )}
       {confirmDeleteBuilding && (
         <ConfirmModal
           message={`"${building.name}" 건물을 삭제 처리할까요?`}
@@ -833,6 +805,32 @@ export default function BuildingDetail() {
             router.push(href);
           }}
           onCancel={() => setPendingNavigation(null)}
+        />
+      )}
+      {selectedFacility && (
+        <FacilityDetailModal
+          facility={selectedFacility}
+          toggling={togglingId === selectedFacility.id}
+          onToggleInstalled={() => handleToggleInstalled(selectedFacility)}
+          onTranslated={fetchData}
+          onRequestDelete={() => setConfirmModal(selectedFacility)}
+          onClose={() => setSelectedFacilityId(null)}
+          showToast={showToast}
+        />
+      )}
+      {/* FacilityDetailModal보다 뒤에 둔다 — 둘 다 "삭제" 버튼을 가지므로
+          DOM 순서가 뒤여야 이 확인창의 버튼이 마지막 요소가 된다. */}
+      {confirmModal && (
+        <ConfirmModal
+          message="시설을 삭제할까요?"
+          description={
+            confirmModal.video_url
+              ? "삭제한 시설은 복구할 수 없어요. 이 시설의 동영상도 함께 삭제됩니다."
+              : "삭제한 시설은 복구할 수 없어요."
+          }
+          confirmLabel="삭제"
+          onConfirm={() => handleDeleteFacility(confirmModal)}
+          onCancel={() => setConfirmModal(null)}
         />
       )}
       {videoModalFacility && (
