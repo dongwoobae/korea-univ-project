@@ -836,6 +836,7 @@
     padding: 13px 14px;
     border: 1px solid var(--ku-border);
     border-radius: 12px;
+    text-align: left;
     color: var(--ku-text-1);
     background: var(--ku-surface);
   }
