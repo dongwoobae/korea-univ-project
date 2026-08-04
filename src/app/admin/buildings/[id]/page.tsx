@@ -36,15 +36,6 @@ const BuildingPolygonPreview = dynamic(
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
-const DETAIL_SECTIONS = [
-  { id: "building-photos", label: "사진" },
-  { id: "building-name", label: "이름" },
-  { id: "building-college", label: "소속" },
-  { id: "building-polygon", label: "폴리곤" },
-  { id: "building-facilities", label: "시설" },
-  { id: "building-danger", label: "삭제·복구" },
-] as const;
-
 function getBuildingCenter(building): [number, number] {
   const geom = building?.geojson?.geometry;
   if (!geom) return KU_CENTER;
@@ -85,9 +76,6 @@ export default function BuildingDetail() {
   const [confirmDeleteBuilding, setConfirmDeleteBuilding] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(
     null,
-  );
-  const [activeSection, setActiveSection] = useState<string>(
-    DETAIL_SECTIONS[0].id,
   );
   const [videoModalFacility, setVideoModalFacility] =
     useState<FacilityWithType | null>(null);
@@ -150,27 +138,6 @@ export default function BuildingDetail() {
     }
     void init();
   }, [fetchData, router]);
-
-  useEffect(() => {
-    if (loading) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntry = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visibleEntry) setActiveSection(visibleEntry.target.id);
-      },
-      { rootMargin: "-140px 0px -55% 0px", threshold: [0, 0.2, 0.6] },
-    );
-
-    DETAIL_SECTIONS.forEach(({ id: sectionId }) => {
-      const section = document.getElementById(sectionId);
-      if (section) observer.observe(section);
-    });
-
-    return () => observer.disconnect();
-  }, [loading]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -335,38 +302,7 @@ export default function BuildingDetail() {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => navigateWithUnsavedCheck("/")}
-          style={{
-            fontSize: 13,
-            color: "var(--ku-text-2)",
-            background: "none",
-            border: "1px solid var(--ku-border)",
-            borderRadius: 6,
-            padding: "6px 12px",
-            cursor: "pointer",
-          }}
-        >
-          지도 보기
-        </button>
-      </div>
-
-      <nav className="ku-admin-detail-section-nav" aria-label="건물 상세 섹션">
-        <div className="ku-admin-detail-section-nav-inner">
-          <div className="ku-admin-detail-section-links">
-            {DETAIL_SECTIONS.map((section) => (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
-                aria-current={
-                  activeSection === section.id ? "location" : undefined
-                }
-                onClick={() => setActiveSection(section.id)}
-              >
-                {section.label}
-              </a>
-            ))}
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
             className="ku-admin-detail-save-status"
             data-unsaved={hasUnsavedChanges}
@@ -381,8 +317,22 @@ export default function BuildingDetail() {
               ? `저장하지 않은 변경 ${unsavedChangeCount}개`
               : "모든 변경 저장됨"}
           </div>
+          <button
+            onClick={() => navigateWithUnsavedCheck("/")}
+            style={{
+              fontSize: 13,
+              color: "var(--ku-text-2)",
+              background: "none",
+              border: "1px solid var(--ku-border)",
+              borderRadius: 6,
+              padding: "6px 12px",
+              cursor: "pointer",
+            }}
+          >
+            지도 보기
+          </button>
         </div>
-      </nav>
+      </div>
 
       <div className="ku-admin-detail-grid">
         {/* 건물 사진 */}

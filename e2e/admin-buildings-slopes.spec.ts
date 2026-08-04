@@ -239,14 +239,6 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/admin/buildings/1");
 
-    const sectionNav = page.getByRole("navigation", {
-      name: "건물 상세 섹션",
-    });
-    await expect(sectionNav).toBeVisible();
-    await expect(sectionNav.getByRole("link")).toHaveCount(6);
-    await sectionNav.getByRole("link", { name: "시설", exact: true }).click();
-    await expect(page).toHaveURL(/#building-facilities$/);
-
     const nameCard = page.locator("#building-name");
     await nameCard.locator("input").first().fill("중앙도서관 E2E");
     await expect(
@@ -259,7 +251,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       page.getByText("저장하지 않은 변경사항이 있어요"),
     ).toBeVisible();
     await page.getByRole("button", { name: "취소", exact: true }).click();
-    await expect(page).toHaveURL(/admin\/buildings\/1#building-facilities$/);
+    await expect(page).toHaveURL(/admin\/buildings\/1$/);
 
     await nameCard.getByRole("button", { name: "저장" }).click();
     await expect(page.getByText("건물명이 저장되었어요!")).toBeVisible();

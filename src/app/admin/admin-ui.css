@@ -549,49 +549,6 @@
   border-color: var(--ku-border) !important;
   background: var(--ku-surface) !important;
 }
-.ku-admin-detail-section-nav {
-  position: sticky;
-  z-index: 80;
-  top: 64px;
-  border-bottom: 1px solid var(--ku-border);
-  background: color-mix(in srgb, var(--ku-surface) 96%, transparent);
-  backdrop-filter: blur(10px);
-}
-.ku-admin-detail-section-nav-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: min(1180px, 100%);
-  min-height: 48px;
-  gap: 16px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-.ku-admin-detail-section-links {
-  display: flex;
-  align-items: stretch;
-  align-self: stretch;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.ku-admin-detail-section-links::-webkit-scrollbar {
-  display: none;
-}
-.ku-admin-detail-section-links a {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  padding: 0 12px;
-  color: var(--ku-text-2);
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.ku-admin-detail-section-links a[aria-current="location"] {
-  color: var(--ku-crimson-600);
-  box-shadow: inset 0 -2px 0 var(--ku-crimson-700);
-}
 .ku-admin-detail-save-status {
   flex: 0 0 auto;
   padding: 4px 9px;
@@ -621,10 +578,6 @@
   width: min(1180px, 100%);
   margin: 0 auto;
   padding: 24px;
-}
-.ku-admin-detail-card,
-.ku-admin-detail-danger {
-  scroll-margin-top: 132px;
 }
 .ku-admin-detail-grid > div {
   margin: 0 !important;
@@ -903,32 +856,8 @@
     min-height: 58px;
     padding: 10px 14px !important;
   }
-  .ku-admin-detail-section-nav {
-    top: 58px;
-  }
-  .ku-admin-detail-section-nav-inner {
-    display: block;
-    padding: 0;
-  }
-  .ku-admin-detail-section-links {
-    min-height: 44px;
-    padding: 0 8px;
-  }
-  .ku-admin-detail-section-links a {
-    padding: 0 10px;
-  }
-  .ku-admin-detail-save-status {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 14px;
-    box-shadow: var(--ku-shadow-soft);
-  }
   .ku-admin-detail-save-status:not([data-unsaved="true"]) {
     display: none;
-  }
-  .ku-admin-detail-card,
-  .ku-admin-detail-danger {
-    scroll-margin-top: 112px;
   }
   .ku-admin-detail-grid {
     display: flex;
