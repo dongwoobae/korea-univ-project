@@ -19,7 +19,7 @@ import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import BulkRetranslateButton from "@/components/admin/BulkRetranslateButton";
-import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
+import BuildingVideoManager from "@/components/admin/BuildingVideoManager";
 import FacilityDetailModal from "@/components/admin/FacilityDetailModal";
 import { getFacilityBadges } from "@/lib/facilityBadges";
 import type { FacilityBadge } from "@/lib/facilityBadges";
@@ -89,8 +89,6 @@ export default function BuildingDetail() {
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(
     null,
   );
-  const [videoModalFacility, setVideoModalFacility] =
-    useState<FacilityWithType | null>(null);
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(
     null,
   );
@@ -376,6 +374,28 @@ export default function BuildingDetail() {
             건물 사진
           </div>
           <PhotoManager buildingId={id} showToast={showToast} />
+        </div>
+
+        {/* 건물 동영상 */}
+        <div
+          id="building-videos"
+          className="ku-admin-detail-card"
+          style={{
+            background: "var(--ku-surface)",
+            borderRadius: 10,
+            padding: 20,
+            border: "1px solid var(--ku-border)",
+            marginBottom: 20,
+          }}
+        >
+          <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
+            건물 동영상
+          </div>
+          <BuildingVideoManager
+            facilities={facilities}
+            onChanged={fetchData}
+            showToast={showToast}
+          />
         </div>
 
         {/* 건물명 수정 */}
@@ -848,17 +868,6 @@ export default function BuildingDetail() {
           onRequestDelete={() => setConfirmModal(selectedFacility)}
           onClose={() => setSelectedFacilityId(null)}
           showToast={showToast}
-        />
-      )}
-      {videoModalFacility && (
-        <FacilityVideoModal
-          facility={videoModalFacility}
-          onUpdate={() => {
-            fetchData();
-            setVideoModalFacility((f) => (f ? { ...f } : null));
-          }}
-          showToast={showToast}
-          onClose={() => setVideoModalFacility(null)}
         />
       )}
     </div>
