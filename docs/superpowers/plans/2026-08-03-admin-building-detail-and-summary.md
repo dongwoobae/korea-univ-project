@@ -25,32 +25,32 @@
 
 **신규**
 
-| 파일                                                             | 책임                                                        |
-| ---------------------------------------------------------------- | ----------------------------------------------------------- |
-| `src/lib/neighborBuildings.ts`                                   | 주변 건물 조회 + 모듈 캐시 + 무효화 + 회색 스타일 상수      |
-| `src/lib/neighborBuildings.test.ts`                              | 위 모듈 단위 테스트                                          |
-| `src/lib/polygonCenter.ts`                                       | 폴리곤 링 평균 중심점 (편집기·프리뷰 공용)                  |
-| `src/lib/polygonCenter.test.ts`                                  | 위 모듈 단위 테스트                                          |
-| `src/components/BuildingPolygonPreview.tsx`                      | 읽기 전용 폴리곤 프리뷰 지도                                 |
-| `src/lib/adminBuildingSummary.ts`                                | 요약 타입·카드 설정·요약 결과 판정·플래그 필터 판정         |
-| `src/lib/adminBuildingSummary.test.ts`                           | 위 모듈 단위 테스트                                          |
-| `supabase/migrations/20260803000000_create_admin_building_flags.sql` | `admin_building_flags` 뷰 + 요약 함수 재생성            |
-| `scripts/build-supabase-db-url.sh`                               | 마스킹된 DB URL 구성 (migrate·verify 두 잡이 공유)          |
+| 파일                                                                 | 책임                                                   |
+| -------------------------------------------------------------------- | ------------------------------------------------------ |
+| `src/lib/neighborBuildings.ts`                                       | 주변 건물 조회 + 모듈 캐시 + 무효화 + 회색 스타일 상수 |
+| `src/lib/neighborBuildings.test.ts`                                  | 위 모듈 단위 테스트                                    |
+| `src/lib/polygonCenter.ts`                                           | 폴리곤 링 평균 중심점 (편집기·프리뷰 공용)             |
+| `src/lib/polygonCenter.test.ts`                                      | 위 모듈 단위 테스트                                    |
+| `src/components/BuildingPolygonPreview.tsx`                          | 읽기 전용 폴리곤 프리뷰 지도                           |
+| `src/lib/adminBuildingSummary.ts`                                    | 요약 타입·카드 설정·요약 결과 판정·플래그 필터 판정    |
+| `src/lib/adminBuildingSummary.test.ts`                               | 위 모듈 단위 테스트                                    |
+| `supabase/migrations/20260803000000_create_admin_building_flags.sql` | `admin_building_flags` 뷰 + 요약 함수 재생성           |
+| `scripts/build-supabase-db-url.sh`                                   | 마스킹된 DB URL 구성 (migrate·verify 두 잡이 공유)     |
 
 **수정**
 
-| 파일                                          | 변경                                                            |
-| --------------------------------------------- | --------------------------------------------------------------- |
-| `src/components/PolygonEditor.tsx`            | 주변 건물 조회·스타일·중심 계산을 공유 모듈로 위임              |
-| `src/components/FacilityMap.tsx`              | 같음 (제외 없이 전부 받아 하나를 강조)                          |
-| `src/app/admin/buildings/[id]/page.tsx`       | 프리뷰 연결·내비 제거·저장 칩 이동·캐시 무효화·카드 클래스     |
-| `src/app/admin/buildings/new/page.tsx`        | 신규 등록 성공 시 캐시 무효화                                    |
-| `src/app/admin/admin-ui.css`                  | 내비 규칙 제거·그리드 선택자 축소·클래스 배치·요약 카드 버튼화 |
-| `src/app/admin/dashboard/buildings/page.tsx`  | 요약 실패 처리·요약 마크업 전환·플래그 필터                     |
-| `supabase/database.types.ts`                  | 뷰 Row 타입 + 함수 반환 컬럼 추가                                |
-| `.github/workflows/ci.yml`                    | 이력 검증 스텝을 별도 잡으로 분리하고 jq 의존 제거              |
-| `e2e/support/mockBackend.ts`                  | RPC mock에 `translation_needed_building_count` 추가             |
-| `e2e/admin-buildings-slopes.spec.ts`          | 섹션 내비 단언 제거, 해시 URL 단언 수정                          |
+| 파일                                         | 변경                                                           |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| `src/components/PolygonEditor.tsx`           | 주변 건물 조회·스타일·중심 계산을 공유 모듈로 위임             |
+| `src/components/FacilityMap.tsx`             | 같음 (제외 없이 전부 받아 하나를 강조)                         |
+| `src/app/admin/buildings/[id]/page.tsx`      | 프리뷰 연결·내비 제거·저장 칩 이동·캐시 무효화·카드 클래스     |
+| `src/app/admin/buildings/new/page.tsx`       | 신규 등록 성공 시 캐시 무효화                                  |
+| `src/app/admin/admin-ui.css`                 | 내비 규칙 제거·그리드 선택자 축소·클래스 배치·요약 카드 버튼화 |
+| `src/app/admin/dashboard/buildings/page.tsx` | 요약 실패 처리·요약 마크업 전환·플래그 필터                    |
+| `supabase/database.types.ts`                 | 뷰 Row 타입 + 함수 반환 컬럼 추가                              |
+| `.github/workflows/ci.yml`                   | 이력 검증 스텝을 별도 잡으로 분리하고 jq 의존 제거             |
+| `e2e/support/mockBackend.ts`                 | RPC mock에 `translation_needed_building_count` 추가            |
+| `e2e/admin-buildings-slopes.spec.ts`         | 섹션 내비 단언 제거, 해시 URL 단언 수정                        |
 
 **작업 순서:** Task 1–7(상세 페이지) → Task 8–9(DB·CI) → Task 10–12(목록 화면) → Task 13(수동 검증).
 Task 12는 Task 8의 뷰와 생성 타입이 있어야 타입체크가 통과하므로 순서를 지킨다.
@@ -413,26 +413,26 @@ import { getPolygonRingCenter } from "@/lib/polygonCenter";
 `src/components/PolygonEditor.tsx` — 아래 블록을
 
 ```ts
-    let center: [number, number] = [37.5893, 127.0327];
-    const initialRing = initialGeojson?.geometry.coordinates[0];
-    if (initialRing?.length) {
-      const coords = initialRing;
-      const avgLat = coords.reduce((s, c) => s + c[1], 0) / coords.length;
-      const avgLng = coords.reduce((s, c) => s + c[0], 0) / coords.length;
-      center = [avgLat, avgLng];
-    }
+let center: [number, number] = [37.5893, 127.0327];
+const initialRing = initialGeojson?.geometry.coordinates[0];
+if (initialRing?.length) {
+  const coords = initialRing;
+  const avgLat = coords.reduce((s, c) => s + c[1], 0) / coords.length;
+  const avgLng = coords.reduce((s, c) => s + c[0], 0) / coords.length;
+  center = [avgLat, avgLng];
+}
 
-    const map = L.map(containerRef.current!, {
-      scrollWheelZoom: true,
-    }).setView(center, 18);
+const map = L.map(containerRef.current!, {
+  scrollWheelZoom: true,
+}).setView(center, 18);
 ```
 
 이렇게 바꾼다:
 
 ```ts
-    const map = L.map(containerRef.current!, {
-      scrollWheelZoom: true,
-    }).setView(getPolygonRingCenter(initialGeojson), 18);
+const map = L.map(containerRef.current!, {
+  scrollWheelZoom: true,
+}).setView(getPolygonRingCenter(initialGeojson), 18);
 ```
 
 지역 변수 `center`와 `initialRing`이 사라지므로 lint가 미사용 변수를 잡지 않는지 확인한다.
@@ -442,85 +442,78 @@ import { getPolygonRingCenter } from "@/lib/polygonCenter";
 `src/components/PolygonEditor.tsx` — 아래 블록을
 
 ```ts
-    // 기존 건물들을 회색 배경 레이어로 표시 (편집 대상 제외, 클릭 통과)
-    let cancelled = false;
-    supabase
-      .from("buildings")
-      .select("id, name, geojson")
-      .eq("is_deleted", false)
-      .not("geojson", "is", null)
-      .then(({ data }) => {
-        if (cancelled || !mapRef.current) return;
-        const features = (data ?? [])
-          .filter(
-            (b) =>
-              (b.geojson as unknown as Feature | null)?.geometry &&
-              String(b.id) !== String(initialExcludeId ?? ""),
-          )
-          .map((b) => {
-            const g = b.geojson as unknown as Feature;
-            return {
-              ...g,
-              properties: { ...(g.properties ?? {}), name: b.name },
-            };
-          });
-        L.geoJSON(
-          { type: "FeatureCollection", features } as FeatureCollection,
-          {
-            style: {
-              color: "#9ca3af",
-              weight: 1,
-              fillColor: "#9ca3af",
-              fillOpacity: 0.25,
-            },
-            interactive: false,
-            onEachFeature: (f, layer) => {
-              if (f.properties?.name) {
-                layer.bindTooltip(f.properties.name, {
-                  permanent: true,
-                  direction: "center",
-                  className: "bldg-label",
-                });
-              }
-            },
-          },
-        ).addTo(map);
+// 기존 건물들을 회색 배경 레이어로 표시 (편집 대상 제외, 클릭 통과)
+let cancelled = false;
+supabase
+  .from("buildings")
+  .select("id, name, geojson")
+  .eq("is_deleted", false)
+  .not("geojson", "is", null)
+  .then(({ data }) => {
+    if (cancelled || !mapRef.current) return;
+    const features = (data ?? [])
+      .filter(
+        (b) =>
+          (b.geojson as unknown as Feature | null)?.geometry &&
+          String(b.id) !== String(initialExcludeId ?? ""),
+      )
+      .map((b) => {
+        const g = b.geojson as unknown as Feature;
+        return {
+          ...g,
+          properties: { ...(g.properties ?? {}), name: b.name },
+        };
       });
+    L.geoJSON({ type: "FeatureCollection", features } as FeatureCollection, {
+      style: {
+        color: "#9ca3af",
+        weight: 1,
+        fillColor: "#9ca3af",
+        fillOpacity: 0.25,
+      },
+      interactive: false,
+      onEachFeature: (f, layer) => {
+        if (f.properties?.name) {
+          layer.bindTooltip(f.properties.name, {
+            permanent: true,
+            direction: "center",
+            className: "bldg-label",
+          });
+        }
+      },
+    }).addTo(map);
+  });
 ```
 
 이렇게 바꾼다:
 
 ```ts
-    // 기존 건물들을 회색 배경 레이어로 표시 (편집 대상 제외, 클릭 통과)
-    let cancelled = false;
-    void fetchNeighborBuildings()
-      .then((neighbors) => {
-        if (cancelled || !mapRef.current) return;
-        const features = neighbors.filter(
-          (feature) =>
-            String(feature.properties?.bid) !==
-            String(initialExcludeId ?? ""),
-        );
-        L.geoJSON(
-          { type: "FeatureCollection", features } as FeatureCollection,
-          {
-            style: NEIGHBOR_STYLE,
-            interactive: false,
-            onEachFeature: (f, layer) => {
-              if (f.properties?.name) {
-                layer.bindTooltip(f.properties.name, {
-                  permanent: true,
-                  direction: "center",
-                  className: "bldg-label",
-                });
-              }
-            },
-          },
-        ).addTo(map);
-      })
-      .catch(() => {
-        // 주변 건물은 보조 정보다. 실패해도 편집 자체는 계속할 수 있다.
-      });
+// 기존 건물들을 회색 배경 레이어로 표시 (편집 대상 제외, 클릭 통과)
+let cancelled = false;
+void fetchNeighborBuildings()
+  .then((neighbors) => {
+    if (cancelled || !mapRef.current) return;
+    const features = neighbors.filter(
+      (feature) =>
+        String(feature.properties?.bid) !== String(initialExcludeId ?? ""),
+    );
+    L.geoJSON({ type: "FeatureCollection", features } as FeatureCollection, {
+      style: NEIGHBOR_STYLE,
+      interactive: false,
+      onEachFeature: (f, layer) => {
+        if (f.properties?.name) {
+          layer.bindTooltip(f.properties.name, {
+            permanent: true,
+            direction: "center",
+            className: "bldg-label",
+          });
+        }
+      },
+    }).addTo(map);
+  })
+  .catch(() => {
+    // 주변 건물은 보조 정보다. 실패해도 편집 자체는 계속할 수 있다.
+  });
 ```
 
 - [ ] **Step 4: `FacilityMap`을 전환한다**
@@ -537,53 +530,53 @@ import {
 그리고 조회 이펙트를
 
 ```ts
-  useEffect(() => {
-    let cancelled = false;
-    supabase
-      .from("buildings")
-      .select("id, name, geojson")
-      .eq("is_deleted", false)
-      .not("geojson", "is", null)
-      .then(({ data }) => {
-        if (cancelled) return;
-        setBuildingFeatures(
-          (data ?? [])
-            .filter((b) => (b.geojson as unknown as Feature | null)?.geometry)
-            .map((b) => {
-              const g = b.geojson as unknown as Feature;
-              return {
-                ...g,
-                properties: {
-                  ...(g.properties ?? {}),
-                  bid: b.id,
-                  name: b.name,
-                },
-              };
-            }),
-        );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+useEffect(() => {
+  let cancelled = false;
+  supabase
+    .from("buildings")
+    .select("id, name, geojson")
+    .eq("is_deleted", false)
+    .not("geojson", "is", null)
+    .then(({ data }) => {
+      if (cancelled) return;
+      setBuildingFeatures(
+        (data ?? [])
+          .filter((b) => (b.geojson as unknown as Feature | null)?.geometry)
+          .map((b) => {
+            const g = b.geojson as unknown as Feature;
+            return {
+              ...g,
+              properties: {
+                ...(g.properties ?? {}),
+                bid: b.id,
+                name: b.name,
+              },
+            };
+          }),
+      );
+    });
+  return () => {
+    cancelled = true;
+  };
+}, []);
 ```
 
 이렇게 바꾼다:
 
 ```ts
-  useEffect(() => {
-    let cancelled = false;
-    void fetchNeighborBuildings()
-      .then((features) => {
-        if (!cancelled) setBuildingFeatures(features);
-      })
-      .catch(() => {
-        // 배경 건물은 보조 정보다. 실패해도 시설 위치 선택은 계속할 수 있다.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+useEffect(() => {
+  let cancelled = false;
+  void fetchNeighborBuildings()
+    .then((features) => {
+      if (!cancelled) setBuildingFeatures(features);
+    })
+    .catch(() => {
+      // 배경 건물은 보조 정보다. 실패해도 시설 위치 선택은 계속할 수 있다.
+    });
+  return () => {
+    cancelled = true;
+  };
+}, []);
 ```
 
 - [ ] **Step 5: `FacilityMap`의 회색 스타일을 상수로 바꾼다**
@@ -789,15 +782,17 @@ const BuildingPolygonPreview = dynamic(
 `src/app/admin/buildings/[id]/page.tsx` — 폴리곤 카드에서 `{editingPolygon && (<PolygonEditor ... />)}` **바로 앞**에 아래를 넣는다:
 
 ```tsx
-          {!editingPolygon && building.geojson && (
-            <div style={{ marginTop: 16 }}>
-              <BuildingPolygonPreview
-                key={JSON.stringify(building.geojson)}
-                geojson={building.geojson as unknown as Feature<Polygon>}
-                buildingId={id}
-              />
-            </div>
-          )}
+{
+  !editingPolygon && building.geojson && (
+    <div style={{ marginTop: 16 }}>
+      <BuildingPolygonPreview
+        key={JSON.stringify(building.geojson)}
+        geojson={building.geojson as unknown as Feature<Polygon>}
+        buildingId={id}
+      />
+    </div>
+  );
+}
 ```
 
 `key`가 계약이다. `fetchData()`는 시설 토글 같은 무관한 갱신에서도 새 `building` 객체를 만들지만, `key`가 **내용 기반**이라 폴리곤이 실제로 바뀔 때만 재마운트된다.
@@ -848,49 +843,49 @@ import { invalidateNeighborBuildings } from "@/lib/neighborBuildings";
 `handleDeleteBuilding` — `router.push` **앞**:
 
 ```ts
-    if (error) {
-      showToast("삭제에 실패했어요", "error");
-      return;
-    }
-    invalidateNeighborBuildings();
-    router.push("/admin/dashboard");
+if (error) {
+  showToast("삭제에 실패했어요", "error");
+  return;
+}
+invalidateNeighborBuildings();
+router.push("/admin/dashboard");
 ```
 
 `handleRestoreBuilding` — `showToast` **앞**:
 
 ```ts
-    if (error) {
-      showToast("복구에 실패했어요", "error");
-      return;
-    }
-    invalidateNeighborBuildings();
-    showToast("건물이 복구되었어요!");
-    fetchData();
+if (error) {
+  showToast("복구에 실패했어요", "error");
+  return;
+}
+invalidateNeighborBuildings();
+showToast("건물이 복구되었어요!");
+fetchData();
 ```
 
 `handleSaveName` — `await fetchData()` **앞**:
 
 ```ts
-    if (error) {
-      showToast("저장에 실패했어요", "error");
-      return;
-    }
-    invalidateNeighborBuildings();
-    await fetchData();
-    showToast("건물명이 저장되었어요!");
+if (error) {
+  showToast("저장에 실패했어요", "error");
+  return;
+}
+invalidateNeighborBuildings();
+await fetchData();
+showToast("건물명이 저장되었어요!");
 ```
 
 폴리곤 `onSave` — `setEditingPolygon(false)` **앞**:
 
 ```ts
-                if (error) {
-                  showToast("저장에 실패했어요", "error");
-                  return;
-                }
-                invalidateNeighborBuildings();
-                setEditingPolygon(false);
-                await fetchData();
-                showToast("폴리곤이 저장되었어요!");
+if (error) {
+  showToast("저장에 실패했어요", "error");
+  return;
+}
+invalidateNeighborBuildings();
+setEditingPolygon(false);
+await fetchData();
+showToast("폴리곤이 저장되었어요!");
 ```
 
 **`handleSaveCollege`에는 넣지 않는다.** `college_id`는 캐시에 담기지 않는다.
@@ -906,14 +901,14 @@ import { invalidateNeighborBuildings } from "@/lib/neighborBuildings";
 `handleSave` — 성공 분기:
 
 ```ts
-    if (error) {
-      showToast("저장에 실패했어요: " + error.message, "error");
-      return;
-    }
+if (error) {
+  showToast("저장에 실패했어요: " + error.message, "error");
+  return;
+}
 
-    invalidateNeighborBuildings();
-    showToast("건물이 추가되었어요!");
-    setTimeout(() => router.push(`/admin/buildings/${newId}`), 800);
+invalidateNeighborBuildings();
+showToast("건물이 추가되었어요!");
+setTimeout(() => router.push(`/admin/buildings/${newId}`), 800);
 ```
 
 - [ ] **Step 4: 다섯 곳이 모두 걸렸는지 확인한다**
@@ -953,25 +948,25 @@ git commit -m "fix(admin): 건물 변이 다섯 경로에서 주변 건물 캐�
 `e2e/admin-buildings-slopes.spec.ts` — 아래 블록을 삭제한다:
 
 ```ts
-    const sectionNav = page.getByRole("navigation", {
-      name: "건물 상세 섹션",
-    });
-    await expect(sectionNav).toBeVisible();
-    await expect(sectionNav.getByRole("link")).toHaveCount(6);
-    await sectionNav.getByRole("link", { name: "시설", exact: true }).click();
-    await expect(page).toHaveURL(/#building-facilities$/);
+const sectionNav = page.getByRole("navigation", {
+  name: "건물 상세 섹션",
+});
+await expect(sectionNav).toBeVisible();
+await expect(sectionNav.getByRole("link")).toHaveCount(6);
+await sectionNav.getByRole("link", { name: "시설", exact: true }).click();
+await expect(page).toHaveURL(/#building-facilities$/);
 ```
 
 그리고 이탈 경고 모달 취소 후 URL 단언을
 
 ```ts
-    await expect(page).toHaveURL(/admin\/buildings\/1#building-facilities$/);
+await expect(page).toHaveURL(/admin\/buildings\/1#building-facilities$/);
 ```
 
 이렇게 바꾼다:
 
 ```ts
-    await expect(page).toHaveURL(/admin\/buildings\/1$/);
+await expect(page).toHaveURL(/admin\/buildings\/1$/);
 ```
 
 - [ ] **Step 2: 실패를 확인한다**
@@ -987,9 +982,9 @@ Expected: PASS (내비가 아직 있어도 단언을 안 하므로 통과). 이 
 2. `activeSection` 상태 선언을 삭제한다:
 
 ```ts
-  const [activeSection, setActiveSection] = useState<string>(
-    DETAIL_SECTIONS[0].id,
-  );
+const [activeSection, setActiveSection] = useState<string>(
+  DETAIL_SECTIONS[0].id,
+);
 ```
 
 3. `IntersectionObserver` 이펙트 전체(148–167행)를 삭제한다.
@@ -1000,36 +995,36 @@ Expected: PASS (내비가 아직 있어도 단언을 안 하므로 통과). 이 
 `src/app/admin/buildings/[id]/page.tsx` — 헤더의 `지도 보기` 버튼을 감싸 아래로 바꾼다:
 
 ```tsx
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            className="ku-admin-detail-save-status"
-            data-unsaved={hasUnsavedChanges}
-            role="status"
-            aria-label={
-              hasUnsavedChanges
-                ? `저장하지 않은 변경 ${unsavedChangeCount}개`
-                : "모든 변경 저장됨"
-            }
-          >
-            {hasUnsavedChanges
-              ? `저장하지 않은 변경 ${unsavedChangeCount}개`
-              : "모든 변경 저장됨"}
-          </div>
-          <button
-            onClick={() => navigateWithUnsavedCheck("/")}
-            style={{
-              fontSize: 13,
-              color: "var(--ku-text-2)",
-              background: "none",
-              border: "1px solid var(--ku-border)",
-              borderRadius: 6,
-              padding: "6px 12px",
-              cursor: "pointer",
-            }}
-          >
-            지도 보기
-          </button>
-        </div>
+<div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+  <div
+    className="ku-admin-detail-save-status"
+    data-unsaved={hasUnsavedChanges}
+    role="status"
+    aria-label={
+      hasUnsavedChanges
+        ? `저장하지 않은 변경 ${unsavedChangeCount}개`
+        : "모든 변경 저장됨"
+    }
+  >
+    {hasUnsavedChanges
+      ? `저장하지 않은 변경 ${unsavedChangeCount}개`
+      : "모든 변경 저장됨"}
+  </div>
+  <button
+    onClick={() => navigateWithUnsavedCheck("/")}
+    style={{
+      fontSize: 13,
+      color: "var(--ku-text-2)",
+      background: "none",
+      border: "1px solid var(--ku-border)",
+      borderRadius: 6,
+      padding: "6px 12px",
+      cursor: "pointer",
+    }}
+  >
+    지도 보기
+  </button>
+</div>
 ```
 
 - [ ] **Step 5: CSS에서 내비 규칙을 지운다**
@@ -1057,38 +1052,38 @@ Expected: PASS (내비가 아직 있어도 단언을 안 하므로 통과). 이 
 모바일 블록(906–932행)에서 아래를 삭제:
 
 ```css
-  .ku-admin-detail-section-nav {
-    top: 58px;
-  }
-  .ku-admin-detail-section-nav-inner {
-    display: block;
-    padding: 0;
-  }
-  .ku-admin-detail-section-links {
-    min-height: 44px;
-    padding: 0 8px;
-  }
-  .ku-admin-detail-section-links a {
-    padding: 0 10px;
-  }
-  .ku-admin-detail-save-status {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 14px;
-    box-shadow: var(--ku-shadow-soft);
-  }
-  .ku-admin-detail-card,
-  .ku-admin-detail-danger {
-    scroll-margin-top: 112px;
-  }
+.ku-admin-detail-section-nav {
+  top: 58px;
+}
+.ku-admin-detail-section-nav-inner {
+  display: block;
+  padding: 0;
+}
+.ku-admin-detail-section-links {
+  min-height: 44px;
+  padding: 0 8px;
+}
+.ku-admin-detail-section-links a {
+  padding: 0 10px;
+}
+.ku-admin-detail-save-status {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 14px;
+  box-shadow: var(--ku-shadow-soft);
+}
+.ku-admin-detail-card,
+.ku-admin-detail-danger {
+  scroll-margin-top: 112px;
+}
 ```
 
 **남기는 것:** 모바일의
 
 ```css
-  .ku-admin-detail-save-status:not([data-unsaved="true"]) {
-    display: none;
-  }
+.ku-admin-detail-save-status:not([data-unsaved="true"]) {
+  display: none;
+}
 ```
 
 는 그대로 둔다. 좁은 헤더에서 `모든 변경 저장됨`을 숨겨 공간을 아끼는 규칙이고, 붙을 대상(칩)이 헤더에 남아 있다.
@@ -1165,12 +1160,12 @@ git commit -m "refactor(admin): 동작하지 않는 섹션 내비 제거, 저장
 
 `src/app/admin/buildings/[id]/page.tsx` — 다섯 카드의 `className`을 바꾼다:
 
-| `id`                  | 새 `className`                                        |
-| --------------------- | ----------------------------------------------------- |
-| `building-photos`     | `"ku-admin-detail-card ku-admin-detail-card--photos"`  |
-| `building-name`       | `"ku-admin-detail-card ku-admin-detail-card--name"`    |
-| `building-college`    | `"ku-admin-detail-card ku-admin-detail-card--college"` |
-| `building-polygon`    | `"ku-admin-detail-card ku-admin-detail-card--polygon"` |
+| `id`                  | 새 `className`                                            |
+| --------------------- | --------------------------------------------------------- |
+| `building-photos`     | `"ku-admin-detail-card ku-admin-detail-card--photos"`     |
+| `building-name`       | `"ku-admin-detail-card ku-admin-detail-card--name"`       |
+| `building-college`    | `"ku-admin-detail-card ku-admin-detail-card--college"`    |
+| `building-polygon`    | `"ku-admin-detail-card ku-admin-detail-card--polygon"`    |
 | `building-facilities` | `"ku-admin-detail-card ku-admin-detail-card--facilities"` |
 
 예:
@@ -1186,39 +1181,41 @@ git commit -m "refactor(admin): 동작하지 않는 섹션 내비 제거, 저장
 `src/app/admin/buildings/[id]/page.tsx` — danger 블록의 두 버튼을 아래로 바꾼다. **두 버튼의 `fontSize`·`padding`이 같아야** 토글할 때 레이아웃이 흔들리지 않는다.
 
 ```tsx
-          {building.is_deleted ? (
-            // 삭제된 건물: 복구 버튼
-            <button
-              onClick={handleRestoreBuilding}
-              style={{
-                fontSize: 12,
-                color: "#fff",
-                background: "var(--ku-primary)",
-                border: "1px solid var(--ku-primary)",
-                borderRadius: 6,
-                padding: "6px 14px",
-                cursor: "pointer",
-              }}
-            >
-              건물 복구
-            </button>
-          ) : (
-            // 정상 건물: 삭제 버튼
-            <button
-              onClick={() => setConfirmDeleteBuilding(true)}
-              style={{
-                fontSize: 12,
-                color: "var(--ku-danger)",
-                background: "none",
-                border: "1px solid var(--ku-danger)",
-                borderRadius: 6,
-                padding: "6px 14px",
-                cursor: "pointer",
-              }}
-            >
-              건물 삭제
-            </button>
-          )}
+{
+  building.is_deleted ? (
+    // 삭제된 건물: 복구 버튼
+    <button
+      onClick={handleRestoreBuilding}
+      style={{
+        fontSize: 12,
+        color: "#fff",
+        background: "var(--ku-primary)",
+        border: "1px solid var(--ku-primary)",
+        borderRadius: 6,
+        padding: "6px 14px",
+        cursor: "pointer",
+      }}
+    >
+      건물 복구
+    </button>
+  ) : (
+    // 정상 건물: 삭제 버튼
+    <button
+      onClick={() => setConfirmDeleteBuilding(true)}
+      style={{
+        fontSize: 12,
+        color: "var(--ku-danger)",
+        background: "none",
+        border: "1px solid var(--ku-danger)",
+        borderRadius: 6,
+        padding: "6px 14px",
+        cursor: "pointer",
+      }}
+    >
+      건물 삭제
+    </button>
+  );
+}
 ```
 
 - [ ] **Step 4: 검증**
@@ -1389,36 +1386,37 @@ npx supabase gen types typescript --db-url "$SUPABASE_DB_URL" --schema public > 
 에서 아래로 바꾸고,
 
 ```ts
-    Views: {
-      admin_building_flags: {
-        Row: {
-          building_id: number | null;
-          missing_facility: boolean | null;
-          missing_location: boolean | null;
-          missing_photo: boolean | null;
-          stale_update: boolean | null;
-          translation_needed: boolean | null;
-        };
-        Relationships: [];
-      };
-    };
+Views: {
+  admin_building_flags: {
+    Row: {
+      building_id: number | null;
+      missing_facility: boolean | null;
+      missing_location: boolean | null;
+      missing_photo: boolean | null;
+      stale_update: boolean | null;
+      translation_needed: boolean | null;
+    }
+    Relationships: [];
+  }
+}
 ```
 
 함수 `Returns`에 컬럼을 추가한다:
 
 ```ts
-      get_admin_building_summary: {
-        Args: Record<PropertyKey, never>;
-        Returns: {
-          missing_facility_count: number;
-          missing_location_count: number;
-          missing_photo_count: number;
-          registered_facility_count: number;
-          stale_update_count: number;
-          translation_needed_building_count: number;
-          translation_needed_count: number;
-        }[];
-      };
+get_admin_building_summary: {
+  Args: Record<PropertyKey, never>;
+  Returns: {
+    missing_facility_count: number;
+    missing_location_count: number;
+    missing_photo_count: number;
+    registered_facility_count: number;
+    stale_update_count: number;
+    translation_needed_building_count: number;
+    translation_needed_count: number;
+  }
+  [];
+}
 ```
 
 - [ ] **Step 4: 검증**
@@ -1494,9 +1492,9 @@ echo "SUPABASE_MIGRATION_DB_URL=$database_url" >> "$GITHUB_ENV"
 `.github/workflows/ci.yml` — `migrate` 잡의 `Build masked database connection` 스텝(150–175행) **전체**를 아래로 줄인다:
 
 ```yaml
-      - name: Build masked database connection
-        shell: bash
-        run: bash scripts/build-supabase-db-url.sh
+- name: Build masked database connection
+  shell: bash
+  run: bash scripts/build-supabase-db-url.sh
 ```
 
 - [ ] **Step 2: `migrate`에서 검증 스텝을 빼고 새 잡을 추가한다**
@@ -1508,55 +1506,55 @@ echo "SUPABASE_MIGRATION_DB_URL=$database_url" >> "$GITHUB_ENV"
 `.github/workflows/ci.yml` 파일 끝에 추가:
 
 ```yaml
-  verify-migration-history:
-    name: Verify migration history
-    # migrate 성공 또는 정상 skip 후에 돈다. always()가 없으면 has_changes=false로
-    # migrate가 skip되는 평상시에 검증도 함께 사라져 지금과 같은 사각지대가 된다.
-    # pull_request에서는 돌리지 않는다 — 포크 PR에 secrets가 없어 항상 빨간불이 된다.
-    if: >-
-      always() &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      needs.migrate.result != 'failure'
-    needs: [migrate]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    environment: production
-    concurrency:
-      group: supabase-production-migrations
-      cancel-in-progress: false
-    permissions:
-      contents: read
-    env:
-      SUPABASE_DB_URL_TEMPLATE: ${{ secrets.SUPABASE_DB_URL }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-    steps:
-      - uses: actions/checkout@v4
+verify-migration-history:
+  name: Verify migration history
+  # migrate 성공 또는 정상 skip 후에 돈다. always()가 없으면 has_changes=false로
+  # migrate가 skip되는 평상시에 검증도 함께 사라져 지금과 같은 사각지대가 된다.
+  # pull_request에서는 돌리지 않는다 — 포크 PR에 secrets가 없어 항상 빨간불이 된다.
+  if: >-
+    always() &&
+    (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+    needs.migrate.result != 'failure'
+  needs: [migrate]
+  runs-on: ubuntu-latest
+  timeout-minutes: 10
+  environment: production
+  concurrency:
+    group: supabase-production-migrations
+    cancel-in-progress: false
+  permissions:
+    contents: read
+  env:
+    SUPABASE_DB_URL_TEMPLATE: ${{ secrets.SUPABASE_DB_URL }}
+    SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+  steps:
+    - uses: actions/checkout@v4
 
-      - name: Build masked database connection
-        shell: bash
-        run: bash scripts/build-supabase-db-url.sh
+    - name: Build masked database connection
+      shell: bash
+      run: bash scripts/build-supabase-db-url.sh
 
-      - name: Compare migration files with applied versions
-        shell: bash
-        run: |
-          set -euo pipefail
+    - name: Compare migration files with applied versions
+      shell: bash
+      run: |
+        set -euo pipefail
 
-          # CLI 출력 포맷에 의존하지 않는다. supabase migration list --output json은
-          # JSON 앞에 진행 메시지를 stdout으로 흘려 jq 파싱을 깨뜨린다.
-          psql "$SUPABASE_MIGRATION_DB_URL" --no-align --tuples-only \
-            --command "select version from supabase_migrations.schema_migrations" \
-            | sed '/^$/d' | sort > /tmp/applied-versions.txt
+        # CLI 출력 포맷에 의존하지 않는다. supabase migration list --output json은
+        # JSON 앞에 진행 메시지를 stdout으로 흘려 jq 파싱을 깨뜨린다.
+        psql "$SUPABASE_MIGRATION_DB_URL" --no-align --tuples-only \
+          --command "select version from supabase_migrations.schema_migrations" \
+          | sed '/^$/d' | sort > /tmp/applied-versions.txt
 
-          git ls-files 'supabase/migrations/*.sql' \
-            | xargs -n1 basename \
-            | sed 's/_.*//' \
-            | sort > /tmp/local-versions.txt
+        git ls-files 'supabase/migrations/*.sql' \
+          | xargs -n1 basename \
+          | sed 's/_.*//' \
+          | sort > /tmp/local-versions.txt
 
-          if ! diff -u /tmp/local-versions.txt /tmp/applied-versions.txt; then
-            echo "::error::Local migration files and applied versions differ."
-            exit 1
-          fi
-          echo "Local and remote migration histories match."
+        if ! diff -u /tmp/local-versions.txt /tmp/applied-versions.txt; then
+          echo "::error::Local migration files and applied versions differ."
+          exit 1
+        fi
+        echo "Local and remote migration histories match."
 ```
 
 `psql`은 GitHub `ubuntu-latest` 이미지에 기본 포함된다. 만약 `psql: command not found`가 나면 `Compare` 스텝 앞에 `sudo apt-get update && sudo apt-get install -y postgresql-client`를 넣는다.
@@ -1641,10 +1639,14 @@ const ok = { count: 96, error: null };
 
 describe("resolveSummary", () => {
   it("셋 다 성공하면 값을 돌려준다", () => {
-    const result = resolveSummary(ok, { count: 4, error: null }, {
-      data: summary,
-      error: null,
-    });
+    const result = resolveSummary(
+      ok,
+      { count: 4, error: null },
+      {
+        data: summary,
+        error: null,
+      },
+    );
 
     expect(result).toEqual({
       status: "ok",
@@ -1653,10 +1655,14 @@ describe("resolveSummary", () => {
   });
 
   it("RPC가 실패하면 실패 상태가 된다", () => {
-    const result = resolveSummary(ok, { count: 4, error: null }, {
-      data: null,
-      error: { message: "function does not exist" },
-    });
+    const result = resolveSummary(
+      ok,
+      { count: 4, error: null },
+      {
+        data: null,
+        error: { message: "function does not exist" },
+      },
+    );
 
     expect(result.status).toBe("error");
   });
@@ -1682,10 +1688,14 @@ describe("resolveSummary", () => {
   });
 
   it("오류가 없어도 RPC 데이터가 없으면 실패 상태가 된다", () => {
-    const result = resolveSummary(ok, { count: 4, error: null }, {
-      data: null,
-      error: null,
-    });
+    const result = resolveSummary(
+      ok,
+      { count: 4, error: null },
+      {
+        data: null,
+        error: null,
+      },
+    );
 
     expect(result.status).toBe("error");
   });
@@ -1906,9 +1916,7 @@ export function resolveSummary(
 }
 
 export type ResolvedFlagFilter =
-  | { status: "error" }
-  | { status: "empty" }
-  | { status: "ids"; ids: number[] };
+  { status: "error" } | { status: "empty" } | { status: "ids"; ids: number[] };
 
 /**
  * 플래그 조회 결과를 세 갈래로 나눈다.
@@ -1959,17 +1967,17 @@ git commit -m "feat(admin): 요약 실패 판정과 플래그 필터 판정을 �
 `src/app/admin/admin-ui.css` — 모바일 블록의 `.ku-admin-mobile-card`에 한 줄 추가:
 
 ```css
-  .ku-admin-mobile-card {
-    display: flex;
-    align-items: center;
-    min-height: 82px;
-    padding: 13px 14px;
-    border: 1px solid var(--ku-border);
-    border-radius: 12px;
-    text-align: left;
-    color: var(--ku-text-1);
-    background: var(--ku-surface);
-  }
+.ku-admin-mobile-card {
+  display: flex;
+  align-items: center;
+  min-height: 82px;
+  padding: 13px 14px;
+  border: 1px solid var(--ku-border);
+  border-radius: 12px;
+  text-align: left;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+}
 ```
 
 - [ ] **Step 2: 검증**
@@ -2040,22 +2048,20 @@ import {
 컴포넌트 상태에 셋을 추가한다:
 
 ```ts
-  const [summaryError, setSummaryError] = useState(false);
-  const [activeFlag, setActiveFlag] = useState<AdminBuildingFlagKey | null>(
-    null,
-  );
-  const [listError, setListError] = useState(false);
+const [summaryError, setSummaryError] = useState(false);
+const [activeFlag, setActiveFlag] = useState<AdminBuildingFlagKey | null>(null);
+const [listError, setListError] = useState(false);
 ```
 
 `campusByBuilding` useMemo 위에 토글 함수를 둔다:
 
 ```ts
-  // 필터는 한 번에 하나만. 같은 카드를 다시 누르면 꺼진다.
-  // 페이지를 1로 되돌리지 않으면 결과가 1페이지뿐인데 3페이지에 머무는 일이 생긴다.
-  function toggleFlag(flag: AdminBuildingFlagKey) {
-    setActiveFlag((current) => (current === flag ? null : flag));
-    setPage(1);
-  }
+// 필터는 한 번에 하나만. 같은 카드를 다시 누르면 꺼진다.
+// 페이지를 1로 되돌리지 않으면 결과가 1페이지뿐인데 3페이지에 머무는 일이 생긴다.
+function toggleFlag(flag: AdminBuildingFlagKey) {
+  setActiveFlag((current) => (current === flag ? null : flag));
+  setPage(1);
+}
 ```
 
 - [ ] **Step 3: `fetchSummary`가 세 결과의 오류를 모두 본다**
@@ -2063,29 +2069,29 @@ import {
 `src/app/admin/dashboard/buildings/page.tsx` — `fetchSummary`를 아래로 바꾼다:
 
 ```ts
-  const fetchSummary = useCallback(async () => {
-    const [totalResult, deletedResult, summaryResult] = await Promise.all([
-      supabase.from("buildings").select("id", { count: "exact", head: true }),
-      supabase
-        .from("buildings")
-        .select("id", { count: "exact", head: true })
-        .eq("is_deleted", true),
-      supabase.rpc("get_admin_building_summary").single(),
-    ]);
-    const resolved = resolveSummary(totalResult, deletedResult, summaryResult);
-    if (resolved.status === "error") {
-      // 원문은 콘솔로만 보낸다. PostgREST 오류의 message·details·hint에는
-      // 함수 시그니처, relation·column 이름, schema cache 힌트가 담긴다.
-      console.error("건물 요약 조회 실패", resolved.errors);
-      setSummary(null);
-      setSummaryError(true);
-      return;
-    }
-    setSummaryError(false);
-    setOverallTotalCount(resolved.value.overallTotalCount);
-    setDeletedCount(resolved.value.deletedCount);
-    setSummary(resolved.value.summary);
-  }, []);
+const fetchSummary = useCallback(async () => {
+  const [totalResult, deletedResult, summaryResult] = await Promise.all([
+    supabase.from("buildings").select("id", { count: "exact", head: true }),
+    supabase
+      .from("buildings")
+      .select("id", { count: "exact", head: true })
+      .eq("is_deleted", true),
+    supabase.rpc("get_admin_building_summary").single(),
+  ]);
+  const resolved = resolveSummary(totalResult, deletedResult, summaryResult);
+  if (resolved.status === "error") {
+    // 원문은 콘솔로만 보낸다. PostgREST 오류의 message·details·hint에는
+    // 함수 시그니처, relation·column 이름, schema cache 힌트가 담긴다.
+    console.error("건물 요약 조회 실패", resolved.errors);
+    setSummary(null);
+    setSummaryError(true);
+    return;
+  }
+  setSummaryError(false);
+  setOverallTotalCount(resolved.value.overallTotalCount);
+  setDeletedCount(resolved.value.deletedCount);
+  setSummary(resolved.value.summary);
+}, []);
 ```
 
 - [ ] **Step 4: `fetchData`가 플래그를 먼저 조회한다**
@@ -2093,51 +2099,18 @@ import {
 `src/app/admin/dashboard/buildings/page.tsx` — `fetchData`를 아래로 바꾼다:
 
 ```ts
-  const fetchData = useCallback(async () => {
-    setListError(false);
+const fetchData = useCallback(async () => {
+  setListError(false);
 
-    let flagIds: number[] | null = null;
-    if (activeFlag) {
-      const flagResponse = await supabase
-        .from("admin_building_flags")
-        .select("building_id")
-        .eq(activeFlag, true);
-      const resolved = resolveFlagFilter(flagResponse);
-      if (resolved.status === "error") {
-        console.error("건물 플래그 조회 실패", flagResponse.error);
-        setBuildings([]);
-        setFacilityCounts(new Map());
-        setTotalCount(0);
-        setListError(true);
-        setLoading(false);
-        return;
-      }
-      if (resolved.status === "empty") {
-        // 빈 배열을 .in()에 넘기면 id=in.()으로 직렬화돼 PostgREST가 파싱 오류를 낸다.
-        setBuildings([]);
-        setFacilityCounts(new Map());
-        setTotalCount(0);
-        setLoading(false);
-        return;
-      }
-      flagIds = resolved.ids;
-    }
-
-    const { from, to } = getAdminPageRange(page);
-    let query = supabase.from("buildings").select("*", { count: "exact" });
-    if (flagIds) query = query.in("id", flagIds);
-    const searchFilter = buildAdminSearchFilter(
-      ["name", "name_en"],
-      debouncedSearch,
-    );
-    if (searchFilter) query = query.or(searchFilter);
-    const { data, error, count } = await query
-      .order("is_deleted", { ascending: true })
-      .order("name", { ascending: true })
-      .order("id", { ascending: true })
-      .range(from, to);
-    if (error) {
-      console.error("건물 목록 조회 실패", error);
+  let flagIds: number[] | null = null;
+  if (activeFlag) {
+    const flagResponse = await supabase
+      .from("admin_building_flags")
+      .select("building_id")
+      .eq(activeFlag, true);
+    const resolved = resolveFlagFilter(flagResponse);
+    if (resolved.status === "error") {
+      console.error("건물 플래그 조회 실패", flagResponse.error);
       setBuildings([]);
       setFacilityCounts(new Map());
       setTotalCount(0);
@@ -2145,34 +2118,67 @@ import {
       setLoading(false);
       return;
     }
-    const nextTotal = count ?? 0;
-    const pageCount = getAdminPageCount(nextTotal);
-    if (page > pageCount) {
-      setPage(pageCount);
+    if (resolved.status === "empty") {
+      // 빈 배열을 .in()에 넘기면 id=in.()으로 직렬화돼 PostgREST가 파싱 오류를 낸다.
+      setBuildings([]);
+      setFacilityCounts(new Map());
+      setTotalCount(0);
+      setLoading(false);
       return;
     }
-    const nextBuildings = data ?? [];
-    const buildingIds = nextBuildings.map((building) => building.id);
-    const { data: facilityData } =
-      buildingIds.length === 0
-        ? { data: [] }
-        : await supabase
-            .from("building_facilities")
-            .select("building_id")
-            .in("building_id", buildingIds);
-    const counts = new Map<number, number>();
-    (facilityData ?? []).forEach((facility) => {
-      if (facility.building_id !== null)
-        counts.set(
-          facility.building_id,
-          (counts.get(facility.building_id) ?? 0) + 1,
-        );
-    });
-    setBuildings(nextBuildings);
-    setFacilityCounts(counts);
-    setTotalCount(nextTotal);
+    flagIds = resolved.ids;
+  }
+
+  const { from, to } = getAdminPageRange(page);
+  let query = supabase.from("buildings").select("*", { count: "exact" });
+  if (flagIds) query = query.in("id", flagIds);
+  const searchFilter = buildAdminSearchFilter(
+    ["name", "name_en"],
+    debouncedSearch,
+  );
+  if (searchFilter) query = query.or(searchFilter);
+  const { data, error, count } = await query
+    .order("is_deleted", { ascending: true })
+    .order("name", { ascending: true })
+    .order("id", { ascending: true })
+    .range(from, to);
+  if (error) {
+    console.error("건물 목록 조회 실패", error);
+    setBuildings([]);
+    setFacilityCounts(new Map());
+    setTotalCount(0);
+    setListError(true);
     setLoading(false);
-  }, [activeFlag, debouncedSearch, page]);
+    return;
+  }
+  const nextTotal = count ?? 0;
+  const pageCount = getAdminPageCount(nextTotal);
+  if (page > pageCount) {
+    setPage(pageCount);
+    return;
+  }
+  const nextBuildings = data ?? [];
+  const buildingIds = nextBuildings.map((building) => building.id);
+  const { data: facilityData } =
+    buildingIds.length === 0
+      ? { data: [] }
+      : await supabase
+          .from("building_facilities")
+          .select("building_id")
+          .in("building_id", buildingIds);
+  const counts = new Map<number, number>();
+  (facilityData ?? []).forEach((facility) => {
+    if (facility.building_id !== null)
+      counts.set(
+        facility.building_id,
+        (counts.get(facility.building_id) ?? 0) + 1,
+      );
+  });
+  setBuildings(nextBuildings);
+  setFacilityCounts(counts);
+  setTotalCount(nextTotal);
+  setLoading(false);
+}, [activeFlag, debouncedSearch, page]);
 ```
 
 - [ ] **Step 5: 헤딩 캡션도 실패 상태를 따른다**
@@ -2193,76 +2199,78 @@ import {
 `src/app/admin/dashboard/buildings/page.tsx` — `<dl className="ku-admin-overview"> … </dl>` 전체를 아래로 교체한다:
 
 ```tsx
-      {summaryError ? (
-        <div className="ku-admin-overview-error" role="status">
-          <span>요약을 불러오지 못했어요.</span>
+{
+  summaryError ? (
+    <div className="ku-admin-overview-error" role="status">
+      <span>요약을 불러오지 못했어요.</span>
+      <button
+        className="ku-admin-button"
+        type="button"
+        disabled={refreshing}
+        onClick={() => void handleRefresh()}
+      >
+        다시 시도
+      </button>
+    </div>
+  ) : (
+    <div
+      className="ku-admin-overview"
+      role="group"
+      aria-label="관리자 보완 현황"
+    >
+      {ADMIN_SUMMARY_ITEMS.map((item) => {
+        const body = (
+          <>
+            <span className="ku-admin-overview-label">{item.label}</span>
+            <span className="ku-admin-overview-value">
+              {summary ? (
+                item.parts(summary).map((part, index) => (
+                  <span
+                    className="ku-admin-overview-part"
+                    key={part.prefix ?? index}
+                  >
+                    {part.prefix && <span>{part.prefix}</span>}
+                    <strong>{part.value}</strong>
+                    <span>개</span>
+                  </span>
+                ))
+              ) : (
+                <strong>—</strong>
+              )}
+            </span>
+          </>
+        );
+        const warning = Boolean(
+          item.flag && summary && item.warningValue(summary) > 0,
+        );
+        // 클릭 대상이 아닌 총계 카드는 button으로 만들지 않는다.
+        // 눌리지 않는 버튼은 키보드 사용자가 포커스를 받고도 아무 일이 없다.
+        return item.flag ? (
           <button
-            className="ku-admin-button"
+            className="ku-admin-overview-item"
             type="button"
-            disabled={refreshing}
-            onClick={() => void handleRefresh()}
+            data-warning={warning}
+            aria-pressed={activeFlag === item.flag}
+            key={item.id}
+            title={item.description}
+            onClick={() => toggleFlag(item.flag!)}
           >
-            다시 시도
+            {body}
           </button>
-        </div>
-      ) : (
-        <div
-          className="ku-admin-overview"
-          role="group"
-          aria-label="관리자 보완 현황"
-        >
-          {ADMIN_SUMMARY_ITEMS.map((item) => {
-            const body = (
-              <>
-                <span className="ku-admin-overview-label">{item.label}</span>
-                <span className="ku-admin-overview-value">
-                  {summary ? (
-                    item.parts(summary).map((part, index) => (
-                      <span
-                        className="ku-admin-overview-part"
-                        key={part.prefix ?? index}
-                      >
-                        {part.prefix && <span>{part.prefix}</span>}
-                        <strong>{part.value}</strong>
-                        <span>개</span>
-                      </span>
-                    ))
-                  ) : (
-                    <strong>—</strong>
-                  )}
-                </span>
-              </>
-            );
-            const warning = Boolean(
-              item.flag && summary && item.warningValue(summary) > 0,
-            );
-            // 클릭 대상이 아닌 총계 카드는 button으로 만들지 않는다.
-            // 눌리지 않는 버튼은 키보드 사용자가 포커스를 받고도 아무 일이 없다.
-            return item.flag ? (
-              <button
-                className="ku-admin-overview-item"
-                type="button"
-                data-warning={warning}
-                aria-pressed={activeFlag === item.flag}
-                key={item.id}
-                title={item.description}
-                onClick={() => toggleFlag(item.flag!)}
-              >
-                {body}
-              </button>
-            ) : (
-              <div
-                className="ku-admin-overview-item"
-                data-warning={warning}
-                key={item.id}
-                title={item.description}
-              >
-                {body}
-              </div>
-            );
-          })}
-        </div>
-      )}
+        ) : (
+          <div
+            className="ku-admin-overview-item"
+            data-warning={warning}
+            key={item.id}
+            title={item.description}
+          >
+            {body}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 7: CSS의 `dt`·`dd` 선택자를 클래스로 바꾸고 버튼 스타일을 넣는다**
