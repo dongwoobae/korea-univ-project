@@ -648,8 +648,10 @@ export default function FacilityDetailModal({
 
 - [ ] **Step 2: 모달 껍데기 클래스가 실제로 있는지 확인한다**
 
-Run: `npx rg -n "ku-facility-modal-backdrop|\.ku-facility-modal\b" src/app/admin/admin-ui.css`
+Run: `git grep -n -E "ku-facility-modal-backdrop|\.ku-facility-modal\b" -- src/app/admin/admin-ui.css`
 Expected: 두 클래스가 모두 나온다. 없으면 멈추고 보고하라 — 새 모달 껍데기 CSS를 만들지 마라
+
+`npx rg`를 쓰지 마라. 이 환경에 `rg` 바이너리가 없어 npm이 무관한 패키지를 설치하려 든다.
 
 - [ ] **Step 3: 타입 검사**
 
@@ -1478,7 +1480,7 @@ import BuildingVideoManager from "@/components/admin/BuildingVideoManager";
 
 Task 6에서 이미 행을 갈아끼웠으므로 남아 있지 않아야 한다. 확인한다:
 
-Run: `npx rg -n "동영상 ✓|setVideoModalFacility" "src/app/admin/buildings/[id]/page.tsx"`
+Run: `git grep -n -E "동영상 ✓|setVideoModalFacility" -- "src/app/admin/buildings/[id]/page.tsx"`
 Expected: 결과 없음. 남아 있으면 지우고, `videoModalFacility` 상태와 그 모달 렌더 블록도 함께 지운다 — 진입점을 하나로 모으는 것이 설계 1의 목적이다
 
 - [ ] **Step 6: 통과를 확인한다**
@@ -1567,7 +1569,7 @@ Tab으로 행에 도달 → Enter → 모달 → 삭제 → 확인 → 포커스
 
 이 계획은 후속 과제를 구현하지 않는다. 설계 문서에 남아 있어야 다음 작업이 그것을 찾는다.
 
-Run: `npx rg -n "후속 과제" -A 20 docs/superpowers/specs/2026-08-04-facility-detail-modal-and-building-video-design.md`
+Run: `git grep -n -A 20 "후속 과제" -- docs/superpowers/specs/2026-08-04-facility-detail-modal-and-building-video-design.md`
 Expected: 항목들이 그대로 있다
 
 - [ ] **Step 2: 전체 검사를 마지막으로 한 번 더**
