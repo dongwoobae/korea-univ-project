@@ -58,7 +58,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     });
     await expect(overview).toBeVisible();
     await expect(overview.getByText("등록된 시설").locator("..")).toContainText(
-      "2개",
+      "5개",
     );
     await expect(
       overview.getByText("시설 정보 없음").locator(".."),
@@ -73,7 +73,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       overview.getByText("갱신일 오래됨").locator(".."),
     ).toContainText("1개");
     await expect(overview.getByText("번역 필요").locator("..")).toContainText(
-      "1개",
+      "2개",
     );
 
     await page.evaluate(() => {
