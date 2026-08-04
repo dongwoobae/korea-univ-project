@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type RefObject } from "react";
 import type { FacilityType } from "@/types/domain";
 import FacilityFormModal from "@/components/admin/FacilityFormModal";
 
@@ -11,6 +11,7 @@ interface AddFacilityButtonProps {
   facilityTypes: FacilityType[];
   onAdd: () => void;
   showToast: (message: string, type?: string) => void;
+  buttonRef?: RefObject<HTMLButtonElement | null>;
 }
 
 export default function AddFacilityButton({
@@ -19,12 +20,14 @@ export default function AddFacilityButton({
   facilityTypes,
   onAdd,
   showToast,
+  buttonRef,
 }: AddFacilityButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
       <button
+        ref={buttonRef}
         onClick={() => setOpen(true)}
         style={{
           fontSize: 13,
