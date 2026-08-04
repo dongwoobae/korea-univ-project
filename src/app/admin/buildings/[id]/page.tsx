@@ -784,6 +784,19 @@ export default function BuildingDetail() {
         />
       )}
 
+      {confirmModal && (
+        <ConfirmModal
+          message="시설을 삭제할까요?"
+          description={
+            confirmModal.video_url
+              ? "삭제한 시설은 복구할 수 없어요. 이 시설의 동영상도 함께 삭제됩니다."
+              : "삭제한 시설은 복구할 수 없어요."
+          }
+          confirmLabel="삭제"
+          onConfirm={() => handleDeleteFacility(confirmModal)}
+          onCancel={() => setConfirmModal(null)}
+        />
+      )}
       {confirmDeleteBuilding && (
         <ConfirmModal
           message={`"${building.name}" 건물을 삭제 처리할까요?`}
@@ -816,21 +829,6 @@ export default function BuildingDetail() {
           onRequestDelete={() => setConfirmModal(selectedFacility)}
           onClose={() => setSelectedFacilityId(null)}
           showToast={showToast}
-        />
-      )}
-      {/* FacilityDetailModal보다 뒤에 둔다 — 둘 다 "삭제" 버튼을 가지므로
-          DOM 순서가 뒤여야 이 확인창의 버튼이 마지막 요소가 된다. */}
-      {confirmModal && (
-        <ConfirmModal
-          message="시설을 삭제할까요?"
-          description={
-            confirmModal.video_url
-              ? "삭제한 시설은 복구할 수 없어요. 이 시설의 동영상도 함께 삭제됩니다."
-              : "삭제한 시설은 복구할 수 없어요."
-          }
-          confirmLabel="삭제"
-          onConfirm={() => handleDeleteFacility(confirmModal)}
-          onCancel={() => setConfirmModal(null)}
         />
       )}
       {videoModalFacility && (

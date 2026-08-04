@@ -55,11 +55,9 @@ test.describe("건물 상세 시설 모달", () => {
       .getByRole("dialog", { name: "중앙 엘리베이터" })
       .getByRole("button", { name: "삭제" })
       .click();
-    await page.getByText("시설을 삭제할까요?").waitFor();
-    await page
-      .getByRole("button", { name: "삭제", exact: true })
-      .last()
-      .click();
+    const confirm = page.getByRole("dialog", { name: "시설을 삭제할까요?" });
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "삭제", exact: true }).click();
 
     await expect(
       page.getByRole("dialog", { name: "중앙 엘리베이터" }),
