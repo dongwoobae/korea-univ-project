@@ -967,13 +967,13 @@ button.ku-admin-overview-item {
   opacity: 0.65;
 }
 
-/* 행이 button이 되면 전역 button 리셋이 가운데 정렬과 색 미상속을 걸어온다.
-   관리자 모바일 카드에서 같은 문제가 한 번 있었으므로 명시적으로 되돌린다. */
+/* button 리셋 되돌리기. 이유는 .ku-admin-overview-item 주석 참조. */
 .ku-facility-row {
   display: flex;
   align-items: center;
   gap: 12px;
   width: 100%;
+  min-height: 44px;
   padding: 12px 0;
   border: none;
   border-bottom: 1px solid var(--ku-border);
@@ -985,12 +985,7 @@ button.ku-admin-overview-item {
 }
 
 .ku-facility-row:hover {
-  background: var(--ku-surface-2, rgba(0, 0, 0, 0.02));
-}
-
-.ku-facility-row:focus-visible {
-  outline: 2px solid var(--ku-primary-text);
-  outline-offset: -2px;
+  background: var(--ku-bg);
 }
 
 .ku-facility-row-icon {
