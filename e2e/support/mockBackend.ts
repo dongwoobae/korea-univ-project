@@ -419,6 +419,13 @@ async function handleRest(route: Route, state: MockState, url: URL) {
           activeIds.has(facility.building_id) &&
           facility.translation_status !== "translated",
       ).length,
+      translation_needed_building_count: activeBuildings.filter((building) =>
+        state.facilities.some(
+          (facility) =>
+            facility.building_id === building.id &&
+            facility.translation_status !== "translated",
+        ),
+      ).length,
     };
     return json(route, summary);
   }

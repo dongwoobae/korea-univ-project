@@ -24,58 +24,14 @@ import {
   getAdminPageRange,
 } from "@/lib/adminList";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
-
-interface AdminBuildingSummary {
-  registered_facility_count: number;
-  missing_facility_count: number;
-  missing_photo_count: number;
-  missing_location_count: number;
-  stale_update_count: number;
-  translation_needed_count: number;
-}
-
-const summaryItems: {
-  key: keyof AdminBuildingSummary;
-  label: string;
-  description: string;
-  warning?: boolean;
-}[] = [
-  {
-    key: "registered_facility_count",
-    label: "등록된 시설",
-    description: "공개 건물에 등록된 시설",
-  },
-  {
-    key: "missing_facility_count",
-    label: "시설 정보 없음",
-    description: "등록된 시설이 없는 공개 건물",
-    warning: true,
-  },
-  {
-    key: "missing_photo_count",
-    label: "사진 없음",
-    description: "사진이 없는 공개 건물",
-    warning: true,
-  },
-  {
-    key: "missing_location_count",
-    label: "위치 없음",
-    description: "지도 위치가 없는 공개 건물",
-    warning: true,
-  },
-  {
-    key: "stale_update_count",
-    label: "갱신일 오래됨",
-    description: "갱신일이 없거나 1년 이상 지난 공개 건물",
-    warning: true,
-  },
-  {
-    key: "translation_needed_count",
-    label: "번역 필요",
-    description: "번역 대기 또는 실패 상태인 시설",
-    warning: true,
-  },
-];
+import {
+  ADMIN_BUILDING_FLAG_LABELS,
+  ADMIN_SUMMARY_ITEMS,
+  resolveFlagFilter,
+  resolveSummary,
+  type AdminBuildingFlagKey,
+  type AdminBuildingSummary,
+} from "@/lib/adminBuildingSummary";
 
 export default function BuildingsPage() {
   const [buildings, setBuildings] = useState<Building[]>([]);
@@ -92,6 +48,11 @@ export default function BuildingsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [summaryError, setSummaryError] = useState(false);
+  const [activeFlag, setActiveFlag] = useState<AdminBuildingFlagKey | null>(
+    null,
+  );
+  const [listError, setListError] = useState(false);
   const debouncedSearch = useDebouncedValue(search);
   const router = useRouter();
 
@@ -102,7 +63,7 @@ export default function BuildingsPage() {
   }, []);
 
   const fetchSummary = useCallback(async () => {
-    const [buildingResult, deletedResult, summaryResult] = await Promise.all([
+    const [totalResult, deletedResult, summaryResult] = await Promise.all([
       supabase.from("buildings").select("id", { count: "exact", head: true }),
       supabase
         .from("buildings")
@@ -110,9 +71,19 @@ export default function BuildingsPage() {
         .eq("is_deleted", true),
       supabase.rpc("get_admin_building_summary").single(),
     ]);
-    setOverallTotalCount(buildingResult.count ?? 0);
-    setDeletedCount(deletedResult.count ?? 0);
-    setSummary(summaryResult.data);
+    const resolved = resolveSummary(totalResult, deletedResult, summaryResult);
+    if (resolved.status === "error") {
+      // 원문은 콘솔로만 보낸다. PostgREST 오류의 message·details·hint에는
+      // 함수 시그니처, relation·column 이름, schema cache 힌트가 담긴다.
+      console.error("건물 요약 조회 실패", resolved.errors);
+      setSummary(null);
+      setSummaryError(true);
+      return;
+    }
+    setSummaryError(false);
+    setOverallTotalCount(resolved.value.overallTotalCount);
+    setDeletedCount(resolved.value.deletedCount);
+    setSummary(resolved.value.summary);
   }, []);
 
   useEffect(() => {
@@ -121,8 +92,38 @@ export default function BuildingsPage() {
   }, [fetchSummary]);
 
   const fetchData = useCallback(async () => {
+    setListError(false);
+
+    let flagIds: number[] | null = null;
+    if (activeFlag) {
+      const flagResponse = await supabase
+        .from("admin_building_flags")
+        .select("building_id")
+        .eq(activeFlag, true);
+      const resolved = resolveFlagFilter(flagResponse);
+      if (resolved.status === "error") {
+        console.error("건물 플래그 조회 실패", flagResponse.error);
+        setBuildings([]);
+        setFacilityCounts(new Map());
+        setTotalCount(0);
+        setListError(true);
+        setLoading(false);
+        return;
+      }
+      if (resolved.status === "empty") {
+        // 빈 배열을 .in()에 넘기면 id=in.()으로 직렬화돼 PostgREST가 파싱 오류를 낸다.
+        setBuildings([]);
+        setFacilityCounts(new Map());
+        setTotalCount(0);
+        setLoading(false);
+        return;
+      }
+      flagIds = resolved.ids;
+    }
+
     const { from, to } = getAdminPageRange(page);
     let query = supabase.from("buildings").select("*", { count: "exact" });
+    if (flagIds) query = query.in("id", flagIds);
     const searchFilter = buildAdminSearchFilter(
       ["name", "name_en"],
       debouncedSearch,
@@ -134,8 +135,11 @@ export default function BuildingsPage() {
       .order("id", { ascending: true })
       .range(from, to);
     if (error) {
+      console.error("건물 목록 조회 실패", error);
       setBuildings([]);
+      setFacilityCounts(new Map());
       setTotalCount(0);
+      setListError(true);
       setLoading(false);
       return;
     }
@@ -166,7 +170,7 @@ export default function BuildingsPage() {
     setFacilityCounts(counts);
     setTotalCount(nextTotal);
     setLoading(false);
-  }, [debouncedSearch, page]);
+  }, [activeFlag, debouncedSearch, page]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -181,6 +185,13 @@ export default function BuildingsPage() {
     const timer = window.setTimeout(() => void fetchData(), 0);
     return () => window.clearTimeout(timer);
   }, [fetchData]);
+
+  // 필터는 한 번에 하나만. 같은 카드를 다시 누르면 꺼진다.
+  // 페이지를 1로 되돌리지 않으면 결과가 1페이지뿐인데 3페이지에 머무는 일이 생긴다.
+  function toggleFlag(flag: AdminBuildingFlagKey) {
+    setActiveFlag((current) => (current === flag ? null : flag));
+    setPage(1);
+  }
 
   const campusByBuilding = useMemo(
     () =>
@@ -202,7 +213,9 @@ export default function BuildingsPage() {
         <div>
           <h1 className="ku-admin-title">건물 관리</h1>
           <p className="ku-admin-caption">
-            총 {overallTotalCount}개 · 삭제됨 {deletedCount}개
+            {summaryError
+              ? "건물 수를 불러오지 못했어요"
+              : `총 ${overallTotalCount}개 · 삭제됨 ${deletedCount}개`}
           </p>
         </div>
         <div className="ku-admin-actions">
@@ -224,29 +237,76 @@ export default function BuildingsPage() {
         </div>
       </div>
 
-      <dl
-        className="ku-admin-overview"
-        role="group"
-        aria-label="관리자 보완 현황"
-      >
-        {summaryItems.map(({ key, label, description, warning }) => {
-          const value = summary?.[key];
-          return (
-            <div
-              className="ku-admin-overview-item"
-              data-warning={Boolean(warning && value)}
-              key={key}
-              title={description}
-            >
-              <dt>{label}</dt>
-              <dd>
-                <strong>{value ?? "—"}</strong>
-                {value !== undefined && <span>개</span>}
-              </dd>
-            </div>
-          );
-        })}
-      </dl>
+      {summaryError ? (
+        <div className="ku-admin-overview-error" role="status">
+          <span>요약을 불러오지 못했어요.</span>
+          <button
+            className="ku-admin-button"
+            type="button"
+            disabled={refreshing}
+            onClick={() => void handleRefresh()}
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : (
+        <div
+          className="ku-admin-overview"
+          role="group"
+          aria-label="관리자 보완 현황"
+        >
+          {ADMIN_SUMMARY_ITEMS.map((item) => {
+            const body = (
+              <>
+                <span className="ku-admin-overview-label">{item.label}</span>
+                <span className="ku-admin-overview-value">
+                  {summary ? (
+                    item.parts(summary).map((part, index) => (
+                      <span
+                        className="ku-admin-overview-part"
+                        key={part.prefix ?? index}
+                      >
+                        {part.prefix && <span>{part.prefix}</span>}
+                        <strong>{part.value}</strong>
+                        <span>개</span>
+                      </span>
+                    ))
+                  ) : (
+                    <strong>—</strong>
+                  )}
+                </span>
+              </>
+            );
+            const warning = Boolean(
+              item.flag && summary && item.warningValue(summary) > 0,
+            );
+            // 클릭 대상이 아닌 총계 카드는 button으로 만들지 않는다.
+            // 눌리지 않는 버튼은 키보드 사용자가 포커스를 받고도 아무 일이 없다.
+            return item.flag ? (
+              <button
+                className="ku-admin-overview-item"
+                type="button"
+                data-warning={warning}
+                aria-pressed={activeFlag === item.flag}
+                key={item.id}
+                title={item.description}
+                onClick={() => toggleFlag(item.flag!)}
+              >
+                {body}
+              </button>
+            ) : (
+              <div
+                className="ku-admin-overview-item"
+                data-warning={warning}
+                key={item.id}
+                title={item.description}
+              >
+                {body}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <AdminListControls
         searchValue={search}
@@ -258,17 +318,34 @@ export default function BuildingsPage() {
         searchLabel="건물명 검색"
         resultCount={buildings.length}
         totalCount={totalCount}
-        hasActiveFilters={search.trim() !== ""}
+        hasActiveFilters={search.trim() !== "" || activeFlag !== null}
         onReset={() => {
           setSearch("");
+          setActiveFlag(null);
           setPage(1);
         }}
       />
 
       {loading ? (
         <div className="ku-admin-empty">불러오는 중...</div>
+      ) : listError ? (
+        <div className="ku-admin-empty">
+          목록을 불러오지 못했어요.{" "}
+          <button
+            className="ku-admin-button"
+            type="button"
+            disabled={refreshing}
+            onClick={() => void handleRefresh()}
+          >
+            다시 시도
+          </button>
+        </div>
       ) : buildings.length === 0 ? (
-        <div className="ku-admin-empty">검색 결과가 없습니다.</div>
+        <div className="ku-admin-empty">
+          {activeFlag
+            ? `‘${ADMIN_BUILDING_FLAG_LABELS[activeFlag]}’에 해당하는 건물이 없습니다.`
+            : "검색 결과가 없습니다."}
+        </div>
       ) : (
         <>
           <div className="ku-admin-table" role="table" aria-label="건물 목록">

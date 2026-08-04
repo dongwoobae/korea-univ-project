@@ -184,13 +184,27 @@
   margin: 0 0 16px;
 }
 .ku-admin-overview-item {
+  display: block;
   min-width: 0;
   padding: 12px 13px;
   border: 1px solid var(--ku-border);
   border-radius: 10px;
+  /* button은 브라우저 기본값이 text-align: center이고 color도 상속하지 않는다.
+     둘 다 명시하지 않으면 카드 안 텍스트가 가운데로 가고 색이 어긋난다.
+     (globals.css 리셋은 button에 font: inherit만 준다) */
+  text-align: left;
+  color: var(--ku-text-1);
   background: var(--ku-surface);
 }
-.ku-admin-overview-item dt {
+button.ku-admin-overview-item {
+  cursor: pointer;
+}
+.ku-admin-overview-item[aria-pressed="true"] {
+  border-color: var(--ku-crimson-600);
+  box-shadow: inset 0 0 0 1px var(--ku-crimson-600);
+}
+.ku-admin-overview-label {
+  display: block;
   overflow: hidden;
   color: var(--ku-text-3);
   font-size: 11.5px;
@@ -198,13 +212,23 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ku-admin-overview-item dd {
+.ku-admin-overview-value {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 3px;
   margin: 5px 0 0;
   color: var(--ku-text-2);
   font-size: 12px;
+}
+.ku-admin-overview-part {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.ku-admin-overview-part + .ku-admin-overview-part::before {
+  content: "·";
+  margin-right: 3px;
 }
 .ku-admin-overview-item strong {
   color: var(--ku-text-1);
@@ -217,6 +241,19 @@
 }
 .ku-admin-overview-item[data-warning="true"] strong {
   color: #92400e;
+}
+.ku-admin-overview-error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 13px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  color: var(--ku-text-2);
+  background: var(--ku-surface);
+  font-size: 13px;
 }
 .ku-admin-search {
   position: relative;
