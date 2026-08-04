@@ -359,7 +359,17 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      admin_building_flags: {
+        Row: {
+          building_id: number | null;
+          missing_facility: boolean | null;
+          missing_location: boolean | null;
+          missing_photo: boolean | null;
+          stale_update: boolean | null;
+          translation_needed: boolean | null;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       get_admin_building_summary: {
@@ -370,6 +380,7 @@ export type Database = {
           missing_photo_count: number;
           registered_facility_count: number;
           stale_update_count: number;
+          translation_needed_building_count: number;
           translation_needed_count: number;
         }[];
       };

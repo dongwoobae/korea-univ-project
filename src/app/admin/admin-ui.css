@@ -184,13 +184,27 @@
   margin: 0 0 16px;
 }
 .ku-admin-overview-item {
+  display: block;
   min-width: 0;
   padding: 12px 13px;
   border: 1px solid var(--ku-border);
   border-radius: 10px;
+  /* button은 브라우저 기본값이 text-align: center이고 color도 상속하지 않는다.
+     둘 다 명시하지 않으면 카드 안 텍스트가 가운데로 가고 색이 어긋난다.
+     (globals.css 리셋은 button에 font: inherit만 준다) */
+  text-align: left;
+  color: var(--ku-text-1);
   background: var(--ku-surface);
 }
-.ku-admin-overview-item dt {
+button.ku-admin-overview-item {
+  cursor: pointer;
+}
+.ku-admin-overview-item[aria-pressed="true"] {
+  border-color: var(--ku-crimson-600);
+  box-shadow: inset 0 0 0 1px var(--ku-crimson-600);
+}
+.ku-admin-overview-label {
+  display: block;
   overflow: hidden;
   color: var(--ku-text-3);
   font-size: 11.5px;
@@ -198,13 +212,23 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ku-admin-overview-item dd {
+.ku-admin-overview-value {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 3px;
   margin: 5px 0 0;
   color: var(--ku-text-2);
   font-size: 12px;
+}
+.ku-admin-overview-part {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.ku-admin-overview-part + .ku-admin-overview-part::before {
+  content: "·";
+  margin-right: 3px;
 }
 .ku-admin-overview-item strong {
   color: var(--ku-text-1);
@@ -217,6 +241,19 @@
 }
 .ku-admin-overview-item[data-warning="true"] strong {
   color: #92400e;
+}
+.ku-admin-overview-error {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 13px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  color: var(--ku-text-2);
+  background: var(--ku-surface);
+  font-size: 13px;
 }
 .ku-admin-search {
   position: relative;
@@ -549,49 +586,6 @@
   border-color: var(--ku-border) !important;
   background: var(--ku-surface) !important;
 }
-.ku-admin-detail-section-nav {
-  position: sticky;
-  z-index: 80;
-  top: 64px;
-  border-bottom: 1px solid var(--ku-border);
-  background: color-mix(in srgb, var(--ku-surface) 96%, transparent);
-  backdrop-filter: blur(10px);
-}
-.ku-admin-detail-section-nav-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: min(1180px, 100%);
-  min-height: 48px;
-  gap: 16px;
-  margin: 0 auto;
-  padding: 0 24px;
-}
-.ku-admin-detail-section-links {
-  display: flex;
-  align-items: stretch;
-  align-self: stretch;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.ku-admin-detail-section-links::-webkit-scrollbar {
-  display: none;
-}
-.ku-admin-detail-section-links a {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  padding: 0 12px;
-  color: var(--ku-text-2);
-  font-size: 12.5px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.ku-admin-detail-section-links a[aria-current="location"] {
-  color: var(--ku-crimson-600);
-  box-shadow: inset 0 -2px 0 var(--ku-crimson-700);
-}
 .ku-admin-detail-save-status {
   flex: 0 0 auto;
   padding: 4px 9px;
@@ -622,36 +616,37 @@
   margin: 0 auto;
   padding: 24px;
 }
-.ku-admin-detail-card,
-.ku-admin-detail-danger {
-  scroll-margin-top: 132px;
-}
-.ku-admin-detail-grid > div {
+.ku-admin-detail-grid > .ku-admin-detail-card {
   margin: 0 !important;
   color: var(--ku-text-1);
   border-color: var(--ku-border) !important;
   border-radius: 12px !important;
   background: var(--ku-surface) !important;
 }
-.ku-admin-detail-grid > div:nth-child(1) {
+/* DOM 순서가 아니라 카드의 의미로 배치한다. nth-child로 두면 카드를 하나
+   더 붙일 때 배치 규칙 없는 자식이 다시 생긴다. */
+.ku-admin-detail-card--photos {
   grid-column: 1;
   grid-row: 2;
 }
-.ku-admin-detail-grid > div:nth-child(2) {
+.ku-admin-detail-card--name {
   grid-column: 1;
   grid-row: 1;
 }
-.ku-admin-detail-grid > div:nth-child(3) {
+.ku-admin-detail-card--college {
   grid-column: 1;
   grid-row: 3;
 }
-.ku-admin-detail-grid > div:nth-child(4) {
+.ku-admin-detail-card--polygon {
   grid-column: 2;
   grid-row: 2 / span 2;
 }
-.ku-admin-detail-grid > div:nth-child(5) {
+.ku-admin-detail-card--facilities {
   grid-column: 2;
   grid-row: 1;
+}
+.ku-admin-detail-danger {
+  grid-column: 1 / -1;
 }
 .ku-admin-detail-grid input,
 .ku-admin-detail-grid select,
@@ -878,6 +873,7 @@
     padding: 13px 14px;
     border: 1px solid var(--ku-border);
     border-radius: 12px;
+    text-align: left;
     color: var(--ku-text-1);
     background: var(--ku-surface);
   }
@@ -903,32 +899,8 @@
     min-height: 58px;
     padding: 10px 14px !important;
   }
-  .ku-admin-detail-section-nav {
-    top: 58px;
-  }
-  .ku-admin-detail-section-nav-inner {
-    display: block;
-    padding: 0;
-  }
-  .ku-admin-detail-section-links {
-    min-height: 44px;
-    padding: 0 8px;
-  }
-  .ku-admin-detail-section-links a {
-    padding: 0 10px;
-  }
-  .ku-admin-detail-save-status {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 14px;
-    box-shadow: var(--ku-shadow-soft);
-  }
   .ku-admin-detail-save-status:not([data-unsaved="true"]) {
     display: none;
-  }
-  .ku-admin-detail-card,
-  .ku-admin-detail-danger {
-    scroll-margin-top: 112px;
   }
   .ku-admin-detail-grid {
     display: flex;

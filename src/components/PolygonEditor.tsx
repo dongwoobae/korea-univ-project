@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
-import type { Feature, FeatureCollection, Polygon } from "geojson";
+import type { Feature, Polygon } from "geojson";
 import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
-import { supabase } from "@/lib/supabaseClient";
+import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
+import { addNeighborLayer } from "@/lib/neighborLayer";
+import { getPolygonRingCenter } from "@/lib/polygonCenter";
 import ConfirmModal from "@/components/ConfirmModal";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
@@ -48,18 +50,9 @@ export default function PolygonEditor({
     const initialGeojson = initialGeojsonRef.current;
     const initialExcludeId = excludeIdRef.current;
 
-    let center: [number, number] = [37.5893, 127.0327];
-    const initialRing = initialGeojson?.geometry.coordinates[0];
-    if (initialRing?.length) {
-      const coords = initialRing;
-      const avgLat = coords.reduce((s, c) => s + c[1], 0) / coords.length;
-      const avgLng = coords.reduce((s, c) => s + c[0], 0) / coords.length;
-      center = [avgLat, avgLng];
-    }
-
     const map = L.map(containerRef.current!, {
       scrollWheelZoom: true,
-    }).setView(center, 18);
+    }).setView(getPolygonRingCenter(initialGeojson), 18);
     mapRef.current = map;
 
     tileLayerRef.current = L.tileLayer(getCartoTileUrl(false), {
@@ -84,47 +77,13 @@ export default function PolygonEditor({
 
     // 기존 건물들을 회색 배경 레이어로 표시 (편집 대상 제외, 클릭 통과)
     let cancelled = false;
-    supabase
-      .from("buildings")
-      .select("id, name, geojson")
-      .eq("is_deleted", false)
-      .not("geojson", "is", null)
-      .then(({ data }) => {
+    void fetchNeighborBuildings()
+      .then((neighbors) => {
         if (cancelled || !mapRef.current) return;
-        const features = (data ?? [])
-          .filter(
-            (b) =>
-              (b.geojson as unknown as Feature | null)?.geometry &&
-              String(b.id) !== String(initialExcludeId ?? ""),
-          )
-          .map((b) => {
-            const g = b.geojson as unknown as Feature;
-            return {
-              ...g,
-              properties: { ...(g.properties ?? {}), name: b.name },
-            };
-          });
-        L.geoJSON(
-          { type: "FeatureCollection", features } as FeatureCollection,
-          {
-            style: {
-              color: "#9ca3af",
-              weight: 1,
-              fillColor: "#9ca3af",
-              fillOpacity: 0.25,
-            },
-            interactive: false,
-            onEachFeature: (f, layer) => {
-              if (f.properties?.name) {
-                layer.bindTooltip(f.properties.name, {
-                  permanent: true,
-                  direction: "center",
-                  className: "bldg-label",
-                });
-              }
-            },
-          },
-        ).addTo(map);
+        addNeighborLayer(map, neighbors, initialExcludeId);
+      })
+      .catch(() => {
+        // 주변 건물은 보조 정보다. 실패해도 편집 자체는 계속할 수 있다.
       });
 
     if (initialGeojson) {

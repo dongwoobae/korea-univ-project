@@ -7,6 +7,7 @@ import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import { inferCampusFromGeometry } from "@/lib/campusGeometry";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
+import { invalidateNeighborBuildings } from "@/lib/neighborBuildings";
 import type { Feature, Polygon } from "geojson";
 import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
@@ -101,6 +102,7 @@ export default function NewBuilding() {
       return;
     }
 
+    invalidateNeighborBuildings();
     showToast("건물이 추가되었어요!");
     setTimeout(() => router.push(`/admin/buildings/${newId}`), 800);
   }

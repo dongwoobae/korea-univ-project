@@ -5,6 +5,7 @@ import NextImage from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
+import { invalidateNeighborBuildings } from "@/lib/neighborBuildings";
 import type {
   Building,
   BuildingPhoto,
@@ -28,16 +29,12 @@ const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
   ssr: false,
 });
 
-const KU_CENTER: [number, number] = [37.5893, 127.0327];
+const BuildingPolygonPreview = dynamic(
+  () => import("@/components/BuildingPolygonPreview"),
+  { ssr: false },
+);
 
-const DETAIL_SECTIONS = [
-  { id: "building-photos", label: "사진" },
-  { id: "building-name", label: "이름" },
-  { id: "building-college", label: "소속" },
-  { id: "building-polygon", label: "폴리곤" },
-  { id: "building-facilities", label: "시설" },
-  { id: "building-danger", label: "삭제·복구" },
-] as const;
+const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
 function getBuildingCenter(building): [number, number] {
   const geom = building?.geojson?.geometry;
@@ -79,9 +76,6 @@ export default function BuildingDetail() {
   const [confirmDeleteBuilding, setConfirmDeleteBuilding] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(
     null,
-  );
-  const [activeSection, setActiveSection] = useState<string>(
-    DETAIL_SECTIONS[0].id,
   );
   const [videoModalFacility, setVideoModalFacility] =
     useState<FacilityWithType | null>(null);
@@ -146,27 +140,6 @@ export default function BuildingDetail() {
   }, [fetchData, router]);
 
   useEffect(() => {
-    if (loading) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visibleEntry = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visibleEntry) setActiveSection(visibleEntry.target.id);
-      },
-      { rootMargin: "-140px 0px -55% 0px", threshold: [0, 0.2, 0.6] },
-    );
-
-    DETAIL_SECTIONS.forEach(({ id: sectionId }) => {
-      const section = document.getElementById(sectionId);
-      if (section) observer.observe(section);
-    });
-
-    return () => observer.disconnect();
-  }, [loading]);
-
-  useEffect(() => {
     if (!hasUnsavedChanges) return;
 
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -206,6 +179,7 @@ export default function BuildingDetail() {
       showToast("삭제에 실패했어요", "error");
       return;
     }
+    invalidateNeighborBuildings();
     router.push("/admin/dashboard");
   }
 
@@ -218,6 +192,7 @@ export default function BuildingDetail() {
       showToast("복구에 실패했어요", "error");
       return;
     }
+    invalidateNeighborBuildings();
     showToast("건물이 복구되었어요!");
     fetchData();
   }
@@ -240,6 +215,7 @@ export default function BuildingDetail() {
       showToast("저장에 실패했어요", "error");
       return;
     }
+    invalidateNeighborBuildings();
     await fetchData();
     showToast("건물명이 저장되었어요!");
   }
@@ -326,38 +302,7 @@ export default function BuildingDetail() {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => navigateWithUnsavedCheck("/")}
-          style={{
-            fontSize: 13,
-            color: "var(--ku-text-2)",
-            background: "none",
-            border: "1px solid var(--ku-border)",
-            borderRadius: 6,
-            padding: "6px 12px",
-            cursor: "pointer",
-          }}
-        >
-          지도 보기
-        </button>
-      </div>
-
-      <nav className="ku-admin-detail-section-nav" aria-label="건물 상세 섹션">
-        <div className="ku-admin-detail-section-nav-inner">
-          <div className="ku-admin-detail-section-links">
-            {DETAIL_SECTIONS.map((section) => (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
-                aria-current={
-                  activeSection === section.id ? "location" : undefined
-                }
-                onClick={() => setActiveSection(section.id)}
-              >
-                {section.label}
-              </a>
-            ))}
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div
             className="ku-admin-detail-save-status"
             data-unsaved={hasUnsavedChanges}
@@ -372,14 +317,28 @@ export default function BuildingDetail() {
               ? `저장하지 않은 변경 ${unsavedChangeCount}개`
               : "모든 변경 저장됨"}
           </div>
+          <button
+            onClick={() => navigateWithUnsavedCheck("/")}
+            style={{
+              fontSize: 13,
+              color: "var(--ku-text-2)",
+              background: "none",
+              border: "1px solid var(--ku-border)",
+              borderRadius: 6,
+              padding: "6px 12px",
+              cursor: "pointer",
+            }}
+          >
+            지도 보기
+          </button>
         </div>
-      </nav>
+      </div>
 
       <div className="ku-admin-detail-grid">
         {/* 건물 사진 */}
         <div
           id="building-photos"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--photos"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -397,7 +356,7 @@ export default function BuildingDetail() {
         {/* 건물명 수정 */}
         <div
           id="building-name"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--name"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -504,7 +463,7 @@ export default function BuildingDetail() {
         {/* 소속 단과대학 */}
         <div
           id="building-college"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--college"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -574,7 +533,7 @@ export default function BuildingDetail() {
         {/* 폴리곤 편집 */}
         <div
           id="building-polygon"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--polygon"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -634,6 +593,16 @@ export default function BuildingDetail() {
             )}
           </div>
 
+          {!editingPolygon && building.geojson && (
+            <div style={{ marginTop: 16 }}>
+              <BuildingPolygonPreview
+                key={JSON.stringify(building.geojson)}
+                geojson={building.geojson as unknown as Feature<Polygon>}
+                buildingId={id}
+              />
+            </div>
+          )}
+
           {editingPolygon && (
             <PolygonEditor
               geojson={
@@ -650,6 +619,7 @@ export default function BuildingDetail() {
                   showToast("저장에 실패했어요", "error");
                   return;
                 }
+                invalidateNeighborBuildings();
                 setEditingPolygon(false);
                 await fetchData();
                 showToast("폴리곤이 저장되었어요!");
@@ -662,7 +632,7 @@ export default function BuildingDetail() {
         {/* 시설 목록 */}
         <div
           id="building-facilities"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--facilities"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,
@@ -792,12 +762,12 @@ export default function BuildingDetail() {
             <button
               onClick={handleRestoreBuilding}
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 color: "#fff",
                 background: "var(--ku-primary)",
-                border: "none",
+                border: "1px solid var(--ku-primary)",
                 borderRadius: 6,
-                padding: "8px 20px",
+                padding: "6px 14px",
                 cursor: "pointer",
               }}
             >
@@ -808,12 +778,12 @@ export default function BuildingDetail() {
             <button
               onClick={() => setConfirmDeleteBuilding(true)}
               style={{
-                fontSize: 13,
+                fontSize: 12,
                 color: "var(--ku-danger)",
                 background: "none",
                 border: "1px solid var(--ku-danger)",
                 borderRadius: 6,
-                padding: "8px 20px",
+                padding: "6px 14px",
                 cursor: "pointer",
               }}
             >
