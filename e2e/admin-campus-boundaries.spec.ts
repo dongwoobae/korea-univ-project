@@ -9,6 +9,7 @@ test.describe("관리자 캠퍼스 영역 안내", () => {
     });
     await page.goto("/admin/dashboard/facilities");
 
+    const before = state.facilities.length;
     await page.getByRole("button", { name: "+ 시설 추가" }).click();
     const dialog = page.getByRole("dialog");
     await dialog.locator("select").selectOption("ramp");
@@ -25,7 +26,7 @@ test.describe("관리자 캠퍼스 영역 안내", () => {
 
     await dialog.getByRole("button", { name: "저장", exact: true }).click();
     await expect(dialog).toHaveCount(0);
-    expect(state.facilities).toHaveLength(4);
+    expect(state.facilities).toHaveLength(before + 1);
     expect(state.facilities.at(-1)).toMatchObject({
       name: "인접 지역 경사로",
       lat: 37.61,
