@@ -355,8 +355,8 @@ git commit -m "style(admin): 시설 행·배지·동영상 섹션 클래스 추�
       {
         id: "f-building-untranslated",
         building_id: 1,
-        facility_code: "restroom",
-        name: "장애인용 화장실",
+        facility_code: "elevator",
+        name: "지하 1층 엘리베이터",
         name_en: null,
         name_zh: null,
         translation_status: "failed",
@@ -371,7 +371,7 @@ git commit -m "style(admin): 시설 행·배지·동영상 섹션 클래스 추�
         lng: 127.0323,
         video_url: null,
         video_caption: null,
-        facility_types: types[2],
+        facility_types: types[0],
         buildings: { name: "중앙도서관", name_en: "Central Library" },
         created_at: "2026-07-21T00:00:02Z",
         updated_at: "2026-07-22T02:00:00Z",
@@ -395,7 +395,7 @@ git commit -m "style(admin): 시설 행·배지·동영상 섹션 클래스 추�
         lng: 127.0324,
         video_url: "https://cdn.example.com/facility-videos/f-building-video/1.mp4",
         video_caption: "진입로 경사",
-        facility_types: types[0],
+        facility_types: types[2],
         buildings: { name: "중앙도서관", name_en: "Central Library" },
         created_at: "2026-07-21T00:00:03Z",
         updated_at: "2026-07-22T02:00:00Z",
@@ -705,7 +705,7 @@ test.describe("건물 상세 시설 모달", () => {
       page.getByRole("button", { name: /후문 경사로/ }),
     ).toContainText("미설치");
     await expect(
-      page.getByRole("button", { name: /장애인용 화장실/ }),
+      page.getByRole("button", { name: /지하 1층 엘리베이터/ }),
     ).toContainText("번역 필요");
   });
 
@@ -1068,7 +1068,7 @@ test("번역 필요 건수를 헤더에 드러내고 일괄 재번역하면 배�
   await expect(bulk).toContainText("번역 필요 1건");
   await bulk.click();
   await expect(
-    page.getByRole("button", { name: /장애인용 화장실/ }),
+    page.getByRole("button", { name: /지하 1층 엘리베이터/ }),
   ).not.toContainText("번역 필요");
   await expect(bulk).toHaveCount(0);
 });
@@ -1082,7 +1082,7 @@ test("번역이 다시 실패하면 배지가 그대로 남는다", async ({ pag
 
   await expect(page.getByText("1건은 다시 실패했어요")).toBeVisible();
   await expect(
-    page.getByRole("button", { name: /장애인용 화장실/ }),
+    page.getByRole("button", { name: /지하 1층 엘리베이터/ }),
   ).toContainText("번역 필요");
   await expect(page.getByRole("button", { name: /전부 재번역/ })).toBeVisible();
 });
