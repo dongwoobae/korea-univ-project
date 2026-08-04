@@ -93,7 +93,11 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       attributionBox!.y,
     );
     const providerLinks = page.locator(".ku-attribution a");
-    await expect(providerLinks).toHaveText(["OpenStreetMap", "CARTO"]);
+    await expect(providerLinks).toHaveText([
+      "OpenStreetMap",
+      "CARTO",
+      "Leaflet",
+    ]);
     await expect(providerLinks.nth(0)).toHaveAttribute("target", "_blank");
     await expect(providerLinks.nth(0)).toHaveAttribute(
       "rel",
@@ -104,18 +108,23 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       "https://carto.com/attributions",
     );
     await expect(providerLinks.nth(1)).toHaveAttribute("target", "_blank");
-    await expect(page.locator(".leaflet-control-attribution")).toContainText(
-      "CARTO",
+    await expect(providerLinks.nth(2)).toHaveAttribute(
+      "href",
+      "https://leafletjs.com/",
     );
+    // 공개 지도는 기본 컨트롤을 만들지 않는다. 만들어 두고 CSS로 가리면 그
+    // 규칙이 전역이라 관리자 지도의 표기까지 함께 사라진다.
+    await expect(page.locator(".leaflet-control-attribution")).toHaveCount(0);
 
     await page.getByRole("button", { name: "항공사진으로 전환" }).click();
-    await expect(providerLinks).toHaveText(["OpenStreetMap", "Esri"]);
+    await expect(providerLinks).toHaveText([
+      "OpenStreetMap",
+      "Esri",
+      "Leaflet",
+    ]);
     await expect(providerLinks.nth(1)).toHaveAttribute(
       "href",
       "https://www.esri.com",
-    );
-    await expect(page.locator(".leaflet-control-attribution")).toContainText(
-      "Esri",
     );
     const satelliteBuilding = page
       .locator(".leaflet-overlay-pane path.leaflet-interactive")
