@@ -1574,7 +1574,14 @@ Expected: 항목들이 그대로 있다
 
 - [ ] **Step 2: 전체 검사를 마지막으로 한 번 더**
 
-Run: `npm run typecheck; if ($?) { npm run lint }; if ($?) { npm run format:check }; if ($?) { npm test }; if ($?) { npm run test:e2e }`
+Run: `npm run typecheck; if ($?) { npm run lint }; if ($?) { npm test }; if ($?) { npm run test:e2e }`
+Expected: 전부 통과
+
+`npm run format:check`는 여기서 돌리지 않는다. 이 저장소를 CRLF로 체크아웃하면 prettier가 기존 파일 전부를 줄바꿈 때문에 경고한다 — 이 작업 이전 커밋(`56fc68c`)의 `src/app/admin/buildings/[id]/page.tsx`도 똑같이 경고한다. **이 브랜치에서 고칠 문제가 아니다.** `prettier --write`로 재포맷하면 diff가 파일 전체로 번져 리뷰가 불가능해진다.
+
+대신 **이 브랜치가 새로 만든 파일만** 확인한다:
+
+Run: `npx prettier --check src/lib/facilityBadges.ts src/lib/facilityBadges.test.ts src/components/admin/FacilityDetailModal.tsx src/components/admin/BulkRetranslateButton.tsx src/components/admin/BuildingVideoManager.tsx e2e/admin-building-facility-modal.spec.ts e2e/admin-building-video.spec.ts`
 Expected: 전부 통과
 
 - [ ] **Step 3: 이 계획 문서를 지운다**
