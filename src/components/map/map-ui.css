@@ -733,7 +733,7 @@
   font-size: 12px;
 }
 .ku-attribution img {
-  align-self: flex-start;
+  align-self: center;
   width: auto;
   height: 30px;
 }

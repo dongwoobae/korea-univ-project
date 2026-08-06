@@ -149,10 +149,6 @@ a {
   background-image: none;
 }
 
-.leaflet-control-attribution {
-  display: none;
-}
-
 .leaflet-control-zoom {
   border: 0 !important;
   box-shadow: var(--ku-shadow-floating) !important;

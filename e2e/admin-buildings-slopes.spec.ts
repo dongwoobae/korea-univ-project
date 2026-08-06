@@ -161,6 +161,14 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     ).toBeVisible();
 
     const map = page.locator(".leaflet-container");
+    // 관리자 지도에는 공개 지도의 .ku-attribution 오버레이가 없다. 기본 컨트롤이
+    // 유일한 표기 수단이므로 눈에 보여야 한다.
+    const adminAttribution = page.locator(".leaflet-control-attribution");
+    await expect(adminAttribution).toBeVisible();
+    await expect(adminAttribution).toContainText("OpenStreetMap");
+    await expect(adminAttribution).toContainText("CARTO");
+    await expect(adminAttribution).toContainText("Leaflet");
+
     await page.locator(".leaflet-pm-icon-polygon").locator("..").click();
     await expect(map).toHaveClass(/geoman-draw-cursor/);
     const points = [
