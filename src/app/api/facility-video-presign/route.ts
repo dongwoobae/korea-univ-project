@@ -3,9 +3,9 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { r2Presign, R2_BUCKET, getPublicR2Url } from "@/lib/r2";
+import { MAX_VIDEO_LABEL, exceedsVideoLimit } from "@/lib/videoUpload";
 
 const ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
-const MAX_SIZE = 500 * 1024 * 1024; // 500MB
 
 export async function POST(request) {
   const auth = await requireAdmin(request);
@@ -26,9 +26,9 @@ export async function POST(request) {
         { status: 400 },
       );
     }
-    if (fileSize > MAX_SIZE) {
+    if (exceedsVideoLimit(fileSize)) {
       return NextResponse.json(
-        { error: "파일 크기는 500MB 이하여야 해요" },
+        { error: `파일 크기는 ${MAX_VIDEO_LABEL} 이하여야 해요` },
         { status: 400 },
       );
     }

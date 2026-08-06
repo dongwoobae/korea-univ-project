@@ -7,6 +7,11 @@ import ConfirmModal from "@/components/ConfirmModal";
 import { useModalFocus } from "@/lib/useModalFocus";
 import { isVideoPlayable } from "@/lib/videoPlayback";
 import { compressVideo, terminateFFmpeg } from "@/lib/compressVideo";
+import {
+  MAX_VIDEO_LABEL,
+  exceedsVideoLimit,
+  formatFileSize,
+} from "@/lib/videoUpload";
 
 export default function FacilityVideoModal({
   facility,
@@ -94,6 +99,18 @@ export default function FacilityVideoModal({
     if (!file) return;
 
     try {
+      // 0. 상한부터 본다. 변환은 몇 분이 걸리는데, 그 시간을 다 태우고 나서
+      //    서버가 400을 돌려주면 사용자는 이유를 가장 늦게 알게 된다.
+      //    (검사를 try 밖에 두면 finally의 input 초기화가 안 돌아 같은 파일을
+      //     다시 고를 때 onChange가 뜨지 않는다.)
+      if (exceedsVideoLimit(file.size)) {
+        showToast(
+          `파일이 너무 커요 (${formatFileSize(file.size)}) · 최대 ${MAX_VIDEO_LABEL}`,
+          "error",
+        );
+        return;
+      }
+
       // 1. 브라우저가 이 파일의 비디오 트랙을 디코드할 수 있는지 먼저 확인한다.
       //    아이폰 기본 촬영물(HEVC)은 mp4/mov 컨테이너라 형식 검사를 통과하지만
       //    공개 화면에서 소리만 나고 화면이 검게 나오므로, 재생 불가일 때만
@@ -113,6 +130,16 @@ export default function FacilityVideoModal({
           );
           return;
         }
+      }
+
+      // 재인코딩은 파일을 줄이기만 하지 않는다. 고압축 HEVC를 H.264로 풀면
+      // 오히려 커질 수 있으므로 변환 결과도 다시 잰다.
+      if (exceedsVideoLimit(payload.size)) {
+        showToast(
+          `변환 결과가 너무 커요 (${formatFileSize(payload.size)}) · 최대 ${MAX_VIDEO_LABEL}`,
+          "error",
+        );
+        return;
       }
 
       // 2. Presigned URL 발급
@@ -452,9 +479,8 @@ export default function FacilityVideoModal({
                 }}
               >
                 <span style={{ fontSize: 28 }}>🎬</span>
-                {/* 실제 상한은 presign 라우트의 500MB다. 200MB는 지금은 아무도
-                    호출하지 않는 upload-facility-video 라우트의 값이었다. */}
-                {phaseLabel ?? "동영상 추가 (mp4, webm, mov · 최대 500MB)"}
+                {phaseLabel ??
+                  `동영상 추가 (mp4, webm, mov · 최대 ${MAX_VIDEO_LABEL})`}
                 <input
                   type="file"
                   accept="video/mp4,video/webm,video/quicktime"
