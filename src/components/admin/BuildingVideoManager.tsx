@@ -84,16 +84,26 @@ export default function BuildingVideoManager({
               </option>
             ))}
           </select>
-          <button type="button" onClick={confirmPick} disabled={!picked}>
+          <button
+            type="button"
+            className="ku-admin-button ku-admin-button--primary"
+            onClick={confirmPick}
+            disabled={!picked}
+          >
             확인
           </button>
-          <button type="button" onClick={() => setPicking(false)}>
+          <button
+            type="button"
+            className="ku-admin-button"
+            onClick={() => setPicking(false)}
+          >
             취소
           </button>
         </div>
       ) : (
         <button
           type="button"
+          className="ku-admin-button"
           disabled={facilities.length === 0}
           onClick={() => setPicking(true)}
           style={{ marginTop: 12 }}

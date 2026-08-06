@@ -379,7 +379,7 @@ export default function BuildingDetail() {
         {/* 건물 동영상 */}
         <div
           id="building-videos"
-          className="ku-admin-detail-card"
+          className="ku-admin-detail-card ku-admin-detail-card--videos"
           style={{
             background: "var(--ku-surface)",
             borderRadius: 10,

@@ -122,15 +122,21 @@
 .ku-admin-button--accent {
   color: var(--ku-crimson-600);
 }
+/* 주 액션 색은 --ku-primary(파랑)다. 이 클래스는 오래 크림슨이었지만 쓰는 곳이
+   없었고, 이름과 실제 primary 토큰이 어긋나 집는 사람마다 함정이 됐다. */
 .ku-admin-button--primary {
-  border-color: #8c0000;
+  border-color: var(--ku-primary);
   color: #fff;
-  background: #8c0000;
+  background: var(--ku-primary);
 }
 .ku-admin-button--text {
   border-color: transparent;
   color: var(--ku-crimson-600);
   background: transparent;
+}
+.ku-admin-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .ku-admin-main {
   width: min(1180px, 100%);
@@ -644,6 +650,12 @@ button.ku-admin-overview-item {
 .ku-admin-detail-card--facilities {
   grid-column: 2;
   grid-row: 1;
+}
+/* 동영상 목록은 가로로 긴 행이라 두 열을 다 쓴다. 배치 규칙을 안 주면
+   자동 배치로 왼쪽 열에만 놓여 오른쪽에 빈 칸이 남는다. */
+.ku-admin-detail-card--videos {
+  grid-column: 1 / -1;
+  grid-row: 4;
 }
 .ku-admin-detail-danger {
   grid-column: 1 / -1;
