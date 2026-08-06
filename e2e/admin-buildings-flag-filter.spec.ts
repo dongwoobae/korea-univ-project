@@ -18,9 +18,22 @@ const FLAG_CARDS = [
   { label: "번역 필요", expected: ["번역대기관"] },
 ];
 
-/** 플래그를 하나씩 트립시키는 건물을 얹는다. 기존 픽스처는 건드리지 않는다. */
+/**
+ * 공유 픽스처를 비우고 이 스펙이 쓸 건물만 새로 깐다.
+ *
+ * 기대값이 `createState()`의 시설·사진 구성에 걸려 있으면, 다른 작업이 공유
+ * 픽스처에 시설 하나만 더해도 여기 개수 단언이 조용히 어긋난다. 실제로 그런
+ * 일이 있었다 — `f-building-untranslated`(building 1, translation_status
+ * "failed")가 들어오자 중앙도서관이 `번역 필요`에 추가로 걸렸다.
+ *
+ * 검증력은 그대로다. 이 스펙이 보는 것은 "카드 숫자와 목록 개수가 같은 정의를
+ * 보는가"이지 픽스처의 특정 내용이 아니다.
+ */
 function seedFlaggedBuildings(state: MockState) {
   const polygon = state.buildings[0].geojson;
+  state.buildings.length = 0;
+  state.facilities.length = 0;
+  state.photos.length = 0;
   const building = (
     id: number,
     name: string,
@@ -62,6 +75,7 @@ function seedFlaggedBuildings(state: MockState) {
   });
 
   state.buildings.push(
+    building(1, "완비관", {}), // 플래그 없음
     building(2, "사진없는관", {}), // 사진만 없음
     building(3, "위치없는관", { geojson: null }), // 시설·사진·위치 셋 다 없음
     building(4, "번역대기관", {}), // 번역 대기 시설을 가짐
@@ -69,11 +83,21 @@ function seedFlaggedBuildings(state: MockState) {
     building(6, "빈터", {}), // 시설만 없음
   );
   state.facilities.push(
+    facility("f-complete", 1, "translated"),
     facility("f-photoless", 2, "translated"),
     facility("f-pending", 4, "pending"),
     facility("f-old", 5, "translated"),
   );
-  state.photos.push(photo(4, 4), photo(5, 5), photo(6, 6));
+  // 2·3번은 사진이 없어야 `사진 없음`에 걸린다.
+  state.photos.push(photo(1, 1), photo(4, 4), photo(5, 5), photo(6, 6));
+}
+
+/** 다섯 플래그가 모두 0인 건물 하나만 남긴다. */
+function seedCleanBuilding(state: MockState) {
+  seedFlaggedBuildings(state);
+  state.buildings.splice(1);
+  state.facilities.splice(1);
+  state.photos.splice(1);
 }
 
 test.describe("건물 관리 경고 카드 필터", () => {
@@ -158,8 +182,8 @@ test.describe("건물 관리 경고 카드 필터", () => {
   test("경고 0건인 카드를 눌러도 빈 목록이 정상 표시되고 id=in.()을 보내지 않는다", async ({
     page,
   }) => {
-    // 기본 픽스처(건물 1개)는 다섯 플래그가 모두 0이다.
-    await installMockBackend(page, { authenticated: true });
+    const state = await installMockBackend(page, { authenticated: true });
+    seedCleanBuilding(state);
     const requestUrls: string[] = [];
     page.on("request", (request) => requestUrls.push(request.url()));
 
