@@ -96,7 +96,9 @@ export default function FacilityDetailModal({
           </span>
         </div>
 
-        <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
+        {/* 인라인으로 같은 모양을 재현하면 모바일의 sticky 배치와 최소 터치
+            높이(admin-ui.css의 미디어쿼리)가 안 걸린다. 클래스를 쓴다. */}
+        <div className="ku-facility-modal-actions">
           <button
             ref={closeButtonRef}
             type="button"

@@ -54,10 +54,12 @@ export default function BulkRetranslateButton({
       style={{
         fontSize: 12,
         padding: "4px 8px",
-        border: "1px solid #d97706",
+        // 다크모드에서 --ku-surface가 어두워진다. 색을 고정하면 대비가 무너지므로
+        // 테마별로 뒤집히는 상태 토큰을 쓴다(라이트 #92400e ↔ 다크 #f1cb77).
+        border: "1px solid var(--ku-status-warn-fg)",
         borderRadius: 6,
-        background: "var(--ku-surface)",
-        color: "#92400e",
+        background: "var(--ku-status-warn-bg)",
+        color: "var(--ku-status-warn-fg)",
         fontWeight: 600,
         cursor: run !== null ? "wait" : "pointer",
         whiteSpace: "nowrap",

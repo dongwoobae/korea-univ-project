@@ -59,9 +59,12 @@ export default function BuildingVideoManager({
                 {f.video_caption ?? "캡션 없음"}
               </span>
             </span>
+            {/* 시설명은 버튼 밖 형제 요소라, 이름이 없으면 모든 버튼의
+                접근 이름이 `관리 ›`로 같아져 스크린리더가 구분하지 못한다. */}
             <button
               type="button"
               className="ku-admin-row-action"
+              aria-label={`${f.name ?? f.facility_types?.label} 동영상 관리`}
               onClick={() => setTarget(f)}
             >
               관리 ›
@@ -95,7 +98,12 @@ export default function BuildingVideoManager({
           <button
             type="button"
             className="ku-admin-button"
-            onClick={() => setPicking(false)}
+            onClick={() => {
+              // 선택을 남겨두면 다시 열었을 때 이전 시설이 이미 골라져 있고
+              // 확인도 활성 상태라, 교체 대상이었던 경우 실수로 이어진다.
+              setPicking(false);
+              setPickedId("");
+            }}
           >
             취소
           </button>

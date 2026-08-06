@@ -3,7 +3,10 @@ import {
   MAX_VIDEO_BYTES,
   MAX_VIDEO_LABEL,
   exceedsVideoLimit,
+  facilityVideoKey,
+  formatExcessSize,
   formatFileSize,
+  isFacilityVideoKey,
   isValidFileSize,
 } from "./videoUpload";
 
@@ -26,6 +29,51 @@ describe("exceedsVideoLimit", () => {
 
   it("빈 파일도 통과시킨다", () => {
     expect(exceedsVideoLimit(0)).toBe(false);
+  });
+});
+
+describe("facilityVideoKey / isFacilityVideoKey", () => {
+  const facilityId = "efca8dfa-c6c2-47c8-b2b0-923cfb98fe5f";
+
+  it("발급 키는 시설별 접두사 아래에 놓인다", () => {
+    expect(facilityVideoKey(facilityId, "mp4", 1780848381078)).toBe(
+      `facility-videos/${facilityId}/1780848381078.mp4`,
+    );
+  });
+
+  it("자기 시설의 키만 자기 것으로 인정한다", () => {
+    expect(
+      isFacilityVideoKey(`facility-videos/${facilityId}/1.mp4`, facilityId),
+    ).toBe(true);
+  });
+
+  it("다른 시설 · 다른 접두사의 키는 거부한다", () => {
+    // 이게 핵심이다. confirm이 이걸 안 보면 landmark-photos/ 키를 시설에
+    // 심어둔 뒤 delete를 불러 남의 객체를 지울 수 있다.
+    expect(isFacilityVideoKey("landmark-photos/x/1.webp", facilityId)).toBe(
+      false,
+    );
+    expect(
+      isFacilityVideoKey(
+        "facility-videos/00000000-0000-0000-0000-000000000000/1.mp4",
+        facilityId,
+      ),
+    ).toBe(false);
+  });
+
+  it("상위 경로 탈출을 거부한다", () => {
+    expect(
+      isFacilityVideoKey(
+        `facility-videos/${facilityId}/../../landmark-photos/1.webp`,
+        facilityId,
+      ),
+    ).toBe(false);
+  });
+
+  it("접두사만 있고 파일명이 없으면 거부한다", () => {
+    expect(
+      isFacilityVideoKey(`facility-videos/${facilityId}/`, facilityId),
+    ).toBe(false);
   });
 });
 
@@ -60,12 +108,27 @@ describe("formatFileSize", () => {
     expect(formatFileSize(512 * 1024)).toBe("0.5MB");
   });
 
-  it("상한을 살짝 넘은 파일이 상한과 같은 표기로 보이지 않는다", () => {
-    // 정수로 반올림하면 500.4MB가 "500MB"가 되어
-    // `파일이 너무 커요 (500MB) · 최대 500MB`라는 자기모순 문구가 나온다.
-    const justOver = Math.round(500.4 * 1024 * 1024);
+  it("소수 첫째 자리까지 반올림한다", () => {
+    expect(formatFileSize(Math.round(500.4 * 1024 * 1024))).toBe("500.4MB");
+  });
+});
+
+describe("formatExcessSize", () => {
+  it("상한을 1바이트만 넘어도 상한 표기와 달라 보인다", () => {
+    // 반올림으로는 500.05MB까지 "500MB"가 되어
+    // `파일이 너무 커요 (500MB) · 최대 500MB`라는 자기모순이 남는다.
+    const justOver = MAX_VIDEO_BYTES + 1;
     expect(exceedsVideoLimit(justOver)).toBe(true);
-    expect(formatFileSize(justOver)).not.toBe(MAX_VIDEO_LABEL);
-    expect(formatFileSize(justOver)).toBe("500.4MB");
+    expect(formatFileSize(justOver)).toBe(MAX_VIDEO_LABEL); // 반올림은 못 잡는다
+    expect(formatExcessSize(justOver)).not.toBe(MAX_VIDEO_LABEL);
+    expect(formatExcessSize(justOver)).toBe("500.1MB");
+  });
+
+  it("올림이라 상한 근처 어디서도 상한 표기와 겹치지 않는다", () => {
+    for (const over of [1, 1024, 50 * 1024, 512 * 1024]) {
+      expect(formatExcessSize(MAX_VIDEO_BYTES + over)).not.toBe(
+        MAX_VIDEO_LABEL,
+      );
+    }
   });
 });

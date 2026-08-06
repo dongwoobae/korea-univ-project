@@ -23,11 +23,54 @@ export function formatFileSize(bytes: number): string {
 export const MAX_VIDEO_LABEL = formatFileSize(MAX_VIDEO_BYTES);
 
 /**
+ * 초과분 표기 전용. **올림**한다.
+ *
+ * 반올림하면 상한을 1바이트 넘긴 파일도 상한과 같은 표기가 되어
+ * `파일이 너무 커요 (500MB) · 최대 500MB`라는 자기모순 문구가 나온다.
+ * 소수 첫째 자리로 좁혀도 500.05MB까지는 여전히 겹친다.
+ */
+export function formatExcessSize(bytes: number): string {
+  return `${Math.ceil((bytes / (1024 * 1024)) * 10) / 10}MB`;
+}
+
+/**
  * 상한 초과 여부. **표기가 아니라 바이트로 판정한다** — 500.4MB는 반올림하면
  * "500MB"로 보이지만 서버는 거절한다.
  */
 export function exceedsVideoLimit(bytes: number): boolean {
   return bytes > MAX_VIDEO_BYTES;
+}
+
+/**
+ * 시설 동영상이 놓이는 R2 키 접두사.
+ *
+ * 발급(presign)·저장(confirm)·삭제(delete)가 이 규칙 하나를 공유해야 한다.
+ * 셋이 각자 문자열을 만들면 한 곳만 느슨해져도 경계가 뚫린다.
+ */
+export function facilityVideoKeyPrefix(facilityId: string): string {
+  return `facility-videos/${facilityId}/`;
+}
+
+export function facilityVideoKey(
+  facilityId: string,
+  ext: string,
+  timestamp: number,
+): string {
+  return `${facilityVideoKeyPrefix(facilityId)}${timestamp}.${ext}`;
+}
+
+/**
+ * 이 키가 **이 시설의 것**인지.
+ *
+ * confirm이 이걸 보지 않으면 `landmark-photos/...` 같은 남의 키를 시설에
+ * 심어둔 뒤 delete를 호출해 같은 버킷의 임의 객체를 지울 수 있다.
+ * delete의 `.eq("video_url", ...)` 가드는 심어둔 값과도 일치하므로 막지 못한다.
+ */
+export function isFacilityVideoKey(key: string, facilityId: string): boolean {
+  const prefix = facilityVideoKeyPrefix(facilityId);
+  if (!key.startsWith(prefix)) return false;
+  const rest = key.slice(prefix.length);
+  return rest.length > 0 && !rest.includes("/") && !rest.includes("..");
 }
 
 /**

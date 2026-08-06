@@ -10,7 +10,7 @@ import { compressVideo, terminateFFmpeg } from "@/lib/compressVideo";
 import {
   MAX_VIDEO_LABEL,
   exceedsVideoLimit,
-  formatFileSize,
+  formatExcessSize,
 } from "@/lib/videoUpload";
 
 export default function FacilityVideoModal({
@@ -99,18 +99,6 @@ export default function FacilityVideoModal({
     if (!file) return;
 
     try {
-      // 0. 상한부터 본다. 변환은 몇 분이 걸리는데, 그 시간을 다 태우고 나서
-      //    서버가 400을 돌려주면 사용자는 이유를 가장 늦게 알게 된다.
-      //    (검사를 try 밖에 두면 finally의 input 초기화가 안 돌아 같은 파일을
-      //     다시 고를 때 onChange가 뜨지 않는다.)
-      if (exceedsVideoLimit(file.size)) {
-        showToast(
-          `파일이 너무 커요 (${formatFileSize(file.size)}) · 최대 ${MAX_VIDEO_LABEL}`,
-          "error",
-        );
-        return;
-      }
-
       // 1. 브라우저가 이 파일의 비디오 트랙을 디코드할 수 있는지 먼저 확인한다.
       //    아이폰 기본 촬영물(HEVC)은 mp4/mov 컨테이너라 형식 검사를 통과하지만
       //    공개 화면에서 소리만 나고 화면이 검게 나오므로, 재생 불가일 때만
@@ -118,11 +106,13 @@ export default function FacilityVideoModal({
       setPhase("checking");
       let payload: Blob = file;
       let contentType = file.type;
+      let converted = false;
 
       if (!(await isVideoPlayable(file))) {
         try {
           payload = await compressVideo(file, setProgress, setPhase);
           contentType = "video/mp4";
+          converted = true;
         } catch {
           showToast(
             "이 영상은 브라우저에서 재생할 수 없고 변환도 실패했어요. H.264(mp4)로 저장해 다시 올려주세요",
@@ -132,11 +122,12 @@ export default function FacilityVideoModal({
         }
       }
 
-      // 재인코딩은 파일을 줄이기만 하지 않는다. 고압축 HEVC를 H.264로 풀면
-      // 오히려 커질 수 있으므로 변환 결과도 다시 잰다.
+      // 상한은 **실제로 올라가는 payload**에만 건다. 원본으로 미리 막으면
+      // 변환하면 상한 아래로 내려오는 파일(고압축이 아닌 큰 HEVC 등)이
+      // 변환도 못 해보고 튕긴다 — 원래 되던 업로드였다.
       if (exceedsVideoLimit(payload.size)) {
         showToast(
-          `변환 결과가 너무 커요 (${formatFileSize(payload.size)}) · 최대 ${MAX_VIDEO_LABEL}`,
+          `${converted ? "변환 결과가" : "파일이"} 너무 커요 (${formatExcessSize(payload.size)}) · 최대 ${MAX_VIDEO_LABEL}`,
           "error",
         );
         return;

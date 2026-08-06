@@ -85,7 +85,12 @@ test.describe("건물 상세 시설 모달", () => {
   test("동영상이 있는 시설의 삭제 확인창은 동영상도 지워진다고 알린다", async ({
     page,
   }) => {
-    await page.getByRole("button", { name: /지하 주차장 진입로/ }).click();
+    // 동영상이 있는 시설은 `건물 동영상` 섹션에도 `<이름> 동영상 관리` 버튼으로
+    // 나온다. 이름만으로 집으면 두 개가 잡히므로 시설 현황 카드로 좁힌다.
+    await page
+      .locator("#building-facilities")
+      .getByRole("button", { name: /지하 주차장 진입로/ })
+      .click();
     await page
       .getByRole("dialog", { name: "지하 주차장 진입로" })
       .getByRole("button", { name: "삭제" })
