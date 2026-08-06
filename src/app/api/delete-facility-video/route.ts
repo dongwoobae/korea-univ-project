@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { r2, R2_BUCKET, getR2KeyFromPublicUrl } from "@/lib/r2";
+import { isFacilityVideoKey } from "@/lib/videoUpload";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,8 +30,32 @@ export async function POST(request) {
       );
     }
 
-    const key = getR2KeyFromPublicUrl(videoUrl);
-    if (!key) {
+    // 지울 키는 **DB에 저장된 값**에서 뽑는다. 클라이언트가 준 URL을 그대로
+    // 키로 쓰면 남의 객체를 가리킬 수 있다. 클라이언트 값은 아래 update의
+    // 조건으로만 써서 "그 사이 바뀌었는지"를 보는 용도로 남긴다.
+    const { data: current, error: readError } = await supabaseAdmin
+      .from("building_facilities")
+      .select("video_url")
+      .eq("id", facilityId)
+      .maybeSingle();
+
+    if (readError) {
+      console.error("[delete-facility-video] db read error:", readError);
+      return NextResponse.json({ error: readError.message }, { status: 500 });
+    }
+    if (!current?.video_url) {
+      return NextResponse.json(
+        { error: "동영상이 이미 변경되었어요" },
+        { status: 409 },
+      );
+    }
+
+    const key = getR2KeyFromPublicUrl(current.video_url);
+    // 저장된 값이라도 믿지 않는다. 과거에 검증 없이 심긴 값이 남아 있을 수 있다.
+    if (!key || !isFacilityVideoKey(key, String(facilityId))) {
+      console.error(
+        `[delete-facility-video] 이 시설의 키가 아님 facilityId=${facilityId}`,
+      );
       return NextResponse.json({ error: "잘못된 동영상 URL" }, { status: 400 });
     }
 

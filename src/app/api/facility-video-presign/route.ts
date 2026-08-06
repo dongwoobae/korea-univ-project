@@ -6,6 +6,7 @@ import { r2Presign, R2_BUCKET, getPublicR2Url } from "@/lib/r2";
 import {
   MAX_VIDEO_LABEL,
   exceedsVideoLimit,
+  facilityVideoKey,
   isValidFileSize,
 } from "@/lib/videoUpload";
 
@@ -60,7 +61,7 @@ export async function POST(request) {
         : contentType === "video/quicktime"
           ? "mov"
           : "mp4";
-    const key = `facility-videos/${facilityId}/${Date.now()}.${ext}`;
+    const key = facilityVideoKey(facilityId, ext, Date.now());
 
     // 크기를 서명에 넣어 R2가 직접 강제하게 한다. 이게 없으면 위 검사는
     // "신청서"만 보는 셈이라, fileSize를 1로 신청하고 5GB를 올릴 수 있다.
