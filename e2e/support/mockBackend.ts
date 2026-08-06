@@ -12,8 +12,11 @@
  *
  * 2) 라우팅: `installMockBackend()`가 전역 `page.route`로 모든 요청을 가로챈다.
  *      - `/rest/v1/<table>` → `handleRest()`: PostgREST 흉내.
- *          GET·HEAD·POST·PATCH·DELETE 지원, `?id=eq.` / `?building_id=eq.|is.null` 필터,
+ *          GET·HEAD·POST·PATCH·DELETE 지원,
+ *          `?id=eq.|in.(…)` / `?building_id=eq.|is.null|in.(…)` 필터,
  *          `Accept: object+json`이면 단건(.single()) 응답.
+ *          `admin_building_flags` 뷰와 `rpc/get_admin_building_summary`는
+ *          `buildingFlags()` **한 곳**에서 나온다(아래 주석 참고).
  *      - `/api/<route>`     → `handleApi()`: Next 라우트 핸들러 흉내(/api/buildings 등).
  *      - `/auth/v1/*`       → 로그인·로그아웃·현재 유저 조회.
  *      - 타일/CDN/업로드 호스트(cartocdn·arcgis·unpkg·cdn.test·upload.test)는 abort 또는 빈 200.
@@ -245,6 +248,57 @@ const filterId = (url: URL) => {
   return value?.startsWith("eq.") ? value.slice(3) : null;
 };
 
+// `in.("a","b")` → Set{a, b}. supabase-js의 `.in()`이 만드는 형태.
+const parseInList = (value: string) =>
+  new Set(
+    value
+      .slice(4, -1)
+      .split(",")
+      .map((item) => item.replace(/^"|"$/g, "")),
+  );
+
+// admin_building_flags 뷰가 내보내는 불리언 컬럼.
+const FLAG_KEYS = [
+  "missing_facility",
+  "missing_photo",
+  "missing_location",
+  "stale_update",
+  "translation_needed",
+] as const;
+
+/**
+ * `admin_building_flags` 뷰 흉내.
+ *
+ * 프로덕션에서는 요약 함수와 목록 필터가 이 뷰 **하나**를 본다. 그래야 카드
+ * 숫자와 목록 개수가 갈라지지 않는다. mock도 같은 구조를 지켜야 그 계약이
+ * E2E로 검증된다 — 여기서 조건을 두 벌로 두면 테스트가 초록불이어도 아무것도
+ * 보장하지 못한다. 조건을 고칠 일이 생기면 이 함수만 고친다.
+ */
+function buildingFlags(state: MockState): Row[] {
+  return state.buildings
+    .filter((building) => !building.is_deleted)
+    .map((building) => ({
+      building_id: building.id,
+      missing_facility: !state.facilities.some(
+        (facility) => facility.building_id === building.id,
+      ),
+      missing_photo: !state.photos.some(
+        (photo) => photo.building_id === building.id,
+      ),
+      missing_location: building.geojson == null,
+      // 프로덕션은 `current_date - 365`지만 mock은 고정 날짜를 쓴다. 상대 날짜로
+      // 두면 시간이 흐르면서 픽스처의 stale 여부가 조용히 뒤집혀 스위트가 터진다.
+      stale_update:
+        building.last_updated == null ||
+        String(building.last_updated) < "2025-07-23",
+      translation_needed: state.facilities.some(
+        (facility) =>
+          facility.building_id === building.id &&
+          facility.translation_status !== "translated",
+      ),
+    }));
+}
+
 // 테이블명 → 해당 상태 배열 매핑.
 function table(state: MockState, name: string): Row[] {
   if (name === "buildings") return state.buildings;
@@ -271,9 +325,29 @@ function rows(state: MockState, name: string, url: URL): Row[] {
         },
       },
     ];
+  if (name === "admin_building_flags") {
+    let flagRows = buildingFlags(state);
+    for (const key of FLAG_KEYS) {
+      const filter = url.searchParams.get(key);
+      if (filter?.startsWith("eq."))
+        flagRows = flagRows.filter(
+          (row) => String(row[key]) === filter.slice(3),
+        );
+    }
+    return flagRows;
+  }
   let result = [...table(state, name)];
-  const id = filterId(url);
-  if (id) result = result.filter((row) => String(row.id) === id);
+  const idFilter = url.searchParams.get("id");
+  if (idFilter?.startsWith("eq.")) {
+    const id = idFilter.slice(3);
+    result = result.filter((row) => String(row.id) === id);
+  }
+  // 플래그 필터가 거른 건물 id를 `.in()`으로 되돌려 준다. eq.만 처리하면 이
+  // 필터가 통째로 무시돼 목록이 좁혀지지 않는다.
+  if (idFilter?.startsWith("in.(")) {
+    const ids = parseInList(idFilter);
+    result = result.filter((row) => ids.has(String(row.id)));
+  }
   if (name === "building_facilities") {
     const parent = url.searchParams.get("building_id");
     if (parent === "is.null")
@@ -283,12 +357,7 @@ function rows(state: MockState, name: string, url: URL): Row[] {
         (row) => String(row.building_id) === parent.slice(3),
       );
     if (parent?.startsWith("in.(")) {
-      const ids = new Set(
-        parent
-          .slice(4, -1)
-          .split(",")
-          .map((value) => value.replace(/^"|"$/g, "")),
-      );
+      const ids = parseInList(parent);
       result = result.filter((row) => ids.has(String(row.building_id)));
     }
   }
@@ -386,48 +455,27 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   const name = url.pathname.split("/rest/v1/")[1];
   const method = route.request().method();
   if (name === "rpc/get_admin_building_summary") {
-    const activeBuildings = state.buildings.filter(
-      (building) => !building.is_deleted,
+    // 프로덕션 함수와 같은 모양: 건물 단위 숫자는 플래그 뷰를 세고, 시설 단위
+    // 숫자(등록된 시설·번역 필요 시설)는 시설을 뷰에 조인해 센다.
+    const flags = buildingFlags(state);
+    const activeIds = new Set(flags.map((flag) => flag.building_id));
+    const linkedFacilities = state.facilities.filter(
+      (facility) =>
+        facility.building_id != null && activeIds.has(facility.building_id),
     );
-    const activeIds = new Set(activeBuildings.map((building) => building.id));
-    const summary = {
-      registered_facility_count: state.facilities.filter(
-        (facility) =>
-          facility.building_id != null && activeIds.has(facility.building_id),
+    const countFlag = (key: (typeof FLAG_KEYS)[number]) =>
+      flags.filter((flag) => flag[key]).length;
+    return json(route, {
+      registered_facility_count: linkedFacilities.length,
+      missing_facility_count: countFlag("missing_facility"),
+      missing_photo_count: countFlag("missing_photo"),
+      missing_location_count: countFlag("missing_location"),
+      stale_update_count: countFlag("stale_update"),
+      translation_needed_count: linkedFacilities.filter(
+        (facility) => facility.translation_status !== "translated",
       ).length,
-      missing_facility_count: activeBuildings.filter(
-        (building) =>
-          !state.facilities.some(
-            (facility) => facility.building_id === building.id,
-          ),
-      ).length,
-      missing_photo_count: activeBuildings.filter(
-        (building) =>
-          !state.photos.some((photo) => photo.building_id === building.id),
-      ).length,
-      missing_location_count: activeBuildings.filter(
-        (building) => building.geojson == null,
-      ).length,
-      stale_update_count: activeBuildings.filter(
-        (building) =>
-          building.last_updated == null ||
-          String(building.last_updated) < "2025-07-23",
-      ).length,
-      translation_needed_count: state.facilities.filter(
-        (facility) =>
-          facility.building_id != null &&
-          activeIds.has(facility.building_id) &&
-          facility.translation_status !== "translated",
-      ).length,
-      translation_needed_building_count: activeBuildings.filter((building) =>
-        state.facilities.some(
-          (facility) =>
-            facility.building_id === building.id &&
-            facility.translation_status !== "translated",
-        ),
-      ).length,
-    };
-    return json(route, summary);
+      translation_needed_building_count: countFlag("translation_needed"),
+    });
   }
   const result = rows(state, name, url);
   if (method === "HEAD") {
