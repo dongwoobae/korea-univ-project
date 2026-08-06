@@ -452,7 +452,9 @@ export default function FacilityVideoModal({
                 }}
               >
                 <span style={{ fontSize: 28 }}>🎬</span>
-                {phaseLabel ?? "동영상 추가 (mp4, webm, mov · 최대 200MB)"}
+                {/* 실제 상한은 presign 라우트의 500MB다. 200MB는 지금은 아무도
+                    호출하지 않는 upload-facility-video 라우트의 값이었다. */}
+                {phaseLabel ?? "동영상 추가 (mp4, webm, mov · 최대 500MB)"}
                 <input
                   type="file"
                   accept="video/mp4,video/webm,video/quicktime"

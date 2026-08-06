@@ -209,7 +209,7 @@
 - `video_caption` 번역 실패를 판정에 포함하기. 지금은 `translateFacility` 대상이 아니라 어느 배지에도 안 잡힌다
 - 동영상 교체 시 R2에 남는 옛 객체 정리
 - 시설 대시보드 `/admin/dashboard/facilities`를 같은 행 규칙으로 맞추기
-- 업로드 상한이 세 곳에서 다르다: 모달 문구 200MB, presign 라우트 500MB, `upload-facility-video` 라우트 200MB
+- 업로드 상한: 모달 문구를 실제 동작(presign 라우트 500MB)에 맞췄다. 남은 것은 아무도 호출하지 않는 `upload-facility-video` 라우트(200MB)로, 죽은 코드라 지울지 되살릴지 정해야 한다
 - `requireAdmin`이 로그인 여부만 확인하고 역할을 보지 않는다. 관리자가 아닌 인증 계정이 생길 수 있으면 아래 두 건의 심각도가 올라간다
 - `facility-video-confirm`이 `videoUrl`을 검증 없이 저장한다. 임의 외부 URL이 공개 화면의 `<video src>`로 렌더된다
 - `facility-video-presign`이 `fileSize`를 생략하면 상한 검사를 통과하고, presigned PUT에는 크기 조건이 없다. `facilityId`도 검증 없이 R2 key에 들어간다
