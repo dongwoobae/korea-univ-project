@@ -29,3 +29,13 @@ export const MAX_VIDEO_LABEL = formatFileSize(MAX_VIDEO_BYTES);
 export function exceedsVideoLimit(bytes: number): boolean {
   return bytes > MAX_VIDEO_BYTES;
 }
+
+/**
+ * 크기 값이 검사에 쓸 만한지.
+ *
+ * 서버가 이걸 먼저 보지 않으면 `fileSize`를 아예 빼고 호출하는 것만으로
+ * 상한 검사를 통째로 지나간다 — `undefined > MAX`는 false다.
+ */
+export function isValidFileSize(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}

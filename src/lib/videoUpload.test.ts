@@ -4,6 +4,7 @@ import {
   MAX_VIDEO_LABEL,
   exceedsVideoLimit,
   formatFileSize,
+  isValidFileSize,
 } from "./videoUpload";
 
 describe("MAX_VIDEO_LABEL", () => {
@@ -25,6 +26,27 @@ describe("exceedsVideoLimit", () => {
 
   it("빈 파일도 통과시킨다", () => {
     expect(exceedsVideoLimit(0)).toBe(false);
+  });
+});
+
+describe("isValidFileSize", () => {
+  it("유한한 0 이상의 수만 받는다", () => {
+    expect(isValidFileSize(0)).toBe(true);
+    expect(isValidFileSize(1024)).toBe(true);
+  });
+
+  it("생략하면 거부한다", () => {
+    // 이게 핵심이다. undefined를 통과시키면 exceedsVideoLimit(undefined)가
+    // false가 되어 상한 검사 전체가 무력해진다.
+    expect(isValidFileSize(undefined)).toBe(false);
+    expect(isValidFileSize(null)).toBe(false);
+  });
+
+  it("숫자가 아니거나 음수·NaN·Infinity면 거부한다", () => {
+    expect(isValidFileSize("500")).toBe(false);
+    expect(isValidFileSize(-1)).toBe(false);
+    expect(isValidFileSize(Number.NaN)).toBe(false);
+    expect(isValidFileSize(Number.POSITIVE_INFINITY)).toBe(false);
   });
 });
 
