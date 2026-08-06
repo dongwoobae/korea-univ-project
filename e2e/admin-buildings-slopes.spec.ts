@@ -58,7 +58,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     });
     await expect(overview).toBeVisible();
     await expect(overview.getByText("등록된 시설").locator("..")).toContainText(
-      "2개",
+      "5개",
     );
     await expect(
       overview.getByText("시설 정보 없음").locator(".."),
@@ -73,7 +73,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       overview.getByText("갱신일 오래됨").locator(".."),
     ).toContainText("1개");
     await expect(overview.getByText("번역 필요").locator("..")).toContainText(
-      "1개",
+      "2개",
     );
 
     await page.evaluate(() => {
@@ -282,15 +282,14 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.getByRole("button", { name: /건물 복구/ }).click();
     await expect(page.getByRole("button", { name: "건물 삭제" })).toBeVisible();
 
-    const facilityRow = page
-      .getByText("중앙 엘리베이터")
-      .locator("xpath=../..");
+    await page.getByRole("button", { name: /중앙 엘리베이터/ }).click();
+    const dialog = page.getByRole("dialog", { name: "중앙 엘리베이터" });
     await expect(
-      facilityRow.getByRole("status", { name: "현재 상태: 설치" }),
+      dialog.getByRole("status", { name: "현재 상태: 설치" }),
     ).toBeVisible();
-    await facilityRow.getByRole("button", { name: "미설치로 변경" }).click();
+    await dialog.getByRole("button", { name: "미설치로 변경" }).click();
     await expect(
-      facilityRow.getByRole("status", { name: "현재 상태: 미설치" }),
+      dialog.getByRole("status", { name: "현재 상태: 미설치" }),
     ).toBeVisible();
   });
 

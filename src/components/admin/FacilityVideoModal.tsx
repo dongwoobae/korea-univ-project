@@ -7,6 +7,11 @@ import ConfirmModal from "@/components/ConfirmModal";
 import { useModalFocus } from "@/lib/useModalFocus";
 import { isVideoPlayable } from "@/lib/videoPlayback";
 import { compressVideo, terminateFFmpeg } from "@/lib/compressVideo";
+import {
+  MAX_VIDEO_LABEL,
+  exceedsVideoLimit,
+  formatExcessSize,
+} from "@/lib/videoUpload";
 
 export default function FacilityVideoModal({
   facility,
@@ -101,11 +106,13 @@ export default function FacilityVideoModal({
       setPhase("checking");
       let payload: Blob = file;
       let contentType = file.type;
+      let converted = false;
 
       if (!(await isVideoPlayable(file))) {
         try {
           payload = await compressVideo(file, setProgress, setPhase);
           contentType = "video/mp4";
+          converted = true;
         } catch {
           showToast(
             "이 영상은 브라우저에서 재생할 수 없고 변환도 실패했어요. H.264(mp4)로 저장해 다시 올려주세요",
@@ -113,6 +120,17 @@ export default function FacilityVideoModal({
           );
           return;
         }
+      }
+
+      // 상한은 **실제로 올라가는 payload**에만 건다. 원본으로 미리 막으면
+      // 변환하면 상한 아래로 내려오는 파일(고압축이 아닌 큰 HEVC 등)이
+      // 변환도 못 해보고 튕긴다 — 원래 되던 업로드였다.
+      if (exceedsVideoLimit(payload.size)) {
+        showToast(
+          `${converted ? "변환 결과가" : "파일이"} 너무 커요 (${formatExcessSize(payload.size)}) · 최대 ${MAX_VIDEO_LABEL}`,
+          "error",
+        );
+        return;
       }
 
       // 2. Presigned URL 발급
@@ -452,7 +470,8 @@ export default function FacilityVideoModal({
                 }}
               >
                 <span style={{ fontSize: 28 }}>🎬</span>
-                {phaseLabel ?? "동영상 추가 (mp4, webm, mov · 최대 200MB)"}
+                {phaseLabel ??
+                  `동영상 추가 (mp4, webm, mov · 최대 ${MAX_VIDEO_LABEL})`}
                 <input
                   type="file"
                   accept="video/mp4,video/webm,video/quicktime"

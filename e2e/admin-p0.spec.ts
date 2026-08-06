@@ -53,8 +53,10 @@ test.describe("관리자 P0 개선 (모바일 메뉴·상태변경 오류)", () 
     });
     await page.goto("/admin/buildings/1");
 
-    const status = page.getByRole("status", { name: "현재 상태: 설치" });
-    const toggle = page.getByRole("button", { name: "미설치로 변경" });
+    await page.getByRole("button", { name: /중앙 엘리베이터/ }).click();
+    const dialog = page.getByRole("dialog", { name: "중앙 엘리베이터" });
+    const status = dialog.getByRole("status", { name: "현재 상태: 설치" });
+    const toggle = dialog.getByRole("button", { name: "미설치로 변경" });
     await expect(status).toBeVisible();
     await expect(toggle).toBeVisible();
     await toggle.click();

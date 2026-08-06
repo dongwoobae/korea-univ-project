@@ -6,8 +6,8 @@
  * 1) 픽스처(고정 데이터): `types`(시설 유형) · `colleges` · `polygon`(건물 형상).
  *    `createState()`가 이들을 조합해 테스트 1건의 초기 상태 `MockState`를 만든다.
  *      - 건물 1: 중앙도서관(id 1, 인문사회계)
- *      - 시설 3: `f-installed`(설치 경사로·건물 미소속) · `f-building`(건물 1 소속 엘리베이터)
- *                · `f-uninstalled`(미설치 주차)
+ *      - 시설: `f-installed`(설치 경사로·건물 미소속) · `f-building`(건물 1 소속 엘리베이터)
+ *              · `f-uninstalled`(미설치 주차)
  *      - 명소 1(다람쥐길) · 경사 1 · 사진 1
  *
  * 2) 라우팅: `installMockBackend()`가 전역 `page.route`로 모든 요청을 가로챈다.
@@ -164,6 +164,79 @@ function createState(authenticated: boolean): MockState {
         facility_types: types[0],
         buildings: { name: "중앙도서관", name_en: "Central Library" },
         created_at: "2026-07-21T00:00:00Z",
+        updated_at: "2026-07-22T02:00:00Z",
+      },
+      {
+        id: "f-building-missing",
+        building_id: 1,
+        facility_code: "ramp",
+        name: "후문 경사로",
+        name_en: "Rear gate ramp",
+        name_zh: "后门坡道",
+        translation_status: "translated",
+        description: "공사 중",
+        description_en: "Under construction",
+        description_zh: "施工中",
+        floor_info: null,
+        floor_info_en: null,
+        floor_info_zh: null,
+        is_installed: false,
+        lat: 37.5895,
+        lng: 127.0322,
+        video_url: null,
+        video_caption: null,
+        facility_types: types[1],
+        buildings: { name: "중앙도서관", name_en: "Central Library" },
+        created_at: "2026-07-21T00:00:01Z",
+        updated_at: "2026-07-22T02:00:00Z",
+      },
+      {
+        id: "f-building-untranslated",
+        building_id: 1,
+        facility_code: "elevator",
+        name: "지하 1층 엘리베이터",
+        name_en: null,
+        name_zh: null,
+        translation_status: "failed",
+        description: "전 층",
+        description_en: null,
+        description_zh: null,
+        floor_info: null,
+        floor_info_en: null,
+        floor_info_zh: null,
+        is_installed: true,
+        lat: 37.5892,
+        lng: 127.0323,
+        video_url: null,
+        video_caption: null,
+        facility_types: types[0],
+        buildings: { name: "중앙도서관", name_en: "Central Library" },
+        created_at: "2026-07-21T00:00:02Z",
+        updated_at: "2026-07-22T02:00:00Z",
+      },
+      {
+        id: "f-building-video",
+        building_id: 1,
+        facility_code: "parking",
+        name: "지하 주차장 진입로",
+        name_en: "Underground parking approach",
+        name_zh: "地下停车场入口",
+        translation_status: "translated",
+        description: "지하 1층",
+        description_en: "B1",
+        description_zh: "地下一层",
+        floor_info: null,
+        floor_info_en: null,
+        floor_info_zh: null,
+        is_installed: true,
+        lat: 37.5891,
+        lng: 127.0324,
+        video_url:
+          "https://cdn.example.com/facility-videos/f-building-video/1.mp4",
+        video_caption: "진입로 경사",
+        facility_types: types[2],
+        buildings: { name: "중앙도서관", name_en: "Central Library" },
+        created_at: "2026-07-21T00:00:03Z",
         updated_at: "2026-07-22T02:00:00Z",
       },
       {
@@ -418,16 +491,20 @@ function rows(state: MockState, name: string, url: URL): Row[] {
   const order = url.searchParams.get("order");
   if (order) {
     const rules = order.split(",").map((rule) => {
-      const [column, direction] = rule.split(".");
-      return { column, ascending: direction !== "desc" };
+      const [column, direction, nulls] = rule.split(".");
+      return {
+        column,
+        ascending: direction !== "desc",
+        nullsFirst: nulls === "nullsfirst",
+      };
     });
     result.sort((left, right) => {
       for (const rule of rules) {
         const a = left[rule.column];
         const b = right[rule.column];
         if (a == null && b == null) continue;
-        if (a == null) return 1;
-        if (b == null) return -1;
+        if (a == null) return rule.nullsFirst ? -1 : 1;
+        if (b == null) return rule.nullsFirst ? 1 : -1;
         const comparison = String(a).localeCompare(String(b), "ko");
         if (comparison !== 0) return rule.ascending ? comparison : -comparison;
       }

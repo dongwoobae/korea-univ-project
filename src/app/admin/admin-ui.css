@@ -122,15 +122,21 @@
 .ku-admin-button--accent {
   color: var(--ku-crimson-600);
 }
+/* 주 액션 색은 --ku-primary(파랑)다. 이 클래스는 오래 크림슨이었지만 쓰는 곳이
+   없었고, 이름과 실제 primary 토큰이 어긋나 집는 사람마다 함정이 됐다. */
 .ku-admin-button--primary {
-  border-color: #8c0000;
+  border-color: var(--ku-primary);
   color: #fff;
-  background: #8c0000;
+  background: var(--ku-primary);
 }
 .ku-admin-button--text {
   border-color: transparent;
   color: var(--ku-crimson-600);
   background: transparent;
+}
+.ku-admin-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .ku-admin-main {
   width: min(1180px, 100%);
@@ -645,6 +651,12 @@ button.ku-admin-overview-item {
   grid-column: 2;
   grid-row: 1;
 }
+/* 동영상 목록은 가로로 긴 행이라 두 열을 다 쓴다. 배치 규칙을 안 주면
+   자동 배치로 왼쪽 열에만 놓여 오른쪽에 빈 칸이 남는다. */
+.ku-admin-detail-card--videos {
+  grid-column: 1 / -1;
+  grid-row: 4;
+}
 .ku-admin-detail-danger {
   grid-column: 1 / -1;
 }
@@ -967,6 +979,120 @@ button.ku-admin-overview-item {
   opacity: 0.65;
 }
 
+/* button 리셋 되돌리기. 이유는 .ku-admin-overview-item 주석 참조. */
+.ku-facility-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 12px 0;
+  border: none;
+  border-bottom: 1px solid var(--ku-border);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.ku-facility-row:hover {
+  background: var(--ku-bg);
+}
+
+.ku-facility-row-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.ku-facility-row-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ku-facility-row-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.ku-facility-row-desc {
+  display: block;
+  font-size: 12px;
+  color: var(--ku-text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ku-facility-row-badges {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.ku-facility-row-badge {
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.ku-facility-row-badge--missing {
+  color: var(--ku-status-missing-fg);
+  background: var(--ku-status-missing-bg);
+}
+
+.ku-facility-row-badge--translation {
+  border: 1px solid #f59e0b;
+  color: #92400e;
+  background: #fffbeb;
+}
+
+.ku-facility-row-chevron {
+  flex-shrink: 0;
+  color: var(--ku-text-3);
+}
+
+.ku-facility-modal-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ku-border);
+}
+
+.ku-facility-modal-field-label {
+  flex-shrink: 0;
+  color: var(--ku-text-2);
+  font-size: 13px;
+}
+
+.ku-building-video-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ku-border);
+}
+
+.ku-building-video-item-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ku-building-video-unpublished {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  color: var(--ku-text-2);
+  background: var(--ku-border);
+  font-size: 11px;
+  font-weight: 700;
+}
+
 /* 사진 삭제(✕)는 시각 크기(22px)를 유지하고 보이지 않는 히트 영역만 44px로 확장 */
 .ku-photo-delete-button::after {
   content: "";
@@ -989,6 +1115,9 @@ button.ku-admin-overview-item {
     min-height: 44px;
   }
   .ku-admin-confirm-actions button {
+    min-height: 44px;
+  }
+  .ku-facility-row {
     min-height: 44px;
   }
 }
