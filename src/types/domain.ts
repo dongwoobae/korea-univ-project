@@ -9,7 +9,7 @@ export type College = Tables["colleges"]["Row"];
 export type BuildingPhoto = Tables["building_photos"]["Row"];
 export type Landmark = Tables["landmarks"]["Row"];
 
-/** facilityColors의 알려진 시설 코드 */
+/** 프론트가 아이콘·색을 아는 시설 코드. 이 밖의 값은 폴백으로 떨어진다. */
 export type FacilityCode =
   "elevator" | "restroom" | "ramp" | "parking" | "braille";
 
