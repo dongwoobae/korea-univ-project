@@ -13,7 +13,7 @@ import {
 import { facilityIconKey, type FacilityIconKey } from "@/lib/mapIcons";
 
 // Leaflet divIcon은 HTML 문자열을, JSX는 컴포넌트를 요구해 같은 매핑을 두 벌 둔다.
-const FACILITY_ICON: Record<FacilityIconKey, LucideIcon> = {
+export const FACILITY_ICON: Record<FacilityIconKey, LucideIcon> = {
   elevator: ArrowUpDown,
   restroom: Toilet,
   ramp: TrendingUp,
@@ -32,6 +32,8 @@ export function FacilityTypeIcon({ code, size = 18 }: FacilityTypeIconProps) {
   return <Icon size={size} aria-hidden="true" />;
 }
 
+export const LANDMARK_ICON = Sparkles;
+
 export function LandmarkIcon({ size = 18 }: { size?: number }) {
-  return <Sparkles size={size} aria-hidden="true" />;
+  return <LANDMARK_ICON size={size} aria-hidden="true" />;
 }

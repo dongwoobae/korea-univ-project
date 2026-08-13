@@ -30,7 +30,7 @@ export function facilityIconKey(
     : "fallback";
 }
 
-const FACILITY_ICON_SVG: Record<FacilityIconKey, string> = {
+export const FACILITY_ICON_SVG: Record<FacilityIconKey, string> = {
   elevator: ArrowUpDown,
   restroom: Toilet,
   ramp: TrendingUp,
