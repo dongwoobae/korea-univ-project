@@ -258,21 +258,18 @@ export type Database = {
       facility_types: {
         Row: {
           code: string;
-          icon: string | null;
           label: string | null;
           label_en: string | null;
           label_zh: string | null;
         };
         Insert: {
           code: string;
-          icon?: string | null;
           label?: string | null;
           label_en?: string | null;
           label_zh?: string | null;
         };
         Update: {
           code?: string;
-          icon?: string | null;
           label?: string | null;
           label_en?: string | null;
           label_zh?: string | null;
@@ -285,7 +282,6 @@ export type Database = {
           description: string | null;
           description_en: string | null;
           description_zh: string | null;
-          icon: string;
           id: string;
           image_url: string | null;
           lat: number;
@@ -301,7 +297,6 @@ export type Database = {
           description?: string | null;
           description_en?: string | null;
           description_zh?: string | null;
-          icon: string;
           id?: string;
           image_url?: string | null;
           lat: number;
@@ -317,7 +312,6 @@ export type Database = {
           description?: string | null;
           description_en?: string | null;
           description_zh?: string | null;
-          icon?: string;
           id?: string;
           image_url?: string | null;
           lat?: number;

@@ -39,7 +39,6 @@ test.describe("공개 지도 P1 잔여 개선", () => {
             facility_types: {
               code: "elevator",
               label: "엘리베이터",
-              icon: "🛗",
             },
           },
         ]),
