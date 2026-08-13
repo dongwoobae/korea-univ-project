@@ -103,15 +103,45 @@ lucide SVG는 `stroke="currentColor"`라 기존 `FACILITY_COLORS`·`ku-*` 색 �
   보이는 라벨과 문구를 일치시킨다.
 - 모바일(<768px)은 기존처럼 아이콘만 표시한다.
 
-## 2단계 (후속 PR)
+## 2단계 (후속 PR) — 읽기와 쓰기로 다시 쪼갰다
 
-1단계 프론트가 배포되어 icon 컬럼을 아무도 읽지 않게 된 뒤:
+초안은 후속을 PR 하나로 봤지만, `landmarks.icon`이
+`not null`이고 **기본값이 없다**(`supabase/migrations/20260720000000_create_landmarks.sql:11`).
+그래서 관리자 명소 폼에서 이모지 입력만 먼저 빼면 명소 생성이 곧바로 깨진다.
+읽기를 멈추는 일과 쓰기를 멈추는 일의 안전한 시점이 다르므로 둘로 나눈다.
 
-- 관리자 명소 폼의 이모지 입력란·필수 검증·저장 로직 제거.
-- 관리자 화면의 `facility_types.icon` 표시 지점을 lucide 매핑 재사용으로 교체.
-- `landmarks.icon`·`facility_types.icon` 컬럼 drop 마이그레이션 추가
+### 2-A: 관리자 읽기 제거 — `admin-lucide-icons` 브랜치 (완료)
+
+관리자 화면 6곳이 `icon` 컬럼을 읽지 않게 하고 lucide로 교체했다. DB 무변경이라
+1단계가 머지되면 바로 머지할 수 있다.
+
+이 과정에서 확정한 것 둘:
+
+- 쿼리 두 곳이 `facility_types(label, icon)`이라 **`code`를 아예 선택하지 않고
+  있었다**. `FacilityTypeIcon`은 `code`로 아이콘을 고르므로 그대로 두면 모든
+  행이 폴백 아이콘이 된다 — 1단계의 `SidePanel`에서 실제로 났던 버그다. 두
+  쿼리에 `code`를 넣고, 회귀를 잡는 e2e 단언을 붙였다(쿼리에서 `code`를 빼면
+  실제로 실패하는 것을 확인했다).
+- `<option>` 안에는 SVG를 넣을 수 없다(브라우저가 텍스트만 렌더링한다). 시설
+  유형 드롭다운 두 곳은 아이콘을 버리고 라벨만 남겼다.
+
+`src/types/domain.ts`의 `FacilityWithType`에서도 `icon`을 걷었다. 이제
+`facility_types.icon`을 읽는 코드는 없다.
+
+### 2-B: 쓰기 제거와 컬럼 drop (남음)
+
+- 관리자 명소 폼(`LandmarkFormModal.tsx`)의 이모지 입력란·필수 검증·저장 제거.
+  현재 `form.icon`을 읽는 네 곳이 전부 이 파일에 있다.
+- `landmarks.icon`·`facility_types.icon` drop 마이그레이션
   (`supabase/migrations/`, main 머지 시 CI 자동 적용).
 - `supabase/database.types.ts` 재생성.
+
+**순서 위험이 남는다.** 마이그레이션은 main 머지 시점에 적용되는데 프론트 배포와
+원자적이지 않다. 폼 변경과 drop을 한 PR에 담으면, 머지 직후부터 새 프론트가
+배포되기 전까지 관리자가 명소를 만들면 실패하는 창이 생긴다(옛 프론트가 없는
+컬럼에 `icon`을 보낸다). 명소가 4건뿐인 내부 도구라 감수할 만하지만, 창을 없애려면
+`alter column icon drop not null`을 먼저 배포하고 → 폼 변경을 배포하고 → 마지막에
+drop하는 3단계로 가야 한다. 어느 쪽을 택할지는 2-B 착수 시점에 정한다.
 
 배포 순서와 무관한 후속 항목이 하나 더 있다. `FeedbackButton`의 한국어 고정
 문구 다국어화다. 보이는 라벨은 `t("feedback")`으로 옮겼고, 남은 것은 버튼의
