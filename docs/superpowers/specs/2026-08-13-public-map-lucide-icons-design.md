@@ -113,6 +113,15 @@ lucide SVG는 `stroke="currentColor"`라 기존 `FACILITY_COLORS`·`ku-*` 색 �
   (`supabase/migrations/`, main 머지 시 CI 자동 적용).
 - `supabase/database.types.ts` 재생성.
 
+배포 순서와 무관한 후속 항목이 하나 더 있다. `FeedbackButton`의 한국어 고정
+문구 다국어화다. 보이는 라벨은 `t("feedback")`으로 옮겼고, 남은 것은 버튼의
+`title`·`aria-label`("피드백 보내기")과 모달 내부 문구 전부다 — 제목·안내문·
+유형 칩 라벨(`FEEDBACK_TYPES`)·입력 라벨·placeholder·개인정보 안내·제출 상태
+메시지, 그리고 `mailto` 제목과 본문. 그래서 영어·중국어에서는 보이는 라벨
+("Feedback"/"反馈")이 접근 이름("피드백 보내기")에 들어 있지 않아 WCAG
+2.5.3(Label in Name)이 한국어에서만 성립한다. 접근 이름을 라벨과 같은 키로
+옮기는 것이 이 항목의 핵심이고, 모달 문구는 그다음이다.
+
 ## 테스트 영향
 
 - e2e `mockBackend`의 이모지 픽스처와 이모지 텍스트를 단언하는 스펙을 함께

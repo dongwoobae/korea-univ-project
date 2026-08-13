@@ -1760,12 +1760,3 @@ git commit -m "test(map): 마커 SVG와 JSX 아이콘이 같은 그림을 쓰도
 3. `landmarks.icon`·`facility_types.icon` drop 마이그레이션을 `supabase/migrations/`에
    `YYYYMMDDHHMMSS_drop_icon_columns.sql`로 추가(main 머지 시 CI가 자동 적용).
 4. `supabase/database.types.ts` 재생성.
-
-`FeedbackButton`의 한국어 고정 문구 다국어화도 별도 작업으로 남는다.
-
-한국어 문구 불일치도 남는다. 버튼 라벨은 `myLocation`("현 위치")인데 마커
-`title`은 `myLocationMarker`("현재 위치")이고, `locateUnsupported`·
-`locateUnavailable` 토스트는 "현재 위치를 …"로 시작한다. 버튼을 누른 사용자가
-다른 표기의 안내를 받는다. 계획서가 Task 5에서 세 번째 로케이터를 놓친 것도
-이 이중 표기가 원인이었다. 토스트를 "현 위치"로 맞추거나 마커 키를
-`myLocationPin` 등으로 갈라 쓰는 편이 낫다.
