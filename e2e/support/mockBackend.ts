@@ -54,21 +54,18 @@ const types = [
     label: "엘리베이터",
     label_en: "Elevator",
     label_zh: "电梯",
-    icon: "🛗",
   },
   {
     code: "ramp",
     label: "경사로",
     label_en: "Ramp",
     label_zh: "坡道",
-    icon: "♿",
   },
   {
     code: "parking",
     label: "장애인 주차",
     label_en: "Accessible parking",
     label_zh: "无障碍停车",
-    icon: "🅿️",
   },
 ];
 const colleges = [
@@ -265,7 +262,6 @@ function createState(authenticated: boolean): MockState {
         description: "학생들이 쉬어가는 길",
         description_en: "A quiet student trail",
         description_zh: "安静的学生步道",
-        icon: "🐿️",
         lat: 37.58955,
         lng: 127.03225,
         photo_url: "https://cdn.test/landmark.webp",

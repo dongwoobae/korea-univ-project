@@ -11,7 +11,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("building_facilities")
     .select(
-      "*, facility_types(code, label, label_en, label_zh, icon), buildings(name, name_en)",
+      "*, facility_types(code, label, label_en, label_zh), buildings(name, name_en)",
     )
     .eq("is_installed", true)
     .not("lat", "is", null)
