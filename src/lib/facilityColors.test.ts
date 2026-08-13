@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
-  facilityMarkerColor,
+  getFacilityMarkerColor,
   getFacilityColor,
 } from "@/components/map/facilityColors";
 
-describe("facilityMarkerColor", () => {
+describe("getFacilityMarkerColor", () => {
   it("알려진 코드는 지정색을, 모르는 코드는 회색을 준다", () => {
-    expect(facilityMarkerColor("ramp")).toMatch(/^#/);
-    expect(facilityMarkerColor("unknown_code")).toBe("#666");
+    expect(getFacilityMarkerColor("ramp")).toBe("#B25617");
+    expect(getFacilityMarkerColor("unknown_code")).toBe("#666");
   });
 
   it("프로토타입 속성 이름도 폴백으로 떨어진다", () => {
-    expect(facilityMarkerColor("constructor")).toBe("#666");
-    expect(facilityMarkerColor("toString")).toBe("#666");
+    expect(getFacilityMarkerColor("constructor")).toBe("#666");
+    expect(getFacilityMarkerColor("toString")).toBe("#666");
   });
 });
 

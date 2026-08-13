@@ -1,7 +1,7 @@
 import type { FacilityCode } from "@/types/domain";
 import { facilityColor } from "@/lib/theme";
 
-export const FACILITY_COLORS: Record<FacilityCode, string> = {
+const FACILITY_COLORS: Record<FacilityCode, string> = {
   ...facilityColor,
 };
 
@@ -24,7 +24,7 @@ function knownColor(code: string): string | undefined {
     : undefined;
 }
 
-export function facilityMarkerColor(code: string): string {
+export function getFacilityMarkerColor(code: string): string {
   return knownColor(code) ?? "#666";
 }
 
