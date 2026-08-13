@@ -250,6 +250,9 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
         '[data-testid^="facility-marker-"]:not([data-testid$="cluster"])',
       ),
     ).toHaveCount(3);
+    await expect(
+      page.locator('[data-testid^="facility-marker-"] svg.lucide'),
+    ).toHaveCount(3);
     await expect(page.getByTestId("landmark-label")).toBeVisible();
     await expect(page.getByTestId("subway-label").first()).toBeVisible();
   });
