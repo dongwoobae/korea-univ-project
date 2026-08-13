@@ -66,6 +66,12 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
 
     await expect(page.locator(".leaflet-container")).toBeVisible();
     await expect(page.getByPlaceholder("건물 검색...")).toBeVisible();
+    await expect(page.getByRole("button", { name: "현 위치" })).toContainText(
+      "현 위치",
+    );
+    await expect(
+      page.getByRole("button", { name: "위성 지도로 전환" }),
+    ).toContainText("위성");
     await expect(page.getByTitle("즐겨찾기")).toBeVisible();
     await expect(
       page.locator(".leaflet-overlay-pane path.leaflet-interactive").first(),
@@ -116,7 +122,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     // 규칙이 전역이라 관리자 지도의 표기까지 함께 사라진다.
     await expect(page.locator(".leaflet-control-attribution")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "항공사진으로 전환" }).click();
+    await page.getByRole("button", { name: "위성 지도로 전환" }).click();
     await expect(providerLinks).toHaveText([
       "OpenStreetMap",
       "Esri",
@@ -414,7 +420,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     });
     await page.goto("/");
 
-    await page.getByRole("button", { name: "현재 위치" }).click();
+    await page.getByRole("button", { name: "현 위치" }).click();
     await expect(page.getByText("지도 영역 밖입니다")).toBeVisible();
   });
 

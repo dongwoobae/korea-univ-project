@@ -12,6 +12,13 @@ import {
   useMap,
 } from "react-leaflet";
 import L from "leaflet";
+import {
+  LocateFixed,
+  Map as MapIcon,
+  Minus,
+  Plus,
+  Satellite,
+} from "lucide-react";
 import type { FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
 import type { Favorite, Landmark, MapFacility } from "@/types/domain";
@@ -770,7 +777,7 @@ export default function Map() {
             title="확대"
             aria-label="확대"
           >
-            ＋
+            <Plus size={19} aria-hidden="true" />
           </button>
           <button
             className="ku-map-action"
@@ -779,33 +786,43 @@ export default function Map() {
             title="축소"
             aria-label="축소"
           >
-            −
+            <Minus size={19} aria-hidden="true" />
           </button>
         </div>
         <button
-          className="ku-map-action"
+          className="ku-map-action ku-map-action--labeled"
           type="button"
           onClick={locateUser}
-          title="현재 위치"
-          aria-label="현재 위치"
+          title={t("myLocation")}
+          aria-label={t("myLocation")}
           disabled={locating}
           data-locating={locating}
           aria-busy={locating}
         >
-          <span aria-hidden="true">📍</span>
+          <LocateFixed size={19} aria-hidden="true" />
+          <span className="ku-map-action-label">{t("myLocation")}</span>
         </button>
         <button
-          className="ku-map-action"
+          className="ku-map-action ku-map-action--labeled"
           type="button"
           onClick={() =>
             setTileMode((mode) => (mode === "street" ? "satellite" : "street"))
           }
-          title={tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"}
+          title={
+            tileMode === "street" ? t("tileToSatellite") : t("tileToStreet")
+          }
           aria-label={
-            tileMode === "street" ? "항공사진으로 전환" : "지도로 전환"
+            tileMode === "street" ? t("tileToSatellite") : t("tileToStreet")
           }
         >
-          <span aria-hidden="true">{tileMode === "street" ? "🛰️" : "🗺️"}</span>
+          {tileMode === "street" ? (
+            <Satellite size={19} aria-hidden="true" />
+          ) : (
+            <MapIcon size={19} aria-hidden="true" />
+          )}
+          <span className="ku-map-action-label">
+            {tileMode === "street" ? t("tileSatellite") : t("tileStreet")}
+          </span>
         </button>
         <FeedbackButton />
       </div>

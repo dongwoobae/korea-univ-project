@@ -500,7 +500,20 @@
   background: var(--ku-map-control);
   box-shadow: var(--ku-shadow-raised);
   cursor: pointer;
-  font-size: 17px;
+}
+.ku-map-action--labeled {
+  flex-direction: column;
+  gap: 2px;
+  width: auto;
+  min-width: 52px;
+  height: auto;
+  padding: 7px 7px 6px;
+}
+.ku-map-action-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .ku-map-action--primary {
   border-color: var(--ku-crimson-700);
@@ -511,8 +524,8 @@
   cursor: progress;
   opacity: 0.6;
 }
-.ku-map-action[data-locating="true"] span {
-  display: inline-block;
+/* 라벨까지 같이 흔들리지 않도록 아이콘에만 건다. */
+.ku-map-action[data-locating="true"] svg {
   animation: ku-locate-pulse 0.9s ease-in-out infinite;
 }
 
@@ -1249,6 +1262,15 @@
     width: 48px;
     height: 48px;
     border-radius: 12px;
+  }
+  .ku-map-action--labeled {
+    width: 48px;
+    min-width: 0;
+    height: 48px;
+    padding: 0;
+  }
+  .ku-map-action-label {
+    display: none;
   }
   .ku-map-zoom {
     display: none;
