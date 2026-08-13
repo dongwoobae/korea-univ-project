@@ -368,19 +368,19 @@ e2e에서 단언해 막는다.
 ```ts
 import { describe, expect, it } from "vitest";
 import {
-  facilityMarkerColor,
+  getFacilityMarkerColor,
   getFacilityColor,
 } from "@/components/map/facilityColors";
 
-describe("facilityMarkerColor", () => {
+describe("getFacilityMarkerColor", () => {
   it("알려진 코드는 지정색을, 모르는 코드는 회색을 준다", () => {
-    expect(facilityMarkerColor("ramp")).toMatch(/^#/);
-    expect(facilityMarkerColor("unknown_code")).toBe("#666");
+    expect(getFacilityMarkerColor("ramp")).toBe("#B25617");
+    expect(getFacilityMarkerColor("unknown_code")).toBe("#666");
   });
 
   it("프로토타입 속성 이름도 폴백으로 떨어진다", () => {
-    expect(facilityMarkerColor("constructor")).toBe("#666");
-    expect(facilityMarkerColor("toString")).toBe("#666");
+    expect(getFacilityMarkerColor("constructor")).toBe("#666");
+    expect(getFacilityMarkerColor("toString")).toBe("#666");
   });
 });
 
@@ -398,7 +398,7 @@ describe("getFacilityColor", () => {
 - [ ] **Step 2: 테스트를 돌려 실패를 확인**
 
 Run: `npm test -- src/lib/facilityColors.test.ts`
-Expected: FAIL — `facilityMarkerColor` export 없음, 그리고 `getFacilityColor("constructor", 0)`가 팔레트가 아닌 함수를 반환
+Expected: FAIL — `getFacilityMarkerColor` export 없음, 그리고 `getFacilityColor("constructor", 0)`가 팔레트가 아닌 함수를 반환
 
 - [ ] **Step 3: 가드를 한 곳에 넣는다**
 
@@ -411,7 +411,7 @@ function knownColor(code: string): string | undefined {
     : undefined;
 }
 
-export function facilityMarkerColor(code: string): string {
+export function getFacilityMarkerColor(code: string): string {
   return knownColor(code) ?? "#666";
 }
 
@@ -423,7 +423,7 @@ export function getFacilityColor(code: string, index: number): string {
 - [ ] **Step 4: 마커가 새 함수를 쓰게 한다**
 
 `src/components/map/FacilityMarkers.tsx`의 import에서 `FACILITY_COLORS`를 빼고
-`facilityMarkerColor`를 넣은 뒤, `facilityMarkerIcon`의 html에서
+`getFacilityMarkerColor`를 넣은 뒤, `facilityMarkerIcon`의 html에서
 
 ```
 background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};
@@ -432,7 +432,7 @@ background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};
 를 다음으로 바꾼다:
 
 ```
-background:${facilityMarkerColor(code)};
+background:${getFacilityMarkerColor(code)};
 ```
 
 - [ ] **Step 5: 단위 테스트 통과 확인**
