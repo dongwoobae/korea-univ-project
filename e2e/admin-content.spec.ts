@@ -15,6 +15,16 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     await expect(
       page.getByRole("status", { name: "총 2개 중 현재 2개 표시" }),
     ).toBeVisible();
+    // 유형별 클래스까지 봐야 모든 행이 폴백 아이콘으로 떨어지는 회귀를 잡는다.
+    const rampRow = page.getByText("중앙광장 경사로").locator("xpath=../..");
+    await expect(rampRow.locator("svg.lucide-trending-up")).toHaveCount(1);
+    const parkingRow = page
+      .getByText("공사 중 주차구역")
+      .locator("xpath=../..");
+    await expect(parkingRow.locator("svg.lucide-square-parking")).toHaveCount(
+      1,
+    );
+
     await page.getByRole("searchbox", { name: "독립 시설 검색" }).fill("공사");
     await expect(page.getByText("공사 중 주차구역")).toBeVisible();
     await expect(page.getByText("중앙광장 경사로")).toHaveCount(0);

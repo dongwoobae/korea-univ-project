@@ -21,6 +21,7 @@ import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import BulkRetranslateButton from "@/components/admin/BulkRetranslateButton";
 import BuildingVideoManager from "@/components/admin/BuildingVideoManager";
 import FacilityDetailModal from "@/components/admin/FacilityDetailModal";
+import { FacilityTypeIcon } from "@/components/map/iconography";
 import { getFacilityBadges } from "@/lib/facilityBadges";
 import type { FacilityBadge } from "@/lib/facilityBadges";
 import type { Feature, Polygon } from "geojson";
@@ -127,7 +128,7 @@ export default function BuildingDetail() {
       supabase.from("buildings").select("*").eq("id", id).single(),
       supabase
         .from("building_facilities")
-        .select("*, facility_types(label, icon)")
+        .select("*, facility_types(code, label)")
         .eq("building_id", id)
         .order("created_at", { nullsFirst: true })
         .order("id"),
@@ -740,7 +741,7 @@ export default function BuildingDetail() {
                 onClick={() => setSelectedFacilityId(f.id)}
               >
                 <span className="ku-facility-row-icon">
-                  {f.facility_types?.icon}
+                  <FacilityTypeIcon code={f.facility_types?.code} size={18} />
                 </span>
                 <span className="ku-facility-row-body">
                   <span className="ku-facility-row-name">

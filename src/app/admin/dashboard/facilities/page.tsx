@@ -14,6 +14,7 @@ import FacilityInstallationControl from "@/components/admin/FacilityInstallation
 import FacilityTranslationControl from "@/components/admin/FacilityTranslationControl";
 import AdminListControls from "@/components/admin/AdminListControls";
 import AdminPagination from "@/components/admin/AdminPagination";
+import { FacilityTypeIcon } from "@/components/map/iconography";
 import {
   buildAdminSearchFilter,
   formatAdminUpdatedAt,
@@ -85,7 +86,7 @@ export default function StandaloneFacilitiesPage() {
     const { from, to } = getAdminPageRange(page);
     let query = supabase
       .from("building_facilities")
-      .select("*, facility_types(label, icon)", { count: "exact" })
+      .select("*, facility_types(code, label)", { count: "exact" })
       .is("building_id", null);
     const searchFilter = buildAdminSearchFilter(
       ["name", "name_en", "name_zh", "description"],
@@ -230,7 +231,7 @@ export default function StandaloneFacilitiesPage() {
             <option value="all">모든 유형</option>
             {facilityTypes.map((type) => (
               <option key={type.code} value={type.code}>
-                {type.icon} {type.label}
+                {type.label}
               </option>
             ))}
           </select>
@@ -288,7 +289,7 @@ export default function StandaloneFacilitiesPage() {
                 borderBottom: "1px solid var(--ku-border)",
               }}
             >
-              <div style={{ fontSize: 20 }}>{f.facility_types?.icon}</div>
+              <FacilityTypeIcon code={f.facility_types?.code} size={20} />
               <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                 <div
                   data-testid="admin-list-item-name"

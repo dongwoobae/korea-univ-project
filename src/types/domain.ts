@@ -31,7 +31,7 @@ export type SlopeSegment = Omit<Tables["slope_segments"]["Row"], "segments"> & {
  */
 export type FacilityWithType = Facility & {
   facility_types: Partial<
-    Pick<FacilityType, "code" | "label" | "label_en" | "label_zh" | "icon">
+    Pick<FacilityType, "code" | "label" | "label_en" | "label_zh">
   > | null;
 };
 

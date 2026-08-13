@@ -2,6 +2,36 @@
 
 2026-08-13
 
+## 작업 재개 안내 (2026-08-13 기준)
+
+**여기부터 읽고 시작한다.** 브랜치 `admin-lucide-icons`가 스택의 끝이고 이
+문서의 최신본을 담고 있다. `git fetch && git checkout admin-lucide-icons`.
+
+### 브랜치 상태
+
+| 브랜치                    | 상태                                                            |
+| ------------------------- | --------------------------------------------------------------- |
+| `public-map-lucide-icons` | **PR #10** 열림, 리뷰 대기. 1단계(공개 지도) 전부 완료          |
+| `admin-lucide-icons`      | 푸시됨, PR 없음. #10 위에 쌓여 있다. 2-A(관리자 읽기 제거) 완료 |
+
+둘 다 원격과 동기화돼 있고 로컬에 미커밋·스태시가 없다. 검증은 양쪽 모두
+typecheck·lint·단위 테스트·e2e 전부 통과 상태에서 멈췄다.
+
+### 다음에 할 일
+
+1. **PR #10을 머지한다.** 머지 시 `docs/superpowers/plans/2026-08-13-public-map-lucide-icons.md`를 `git rm`한다(리포 규칙: 계획서는 머지 시 회수, 히스토리에 남는다).
+2. **`admin-lucide-icons`를 main 기준으로 리베이스하고 PR을 연다.** 지금은 #10 커밋을 포함해 보이므로, #10 머지 전에 열면 diff가 지저분하다.
+3. **2-B를 착수한다.** 아래 `2단계` 절에 남은 항목과 순서 위험이 적혀 있다. 착수 전에 정할 것이 하나 있다 — 폼 변경과 컬럼 drop을 한 PR에 담을지, `drop not null`을 먼저 배포하는 3단계로 갈지.
+
+### 이어받을 때 시간 낭비를 막아 줄 것들
+
+- **디스크가 위험하다.** C: 여유가 1.2GB뿐이다(232GB 중). 전체 e2e 한 번이면 바닥난다. `.next`·`.next-e2e`는 지워도 되는 캐시다. 232GB를 채운 주범은 이 리포 밖에 있으니 사용자 확인이 필요하다.
+- **`npm run format:check`를 전체로 돌리지 말 것.** Windows `core.autocrlf`가 작업 복사본을 CRLF로 바꿔 놓아 손대지 않은 파일 ~50개가 함께 실패한다. 커밋되는 내용은 LF이고 CI는 ubuntu라 실제로는 통과한다. 변경 파일만 `npx prettier --check --end-of-line auto <files>`로 본다.
+- **Playwright `-g`는 테스트 제목 전체가 필요하다.** 부분 제목은 `No tests found`가 난다. 또 `npm run test:e2e -- … -g "여러 단어"`는 npm이 따옴표를 벗겨 인자를 쪼개므로 `npx playwright test`를 직접 쓴다.
+- **`e2e/support/mockBackend.ts`는 PostgREST `select`의 임베드 투영을 흉내낸다**(`projectEmbeds`). GET/HEAD 경로에만 걸리고 POST 응답에는 걸리지 않으며, 배열 임베드와 최상위 컬럼은 투영하지 않는다. 이 덕분에 "select에서 컬럼을 빼먹은" 회귀가 e2e에 보인다 — 실제로 이 부류 버그를 두 번 잡았다.
+- **접근성 트리를 CDP로 측정할 때 SVG를 `role === "img"`로 거르면 0건이 나와 오판한다.** Chromium은 `SvgRoot`·`graphics-symbol`·`image`로 보고한다.
+- `PowerShell` 툴이 다른 리포에서 시작할 수 있다. 항상 `korea-univ-project`에서 실행한다.
+
 ## 배경
 
 데스크톱 공개 지도에서 아이콘만 떠 있는 버튼(현위치·지도전환·피드백 등)이 무슨
@@ -103,15 +133,45 @@ lucide SVG는 `stroke="currentColor"`라 기존 `FACILITY_COLORS`·`ku-*` 색 �
   보이는 라벨과 문구를 일치시킨다.
 - 모바일(<768px)은 기존처럼 아이콘만 표시한다.
 
-## 2단계 (후속 PR)
+## 2단계 (후속 PR) — 읽기와 쓰기로 다시 쪼갰다
 
-1단계 프론트가 배포되어 icon 컬럼을 아무도 읽지 않게 된 뒤:
+초안은 후속을 PR 하나로 봤지만, `landmarks.icon`이
+`not null`이고 **기본값이 없다**(`supabase/migrations/20260720000000_create_landmarks.sql:11`).
+그래서 관리자 명소 폼에서 이모지 입력만 먼저 빼면 명소 생성이 곧바로 깨진다.
+읽기를 멈추는 일과 쓰기를 멈추는 일의 안전한 시점이 다르므로 둘로 나눈다.
 
-- 관리자 명소 폼의 이모지 입력란·필수 검증·저장 로직 제거.
-- 관리자 화면의 `facility_types.icon` 표시 지점을 lucide 매핑 재사용으로 교체.
-- `landmarks.icon`·`facility_types.icon` 컬럼 drop 마이그레이션 추가
+### 2-A: 관리자 읽기 제거 — `admin-lucide-icons` 브랜치 (완료)
+
+관리자 화면 6곳이 `icon` 컬럼을 읽지 않게 하고 lucide로 교체했다. DB 무변경이라
+1단계가 머지되면 바로 머지할 수 있다.
+
+이 과정에서 확정한 것 둘:
+
+- 쿼리 두 곳이 `facility_types(label, icon)`이라 **`code`를 아예 선택하지 않고
+  있었다**. `FacilityTypeIcon`은 `code`로 아이콘을 고르므로 그대로 두면 모든
+  행이 폴백 아이콘이 된다 — 1단계의 `SidePanel`에서 실제로 났던 버그다. 두
+  쿼리에 `code`를 넣고, 회귀를 잡는 e2e 단언을 붙였다(쿼리에서 `code`를 빼면
+  실제로 실패하는 것을 확인했다).
+- `<option>` 안에는 SVG를 넣을 수 없다(브라우저가 텍스트만 렌더링한다). 시설
+  유형 드롭다운 두 곳은 아이콘을 버리고 라벨만 남겼다.
+
+`src/types/domain.ts`의 `FacilityWithType`에서도 `icon`을 걷었다. 이제
+`facility_types.icon`을 읽는 코드는 없다.
+
+### 2-B: 쓰기 제거와 컬럼 drop (남음)
+
+- 관리자 명소 폼(`LandmarkFormModal.tsx`)의 이모지 입력란·필수 검증·저장 제거.
+  현재 `form.icon`을 읽는 네 곳이 전부 이 파일에 있다.
+- `landmarks.icon`·`facility_types.icon` drop 마이그레이션
   (`supabase/migrations/`, main 머지 시 CI 자동 적용).
 - `supabase/database.types.ts` 재생성.
+
+**순서 위험이 남는다.** 마이그레이션은 main 머지 시점에 적용되는데 프론트 배포와
+원자적이지 않다. 폼 변경과 drop을 한 PR에 담으면, 머지 직후부터 새 프론트가
+배포되기 전까지 관리자가 명소를 만들면 실패하는 창이 생긴다(옛 프론트가 없는
+컬럼에 `icon`을 보낸다). 명소가 4건뿐인 내부 도구라 감수할 만하지만, 창을 없애려면
+`alter column icon drop not null`을 먼저 배포하고 → 폼 변경을 배포하고 → 마지막에
+drop하는 3단계로 가야 한다. 어느 쪽을 택할지는 2-B 착수 시점에 정한다.
 
 배포 순서와 무관한 후속 항목이 하나 더 있다. `FeedbackButton`의 한국어 고정
 문구 다국어화다. 보이는 라벨은 `t("feedback")`으로 옮겼고, 남은 것은 버튼의

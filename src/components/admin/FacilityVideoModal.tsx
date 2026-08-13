@@ -4,6 +4,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import ConfirmModal from "@/components/ConfirmModal";
+import { FacilityTypeIcon } from "@/components/map/iconography";
 import { useModalFocus } from "@/lib/useModalFocus";
 import { isVideoPlayable } from "@/lib/videoPlayback";
 import { compressVideo, terminateFFmpeg } from "@/lib/compressVideo";
@@ -297,8 +298,19 @@ export default function FacilityVideoModal({
             }}
           >
             <div>
-              <div style={{ fontSize: 14, fontWeight: 600 }}>
-                {facility.facility_types?.icon}{" "}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                <FacilityTypeIcon
+                  code={facility.facility_types?.code}
+                  size={15}
+                />
                 {facility.name ?? facility.facility_types?.label}
               </div>
               <div
