@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
+import { ChevronDown, ChevronUp, Mountain } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { campusColor } from "@/lib/theme";
 import { getFacilityColor } from "./facilityColors";
+import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
 import SlopeLegend from "./SlopeLegend";
 
 const CAMPUS_LIST = [
@@ -105,7 +107,11 @@ export default function FilterPanel({
         >
           <span>{t("campusTitle")}</span>
           <span className="ku-filter-chevron">
-            {campusSectionOpen ? "▲" : "▼"}
+            {campusSectionOpen ? (
+              <ChevronUp size={14} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={14} aria-hidden="true" />
+            )}
           </span>
         </button>
         {campusSectionOpen && (
@@ -146,7 +152,11 @@ export default function FilterPanel({
         >
           <span>{t("facilitySection")}</span>
           <span className="ku-filter-chevron">
-            {facilitySectionOpen ? "▲" : "▼"}
+            {facilitySectionOpen ? (
+              <ChevronUp size={14} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={14} aria-hidden="true" />
+            )}
           </span>
         </button>
         {facilitySectionOpen && (
@@ -166,9 +176,7 @@ export default function FilterPanel({
                     }))
                   }
                 >
-                  <span role="img" aria-label={facilityLabel(item, lang)}>
-                    {item.icon}
-                  </span>
+                  <FacilityTypeIcon code={item.code} size={15} />
                   {facilityLabel(item, lang)}
                 </Chip>
               );
@@ -184,9 +192,7 @@ export default function FilterPanel({
             checked={showSlope}
             onChange={() => setShowSlope((show) => !show)}
           />
-          <span role="img" aria-label="경사도">
-            📐
-          </span>
+          <Mountain size={15} aria-hidden="true" />
           <span>{t("slopeToggle")}</span>
         </label>
         <label className="ku-filter-check">
@@ -195,9 +201,7 @@ export default function FilterPanel({
             checked={showLandmarks}
             onChange={() => setShowLandmarks((show) => !show)}
           />
-          <span role="img" aria-label="캠퍼스 명소">
-            ✨
-          </span>
+          <LandmarkIcon size={15} />
           <span>{t("landmarkToggle")}</span>
         </label>
         <SlopeLegend show={showSlope} />
@@ -226,7 +230,11 @@ export default function FilterPanel({
           >
             <span>{t("filterTitle")}</span>
             <span className="ku-mobile-filter-badge">{totalActive}</span>
-            <span aria-hidden="true">{mobileFilterOpen ? "▲" : "▼"}</span>
+            {mobileFilterOpen ? (
+              <ChevronUp size={14} aria-hidden="true" />
+            ) : (
+              <ChevronDown size={14} aria-hidden="true" />
+            )}
           </button>
           {mobileFilterOpen && (
             <div className="ku-mobile-filter-content">{content}</div>

@@ -334,7 +334,8 @@
 }
 .ku-filter-chevron {
   color: var(--ku-text-3);
-  font-size: 11px;
+  display: flex;
+  align-items: center;
 }
 .ku-chip-group {
   display: flex;

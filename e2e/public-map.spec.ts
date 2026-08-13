@@ -86,7 +86,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       page.getByRole("button", { name: /캠퍼스 영역/ }),
     ).toHaveAttribute("aria-expanded", "false");
     await expect(
-      page.getByRole("button", { name: /시설 [▼▲]/ }),
+      page.getByRole("button", { name: "시설", exact: true }),
     ).toHaveAttribute("aria-expanded", "false");
     const filterBox = await page.locator(".ku-filter-panel").boundingBox();
     expect(filterBox?.height).toBeLessThan(400);
@@ -211,7 +211,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
     ).toHaveCount(0);
-    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: "시설", exact: true }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
@@ -240,7 +240,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByTestId("landmark-label")).toHaveCount(0);
     await expect(page.getByTestId("subway-label")).toHaveCount(0);
 
-    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: "시설", exact: true }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
     await page.getByRole("button", { name: /엘리베이터/ }).click();
 
@@ -277,7 +277,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByText("다람쥐길", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "현재 지도 목록 닫기" }).click();
-    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: "시설", exact: true }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
     await expect(
       page.getByRole("button", { name: /현재 지도 목록 2/ }),
@@ -300,7 +300,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.getByTitle("English").click();
 
     await expect(page.getByPlaceholder("Search buildings...")).toBeVisible();
-    await page.getByRole("button", { name: /Facilities [▼▲]/ }).click();
+    await page.getByRole("button", { name: "Facilities", exact: true }).click();
     await page.getByRole("button", { name: /Ramp/ }).click();
     await page
       .locator('[data-testid="facility-marker-f-installed"]')
