@@ -121,7 +121,6 @@
 .ku-favorite-button {
   position: relative;
   color: var(--ku-star);
-  font-size: 21px;
 }
 
 .ku-favorite-button[aria-expanded="true"] {
