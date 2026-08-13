@@ -1369,12 +1369,18 @@ import { FacilityTypeIcon } from "@/components/map/iconography";
 ```
 
 `:92-98`을 교체한다. `role="img"`+`aria-label`은 이모지를 그림으로 읽히게 하려던
-장치인데, 아이콘 옆 `.ku-facility-name`이 같은 이름을 이미 텍스트로 보여주므로
-중복 낭독을 없애고 장식으로 돌린다:
+장치인데, lucide 아이콘은 장식이므로 걷어낸다. 다만 이름 칸은
+`facility.name ?? 유형명`이라 개별 이름이 있으면 유형이 행 어디에도 남지
+않는다. 시각 사용자는 아이콘 글리프로 유형을 아는데 스크린리더 사용자만
+잃으므로, `.ku-visually-hidden`으로 유형을 남긴다(브랜치가 검색 결과
+즐겨찾기 표시에서 세운 것과 같은 패턴):
 
 ```tsx
 <div className="ku-facility-icon">
   <FacilityTypeIcon code={facility.facility_types?.code} size={19} />
+  <span className="ku-visually-hidden">
+    {getFacilityLabel(facility.facility_types)}
+  </span>
 </div>
 ```
 
