@@ -1,5 +1,6 @@
 "use client";
 
+import { FacilityTypeIcon } from "@/components/map/iconography";
 import type { LangCode } from "@/lib/translations";
 import type { FacilityWithType } from "@/types/domain";
 
@@ -89,12 +90,11 @@ export default function FacilityList({
               return (
                 <div className="ku-facility-row" key={facility.id}>
                   <div className="ku-facility-main">
-                    <div
-                      className="ku-facility-icon"
-                      role="img"
-                      aria-label={getFacilityLabel(facility.facility_types)}
-                    >
-                      {facility.facility_types?.icon}
+                    <div className="ku-facility-icon">
+                      <FacilityTypeIcon
+                        code={facility.facility_types?.code}
+                        size={19}
+                      />
                     </div>
                     <div className="ku-facility-copy">
                       <div className="ku-facility-name">{name}</div>

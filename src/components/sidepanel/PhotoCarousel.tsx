@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
 import type { LangCode } from "@/lib/translations";
 import type { BuildingPhoto } from "@/types/domain";
@@ -75,7 +76,7 @@ export default function PhotoCarousel({
                   justifyContent: "center",
                 }}
               >
-                ‹
+                <ChevronLeft size={18} aria-hidden="true" />
               </button>
               <button
                 aria-label="다음 사진"
@@ -98,7 +99,7 @@ export default function PhotoCarousel({
                   justifyContent: "center",
                 }}
               >
-                ›
+                <ChevronRight size={18} aria-hidden="true" />
               </button>
               <div
                 style={{
