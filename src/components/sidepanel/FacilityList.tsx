@@ -95,6 +95,9 @@ export default function FacilityList({
                         code={facility.facility_types?.code}
                         size={19}
                       />
+                      <span className="ku-visually-hidden">
+                        {getFacilityLabel(facility.facility_types)}
+                      </span>
                     </div>
                     <div className="ku-facility-copy">
                       <div className="ku-facility-name">{name}</div>
