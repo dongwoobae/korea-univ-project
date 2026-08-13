@@ -607,7 +607,7 @@ git commit -m "feat(map): 명소 마커와 팝업을 lucide 아이콘으로 통�
 - Modify: `src/lib/translations.ts` (ko/en/zh 3블록)
 - Modify: `src/components/map/Map.tsx:765-809`
 - Modify: `src/components/map/map-ui.css:491-517`, `:1248-1252`
-- Modify: `e2e/public-map.spec.ts:119`, `e2e/public-map-p1.spec.ts:30,62`
+- Modify: `e2e/public-map.spec.ts` (타일 전환 클릭, 위치 안내 테스트), `e2e/public-map-p1.spec.ts:30,62`
 
 - [ ] **Step 1: 라벨을 단언하는 e2e를 먼저 고쳐 실패를 만든다**
 
@@ -617,7 +617,7 @@ git commit -m "feat(map): 명소 마커와 팝업을 lucide 아이콘으로 통�
 await page.getByRole("button", { name: "위성 지도로 전환" }).click();
 ```
 
-`e2e/public-map-p1.spec.ts:30`과 `:62`의 두 줄:
+`e2e/public-map-p1.spec.ts:30`·`:62`와 `e2e/public-map.spec.ts`의 "지도 영역 밖의 현재 위치는 이동하지 않고 안내한다" 테스트, 이렇게 세 곳:
 
 ```ts
 await page.getByRole("button", { name: "현 위치" }).click();
