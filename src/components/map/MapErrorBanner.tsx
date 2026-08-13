@@ -1,5 +1,6 @@
 "use client";
 
+import { TriangleAlert } from "lucide-react";
 import type { MapDataRetry, MapDataStatuses } from "./useMapData";
 
 /** status가 error인 소스별 안내 메시지 키. */
@@ -70,8 +71,10 @@ export default function MapErrorBanner({
             boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
           }}
         >
-          <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <span aria-hidden="true">⚠️</span>
+          <span
+            style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}
+          >
+            <TriangleAlert size={16} aria-hidden="true" />
             <span>{t(ERROR_MESSAGE_KEY[source])}</span>
           </span>
           <button

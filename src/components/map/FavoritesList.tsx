@@ -1,5 +1,6 @@
 "use client";
 
+import { Star } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 
 export default function FavoritesList({ show, favorites, onSelect }) {
@@ -26,7 +27,7 @@ export default function FavoritesList({ show, favorites, onSelect }) {
             type="button"
             onClick={() => onSelect(favorite.id, favorite.name)}
           >
-            <span aria-hidden="true">★</span>
+            <Star size={14} fill="currentColor" aria-hidden="true" />
             <span>{favorite.name}</span>
           </button>
         ))

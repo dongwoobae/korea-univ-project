@@ -1,11 +1,22 @@
 "use client";
 
+import { CircleCheck, CircleX, TriangleAlert, X } from "lucide-react";
 import { useEffect } from "react";
 
 const STYLES = {
-  success: { bg: "#F0FDF4", border: "#86EFAC", color: "#166534", icon: "✅" },
-  error: { bg: "#FEF2F2", border: "#FCA5A5", color: "#991B1B", icon: "❌" },
-  warning: { bg: "#FFFBEB", border: "#FCD34D", color: "#92400E", icon: "⚠️" },
+  success: {
+    bg: "#F0FDF4",
+    border: "#86EFAC",
+    color: "#166534",
+    Icon: CircleCheck,
+  },
+  error: { bg: "#FEF2F2", border: "#FCA5A5", color: "#991B1B", Icon: CircleX },
+  warning: {
+    bg: "#FFFBEB",
+    border: "#FCD34D",
+    color: "#92400E",
+    Icon: TriangleAlert,
+  },
 };
 
 export default function Toast({ message, type = "success", onClose }) {
@@ -44,23 +55,24 @@ export default function Toast({ message, type = "success", onClose }) {
         wordBreak: "keep-all", // ← 한국어 단어 단위로 줄바꿈
       }}
     >
-      <span aria-hidden="true">{s.icon}</span>
+      <s.Icon size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
       <span style={{ flex: 1 }}>{message}</span>
       <button
         type="button"
         onClick={onClose}
         aria-label="알림 닫기"
         style={{
+          display: "flex",
+          alignItems: "center",
           background: "none",
           border: "none",
           cursor: "pointer",
-          fontSize: 14,
           color: s.color,
           opacity: 0.6,
           padding: 0,
         }}
       >
-        ✕
+        <X size={15} aria-hidden="true" />
       </button>
     </div>
   );
