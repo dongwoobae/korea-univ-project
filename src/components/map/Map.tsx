@@ -671,6 +671,7 @@ export default function Map() {
           landmarks={landmarks}
           showLandmarks={showLandmarks}
           zoom={viewport?.zoom ?? 16}
+          showLabels={buildingLabelsVisible}
         />
         <SubwayMarkers
           lang={lang}

@@ -75,12 +75,14 @@ interface LandmarkMarkersProps {
   landmarks: Landmark[];
   showLandmarks: boolean;
   zoom: number;
+  showLabels: boolean;
 }
 
 function LandmarkMarkers({
   landmarks,
   showLandmarks,
   zoom,
+  showLabels,
 }: LandmarkMarkersProps) {
   const { lang } = useLanguage();
   const map = useMap();
@@ -132,7 +134,7 @@ function LandmarkMarkers({
             icon={landmarkMarkerIcon(
               landmark,
               name ?? landmark.name,
-              zoom >= 18,
+              showLabels,
             )}
             title={name ?? landmark.name}
             alt={name ?? landmark.name}
