@@ -469,6 +469,7 @@
   bottom: 20px;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 10px;
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -524,7 +525,7 @@
   cursor: progress;
   opacity: 0.6;
 }
-/* 라벨까지 같이 흔들리지 않도록 아이콘에만 건다. */
+/* 라벨까지 같이 깜빡이지 않도록 아이콘에만 건다. */
 .ku-map-action[data-locating="true"] svg {
   animation: ku-locate-pulse 0.9s ease-in-out infinite;
 }
