@@ -59,7 +59,7 @@
   top: 50%;
   left: 13px;
   transform: translateY(-50%);
-  font-size: 15px;
+  display: flex;
   pointer-events: none;
 }
 
@@ -103,6 +103,8 @@
   position: absolute;
   top: 1px;
   right: 1px;
+  display: grid;
+  place-items: center;
   width: 44px;
   height: 44px;
   border: 0;
@@ -197,8 +199,8 @@
 }
 .ku-search-result-icon {
   flex: 0 0 auto;
-  font-size: 15px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
 }
 .ku-search-result-tag {
   flex: 0 0 auto;
