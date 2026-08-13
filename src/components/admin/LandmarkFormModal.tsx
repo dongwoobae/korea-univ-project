@@ -39,7 +39,6 @@ export default function LandmarkFormModal({
     description: landmark?.description ?? "",
     description_en: landmark?.description_en ?? "",
     description_zh: landmark?.description_zh ?? "",
-    icon: landmark?.icon ?? "✨",
     lat: landmark?.lat != null ? String(landmark.lat) : "",
     lng: landmark?.lng != null ? String(landmark.lng) : "",
     photo_url: landmark?.photo_url ?? "",
@@ -90,7 +89,6 @@ export default function LandmarkFormModal({
 
   function validate(): string | null {
     if (!form.name.trim()) return "명소 이름을 입력해주세요";
-    if (!form.icon.trim()) return "이모지를 입력해주세요";
     if (!form.lat || !form.lng) return "지도에서 위치를 선택해주세요";
     return null;
   }
@@ -165,7 +163,6 @@ export default function LandmarkFormModal({
       description: form.description.trim() || null,
       description_en: form.description_en.trim() || null,
       description_zh: form.description_zh.trim() || null,
-      icon: form.icon.trim(),
       lat: parseFloat(form.lat),
       lng: parseFloat(form.lng),
       photo_url: form.photo_url || null,
@@ -343,17 +340,6 @@ export default function LandmarkFormModal({
           value={form.description_zh}
           onChange={(e) => setForm({ ...form, description_zh: e.target.value })}
           style={{ ...inputStyle, minHeight: 60, resize: "vertical" }}
-        />
-
-        <label style={labelStyle} htmlFor={`${fieldId}-icon`}>
-          이모지 *
-        </label>
-        <input
-          id={`${fieldId}-icon`}
-          value={form.icon}
-          onChange={(e) => setForm({ ...form, icon: e.target.value })}
-          maxLength={4}
-          style={{ ...inputStyle, width: 90, fontSize: 20 }}
         />
 
         <div style={labelStyle}>위치 (지도에서 클릭해서 선택) *</div>

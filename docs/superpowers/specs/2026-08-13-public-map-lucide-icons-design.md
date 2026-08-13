@@ -4,28 +4,26 @@
 
 ## 작업 재개 안내 (2026-08-13 기준)
 
-**여기부터 읽고 시작한다.** 브랜치 `admin-lucide-icons`가 스택의 끝이고 이
-문서의 최신본을 담고 있다. `git fetch && git checkout admin-lucide-icons`.
+1단계와 2-A는 main에 들어갔다. 남은 것은 이 문서 끝의 `FeedbackButton` 다국어화
+하나다.
 
-### 브랜치 상태
+### 진행 상태
 
-| 브랜치                    | 상태                                                            |
-| ------------------------- | --------------------------------------------------------------- |
-| `public-map-lucide-icons` | **PR #10** 열림, 리뷰 대기. 1단계(공개 지도) 전부 완료          |
-| `admin-lucide-icons`      | 푸시됨, PR 없음. #10 위에 쌓여 있다. 2-A(관리자 읽기 제거) 완료 |
+| 단계                        | 상태                                 |
+| --------------------------- | ------------------------------------ |
+| 1단계 (공개 지도)           | **PR #10** 머지 완료                 |
+| 2-A (관리자 읽기 제거)      | **PR #11** 머지 완료                 |
+| 2-B (쓰기 제거 + 컬럼 drop) | `drop-icon-columns` 브랜치에서 진행  |
+| `FeedbackButton` 다국어화   | 미착수. 배포 순서와 무관한 독립 항목 |
 
-둘 다 원격과 동기화돼 있고 로컬에 미커밋·스태시가 없다. 검증은 양쪽 모두
-typecheck·lint·단위 테스트·e2e 전부 통과 상태에서 멈췄다.
-
-### 다음에 할 일
-
-1. **PR #10을 머지한다.** 머지 시 `docs/superpowers/plans/2026-08-13-public-map-lucide-icons.md`를 `git rm`한다(리포 규칙: 계획서는 머지 시 회수, 히스토리에 남는다).
-2. **`admin-lucide-icons`를 main 기준으로 리베이스하고 PR을 연다.** 지금은 #10 커밋을 포함해 보이므로, #10 머지 전에 열면 diff가 지저분하다.
-3. **2-B를 착수한다.** 아래 `2단계` 절에 남은 항목과 순서 위험이 적혀 있다. 착수 전에 정할 것이 하나 있다 — 폼 변경과 컬럼 drop을 한 PR에 담을지, `drop not null`을 먼저 배포하는 3단계로 갈지.
+머지된 브랜치는 로컬·원격 모두 지웠다. 계획서
+`docs/superpowers/plans/2026-08-13-public-map-lucide-icons.md`도 규칙대로 회수했다
+(PR #11에 포함).
 
 ### 이어받을 때 시간 낭비를 막아 줄 것들
 
-- **디스크가 위험하다.** C: 여유가 1.2GB뿐이다(232GB 중). 전체 e2e 한 번이면 바닥난다. `.next`·`.next-e2e`는 지워도 되는 캐시다. 232GB를 채운 주범은 이 리포 밖에 있으니 사용자 확인이 필요하다.
+- **디스크를 확인하고 시작한다.** 한때 C: 여유가 1.2GB까지 떨어져 전체 e2e 한 번이면 바닥날 상황이었다(2026-08-13에 50GB로 회복). `.next`·`.next-e2e`는 지워도 되는 캐시다.
+- **`node_modules`가 뒤처져 있을 수 있다.** 이 브랜치에서 `lucide-react`·`lucide-static`이 새로 들어왔다. 설치가 밀리면 typecheck가 `TS2307 Cannot find module`로 12건 무너지고 단위 테스트 2파일이 collect 단계에서 실패한다 — 코드 문제로 오해하기 쉽다. `npm install`이 답이다.
 - **`npm run format:check`를 전체로 돌리지 말 것.** Windows `core.autocrlf`가 작업 복사본을 CRLF로 바꿔 놓아 손대지 않은 파일 ~50개가 함께 실패한다. 커밋되는 내용은 LF이고 CI는 ubuntu라 실제로는 통과한다. 변경 파일만 `npx prettier --check --end-of-line auto <files>`로 본다.
 - **Playwright `-g`는 테스트 제목 전체가 필요하다.** 부분 제목은 `No tests found`가 난다. 또 `npm run test:e2e -- … -g "여러 단어"`는 npm이 따옴표를 벗겨 인자를 쪼개므로 `npx playwright test`를 직접 쓴다.
 - **`e2e/support/mockBackend.ts`는 PostgREST `select`의 임베드 투영을 흉내낸다**(`projectEmbeds`). GET/HEAD 경로에만 걸리고 POST 응답에는 걸리지 않으며, 배열 임베드와 최상위 컬럼은 투영하지 않는다. 이 덕분에 "select에서 컬럼을 빼먹은" 회귀가 e2e에 보인다 — 실제로 이 부류 버그를 두 번 잡았다.
@@ -158,20 +156,35 @@ lucide SVG는 `stroke="currentColor"`라 기존 `FACILITY_COLORS`·`ku-*` 색 �
 `src/types/domain.ts`의 `FacilityWithType`에서도 `icon`을 걷었다. 이제
 `facility_types.icon`을 읽는 코드는 없다.
 
-### 2-B: 쓰기 제거와 컬럼 drop (남음)
+### 2-B: 쓰기 제거와 컬럼 drop
 
 - 관리자 명소 폼(`LandmarkFormModal.tsx`)의 이모지 입력란·필수 검증·저장 제거.
-  현재 `form.icon`을 읽는 네 곳이 전부 이 파일에 있다.
+  `form.icon`을 읽던 네 곳이 전부 이 파일에 있었다.
 - `landmarks.icon`·`facility_types.icon` drop 마이그레이션
   (`supabase/migrations/`, main 머지 시 CI 자동 적용).
-- `supabase/database.types.ts` 재생성.
+- `supabase/database.types.ts`에서 두 컬럼 제거.
 
-**순서 위험이 남는다.** 마이그레이션은 main 머지 시점에 적용되는데 프론트 배포와
-원자적이지 않다. 폼 변경과 drop을 한 PR에 담으면, 머지 직후부터 새 프론트가
+**순서 위험을 어떻게 처리했나.** 마이그레이션은 main 머지 시점에 적용되는데 프론트
+배포와 원자적이지 않다. 폼 변경과 drop을 한 PR에 담으면, 머지 직후부터 새 프론트가
 배포되기 전까지 관리자가 명소를 만들면 실패하는 창이 생긴다(옛 프론트가 없는
-컬럼에 `icon`을 보낸다). 명소가 4건뿐인 내부 도구라 감수할 만하지만, 창을 없애려면
-`alter column icon drop not null`을 먼저 배포하고 → 폼 변경을 배포하고 → 마지막에
-drop하는 3단계로 가야 한다. 어느 쪽을 택할지는 2-B 착수 시점에 정한다.
+컬럼에 `icon`을 보낸다). 창을 없애려면 `alter column icon drop not null`을 먼저
+배포하고 → 폼 변경을 배포하고 → 마지막에 drop하는 3단계로 가야 한다.
+**한 PR로 묶고 창을 감수하기로 정했다(2026-08-13)** — 명소가 4건뿐인 내부 도구이고,
+창은 배포 한 번 걸리는 몇 분이다.
+
+착수하며 확인한 것 둘:
+
+- **`facility_types`는 `supabase/migrations/`에 만든 파일이 없다.** 이 리포의
+  마이그레이션 이력은 `20260514`부터 시작하고 그 이전 스키마는 베이스라인이라
+  파일이 없을 뿐이다. 기존 마이그레이션도 이미 그런 테이블에 `alter table`을
+  건다(`20260525000000_add_facility_video.sql`이 `building_facilities`에). 특별한
+  처리는 필요 없고, 재적용에 대비해 `drop column if exists`만 붙였다.
+- **`scripts/check-migrations.sh`는 파괴적 연산을 막지 않는다.** 검사하는 것은
+  ①기존 파일 수정·삭제·이름변경 금지(신규 추가만) ②파일명
+  `YYYYMMDDHHMMSS_lower_snake_case.sql` ③빈 파일 금지 셋뿐이다.
+
+로컬에 supabase CLI가 없어 `database.types.ts`는 수기로 걷고 typecheck로 검증했다.
+이 파일은 생성물이므로, CLI가 있는 환경에서 다시 만들면 이 편집과 같은 결과여야 한다.
 
 배포 순서와 무관한 후속 항목이 하나 더 있다. `FeedbackButton`의 한국어 고정
 문구 다국어화다. 보이는 라벨은 `t("feedback")`으로 옮겼고, 남은 것은 버튼의

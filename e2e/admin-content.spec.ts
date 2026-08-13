@@ -181,7 +181,9 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     const dialog = page.getByRole("dialog");
     await dialog.getByPlaceholder("예: 다람쥐길").fill("E2E 포토존");
     await dialog.getByPlaceholder("명소 설명").fill("학생회관 앞 포토존");
-    await dialog.locator('input[maxlength="4"]').fill("📸");
+    // 이모지 입력란은 lucide 전환으로 사라졌다. 남아 있으면 필수 검증이
+    // 되살아나 저장이 막히므로 없다는 것을 회귀로 잡는다.
+    await expect(dialog.getByLabel("이모지 *")).toHaveCount(0);
     await dialog.getByTitle("현재 위치로 이동").click();
     await dialog.locator('input[type="file"]').setInputFiles({
       name: "photo.webp",
@@ -230,7 +232,6 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
         name: `추가 명소 ${String(index + 1).padStart(2, "0")}`,
         name_en: `Extra landmark ${index + 1}`,
         description: "페이지네이션 검증용 명소",
-        icon: "📍",
         lat: 37.5895,
         lng: 127.0322,
         photo_url: null,

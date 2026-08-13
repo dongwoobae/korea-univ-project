@@ -236,7 +236,6 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
       landmarkDialog.getByLabel("이름 *", { exact: true }),
     ).toBeEditable();
     await expect(landmarkDialog.getByLabel("영문 이름")).toBeEditable();
-    await expect(landmarkDialog.getByLabel("이모지 *")).toBeEditable();
     await expect(landmarkDialog.getByLabel("사진")).toHaveAttribute(
       "type",
       "file",
