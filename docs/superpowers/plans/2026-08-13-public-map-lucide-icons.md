@@ -340,6 +340,131 @@ git commit -m "feat(map): 시설 마커와 클러스터를 lucide 아이콘으�
 
 ---
 
+### Task 2-1: 시설 색 조회의 프로토타입 구멍을 막고 마커 아이콘을 e2e로 고정한다
+
+Task 1이 아이콘 조회에서 막은 것과 **같은 종류의 구멍**이 색 조회에 남아 있다.
+`FACILITY_COLORS[code]`는 객체 리터럴 조회라 `code`가 `"constructor"`·`"toString"`
+이면 상속된 함수를 반환하고, 그 값은 nullish가 아니어서 `??` 폴백이 발동하지
+않는다. 결과적으로 `background:function toString() { [native code] };`가 style에
+들어가 마커 배경이 사라진다(따옴표·꺾쇠가 없어 주입은 아니고 CSS만 깨진다).
+
+구멍은 두 곳(`facilityColors.ts:23`의 `getFacilityColor`, `FacilityMarkers.tsx`의
+인라인 조회)이므로 호출부가 아니라 `facilityColors.ts` 한 곳에서 막는다.
+
+또한 지금은 `facilityIconSvg` 호출을 실수로 지워 마커가 빈 칸이 되어도
+typecheck·lint·e2e가 전부 통과한다. 마커가 실제로 lucide SVG를 그리는지
+e2e에서 단언해 막는다.
+
+**Files:**
+
+- Modify: `src/components/map/facilityColors.ts`
+- Modify: `src/components/map/FacilityMarkers.tsx`
+- Test: `src/lib/facilityColors.test.ts` (생성), `e2e/public-map.spec.ts`
+
+- [ ] **Step 1: 실패하는 단위 테스트 작성**
+
+`src/lib/facilityColors.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+import {
+  facilityMarkerColor,
+  getFacilityColor,
+} from "@/components/map/facilityColors";
+
+describe("facilityMarkerColor", () => {
+  it("알려진 코드는 지정색을, 모르는 코드는 회색을 준다", () => {
+    expect(facilityMarkerColor("ramp")).toMatch(/^#/);
+    expect(facilityMarkerColor("unknown_code")).toBe("#666");
+  });
+
+  it("프로토타입 속성 이름도 폴백으로 떨어진다", () => {
+    expect(facilityMarkerColor("constructor")).toBe("#666");
+    expect(facilityMarkerColor("toString")).toBe("#666");
+  });
+});
+
+describe("getFacilityColor", () => {
+  it("모르는 코드는 인덱스로 팔레트를 돈다", () => {
+    expect(getFacilityColor("unknown_code", 0)).toBe("#0891B2");
+  });
+
+  it("프로토타입 속성 이름도 팔레트로 떨어진다", () => {
+    expect(getFacilityColor("constructor", 0)).toBe("#0891B2");
+  });
+});
+```
+
+- [ ] **Step 2: 테스트를 돌려 실패를 확인**
+
+Run: `npm test -- src/lib/facilityColors.test.ts`
+Expected: FAIL — `facilityMarkerColor` export 없음, 그리고 `getFacilityColor("constructor", 0)`가 팔레트가 아닌 함수를 반환
+
+- [ ] **Step 3: 가드를 한 곳에 넣는다**
+
+`src/components/map/facilityColors.ts`의 `getFacilityColor`를 아래로 교체한다:
+
+```ts
+function knownColor(code: string): string | undefined {
+  return Object.hasOwn(FACILITY_COLORS, code)
+    ? FACILITY_COLORS[code as FacilityCode]
+    : undefined;
+}
+
+export function facilityMarkerColor(code: string): string {
+  return knownColor(code) ?? "#666";
+}
+
+export function getFacilityColor(code: string, index: number): string {
+  return knownColor(code) ?? FALLBACK_PALETTE[index % FALLBACK_PALETTE.length];
+}
+```
+
+- [ ] **Step 4: 마커가 새 함수를 쓰게 한다**
+
+`src/components/map/FacilityMarkers.tsx`의 import에서 `FACILITY_COLORS`를 빼고
+`facilityMarkerColor`를 넣은 뒤, `facilityMarkerIcon`의 html에서
+
+```
+background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};
+```
+
+를 다음으로 바꾼다:
+
+```
+background:${facilityMarkerColor(code)};
+```
+
+- [ ] **Step 5: 단위 테스트 통과 확인**
+
+Run: `npm test`
+Expected: PASS — 전체 통과, 새 파일에서 4건 추가
+
+- [ ] **Step 6: e2e에 아이콘 단언을 넣는다**
+
+`e2e/public-map.spec.ts`의 "낮은 줌에서 라벨과 가까운 마커를 정리하고 확대하면
+펼친다" 테스트에서, 개별 마커 3개를 세는 단언 바로 다음에 한 줄 추가한다:
+
+```ts
+await expect(
+  page.locator('[data-testid^="facility-marker-"] svg.lucide'),
+).toHaveCount(3);
+```
+
+- [ ] **Step 7: e2e 통과 확인**
+
+Run: `npx playwright test e2e/public-map.spec.ts`
+Expected: PASS — 15 passed
+
+- [ ] **Step 8: 커밋**
+
+```bash
+git add src/components/map/facilityColors.ts src/components/map/FacilityMarkers.tsx src/lib/facilityColors.test.ts e2e/public-map.spec.ts
+git commit -m "fix(map): 시설 색 조회가 프로토타입 속성을 타지 않게 한다"
+```
+
+---
+
 ### Task 3: 지하철 마커
 
 **Files:**
