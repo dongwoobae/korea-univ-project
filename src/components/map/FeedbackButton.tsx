@@ -9,6 +9,7 @@ import {
   type FeedbackEmails,
 } from "@/lib/settings";
 import { FEEDBACK_TYPES, type FeedbackType } from "@/lib/feedback";
+import { useLanguage } from "@/lib/LanguageContext";
 import { useModalFocus } from "@/lib/useModalFocus";
 
 type SubmissionStatus =
@@ -20,6 +21,7 @@ type SubmissionStatus =
 const IDLE_STATUS: SubmissionStatus = { kind: "idle", message: "" };
 
 export default function FeedbackButton() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [emails, setEmails] = useState<FeedbackEmails>(
     FEEDBACK_EMAILS_FALLBACK,
@@ -104,7 +106,7 @@ export default function FeedbackButton() {
         aria-label="피드백 보내기"
       >
         <MessageSquare size={19} aria-hidden="true" />
-        <span className="ku-map-action-label">피드백</span>
+        <span className="ku-map-action-label">{t("feedback")}</span>
       </button>
 
       {open && (
