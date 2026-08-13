@@ -1488,8 +1488,16 @@ Expected: PASS — 기존 테스트 전부 + `mapIcons` 6건
 
 - [ ] **Step 5: 린트와 포맷**
 
-Run: `npm run lint && npm run format:check`
-Expected: 오류 없음. 실패하면 `npm run format` 후 재실행
+Run: `npm run lint`
+Expected: 오류 0. 경고 1건(`Map.tsx`의 기존 경고)은 이번 작업 이전부터 있던 것이라 그대로 둔다.
+
+Run: `npx prettier --check $(git diff --name-only main...HEAD | grep -E '\.(ts|tsx|css|md)$')`
+Expected: 통과. 실패하면 해당 파일에 `npx prettier --write`.
+
+**`npm run format:check`를 전체로 돌리지 말 것.** Windows 체크아웃에서는
+`core.autocrlf`가 작업 복사본을 CRLF로 바꿔 놓아 손대지 않은 파일 49개가 함께
+실패한다. 커밋되는 내용은 LF이고 CI는 ubuntu에서 체크아웃하므로 실제로는
+통과한다(2026-08-13 확인). 이번 변경분만 위 명령으로 확인하면 된다.
 
 - [ ] **Step 6: 전체 e2e**
 
