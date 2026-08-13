@@ -1534,6 +1534,86 @@ git commit -m "refactor(map): 공개 지도 쿼리에서 icon 컬럼 참조를 �
 
 ---
 
+### Task 13: 두 아이콘 테이블이 같은 아이콘을 가리키는지 고정한다
+
+Task 1의 `Record<FacilityIconKey, …>` 결합은 **키 집합**만 강제한다. `ramp`의
+아이콘을 한쪽에서만 바꾸면 타입 검사·린트·테스트가 모두 통과하면서 지도 마커와
+목록 행이 서로 다른 그림을 보여준다. 이 마지막 구멍을 테스트로 막는다.
+
+**Files:**
+
+- Modify: `src/lib/mapIcons.ts` (`FACILITY_ICON_SVG` export)
+- Modify: `src/components/map/iconography.tsx` (`FACILITY_ICON` export)
+- Test: `src/components/map/iconography.test.ts` (생성)
+
+- [ ] **Step 1: 실패하는 테스트 작성**
+
+`lucide-react` 컴포넌트는 `displayName`에 PascalCase 이름을(`ArrowUpDown`),
+`lucide-static` SVG는 `class`에 kebab-case 이름을(`lucide-arrow-up-down`) 담는다.
+둘을 변환해 맞춘다.
+
+`src/components/map/iconography.test.ts`:
+
+```ts
+import { describe, expect, it } from "vitest";
+import { FACILITY_ICON_SVG, LANDMARK_ICON_SVG } from "@/lib/mapIcons";
+import { FACILITY_ICON, LANDMARK_ICON } from "./iconography";
+
+function lucideClass(displayName: string): string {
+  return `lucide-${displayName.replace(/(?<!^)([A-Z])/g, "-$1").toLowerCase()}`;
+}
+
+describe("아이콘 테이블 짝 맞추기", () => {
+  it("시설 키마다 마커 SVG와 JSX 컴포넌트가 같은 아이콘을 가리킨다", () => {
+    for (const [key, Icon] of Object.entries(FACILITY_ICON)) {
+      expect(
+        FACILITY_ICON_SVG[key as keyof typeof FACILITY_ICON_SVG],
+      ).toContain(lucideClass(Icon.displayName!));
+    }
+  });
+
+  it("명소 아이콘도 마커와 JSX가 일치한다", () => {
+    expect(LANDMARK_ICON_SVG).toContain(
+      lucideClass(LANDMARK_ICON.displayName!),
+    );
+  });
+});
+```
+
+- [ ] **Step 2: 테스트를 돌려 실패를 확인**
+
+Run: `npm test -- src/components/map/iconography.test.ts`
+Expected: FAIL — `FACILITY_ICON_SVG`, `FACILITY_ICON`, `LANDMARK_ICON`이 export되지 않아 import 실패
+
+- [ ] **Step 3: 테이블을 export한다**
+
+`src/lib/mapIcons.ts`의 `const FACILITY_ICON_SVG`에 `export`를 붙인다.
+
+`src/components/map/iconography.tsx`의 `const FACILITY_ICON`에 `export`를 붙이고,
+`LandmarkIcon`이 감싸던 컴포넌트를 이름 있는 상수로 끌어올려 함께 export한다:
+
+```tsx
+export const LANDMARK_ICON = Sparkles;
+
+export function LandmarkIcon({ size = 18 }: { size?: number }) {
+  return <LANDMARK_ICON size={size} aria-hidden="true" />;
+}
+```
+
+- [ ] **Step 4: 테스트 통과 확인**
+
+Run: `npm test`
+Expected: PASS — 전체 통과, 새 파일에서 2건 추가
+
+- [ ] **Step 5: 커밋**
+
+```bash
+git add src/lib/mapIcons.ts src/components/map/iconography.tsx src/components/map/iconography.test.ts
+git commit -m "test(map): 마커 SVG와 JSX 아이콘이 같은 그림을 쓰도록 고정한다"
+```
+
+---
+
 ## 후속 작업 (별도 PR)
 
 이 PR이 배포되어 `icon` 컬럼을 읽는 프론트가 사라진 뒤에 진행한다:
