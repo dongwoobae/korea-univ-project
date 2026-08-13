@@ -263,9 +263,17 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
         '[data-testid^="facility-marker-"]:not([data-testid$="cluster"])',
       ),
     ).toHaveCount(3);
+    // 유형별 클래스까지 봐야 세 마커가 모두 폴백 아이콘으로 떨어지는 회귀를 잡는다.
     await expect(
-      page.locator('[data-testid^="facility-marker-"] svg.lucide'),
-    ).toHaveCount(3);
+      page.locator(
+        '[data-testid^="facility-marker-"]:not([data-testid$="cluster"]) svg.lucide-trending-up',
+      ),
+    ).toHaveCount(1);
+    await expect(
+      page.locator(
+        '[data-testid^="facility-marker-"]:not([data-testid$="cluster"]) svg.lucide-arrow-up-down',
+      ),
+    ).toHaveCount(2);
     await expect(page.getByTestId("landmark-label")).toBeVisible();
     await expect(page.getByTestId("subway-label").first()).toBeVisible();
   });
