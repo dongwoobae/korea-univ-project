@@ -1001,8 +1001,9 @@ button.ku-admin-overview-item {
 }
 
 .ku-facility-row-icon {
-  font-size: 20px;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
 }
 
 .ku-facility-row-body {

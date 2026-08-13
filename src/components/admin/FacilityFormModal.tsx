@@ -217,7 +217,7 @@ export default function FacilityFormModal({
           <option value="">선택해주세요</option>
           {facilityTypes.map((t) => (
             <option key={t.code} value={t.code}>
-              {t.icon} {t.label}
+              {t.label}
             </option>
           ))}
         </select>
