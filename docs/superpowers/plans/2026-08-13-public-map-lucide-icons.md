@@ -27,7 +27,7 @@
 | ---------------------------------------------- | ----------------------------------------------------------- | ---- |
 | `src/lib/mapIcons.ts`                          | 시설 코드 → 아이콘 키 매핑, divIcon용 SVG 문자열, 크기 치환 | 생성 |
 | `src/lib/mapIcons.test.ts`                     | 위 모듈의 단위 테스트                                       | 생성 |
-| `src/components/map/iconography.tsx`           | JSX용 `FacilityTypeIcon` (lucide-react)                     | 생성 |
+| `src/components/map/iconography.tsx`           | JSX용 `FacilityTypeIcon`·`LandmarkIcon` (lucide-react)      | 생성 |
 | `src/components/map/FacilityMarkers.tsx`       | 시설 마커·클러스터 divIcon                                  | 수정 |
 | `src/components/map/SubwayMarkers.tsx`         | 지하철 마커 divIcon                                         | 수정 |
 | `src/components/map/LandmarkMarkers.tsx`       | 명소 마커·클러스터·팝업                                     | 수정 |
@@ -440,7 +440,7 @@ const landmarkMarkerIcon = (
 - [ ] **Step 4: 팝업의 이모지를 교체**
 
 `src/components/map/LandmarkMarkers.tsx:144-148`의 팝업 제목 줄을 바꾼다.
-상단에 `import { Sparkles } from "lucide-react";`를 추가하고:
+상단에 `import { LandmarkIcon } from "./iconography";`를 추가하고:
 
 ```tsx
 <div
@@ -453,7 +453,7 @@ const landmarkMarkerIcon = (
     color: "#222",
   }}
 >
-  <Sparkles size={15} aria-hidden="true" />
+  <LandmarkIcon size={15} />
   {name}
 </div>
 ```
@@ -767,7 +767,8 @@ git commit -m "feat(map): 피드백 버튼을 lucide로 바꾸고 라벨을 단�
 `src/components/map/SearchControl.tsx` 상단:
 
 ```ts
-import { Mic, Search, Sparkles, Star, X } from "lucide-react";
+import { Mic, Search, Star, X } from "lucide-react";
+import { LandmarkIcon } from "./iconography";
 ```
 
 - [ ] **Step 2: 검색 아이콘 교체**
@@ -825,7 +826,7 @@ import { Mic, Search, Sparkles, Star, X } from "lucide-react";
 {
   result.kind === "landmark" && (
     <span className="ku-search-result-icon">
-      <Sparkles size={15} aria-hidden="true" />
+      <LandmarkIcon size={15} />
     </span>
   );
 }
@@ -948,8 +949,8 @@ Expected: FAIL — 접근 이름이 아직 `"시설 ▼"`이라 완전일치가 
 `src/components/map/FilterPanel.tsx` 상단:
 
 ```ts
-import { ChevronDown, ChevronUp, Mountain, Sparkles } from "lucide-react";
-import { FacilityTypeIcon } from "./iconography";
+import { ChevronDown, ChevronUp, Mountain } from "lucide-react";
+import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
 ```
 
 - [ ] **Step 4: 섹션 셰브런 3곳 교체**
@@ -1006,8 +1007,11 @@ import { FacilityTypeIcon } from "./iconography";
 ```
 
 ```tsx
-<Sparkles size={15} aria-hidden="true" />
+<LandmarkIcon size={15} />
 ```
+
+명소 토글의 아이콘은 명소 마커와 같아야 사용자가 둘을 연결한다. 그래서
+`Sparkles`를 직접 쓰지 않고 `LandmarkIcon`을 거친다.
 
 - [ ] **Step 7: CSS 정렬 보정**
 
@@ -1065,8 +1069,8 @@ export interface MapBrowseItem {
 `src/components/map/MapBrowseList.tsx` 상단 import에 추가:
 
 ```ts
-import { List, Sparkles, X } from "lucide-react";
-import { FacilityTypeIcon } from "./iconography";
+import { List, X } from "lucide-react";
+import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
 ```
 
 `:55`의 `<span aria-hidden="true">☷</span>`:
@@ -1093,7 +1097,7 @@ import { FacilityTypeIcon } from "./iconography";
 ```tsx
 <span className="ku-map-browse-icon">
   {item.kind === "landmark" ? (
-    <Sparkles size={16} aria-hidden="true" />
+    <LandmarkIcon size={16} />
   ) : (
     <FacilityTypeIcon code={item.code} size={16} />
   )}
