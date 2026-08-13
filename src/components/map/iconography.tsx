@@ -4,6 +4,7 @@ import {
   Accessibility,
   ArrowUpDown,
   GripVertical,
+  Sparkles,
   SquareParking,
   Toilet,
   TrendingUp,
@@ -11,7 +12,7 @@ import {
 } from "lucide-react";
 import { facilityIconKey, type FacilityIconKey } from "@/lib/mapIcons";
 
-// mapIcons.ts의 SVG 테이블과 같은 키 union을 써서 한쪽만 고치면 타입 오류가 난다.
+// Leaflet divIcon은 HTML 문자열을, JSX는 컴포넌트를 요구해 같은 매핑을 두 벌 둔다.
 const FACILITY_ICON: Record<FacilityIconKey, LucideIcon> = {
   elevator: ArrowUpDown,
   restroom: Toilet,
@@ -29,4 +30,8 @@ interface FacilityTypeIconProps {
 export function FacilityTypeIcon({ code, size = 18 }: FacilityTypeIconProps) {
   const Icon = FACILITY_ICON[facilityIconKey(code)];
   return <Icon size={size} aria-hidden="true" />;
+}
+
+export function LandmarkIcon({ size = 18 }: { size?: number }) {
+  return <Sparkles size={size} aria-hidden="true" />;
 }

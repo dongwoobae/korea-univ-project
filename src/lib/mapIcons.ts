@@ -8,15 +8,12 @@ import {
   TrainFront,
   TrendingUp,
 } from "lucide-static";
+import type { FacilityCode } from "@/types/domain";
 
-/**
- * 시설 유형 코드가 매핑되는 아이콘 자리.
- * lucide에 elevator·ramp·braille 전용 아이콘이 없어 은유로 대체한다.
- */
-export type FacilityIconKey =
-  "elevator" | "restroom" | "ramp" | "parking" | "braille" | "fallback";
+/** lucide에 elevator·ramp·braille 전용 아이콘이 없어 은유로 대체한다. */
+export type FacilityIconKey = FacilityCode | "fallback";
 
-const FACILITY_ICON_KEY: Record<string, FacilityIconKey> = {
+const FACILITY_ICON_KEY: Record<FacilityCode, FacilityIconKey> = {
   elevator: "elevator",
   restroom: "restroom",
   ramp: "ramp",
@@ -29,7 +26,7 @@ export function facilityIconKey(
 ): FacilityIconKey {
   const key = code ?? "";
   return Object.hasOwn(FACILITY_ICON_KEY, key)
-    ? FACILITY_ICON_KEY[key]
+    ? FACILITY_ICON_KEY[key as FacilityCode]
     : "fallback";
 }
 
