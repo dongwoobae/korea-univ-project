@@ -152,6 +152,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       .locator(".ku-facility-row")
       .filter({ hasText: "북측 진입로" });
     await expect(rampRow).toContainText("경사로");
+    await expect(rampRow.locator("svg.lucide-trending-up")).toHaveCount(1);
 
     await page.getByRole("button", { name: "즐겨찾기 추가" }).click();
     await expect(

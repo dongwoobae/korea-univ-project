@@ -100,7 +100,7 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
         .single(),
       supabase
         .from("building_facilities")
-        .select("*, facility_types(label, label_en, label_zh, icon)")
+        .select("*, facility_types(code, label, label_en, label_zh)")
         .eq("building_id", buildingId),
       supabase
         .from("building_photos")

@@ -14,6 +14,7 @@
  *      - `/rest/v1/<table>` → `handleRest()`: PostgREST 흉내.
  *          GET·HEAD·POST·PATCH·DELETE 지원,
  *          `?id=eq.|in.(…)` / `?building_id=eq.|is.null|in.(…)` 필터,
+ *          `?select=…`의 임베드 투영(`projectEmbeds`),
  *          `Accept: object+json`이면 단건(.single()) 응답.
  *          `admin_building_flags` 뷰와 `rpc/get_admin_building_summary`는
  *          `buildingFlags()` **한 곳**에서 나온다(아래 주석 참고).
@@ -510,6 +511,35 @@ function rows(state: MockState, name: string, url: URL): Row[] {
   return result;
 }
 
+/**
+ * `select=*, rel(a,b)`의 임베드 투영 흉내 — 임베드 객체를 나열된 컬럼으로 좁힌다.
+ *
+ * 픽스처를 통째로 돌려주면 프론트가 select에 넣지 않은 필드도 읽히기 때문에
+ * "select 누락" 회귀가 목 위에서 전부 초록불이 된다. 좁혀야 그 계약이 검증된다.
+ */
+function projectEmbeds(result: Row[], select: string | null): Row[] {
+  if (!select) return result;
+  const embeds = [...select.matchAll(/(\w+)\(([^()]*)\)/g)].map((match) => ({
+    name: match[1],
+    columns: match[2].split(",").map((column) => column.trim()),
+  }));
+  if (embeds.length === 0) return result;
+  return result.map((row) => {
+    const projected = { ...row };
+    for (const embed of embeds) {
+      const value = projected[embed.name];
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      const source = value as Row;
+      projected[embed.name] = Object.fromEntries(
+        embed.columns
+          .filter((column) => column in source)
+          .map((column) => [column, source[column]]),
+      );
+    }
+    return projected;
+  });
+}
+
 // POST로 생성되는 새 행의 id 생성 규칙(테이블별).
 function nextId(name: string, state: MockState) {
   if (name === "buildings")
@@ -550,7 +580,10 @@ async function handleRest(route: Route, state: MockState, url: URL) {
       translation_needed_building_count: countFlag("translation_needed"),
     });
   }
-  const result = rows(state, name, url);
+  const result = projectEmbeds(
+    rows(state, name, url),
+    url.searchParams.get("select"),
+  );
   if (method === "HEAD") {
     return route.fulfill({
       status: 200,
