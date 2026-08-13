@@ -2,6 +2,36 @@
 
 2026-08-13
 
+## 작업 재개 안내 (2026-08-13 기준)
+
+**여기부터 읽고 시작한다.** 브랜치 `admin-lucide-icons`가 스택의 끝이고 이
+문서의 최신본을 담고 있다. `git fetch && git checkout admin-lucide-icons`.
+
+### 브랜치 상태
+
+| 브랜치                    | 상태                                                            |
+| ------------------------- | --------------------------------------------------------------- |
+| `public-map-lucide-icons` | **PR #10** 열림, 리뷰 대기. 1단계(공개 지도) 전부 완료          |
+| `admin-lucide-icons`      | 푸시됨, PR 없음. #10 위에 쌓여 있다. 2-A(관리자 읽기 제거) 완료 |
+
+둘 다 원격과 동기화돼 있고 로컬에 미커밋·스태시가 없다. 검증은 양쪽 모두
+typecheck·lint·단위 테스트·e2e 전부 통과 상태에서 멈췄다.
+
+### 다음에 할 일
+
+1. **PR #10을 머지한다.** 머지 시 `docs/superpowers/plans/2026-08-13-public-map-lucide-icons.md`를 `git rm`한다(리포 규칙: 계획서는 머지 시 회수, 히스토리에 남는다).
+2. **`admin-lucide-icons`를 main 기준으로 리베이스하고 PR을 연다.** 지금은 #10 커밋을 포함해 보이므로, #10 머지 전에 열면 diff가 지저분하다.
+3. **2-B를 착수한다.** 아래 `2단계` 절에 남은 항목과 순서 위험이 적혀 있다. 착수 전에 정할 것이 하나 있다 — 폼 변경과 컬럼 drop을 한 PR에 담을지, `drop not null`을 먼저 배포하는 3단계로 갈지.
+
+### 이어받을 때 시간 낭비를 막아 줄 것들
+
+- **디스크가 위험하다.** C: 여유가 1.2GB뿐이다(232GB 중). 전체 e2e 한 번이면 바닥난다. `.next`·`.next-e2e`는 지워도 되는 캐시다. 232GB를 채운 주범은 이 리포 밖에 있으니 사용자 확인이 필요하다.
+- **`npm run format:check`를 전체로 돌리지 말 것.** Windows `core.autocrlf`가 작업 복사본을 CRLF로 바꿔 놓아 손대지 않은 파일 ~50개가 함께 실패한다. 커밋되는 내용은 LF이고 CI는 ubuntu라 실제로는 통과한다. 변경 파일만 `npx prettier --check --end-of-line auto <files>`로 본다.
+- **Playwright `-g`는 테스트 제목 전체가 필요하다.** 부분 제목은 `No tests found`가 난다. 또 `npm run test:e2e -- … -g "여러 단어"`는 npm이 따옴표를 벗겨 인자를 쪼개므로 `npx playwright test`를 직접 쓴다.
+- **`e2e/support/mockBackend.ts`는 PostgREST `select`의 임베드 투영을 흉내낸다**(`projectEmbeds`). GET/HEAD 경로에만 걸리고 POST 응답에는 걸리지 않으며, 배열 임베드와 최상위 컬럼은 투영하지 않는다. 이 덕분에 "select에서 컬럼을 빼먹은" 회귀가 e2e에 보인다 — 실제로 이 부류 버그를 두 번 잡았다.
+- **접근성 트리를 CDP로 측정할 때 SVG를 `role === "img"`로 거르면 0건이 나와 오판한다.** Chromium은 `SvgRoot`·`graphics-symbol`·`image`로 보고한다.
+- `PowerShell` 툴이 다른 리포에서 시작할 수 있다. 항상 `korea-univ-project`에서 실행한다.
+
 ## 배경
 
 데스크톱 공개 지도에서 아이콘만 떠 있는 버튼(현위치·지도전환·피드백 등)이 무슨
