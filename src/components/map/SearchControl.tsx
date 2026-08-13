@@ -443,11 +443,9 @@ export default function SearchControl({
                   </span>
                 )}
                 {result.kind === "building" && favoriteIds.has(result.id) && (
-                  <span
-                    className="ku-search-result-star"
-                    aria-label={t("favorites")}
-                  >
+                  <span className="ku-search-result-star">
                     <Star size={13} fill="currentColor" aria-hidden="true" />
+                    <span className="ku-visually-hidden">{t("favorites")}</span>
                   </span>
                 )}
               </li>
