@@ -21,6 +21,7 @@
 - `/api/facilities`는 공개 지도만 쓴다(관리자는 별도 쿼리). 여기서 `icon`을 빼도 관리자 화면은 영향받지 않는다.
 - 마커 divIcon 안의 SVG는 `aria-hidden="true"` span으로 감싼다. Chromium은 `<svg>`를 `role=img`로 노출하는데, Leaflet이 마커 div에 `role="button"`과 `tabindex=0`을 붙이므로 감싸지 않으면 버튼 안에 이름 없는 그래픽 노드가 남는다. 접근 이름은 `<Marker>`의 `title`이 나른다 — `alt`는 divIcon에 적용되지 않는다(Leaflet은 `IMG` 태그일 때만 설정한다).
 - JSX 쪽 lucide 컴포넌트는 `aria-hidden="true"` prop으로 같은 처리를 한다.
+- 접근성 트리를 CDP로 측정할 때 SVG를 `role === "img"`로 거르면 0건이 나와 오판한다. Chromium은 내부 이름 `SvgRoot`·`graphics-symbol`·`image`로 보고하므로 셋을 모두 잡아야 한다. Task 2 실측(2026-08-13): 감싸기 전에는 마커 수에 비례해 이름 없는 그래픽 노드가 늘었고(마커 3개 → 6, 클러스터 → 4), 감싼 뒤 양쪽 모두 기준선 3으로 떨어졌다.
 - **범위 밖:** `SlopeLegend`의 `▶`(타이포그래피 불릿), `PhotoCarousel`의 점 인디케이터(도형), 관리자 페이지 전체.
 
 ## 파일 구조
