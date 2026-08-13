@@ -6,6 +6,11 @@ import L from "leaflet";
 import type { MapFacility } from "@/types/domain";
 import { useLanguage } from "@/lib/LanguageContext";
 import { groupByPixelGrid } from "@/lib/mapMarkerLayout";
+import {
+  FACILITY_CLUSTER_ICON_SVG,
+  facilityIconSvg,
+  sizedIconSvg,
+} from "@/lib/mapIcons";
 import { FACILITY_COLORS } from "./facilityColors";
 
 // divIcon은 키별로 캐시해 참조를 유지 — 렌더마다 새 인스턴스를 만들면
@@ -21,11 +26,11 @@ function cachedIcon(key: string, create: () => L.DivIcon) {
   return icon;
 }
 
-const facilityMarkerIcon = (code: string, icon: string, id: string) =>
-  cachedIcon(`facility|${code}|${icon}|${id}`, () =>
+const facilityMarkerIcon = (code: string, id: string) =>
+  cachedIcon(`facility|${code}|${id}`, () =>
     L.divIcon({
       className: "",
-      html: `<div data-testid="facility-marker-${id}" style="width:34px;height:34px;background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};border:2px solid white;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 7px rgba(28,25,23,0.28);transform:rotate(-45deg);"><span style="transform:rotate(45deg)">${icon}</span></div>`,
+      html: `<div data-testid="facility-marker-${id}" style="width:34px;height:34px;background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};border:2px solid white;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 7px rgba(28,25,23,0.28);transform:rotate(-45deg);"><span style="display:flex;transform:rotate(45deg)">${facilityIconSvg(code, 17)}</span></div>`,
       iconAnchor: [17, 30],
       popupAnchor: [0, -30],
     }),
@@ -35,7 +40,7 @@ const facilityClusterIcon = (count: number) =>
   cachedIcon(`cluster|${count}`, () =>
     L.divIcon({
       className: "",
-      html: `<div class="ku-marker-cluster" data-testid="facility-marker-cluster"><span aria-hidden="true">♿</span><strong>${count}</strong></div>`,
+      html: `<div class="ku-marker-cluster" data-testid="facility-marker-cluster"><span style="display:flex">${sizedIconSvg(FACILITY_CLUSTER_ICON_SVG, 16)}</span><strong>${count}</strong></div>`,
       iconSize: [42, 42],
       iconAnchor: [21, 21],
     }),
@@ -114,11 +119,7 @@ function FacilityMarkers({
             key={f.id}
             // lat/lng는 /api/facilities에서 not-null 필터를 거쳐 항상 존재
             position={[f.lat!, f.lng!]}
-            icon={facilityMarkerIcon(
-              f.facility_types?.code ?? "",
-              f.facility_types?.icon ?? "",
-              f.id,
-            )}
+            icon={facilityMarkerIcon(f.facility_types?.code ?? "", f.id)}
             title={name}
             alt={name}
             zIndexOffset={500}
