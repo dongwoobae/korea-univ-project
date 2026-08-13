@@ -516,6 +516,8 @@ function rows(state: MockState, name: string, url: URL): Row[] {
  *
  * 픽스처를 통째로 돌려주면 프론트가 select에 넣지 않은 필드도 읽히기 때문에
  * "select 누락" 회귀가 목 위에서 전부 초록불이 된다. 좁혀야 그 계약이 검증된다.
+ * 다만 좁히는 대상은 단건 임베드 객체뿐이다 — 배열(to-many) 임베드와 최상위
+ * 컬럼은 그대로 나가므로 그쪽 select 누락은 여전히 드러나지 않는다.
  */
 function projectEmbeds(result: Row[], select: string | null): Row[] {
   if (!select) return result;

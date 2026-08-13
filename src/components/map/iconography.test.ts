@@ -11,13 +11,13 @@ describe("아이콘 테이블 짝 맞추기", () => {
     for (const [key, Icon] of Object.entries(FACILITY_ICON)) {
       expect(
         FACILITY_ICON_SVG[key as keyof typeof FACILITY_ICON_SVG],
-      ).toContain(lucideClass(Icon.displayName!));
+      ).toContain(`class="lucide ${lucideClass(Icon.displayName!)}"`);
     }
   });
 
   it("명소 아이콘도 마커와 JSX가 일치한다", () => {
     expect(LANDMARK_ICON_SVG).toContain(
-      lucideClass(LANDMARK_ICON.displayName!),
+      `class="lucide ${lucideClass(LANDMARK_ICON.displayName!)}"`,
     );
   });
 });

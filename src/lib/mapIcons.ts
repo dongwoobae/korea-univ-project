@@ -10,7 +10,6 @@ import {
 } from "lucide-static";
 import type { FacilityCode } from "@/types/domain";
 
-/** lucide에 elevator·ramp·braille 전용 아이콘이 없어 은유로 대체한다. */
 export type FacilityIconKey = FacilityCode | "fallback";
 
 const FACILITY_ICON_KEY: Record<FacilityCode, FacilityIconKey> = {

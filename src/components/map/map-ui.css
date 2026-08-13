@@ -96,7 +96,6 @@
   color: var(--ku-text-2);
   background: var(--ku-surface);
   cursor: pointer;
-  font-size: 17px;
 }
 
 .ku-voice-button {
@@ -193,6 +192,8 @@
 }
 .ku-search-result-star {
   color: var(--ku-star);
+  display: flex;
+  align-items: center;
 }
 .ku-search-result[data-active="true"] {
   background: var(--ku-crimson-100);
@@ -545,7 +546,6 @@
   color: #fff;
   background: #8c0000;
   box-shadow: 0 2px 9px rgba(28, 25, 23, 0.32);
-  font-size: 13px;
 }
 .ku-marker-cluster--landmark {
   color: #4b3508;

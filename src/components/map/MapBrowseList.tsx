@@ -8,7 +8,7 @@ import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
 export interface MapBrowseItem {
   key: string;
   kind: "facility" | "landmark";
-  /** kind가 facility일 때의 시설 유형 코드. landmark는 아이콘이 고정이라 쓰지 않는다. */
+  /** landmark는 아이콘이 고정이라 쓰지 않는다. */
   code: string | null;
   name: string;
   detail: string;
