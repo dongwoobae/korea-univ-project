@@ -1,5 +1,6 @@
 "use client";
 
+import { Star, Volume2, X } from "lucide-react";
 import type { LangCode } from "@/lib/translations";
 
 interface SidePanelHeaderProps {
@@ -45,7 +46,7 @@ export default function SidePanelHeader({
           onClick={onClose}
           aria-label="닫기"
         >
-          ✕
+          <X size={17} aria-hidden="true" />
         </button>
       </div>
       <div className="ku-side-actions">
@@ -56,7 +57,7 @@ export default function SidePanelHeader({
           disabled={loading}
           aria-pressed={isSpeaking}
         >
-          <span aria-hidden="true">🔊</span>{" "}
+          <Volume2 size={16} aria-hidden="true" />
           {isSpeaking ? t("stopSpeaking") : t("speakInfo")}
         </button>
         <button
@@ -66,7 +67,11 @@ export default function SidePanelHeader({
           aria-label={isFavorite ? t("removeFavorite") : t("addFavorite")}
           aria-pressed={isFavorite}
         >
-          <span aria-hidden="true">{isFavorite ? "★" : "☆"}</span>{" "}
+          <Star
+            size={16}
+            fill={isFavorite ? "currentColor" : "none"}
+            aria-hidden="true"
+          />
           {t("favorites")}
         </button>
       </div>

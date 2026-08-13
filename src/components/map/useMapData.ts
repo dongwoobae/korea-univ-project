@@ -35,7 +35,9 @@ export function useMapData() {
   const [geoDataVersion, setGeoDataVersion] = useState(0);
   const [loadingMap, setLoadingMap] = useState(true);
   const [facilities, setFacilities] = useState<MapFacility[]>([]);
-  const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
+  const [facilityTypes, setFacilityTypes] = useState<
+    Pick<FacilityType, "code" | "label" | "label_en" | "label_zh">[]
+  >([]);
   const [activeTypes, setActiveTypes] = useState<Record<string, boolean>>({});
   const [slopes, setSlopes] = useState<SlopeSegment[]>([]);
   const [campusBoundaries, setCampusBoundaries] =
@@ -103,7 +105,7 @@ export function useMapData() {
     setFacilityTypesStatus("loading");
     supabase
       .from("facility_types")
-      .select("code, label, label_en, label_zh, icon")
+      .select("code, label, label_en, label_zh")
       .then(({ data, error }) => {
         if (error || !data) {
           if (error) console.error("facility_types fetch 실패:", error);

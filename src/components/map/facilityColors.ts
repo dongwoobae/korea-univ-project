@@ -1,7 +1,7 @@
 import type { FacilityCode } from "@/types/domain";
 import { facilityColor } from "@/lib/theme";
 
-export const FACILITY_COLORS: Record<FacilityCode, string> = {
+const FACILITY_COLORS: Record<FacilityCode, string> = {
   ...facilityColor,
 };
 
@@ -18,9 +18,16 @@ const FALLBACK_PALETTE = [
   "#047857",
 ];
 
+function knownColor(code: string): string | undefined {
+  return Object.hasOwn(FACILITY_COLORS, code)
+    ? FACILITY_COLORS[code as FacilityCode]
+    : undefined;
+}
+
+export function getFacilityMarkerColor(code: string): string {
+  return knownColor(code) ?? "#666";
+}
+
 export function getFacilityColor(code: string, index: number): string {
-  return (
-    FACILITY_COLORS[code as FacilityCode] ??
-    FALLBACK_PALETTE[index % FALLBACK_PALETTE.length]
-  );
+  return knownColor(code) ?? FALLBACK_PALETTE[index % FALLBACK_PALETTE.length];
 }

@@ -21,7 +21,7 @@ test.describe("건물 상세 시설 모달", () => {
       page.getByRole("button", { name: /중앙 엘리베이터/ }),
     ).not.toContainText("미설치");
     await expect(
-      page.getByRole("button", { name: /후문 경사로/ }),
+      page.getByRole("button", { name: /북측 진입로/ }),
     ).toContainText("미설치");
     await expect(
       page.getByRole("button", { name: /지하 1층 엘리베이터/ }),

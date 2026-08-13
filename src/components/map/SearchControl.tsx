@@ -10,9 +10,11 @@ import {
 } from "react";
 import { useMap } from "react-leaflet";
 import L from "leaflet";
+import { Mic, Search, Star, X } from "lucide-react";
 import type { Landmark } from "@/types/domain";
 import { useLanguage } from "@/lib/LanguageContext";
 import { campusColor } from "@/lib/theme";
+import { LandmarkIcon } from "./iconography";
 
 const VOICE_LANG_MAP = { ko: "ko-KR", en: "en-US", zh: "zh-CN" };
 
@@ -308,8 +310,8 @@ export default function SearchControl({
     >
       <div className="ku-search-row">
         <div className="ku-search-field">
-          <span className="ku-search-icon" role="img" aria-label="검색">
-            🔍
+          <span className="ku-search-icon">
+            <Search size={16} aria-hidden="true" />
           </span>
           <input
             ref={inputRef}
@@ -352,7 +354,7 @@ export default function SearchControl({
               aria-label={t("searchClear")}
               title={t("searchClear")}
             >
-              <span aria-hidden="true">×</span>
+              <X size={15} aria-hidden="true" />
             </button>
           )}
           <button
@@ -363,7 +365,7 @@ export default function SearchControl({
             title={t("voiceSearch")}
             data-listening={isListening}
           >
-            <span aria-hidden="true">🎤</span>
+            <Mic size={17} aria-hidden="true" />
           </button>
           <span className="ku-visually-hidden" role="status" aria-live="polite">
             {isListening ? t("voiceListening") : ""}
@@ -382,7 +384,7 @@ export default function SearchControl({
           aria-expanded={favoritesOpen}
           title={t("favorites")}
         >
-          <span aria-hidden="true">★</span>
+          <Star size={17} fill="currentColor" aria-hidden="true" />
           {favorites.length > 0 && (
             <span className="ku-favorite-badge" aria-hidden="true">
               {favorites.length}
@@ -419,7 +421,7 @@ export default function SearchControl({
               >
                 {result.kind === "landmark" && (
                   <span className="ku-search-result-icon" aria-hidden="true">
-                    {result.landmark.icon || "✨"}
+                    <LandmarkIcon size={15} />
                   </span>
                 )}
                 <span className="ku-search-result-name">{result.name}</span>
@@ -441,11 +443,9 @@ export default function SearchControl({
                   </span>
                 )}
                 {result.kind === "building" && favoriteIds.has(result.id) && (
-                  <span
-                    className="ku-search-result-star"
-                    aria-label={t("favorites")}
-                  >
-                    ★
+                  <span className="ku-search-result-star">
+                    <Star size={13} fill="currentColor" aria-hidden="true" />
+                    <span className="ku-visually-hidden">{t("favorites")}</span>
                   </span>
                 )}
               </li>

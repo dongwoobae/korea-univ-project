@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { MessageSquare, X } from "lucide-react";
 import {
   FEEDBACK_EMAILS_FALLBACK,
   getSetting,
@@ -8,6 +9,7 @@ import {
   type FeedbackEmails,
 } from "@/lib/settings";
 import { FEEDBACK_TYPES, type FeedbackType } from "@/lib/feedback";
+import { useLanguage } from "@/lib/LanguageContext";
 import { useModalFocus } from "@/lib/useModalFocus";
 
 type SubmissionStatus =
@@ -19,6 +21,7 @@ type SubmissionStatus =
 const IDLE_STATUS: SubmissionStatus = { kind: "idle", message: "" };
 
 export default function FeedbackButton() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [emails, setEmails] = useState<FeedbackEmails>(
     FEEDBACK_EMAILS_FALLBACK,
@@ -96,13 +99,14 @@ export default function FeedbackButton() {
   return (
     <>
       <button
-        className="ku-map-action ku-map-action--primary"
+        className="ku-map-action ku-map-action--primary ku-map-action--labeled"
         type="button"
         onClick={openDialog}
         title="피드백 보내기"
         aria-label="피드백 보내기"
       >
-        <span aria-hidden="true">💬</span>
+        <MessageSquare size={19} aria-hidden="true" />
+        <span className="ku-map-action-label">{t("feedback")}</span>
       </button>
 
       {open && (
@@ -136,7 +140,7 @@ export default function FeedbackButton() {
                 aria-label="닫기"
                 disabled={status.kind === "submitting"}
               >
-                ✕
+                <X size={17} aria-hidden="true" />
               </button>
             </div>
             <p className="ku-feedback-help">

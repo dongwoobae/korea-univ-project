@@ -59,7 +59,7 @@
   top: 50%;
   left: 13px;
   transform: translateY(-50%);
-  font-size: 15px;
+  display: flex;
   pointer-events: none;
 }
 
@@ -96,13 +96,14 @@
   color: var(--ku-text-2);
   background: var(--ku-surface);
   cursor: pointer;
-  font-size: 17px;
 }
 
 .ku-voice-button {
   position: absolute;
   top: 1px;
   right: 1px;
+  display: grid;
+  place-items: center;
   width: 44px;
   height: 44px;
   border: 0;
@@ -120,7 +121,6 @@
 .ku-favorite-button {
   position: relative;
   color: var(--ku-star);
-  font-size: 21px;
 }
 
 .ku-favorite-button[aria-expanded="true"] {
@@ -191,14 +191,16 @@
 }
 .ku-search-result-star {
   color: var(--ku-star);
+  display: flex;
+  align-items: center;
 }
 .ku-search-result[data-active="true"] {
   background: var(--ku-crimson-100);
 }
 .ku-search-result-icon {
   flex: 0 0 auto;
-  font-size: 15px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
 }
 .ku-search-result-tag {
   flex: 0 0 auto;
@@ -332,7 +334,8 @@
 }
 .ku-filter-chevron {
   color: var(--ku-text-3);
-  font-size: 11px;
+  display: flex;
+  align-items: center;
 }
 .ku-chip-group {
   display: flex;
@@ -469,6 +472,7 @@
   bottom: 20px;
   display: flex;
   flex-direction: column;
+  align-items: flex-end;
   gap: 10px;
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -500,7 +504,20 @@
   background: var(--ku-map-control);
   box-shadow: var(--ku-shadow-raised);
   cursor: pointer;
-  font-size: 17px;
+}
+.ku-map-action--labeled {
+  flex-direction: column;
+  gap: 2px;
+  width: auto;
+  min-width: 52px;
+  height: auto;
+  padding: 7px 7px 6px;
+}
+.ku-map-action-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 .ku-map-action--primary {
   border-color: var(--ku-crimson-700);
@@ -511,8 +528,8 @@
   cursor: progress;
   opacity: 0.6;
 }
-.ku-map-action[data-locating="true"] span {
-  display: inline-block;
+/* 라벨까지 같이 깜빡이지 않도록 아이콘에만 건다. */
+.ku-map-action[data-locating="true"] svg {
   animation: ku-locate-pulse 0.9s ease-in-out infinite;
 }
 
@@ -528,7 +545,6 @@
   color: #fff;
   background: #8c0000;
   box-shadow: 0 2px 9px rgba(28, 25, 23, 0.32);
-  font-size: 13px;
 }
 .ku-marker-cluster--landmark {
   color: #4b3508;
@@ -605,6 +621,9 @@
   font-size: 11.5px;
 }
 .ku-map-browse-heading button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 36px;
   height: 36px;
   flex: 0 0 36px;
@@ -613,7 +632,6 @@
   color: var(--ku-text-2);
   background: var(--ku-bg);
   cursor: pointer;
-  font-size: 20px;
 }
 .ku-map-browse-list {
   max-height: min(350px, calc(100dvh - 250px));
@@ -971,6 +989,8 @@
   font-size: 12px;
 }
 .ku-side-close {
+  display: grid;
+  place-items: center;
   width: 36px;
   height: 36px;
   flex: 0 0 36px;
@@ -987,6 +1007,10 @@
   margin-top: 15px;
 }
 .ku-side-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   min-height: 40px;
   border: 1px solid var(--ku-border-input);
   border-radius: 8px;
@@ -1033,7 +1057,6 @@
   border: 1px solid var(--ku-border);
   border-radius: 9px;
   background: var(--ku-surface);
-  font-size: 16px;
 }
 .ku-facility-copy {
   flex: 1;
@@ -1249,6 +1272,15 @@
     width: 48px;
     height: 48px;
     border-radius: 12px;
+  }
+  .ku-map-action--labeled {
+    width: 48px;
+    min-width: 0;
+    height: 48px;
+    padding: 0;
+  }
+  .ku-map-action-label {
+    display: none;
   }
   .ku-map-zoom {
     display: none;

@@ -27,7 +27,7 @@ test.describe("공개 지도 P1 개선 (현재 위치·필터 배지·라벨)", 
     });
     await page.goto("/");
 
-    await page.getByRole("button", { name: "현재 위치" }).click();
+    await page.getByRole("button", { name: "현 위치" }).click();
 
     // 사용자 위치 마커(divIcon 점)가 보인다
     await expect(page.locator(".ku-user-location-dot")).toBeVisible();
@@ -59,7 +59,7 @@ test.describe("공개 지도 P1 개선 (현재 위치·필터 배지·라벨)", 
     });
     await page.goto("/");
 
-    await page.getByRole("button", { name: "현재 위치" }).click();
+    await page.getByRole("button", { name: "현 위치" }).click();
 
     await expect(page.getByText("위치 권한이 거부되었어요")).toBeVisible();
     await expect(page.locator(".ku-user-location-dot")).toHaveCount(0);

@@ -1,5 +1,17 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
+
+const currentTileZoom = (page: Page) =>
+  page.locator(".leaflet-tile").evaluateAll((tiles) =>
+    Math.max(
+      ...tiles.map((tile) => {
+        const match = (tile as HTMLImageElement).src.match(
+          /light_all\/(\d+)\//,
+        );
+        return match ? Number(match[1]) : 0;
+      }),
+    ),
+  );
 
 test("건물명 라벨은 가까이 확대하면 은은하게 표시되고 언어를 반영한다", async ({
   page,
@@ -66,6 +78,12 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
 
     await expect(page.locator(".leaflet-container")).toBeVisible();
     await expect(page.getByPlaceholder("건물 검색...")).toBeVisible();
+    await expect(page.getByRole("button", { name: "현 위치" })).toContainText(
+      "현 위치",
+    );
+    await expect(
+      page.getByRole("button", { name: "위성 지도로 전환" }),
+    ).toContainText("위성");
     await expect(page.getByTitle("즐겨찾기")).toBeVisible();
     await expect(
       page.locator(".leaflet-overlay-pane path.leaflet-interactive").first(),
@@ -74,13 +92,13 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       1,
     );
     await expect(
-      page.locator('[data-testid^="landmark-marker-"]').first(),
-    ).toHaveText("🐿️");
+      page.locator('[data-testid^="landmark-marker-"] svg.lucide-sparkles'),
+    ).toHaveCount(1);
     await expect(
       page.getByRole("button", { name: /캠퍼스 영역/ }),
     ).toHaveAttribute("aria-expanded", "false");
     await expect(
-      page.getByRole("button", { name: /시설 [▼▲]/ }),
+      page.getByRole("button", { name: "시설", exact: true }),
     ).toHaveAttribute("aria-expanded", "false");
     const filterBox = await page.locator(".ku-filter-panel").boundingBox();
     expect(filterBox?.height).toBeLessThan(400);
@@ -116,7 +134,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     // 규칙이 전역이라 관리자 지도의 표기까지 함께 사라진다.
     await expect(page.locator(".leaflet-control-attribution")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "항공사진으로 전환" }).click();
+    await page.getByRole("button", { name: "위성 지도로 전환" }).click();
     await expect(providerLinks).toHaveText([
       "OpenStreetMap",
       "Esri",
@@ -141,6 +159,13 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.getByText("중앙도서관", { exact: true }).last().click();
 
     await expect(page.getByText("중앙 엘리베이터")).toBeVisible();
+
+    const rampRow = page
+      .locator(".ku-facility-row")
+      .filter({ hasText: "북측 진입로" });
+    await expect(rampRow).toContainText("경사로");
+    await expect(rampRow.locator("svg.lucide-trending-up")).toHaveCount(1);
+
     await page.getByRole("button", { name: "즐겨찾기 추가" }).click();
     await expect(
       page.getByRole("button", { name: "즐겨찾기 해제" }),
@@ -170,18 +195,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.mouse.move(700, 120);
     await expect(page.locator(".ku-map-tooltip")).toHaveCount(0);
 
-    const currentTileZoom = () =>
-      page.locator(".leaflet-tile").evaluateAll((tiles) =>
-        Math.max(
-          ...tiles.map((tile) => {
-            const match = (tile as HTMLImageElement).src.match(
-              /light_all\/(\d+)\//,
-            );
-            return match ? Number(match[1]) : 0;
-          }),
-        ),
-      );
-    const zoomBefore = await currentTileZoom();
+    const zoomBefore = await currentTileZoom(page);
 
     await page
       .locator(".ku-search-control")
@@ -194,7 +208,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       .dblclick({ position: { x: 170, y: 400 } });
     await page.waitForTimeout(350);
 
-    expect(await currentTileZoom()).toBe(zoomBefore);
+    expect(await currentTileZoom(page)).toBe(zoomBefore);
   });
 
   test("시설 유형, 명소, 경사도 필터가 지도 레이어를 제어한다", async ({
@@ -205,7 +219,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
     ).toHaveCount(0);
-    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: "시설", exact: true }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
     await expect(
       page.locator('[data-testid="facility-marker-f-installed"]'),
@@ -234,7 +248,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByTestId("landmark-label")).toHaveCount(0);
     await expect(page.getByTestId("subway-label")).toHaveCount(0);
 
-    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: "시설", exact: true }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
     await page.getByRole("button", { name: /엘리베이터/ }).click();
 
@@ -250,8 +264,42 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
         '[data-testid^="facility-marker-"]:not([data-testid$="cluster"])',
       ),
     ).toHaveCount(3);
+    // 유형별 클래스까지 봐야 세 마커가 모두 폴백 아이콘으로 떨어지는 회귀를 잡는다.
+    await expect(
+      page.locator(
+        '[data-testid^="facility-marker-"]:not([data-testid$="cluster"]) svg.lucide-trending-up',
+      ),
+    ).toHaveCount(1);
+    await expect(
+      page.locator(
+        '[data-testid^="facility-marker-"]:not([data-testid$="cluster"]) svg.lucide-arrow-up-down',
+      ),
+    ).toHaveCount(2);
     await expect(page.getByTestId("landmark-label")).toBeVisible();
     await expect(page.getByTestId("subway-label").first()).toBeVisible();
+  });
+
+  test("명소 라벨은 건물명 라벨과 같은 줌에서 나타난다", async ({ page }) => {
+    await page.goto("/");
+
+    const mapShell = page.locator(".ku-map-shell");
+    await expect(mapShell).toHaveAttribute(
+      "data-building-labels-visible",
+      "false",
+    );
+    await expect(page.getByTestId("landmark-label")).toHaveCount(0);
+
+    await page
+      .locator(".leaflet-container")
+      .dblclick({ position: { x: 600, y: 400 } });
+
+    await expect(mapShell).toHaveAttribute(
+      "data-building-labels-visible",
+      "true",
+    );
+    expect(await currentTileZoom(page)).toBe(17);
+    await expect(page.getByTestId("landmark-marker-cluster")).toHaveCount(0);
+    await expect(page.getByTestId("landmark-label")).toBeVisible();
   });
 
   test("현재 지도 범위의 시설과 명소를 목록으로 탐색한다", async ({ page }) => {
@@ -268,7 +316,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByText("다람쥐길", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: "현재 지도 목록 닫기" }).click();
-    await page.getByRole("button", { name: /시설 [▼▲]/ }).click();
+    await page.getByRole("button", { name: "시설", exact: true }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
     await expect(
       page.getByRole("button", { name: /현재 지도 목록 2/ }),
@@ -291,7 +339,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.getByTitle("English").click();
 
     await expect(page.getByPlaceholder("Search buildings...")).toBeVisible();
-    await page.getByRole("button", { name: /Facilities [▼▲]/ }).click();
+    await page.getByRole("button", { name: "Facilities", exact: true }).click();
     await page.getByRole("button", { name: /Ramp/ }).click();
     await page
       .locator('[data-testid="facility-marker-f-installed"]')
@@ -411,7 +459,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     });
     await page.goto("/");
 
-    await page.getByRole("button", { name: "현재 위치" }).click();
+    await page.getByRole("button", { name: "현 위치" }).click();
     await expect(page.getByText("지도 영역 밖입니다")).toBeVisible();
   });
 
