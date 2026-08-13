@@ -164,7 +164,7 @@ function facilityBrowseItem(
   return {
     key: `facility-${facility.id}`,
     kind: "facility",
-    icon: facility.facility_types?.icon ?? "♿",
+    code: facility.facility_types?.code ?? null,
     name,
     detail: [type, location].filter(Boolean).join(" · "),
     lat: facility.lat!,
@@ -180,7 +180,7 @@ function landmarkBrowseItem(
   return {
     key: `landmark-${landmark.id}`,
     kind: "landmark",
-    icon: landmark.icon || "✨",
+    code: null,
     name:
       localizedValue(landmark.name, landmark.name_en, landmark.name_zh, lang) ??
       landmark.name,

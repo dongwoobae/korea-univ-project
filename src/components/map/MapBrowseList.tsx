@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { List, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
 
 export interface MapBrowseItem {
   key: string;
   kind: "facility" | "landmark";
-  icon: string;
+  /** kind가 facility일 때의 시설 유형 코드. landmark는 아이콘이 고정이라 쓰지 않는다. */
+  code: string | null;
   name: string;
   detail: string;
   lat: number;
@@ -52,7 +55,7 @@ export default function MapBrowseList({
           setOpen((value) => !value);
         }}
       >
-        <span aria-hidden="true">☷</span>
+        <List size={16} aria-hidden="true" />
         <span>{t("mapBrowse")}</span>
         <strong>{items.length}</strong>
       </button>
@@ -74,7 +77,7 @@ export default function MapBrowseList({
               aria-label={t("closeMapBrowse")}
               onClick={() => setOpen(false)}
             >
-              ×
+              <X size={17} aria-hidden="true" />
             </button>
           </div>
 
@@ -91,8 +94,12 @@ export default function MapBrowseList({
                       setOpen(false);
                     }}
                   >
-                    <span className="ku-map-browse-icon" aria-hidden="true">
-                      {item.icon}
+                    <span className="ku-map-browse-icon">
+                      {item.kind === "landmark" ? (
+                        <LandmarkIcon size={16} />
+                      ) : (
+                        <FacilityTypeIcon code={item.code} size={16} />
+                      )}
                     </span>
                     <span className="ku-map-browse-copy">
                       <strong>{item.name}</strong>
