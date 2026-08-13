@@ -27,7 +27,10 @@ const FACILITY_ICON_KEY: Record<string, FacilityIconKey> = {
 export function facilityIconKey(
   code: string | null | undefined,
 ): FacilityIconKey {
-  return FACILITY_ICON_KEY[code ?? ""] ?? "fallback";
+  const key = code ?? "";
+  return Object.hasOwn(FACILITY_ICON_KEY, key)
+    ? FACILITY_ICON_KEY[key]
+    : "fallback";
 }
 
 const FACILITY_ICON_SVG: Record<FacilityIconKey, string> = {

@@ -22,6 +22,8 @@ describe("facilityIconKey", () => {
     expect(facilityIconKey("")).toBe("fallback");
     expect(facilityIconKey(null)).toBe("fallback");
     expect(facilityIconKey(undefined)).toBe("fallback");
+    expect(facilityIconKey("constructor")).toBe("fallback");
+    expect(facilityIconKey("__proto__")).toBe("fallback");
   });
 });
 
