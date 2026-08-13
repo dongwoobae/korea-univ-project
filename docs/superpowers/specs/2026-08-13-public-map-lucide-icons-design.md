@@ -17,7 +17,11 @@
 - 데스크톱 플로팅 버튼 3개(현위치·지도전환·피드백)에 항상 보이는 텍스트
   라벨을 추가한다.
 - 관리자 페이지는 이번 PR에서 건드리지 않는다. DB 정리는 후속 PR(아래
-  "2단계" 절)로 분리한다.
+  "2단계" 절)로 분리한다. 예외는 `Toast` 한 곳으로, 공개 지도의 위치 오류
+  안내에 쓰이면서 관리자와 공용이다. 아이콘만 바뀌고 문구·역할·타이밍은
+  그대로다.
+- `SlopeLegend`의 `▶`와 사진 캐러셀의 점 인디케이터는 아이콘이 아니라
+  타이포그래피·도형이라 손대지 않는다.
 
 ## 결정 사항
 
@@ -47,6 +51,7 @@
 | 📐 / ✨     | 필터 토글(경사도·명소)                             | `Mountain` / `Sparkles`                                |
 | ▲ / ▼       | 필터 섹션 접기                                     | `ChevronUp` / `ChevronDown`                            |
 | ⚠️          | 오류 배너                                          | `TriangleAlert`                                        |
+| ✅ ❌ ⚠️    | 토스트 상태(공개 지도 위치 오류에 뜬다)            | `CircleCheck` / `CircleX` / `TriangleAlert`            |
 | ‹ / ›       | 사진 캐러셀                                        | `ChevronLeft` / `ChevronRight`                         |
 | 🚇          | 지하철 마커                                        | `TrainFront`                                           |
 | ♿          | 시설 클러스터·폴백                                 | `Accessibility`                                        |
@@ -64,18 +69,25 @@
 
 명소(`landmarks.icon`)는 값과 무관하게 `Sparkles`로 렌더링한다.
 
-lucide에 elevator·ramp·braille 전용 아이콘이 없어 은유로 대체했다. 구현 시
-설치 버전의 실제 export 목록을 확인해 이름을 최종 확정한다(예: `TriangleAlert`
-가 구버전에서 `AlertTriangle`일 수 있음).
+lucide에 elevator·ramp·braille 전용 아이콘이 없어 은유로 대체했다.
+`GripVertical`은 2×3 원 배열이라 점자 셀 형상과 일치한다. 위 이름은 모두
+lucide 1.31.0에 존재함을 확인했다.
 
 ## 구현 구조
 
-- **새 모듈 `src/components/map/iconography.tsx`** — 매핑을 한 곳에 모은다.
-  - JSX용: `code → lucide 컴포넌트` 매핑과 `<FacilityTypeIcon code={...} />`.
-  - Leaflet `divIcon`용: HTML 문자열이 필요하므로 `lucide-static`(SVG 문자열
-    제공)을 함께 설치해 마커·클러스터 HTML을 만든다. lucide는
-    `currentColor` stroke라 기존 `FACILITY_COLORS`·`ku-*` 색 체계를 그대로
-    상속하고, svg 크기는 `map-ui.css`에서 지정한다.
+매핑은 두 모듈로 나눈다. vitest가 node 환경이고 단위 테스트가 `src/lib/`에
+모여 있어, 순수 로직을 `lib`에 두어야 JSX 없이 테스트할 수 있다.
+
+- **`src/lib/mapIcons.ts`** — 단일 출처. `FacilityIconKey` union, `시설 코드 →
+키` 매핑, Leaflet `divIcon`용 SVG 문자열(`lucide-static`), 크기 치환
+  `sizedIconSvg()`.
+- **`src/components/map/iconography.tsx`** — JSX용 `<FacilityTypeIcon code />`
+  (`lucide-react`). 같은 `FacilityIconKey`를 `Record` 키로 쓰므로 한쪽만
+  고치면 타입 오류가 난다.
+
+lucide SVG는 `stroke="currentColor"`라 기존 `FACILITY_COLORS`·`ku-*` 색 체계를
+그대로 상속한다. 크기는 JSX는 `size` prop, 마커는 `sizedIconSvg()`가 정한다.
+
 - 이모지 문자열을 실어 나르던 데이터 흐름(`browseItems`, 검색결과 등)은
   `kind`(facility/landmark)와 `code`를 넘기도록 바꾸고 렌더링 지점에서
   매핑한다.
@@ -112,5 +124,5 @@ lucide에 elevator·ramp·braille 전용 아이콘이 없어 은유로 대체했
 
 - 현재 DB 실측(2026-08-13): `landmarks.icon` = 🐿️ 🌸 🌳 🕊️ (4건),
   `facility_types` = restroom·ramp·parking·elevator (braille 행은 아직 없음).
-- 이 설계는 main 갱신(PR #9 머지 반영) 전 코드를 기준으로 조사했다. 계획
-  단계에서 갱신된 `Map.tsx`·`map-ui.css` 기준으로 위치를 재확인한다.
+- 이 설계의 초안은 main 갱신(PR #9 머지 반영) 전 코드를 기준으로 조사했고,
+  계획 단계에서 갱신된 `Map.tsx`·`map-ui.css` 기준으로 위치를 재확인했다.
