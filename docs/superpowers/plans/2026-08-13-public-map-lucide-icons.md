@@ -19,6 +19,8 @@
 - `braille`은 `facility_types` 테이블에 아직 행이 없지만 `FacilityCode` union에는 있다. 매핑은 미리 넣어 둔다.
 - lucide에 elevator·ramp·braille 전용 아이콘이 없어 은유로 대체한다(`ArrowUpDown` / `TrendingUp` / `GripVertical`). `GripVertical`은 2×3 원 배열이라 점자 셀 형상과 일치한다.
 - `/api/facilities`는 공개 지도만 쓴다(관리자는 별도 쿼리). 여기서 `icon`을 빼도 관리자 화면은 영향받지 않는다.
+- 마커 divIcon 안의 SVG는 `aria-hidden="true"` span으로 감싼다. Chromium은 `<svg>`를 `role=img`로 노출하는데, Leaflet이 마커 div에 `role="button"`과 `tabindex=0`을 붙이므로 감싸지 않으면 버튼 안에 이름 없는 그래픽 노드가 남는다. 접근 이름은 `<Marker>`의 `title`이 나른다 — `alt`는 divIcon에 적용되지 않는다(Leaflet은 `IMG` 태그일 때만 설정한다).
+- JSX 쪽 lucide 컴포넌트는 `aria-hidden="true"` prop으로 같은 처리를 한다.
 - **범위 밖:** `SlopeLegend`의 `▶`(타이포그래피 불릿), `PhotoCarousel`의 점 인디케이터(도형), 관리자 페이지 전체.
 
 ## 파일 구조
@@ -293,7 +295,7 @@ const facilityMarkerIcon = (code: string, id: string) =>
   cachedIcon(`facility|${code}|${id}`, () =>
     L.divIcon({
       className: "",
-      html: `<div data-testid="facility-marker-${id}" style="width:34px;height:34px;background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};border:2px solid white;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 7px rgba(28,25,23,0.28);transform:rotate(-45deg);"><span style="display:flex;transform:rotate(45deg)">${facilityIconSvg(code, 17)}</span></div>`,
+      html: `<div data-testid="facility-marker-${id}" style="width:34px;height:34px;background:${FACILITY_COLORS[code as keyof typeof FACILITY_COLORS] ?? "#666"};border:2px solid white;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 7px rgba(28,25,23,0.28);transform:rotate(-45deg);"><span aria-hidden="true" style="display:flex;transform:rotate(45deg)">${facilityIconSvg(code, 17)}</span></div>`,
       iconAnchor: [17, 30],
       popupAnchor: [0, -30],
     }),
@@ -303,7 +305,7 @@ const facilityClusterIcon = (count: number) =>
   cachedIcon(`cluster|${count}`, () =>
     L.divIcon({
       className: "",
-      html: `<div class="ku-marker-cluster" data-testid="facility-marker-cluster"><span style="display:flex">${sizedIconSvg(FACILITY_CLUSTER_ICON_SVG, 16)}</span><strong>${count}</strong></div>`,
+      html: `<div class="ku-marker-cluster" data-testid="facility-marker-cluster"><span aria-hidden="true" style="display:flex">${sizedIconSvg(FACILITY_CLUSTER_ICON_SVG, 16)}</span><strong>${count}</strong></div>`,
       iconSize: [42, 42],
       iconAnchor: [21, 21],
     }),
@@ -357,7 +359,7 @@ import { SUBWAY_ICON_SVG, sizedIconSvg } from "@/lib/mapIcons";
 는 이모지 크기 조절용이라 함께 지운다:
 
 ```ts
-      html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35))"><div style="background:#B9282D;color:white;border:2.5px solid white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">${sizedIconSvg(SUBWAY_ICON_SVG, 17)}</div>${showLabel ? `<div data-testid="subway-label" style="background:#B9282D;color:white;border-radius:10px;padding:2px 7px;font-size:11px;font-weight:700;margin-top:3px;white-space:nowrap;border:1.5px solid white;">${name}</div>` : ""}</div>`,
+      html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.35))"><div style="background:#B9282D;color:white;border:2.5px solid white;border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;"><span aria-hidden="true" style="display:flex">${sizedIconSvg(SUBWAY_ICON_SVG, 17)}</span></div>${showLabel ? `<div data-testid="subway-label" style="background:#B9282D;color:white;border-radius:10px;padding:2px 7px;font-size:11px;font-weight:700;margin-top:3px;white-space:nowrap;border:1.5px solid white;">${name}</div>` : ""}</div>`,
 ```
 
 - [ ] **Step 3: 타입 검사와 e2e**
@@ -424,7 +426,7 @@ const landmarkMarkerIcon = (
   cachedIcon(`landmark|${landmark.id}|${name}|${showLabel}`, () =>
     L.divIcon({
       className: "",
-      html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${landmark.id}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#C08A2D;box-shadow:0 2px 7px rgba(28,25,23,0.22);">${sizedIconSvg(LANDMARK_ICON_SVG, 15)}</div>${showLabel ? `<span data-testid="landmark-label" style="padding:2px 5px;border-radius:999px;color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span>` : ""}</div>`,
+      html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${landmark.id}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#C08A2D;box-shadow:0 2px 7px rgba(28,25,23,0.22);"><span aria-hidden="true" style="display:flex">${sizedIconSvg(LANDMARK_ICON_SVG, 15)}</span></div>${showLabel ? `<span data-testid="landmark-label" style="padding:2px 5px;border-radius:999px;color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span>` : ""}</div>`,
       iconAnchor: [17, 17],
       popupAnchor: [0, -20],
     }),
@@ -434,7 +436,7 @@ const landmarkMarkerIcon = (
 `landmarkClusterIcon`의 `<span aria-hidden="true">✨</span>`를 교체:
 
 ```ts
-      html: `<div class="ku-marker-cluster ku-marker-cluster--landmark" data-testid="landmark-marker-cluster"><span style="display:flex">${sizedIconSvg(LANDMARK_ICON_SVG, 16)}</span><strong>${count}</strong></div>`,
+      html: `<div class="ku-marker-cluster ku-marker-cluster--landmark" data-testid="landmark-marker-cluster"><span aria-hidden="true" style="display:flex">${sizedIconSvg(LANDMARK_ICON_SVG, 16)}</span><strong>${count}</strong></div>`,
 ```
 
 - [ ] **Step 4: 팝업의 이모지를 교체**
