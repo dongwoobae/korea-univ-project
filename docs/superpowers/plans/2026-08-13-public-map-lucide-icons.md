@@ -325,7 +325,7 @@ Expected: 오류 없음
 
 - [ ] **Step 4: 관련 e2e 확인**
 
-Run: `npm run test:e2e -- e2e/public-map.spec.ts -g "시설 필터"`
+Run: `npx playwright test e2e/public-map.spec.ts`
 Expected: PASS — 마커 단언은 `data-testid` 기반이라 영향 없음
 
 - [ ] **Step 5: 커밋**
@@ -362,7 +362,7 @@ import { SUBWAY_ICON_SVG, sizedIconSvg } from "@/lib/mapIcons";
 
 - [ ] **Step 3: 타입 검사와 e2e**
 
-Run: `npm run typecheck && npm run test:e2e -- e2e/public-map.spec.ts -g "줌"`
+Run: `npm run typecheck && npx playwright test e2e/public-map.spec.ts -g "줌"`
 Expected: PASS — `subway-label` testid 유지
 
 - [ ] **Step 4: 커밋**
@@ -401,7 +401,7 @@ await expect(
 
 - [ ] **Step 2: 테스트를 돌려 실패를 확인**
 
-Run: `npm run test:e2e -- e2e/public-map.spec.ts -g "지도와 핵심 컨트롤"`
+Run: `npx playwright test e2e/public-map.spec.ts -g "지도와 핵심 컨트롤"`
 Expected: FAIL — `Expected: 1, Received: 0` (아직 이모지를 렌더링 중)
 
 - [ ] **Step 3: 마커·클러스터 아이콘 교체**
@@ -460,7 +460,7 @@ const landmarkMarkerIcon = (
 
 - [ ] **Step 5: 테스트 통과 확인**
 
-Run: `npm run typecheck && npm run test:e2e -- e2e/public-map.spec.ts`
+Run: `npm run typecheck && npx playwright test e2e/public-map.spec.ts`
 Expected: PASS — 전체 스펙 통과
 
 - [ ] **Step 6: 커밋**
@@ -510,7 +510,7 @@ await expect(
 
 - [ ] **Step 2: 테스트를 돌려 실패를 확인**
 
-Run: `npm run test:e2e -- e2e/public-map-p1.spec.ts -g "P1-02"`
+Run: `npx playwright test e2e/public-map-p1.spec.ts -g "P1-02"`
 Expected: FAIL — `getByRole('button', { name: '현 위치' })` resolved to 0 elements
 
 - [ ] **Step 3: 번역 키 추가**
@@ -686,7 +686,7 @@ import {
 
 - [ ] **Step 6: 테스트 통과 확인**
 
-Run: `npm run typecheck && npm run test:e2e -- e2e/public-map.spec.ts e2e/public-map-p1.spec.ts`
+Run: `npm run typecheck && npx playwright test e2e/public-map.spec.ts e2e/public-map-p1.spec.ts`
 Expected: PASS
 
 - [ ] **Step 7: 커밋**
@@ -744,7 +744,7 @@ import { MessageSquare, X } from "lucide-react";
 
 - [ ] **Step 2: 타입 검사와 e2e**
 
-Run: `npm run typecheck && npm run test:e2e -- e2e/public-map-p1-remainder.spec.ts`
+Run: `npm run typecheck && npx playwright test e2e/public-map-p1-remainder.spec.ts`
 Expected: PASS
 
 - [ ] **Step 3: 커밋**
@@ -899,7 +899,7 @@ import { LandmarkIcon } from "./iconography";
 
 - [ ] **Step 6: 타입 검사와 e2e**
 
-Run: `npm run typecheck && npm run test:e2e -- e2e/public-map-search.spec.ts e2e/public-map-p1-remainder.spec.ts`
+Run: `npm run typecheck && npx playwright test e2e/public-map-search.spec.ts e2e/public-map-p1-remainder.spec.ts`
 Expected: PASS — `getByTitle("음성 검색")`, `getByTitle("즐겨찾기")` 유지
 
 - [ ] **Step 7: 커밋**
@@ -941,7 +941,7 @@ await page.getByRole("button", { name: "Facilities", exact: true }).click();
 
 - [ ] **Step 2: 테스트를 돌려 실패를 확인**
 
-Run: `npm run test:e2e -- e2e/public-map.spec.ts -g "지도와 핵심 컨트롤"`
+Run: `npx playwright test e2e/public-map.spec.ts -g "지도와 핵심 컨트롤"`
 Expected: FAIL — 접근 이름이 아직 `"시설 ▼"`이라 완전일치가 0건
 
 - [ ] **Step 3: import 추가**
@@ -1028,7 +1028,7 @@ import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
 
 - [ ] **Step 8: 테스트 통과 확인**
 
-Run: `npm run typecheck && npm run test:e2e -- e2e/public-map.spec.ts`
+Run: `npm run typecheck && npx playwright test e2e/public-map.spec.ts`
 Expected: PASS
 
 - [ ] **Step 9: 커밋**
@@ -1142,7 +1142,7 @@ CSS는 고칠 것이 없다.
 
 - [ ] **Step 4: 타입 검사와 e2e**
 
-Run: `npm run typecheck && npm run test:e2e -- e2e/public-map.spec.ts e2e/public-map-p0.spec.ts`
+Run: `npm run typecheck && npx playwright test e2e/public-map.spec.ts e2e/public-map-p0.spec.ts`
 Expected: PASS
 
 - [ ] **Step 5: 커밋**
@@ -1307,7 +1307,7 @@ import { FacilityTypeIcon } from "@/components/map/iconography";
 
 - [ ] **Step 5: 타입 검사와 e2e**
 
-Run: `npm run typecheck && npm run test:e2e -- e2e/public-map.spec.ts e2e/accessibility-dialog-toast.spec.ts`
+Run: `npm run typecheck && npx playwright test e2e/public-map.spec.ts e2e/accessibility-dialog-toast.spec.ts`
 Expected: PASS — `"즐겨찾기 추가"`/`"즐겨찾기 해제"` 접근 이름 유지
 
 - [ ] **Step 6: 커밋**
@@ -1412,7 +1412,7 @@ const STYLES = {
 
 - [ ] **Step 4: 타입 검사와 e2e**
 
-Run: `npm run typecheck && npm run test:e2e -- e2e/accessibility-dialog-toast.spec.ts e2e/public-map-p1.spec.ts`
+Run: `npm run typecheck && npx playwright test e2e/accessibility-dialog-toast.spec.ts e2e/public-map-p1.spec.ts`
 Expected: PASS
 
 - [ ] **Step 5: 커밋**
@@ -1505,7 +1505,7 @@ Expected: 통과. 실패하면 해당 파일에 `npx prettier --write`.
 
 - [ ] **Step 6: 전체 e2e**
 
-Run: `npm run test:e2e`
+Run: `npx playwright test`
 Expected: 전체 PASS
 
 - [ ] **Step 7: 프로덕션 빌드로 번들 확인**
