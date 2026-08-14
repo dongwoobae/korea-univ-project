@@ -11,7 +11,14 @@ import {
 import { useMap } from "react-leaflet";
 import L from "leaflet";
 import { Mic, Search, Star, X } from "lucide-react";
-import type { Landmark } from "@/types/domain";
+import type { FeatureCollection } from "geojson";
+import type {
+  BuildingFeature,
+  BuildingFeatureProperties,
+  Favorite,
+  Landmark,
+} from "@/types/domain";
+import type { LangCode } from "@/lib/translations";
 import { useLanguage } from "@/lib/LanguageContext";
 import { campusColor } from "@/lib/theme";
 import { LandmarkIcon } from "./iconography";
@@ -37,21 +44,21 @@ type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 type SearchResult =
   | {
       kind: "building";
-      feature;
+      feature: BuildingFeature;
       name: string;
       campus: string;
-      id;
+      id: number;
     }
   | { kind: "landmark"; landmark: Landmark; name: string };
 
-function localizedName(properties, lang) {
+function localizedName(properties: BuildingFeatureProperties, lang: LangCode) {
   if (lang === "ko") return properties.name;
   if (lang === "zh")
     return properties.name_zh || properties.name_en || properties.name;
   return properties.name_en || properties.name;
 }
 
-function localizedLandmarkName(landmark: Landmark, lang) {
+function localizedLandmarkName(landmark: Landmark, lang: LangCode) {
   if (lang === "en") return landmark.name_en ?? landmark.name;
   if (lang === "zh") return landmark.name_zh ?? landmark.name;
   return landmark.name;
@@ -80,6 +87,14 @@ export default function SearchControl({
   favoritesOpen,
   onToggleFavorites,
   onSearchOpen,
+}: {
+  geoData: FeatureCollection | null;
+  landmarks: Landmark[] | null;
+  onBuildingSelect?: (feature: BuildingFeature) => void;
+  favorites: Favorite[];
+  favoritesOpen: boolean;
+  onToggleFavorites: () => void;
+  onSearchOpen?: (open: boolean) => void;
 }) {
   const map = useMap();
   const { lang, t } = useLanguage();
@@ -105,8 +120,9 @@ export default function SearchControl({
     const normalizedQuery = trimmed.toLocaleLowerCase();
     const buildingMatches: { rank: number; result: SearchResult }[] = [];
     if (geoData) {
-      for (const feature of geoData.features) {
-        const properties = feature.properties ?? {};
+      for (const feature of geoData.features as BuildingFeature[]) {
+        const properties =
+          feature.properties ?? ({} as BuildingFeatureProperties);
         const info = matchInfo(
           [properties.name, properties.name_en, properties.name_zh],
           normalizedQuery,
@@ -177,7 +193,9 @@ export default function SearchControl({
     if (result.kind === "building") {
       const feature = result.feature;
       const coords = feature.geometry.coordinates[0];
-      const latlngs = coords.map(([lon, lat]) => [lat, lon]);
+      const latlngs = coords.map(
+        ([lon, lat]) => [lat, lon] as [number, number],
+      );
       map.fitBounds(L.latLngBounds(latlngs), { maxZoom: 18, animate: true });
       setQuery(result.name);
       closeList();
@@ -244,7 +262,7 @@ export default function SearchControl({
     inputRef.current?.focus();
   }
 
-  function notifyVoice(messageKey) {
+  function notifyVoice(messageKey: string) {
     window.dispatchEvent(
       new CustomEvent("showToast", {
         detail: { message: t(messageKey), type: "error" },
@@ -252,7 +270,7 @@ export default function SearchControl({
     );
   }
 
-  function handleVoiceSearch(event) {
+  function handleVoiceSearch(event: React.MouseEvent<HTMLButtonElement>) {
     event.preventDefault();
     const speechWindow = window as unknown as {
       SpeechRecognition?: SpeechRecognitionCtor;

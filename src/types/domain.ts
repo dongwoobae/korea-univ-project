@@ -1,3 +1,4 @@
+import type { Feature, Polygon } from "geojson";
 import type { Database } from "@supabase-types";
 
 type Tables = Database["public"]["Tables"];
@@ -49,3 +50,14 @@ export interface Favorite {
   id: number;
   name: string;
 }
+
+/** /api/buildings가 돌려주는 폴리곤 피처의 properties */
+export interface BuildingFeatureProperties {
+  id: number;
+  name: string;
+  name_en?: string | null;
+  name_zh?: string | null;
+  campus?: string | null;
+}
+
+export type BuildingFeature = Feature<Polygon, BuildingFeatureProperties>;

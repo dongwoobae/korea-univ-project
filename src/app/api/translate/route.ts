@@ -4,7 +4,7 @@ import { requireAdmin } from "@/lib/requireAdmin";
 const CLIENT_ID = process.env.PAPAGO_CLIENT_ID ?? "";
 const CLIENT_SECRET = process.env.PAPAGO_CLIENT_SECRET ?? "";
 
-async function translateOne(text, target) {
+async function translateOne(text: string, target: string): Promise<string> {
   if (!text?.trim()) return text;
   try {
     const res = await fetch(
@@ -28,7 +28,7 @@ async function translateOne(text, target) {
   }
 }
 
-export async function POST(request) {
+export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
 

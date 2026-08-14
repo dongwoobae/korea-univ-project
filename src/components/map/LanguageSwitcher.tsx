@@ -1,14 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { LangCode } from "@/lib/translations";
 
-const LANG_BUTTONS = [
+const LANG_BUTTONS: {
+  code: LangCode;
+  label: string;
+  mobileLabel: string;
+  title: string;
+}[] = [
   { code: "ko", label: "한국어", mobileLabel: "한", title: "한국어" },
   { code: "en", label: "EN", mobileLabel: "EN", title: "English" },
   { code: "zh", label: "中文", mobileLabel: "中", title: "中文" },
 ];
 
-export default function LanguageSwitcher({ lang, setLang, panelOpen }) {
+export default function LanguageSwitcher({
+  lang,
+  setLang,
+  panelOpen,
+}: {
+  lang: LangCode;
+  setLang: (lang: LangCode) => void;
+  panelOpen: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -49,7 +63,7 @@ export default function LanguageSwitcher({ lang, setLang, panelOpen }) {
     selected?.focus();
   }, [open]);
 
-  function selectLang(code: string) {
+  function selectLang(code: LangCode) {
     setLang(code);
     setOpen(false);
     triggerRef.current?.focus();

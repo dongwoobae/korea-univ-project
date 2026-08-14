@@ -22,7 +22,7 @@ way["building"]["name"](area.campus);
 out geom qt;
 `;
 
-function toGeoJSONFeature(element) {
+function toGeoJSONFeature(element: OverpassElement) {
   const coords = element.geometry.map((pt) => [pt.lon, pt.lat]);
   // 폴리곤 링 닫기
   if (coords.length > 0) {
@@ -40,7 +40,7 @@ function toGeoJSONFeature(element) {
   };
 }
 
-export async function GET(request) {
+export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
   // ?sync=true → Overpass 동기화 모드 (관리자가 수동 실행)

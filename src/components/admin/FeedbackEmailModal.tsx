@@ -2,11 +2,16 @@
 import { useId, useState, type CSSProperties } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useModalFocus } from "@/lib/useModalFocus";
+import type { FeedbackEmails } from "@/lib/settings";
 
 export default function FeedbackEmailModal({
   initialEmails,
   onClose,
   onSaved,
+}: {
+  initialEmails: FeedbackEmails | null;
+  onClose: () => void;
+  onSaved: (emails: FeedbackEmails) => void;
 }) {
   const [to, setTo] = useState(initialEmails?.to ?? "");
   const [ccList, setCcList] = useState(() => {
@@ -26,13 +31,13 @@ export default function FeedbackEmailModal({
     closeOnEscape: !saving,
   });
 
-  function updateCc(i, value) {
+  function updateCc(i: number, value: string) {
     setCcList((list) => list.map((v, idx) => (idx === i ? value : v)));
   }
   function addCc() {
     setCcList((list) => [...list, ""]);
   }
-  function removeCc(i) {
+  function removeCc(i: number) {
     setCcList((list) =>
       list.length === 1 ? [""] : list.filter((_, idx) => idx !== i),
     );

@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-export async function POST(request) {
+export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
 
@@ -16,7 +16,7 @@ export async function POST(request) {
     const file = formData.get("file");
     const buildingId = formData.get("buildingId");
 
-    if (!file || !buildingId) {
+    if (!(file instanceof File) || !buildingId) {
       return NextResponse.json(
         { error: "파일 또는 건물 ID 누락" },
         { status: 400 },

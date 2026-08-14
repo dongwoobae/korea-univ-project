@@ -50,7 +50,7 @@ export default function NewBuilding() {
     null,
   );
 
-  function showToast(message, type = "success") {
+  function showToast(message: string, type = "success") {
     setToast({ message, type });
   }
 

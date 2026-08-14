@@ -21,7 +21,11 @@ const NAV = [
   { label: "경사도", href: "/admin/dashboard/slopes" },
 ];
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [feedbackEmails, setFeedbackEmails] = useState(

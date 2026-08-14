@@ -9,7 +9,7 @@ const ITEMS = [
   { color: "#7A1414", label: "12% 이상" },
 ];
 
-export default function SlopeLegend({ show }) {
+export default function SlopeLegend({ show }: { show: boolean }) {
   if (!show) return null;
   return (
     <div className="ku-slope-legend" aria-label="경사도 범례">

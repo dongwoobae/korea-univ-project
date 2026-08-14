@@ -24,7 +24,7 @@ import FacilityDetailModal from "@/components/admin/FacilityDetailModal";
 import { FacilityTypeIcon } from "@/components/map/iconography";
 import { getFacilityBadges } from "@/lib/facilityBadges";
 import type { FacilityBadge } from "@/lib/facilityBadges";
-import type { Feature, Polygon } from "geojson";
+import type { Feature, Geometry, Polygon } from "geojson";
 import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
 
@@ -49,11 +49,12 @@ const FACILITY_BADGE_CLASSES: Record<FacilityBadge, string> = {
   translation_needed: "ku-facility-row-badge--translation",
 };
 
-function getBuildingCenter(building): [number, number] {
-  const geom = building?.geojson?.geometry;
+function getBuildingCenter(building: Building | null): [number, number] {
+  const geom = (building?.geojson as Feature<Geometry> | null)?.geometry;
   if (!geom) return KU_CENTER;
   if (geom.type === "Point") return [geom.coordinates[1], geom.coordinates[0]];
-  const coords = geom.coordinates?.[0];
+  if (geom.type !== "Polygon") return KU_CENTER;
+  const coords = geom.coordinates[0];
   if (!coords?.length) return KU_CENTER;
   const lats = coords.map(([, lat]) => lat);
   const lngs = coords.map(([lng]) => lng);
@@ -114,7 +115,7 @@ export default function BuildingDetail() {
     Number(editingPolygon);
   const hasUnsavedChanges = unsavedChangeCount > 0;
 
-  function showToast(message, type = "success") {
+  function showToast(message: string, type = "success") {
     setToast({ message, type });
   }
 
@@ -180,7 +181,7 @@ export default function BuildingDetail() {
     router.push(href);
   }
 
-  async function handleDeleteFacility(facility) {
+  async function handleDeleteFacility(facility: FacilityWithType) {
     const error = await deleteFacility(facility);
     setConfirmModal(null);
     if (error) {
@@ -259,7 +260,7 @@ export default function BuildingDetail() {
     showToast("소속 단과대학이 저장되었어요!");
   }
 
-  async function handleToggleInstalled(facility) {
+  async function handleToggleInstalled(facility: FacilityWithType) {
     setTogglingId(facility.id);
     const { error } = await supabase
       .from("building_facilities")
@@ -893,7 +894,13 @@ const photoUploadStatusLabel: Record<PhotoUploadStatus, string> = {
   error: "실패",
 };
 
-function PhotoManager({ buildingId, showToast }) {
+function PhotoManager({
+  buildingId,
+  showToast,
+}: {
+  buildingId: number;
+  showToast: (message: string, type?: string) => void;
+}) {
   const [photos, setPhotos] = useState<BuildingPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadItems, setUploadItems] = useState<PhotoUploadItem[]>([]);
@@ -911,7 +918,7 @@ function PhotoManager({ buildingId, showToast }) {
       .eq("building_id", buildingId)
       .order("created_at");
     setPhotos(data ?? []);
-    const initial = {};
+    const initial: Record<string, string> = {};
     (data ?? []).forEach((p) => {
       initial[p.id] = p.caption ?? "";
     });
@@ -923,7 +930,7 @@ function PhotoManager({ buildingId, showToast }) {
     return () => window.clearTimeout(timer);
   }, [fetchPhotos]);
 
-  async function handleSaveCaption(photoId) {
+  async function handleSaveCaption(photoId: number) {
     const caption = draftCaptions[photoId] ?? "";
     const original = photos.find((p) => p.id === photoId)?.caption ?? "";
     if (caption === original) return;
@@ -965,8 +972,8 @@ function PhotoManager({ buildingId, showToast }) {
     );
   }
 
-  function convertToWebP(file) {
-    return new Promise((resolve, reject) => {
+  function convertToWebP(file: File) {
+    return new Promise<Blob>((resolve, reject) => {
       const objectUrl = URL.createObjectURL(file);
       const img = new Image();
       img.onload = () => {
@@ -1088,7 +1095,7 @@ function PhotoManager({ buildingId, showToast }) {
     );
   }
 
-  async function handleUpload(e) {
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files as FileList);
     e.target.value = "";
     if (!files.length) return;
@@ -1124,7 +1131,7 @@ function PhotoManager({ buildingId, showToast }) {
     );
   }
 
-  async function handleDelete(photo) {
+  async function handleDelete(photo: BuildingPhoto) {
     const res = await authedFetch("/api/delete-building-photo", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -12,6 +12,13 @@ way["building"]["name"](37.5855,127.0270,37.5940,127.0400);
 out geom qt;
 `;
 
+interface OverpassElement {
+  id: number;
+  tags?: Record<string, string>;
+}
+
+type NamedElement = OverpassElement & { tags: Record<string, string> };
+
 async function syncBuildings() {
   console.log("Overpass에서 건물 검색데이터 가져오는 중...");
 
@@ -22,14 +29,18 @@ async function syncBuildings() {
   });
 
   const data = await res.json();
-  const buildings = data.elements.filter((el) => el.tags?.name);
+  const buildings: NamedElement[] = (data.elements as OverpassElement[]).filter(
+    (el): el is NamedElement => Boolean(el.tags?.name),
+  );
   console.log(`건물${buildings.length}개 발견`);
 
   const { data: existingBuildings } = await supabase
     .from("buildings")
     .select("id");
 
-  const existingIds = new Set(existingBuildings.map((b) => b.id));
+  const existingIds = new Set(
+    existingBuildings.map((b: { id: number }) => b.id),
+  );
   console.log(`기존 건물${existingIds.size}개`);
 
   let added = 0;

@@ -7,6 +7,7 @@ import type {
   BuildingWithCollege,
   FacilityWithType,
   BuildingPhoto,
+  Favorite,
 } from "@/types/domain";
 import SidePanelHeader from "@/components/sidepanel/SidePanelHeader";
 import PhotoCarousel from "@/components/sidepanel/PhotoCarousel";
@@ -19,7 +20,7 @@ export type SidePanelPhoto = Pick<
 
 const FAVORITES_KEY = "ku_favorites";
 
-function loadFavorites() {
+function loadFavorites(): Favorite[] {
   try {
     return JSON.parse(localStorage.getItem(FAVORITES_KEY) ?? "[]");
   } catch {
@@ -27,13 +28,21 @@ function loadFavorites() {
   }
 }
 
-function saveFavorites(list) {
+function saveFavorites(list: Favorite[]) {
   localStorage.setItem(FAVORITES_KEY, JSON.stringify(list));
 }
 
 const TTS_LANG_MAP = { ko: "ko-KR", en: "en-US", zh: "zh-CN" };
 
-export default function SidePanel({ buildingId, buildingName, onClose }) {
+export default function SidePanel({
+  buildingId,
+  buildingName,
+  onClose,
+}: {
+  buildingId: number;
+  buildingName: string;
+  onClose: () => void;
+}) {
   const { lang, t } = useLanguage();
   const [facilities, setFacilities] = useState<FacilityWithType[]>([]);
   const [building, setBuilding] = useState<BuildingWithCollege | null>(null);
@@ -141,11 +150,15 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
     : null;
 
   // 언어에 따른 시설 라벨
-  function getFacilityLabel(facilityTypes) {
+  function getFacilityLabel(
+    facilityTypes: FacilityWithType["facility_types"],
+  ): string {
     if (!facilityTypes) return "";
-    if (lang === "en") return facilityTypes.label_en ?? facilityTypes.label;
-    if (lang === "zh") return facilityTypes.label_zh ?? facilityTypes.label;
-    return facilityTypes.label;
+    if (lang === "en")
+      return facilityTypes.label_en ?? facilityTypes.label ?? "";
+    if (lang === "zh")
+      return facilityTypes.label_zh ?? facilityTypes.label ?? "";
+    return facilityTypes.label ?? "";
   }
 
   function toggleFavorite() {
@@ -244,11 +257,11 @@ export default function SidePanel({ buildingId, buildingName, onClose }) {
 
   // 손잡이 스와이프: 아래로 임계값 이상 끌면 닫고, 그 이하면 제자리로 복귀
   const CLOSE_THRESHOLD = 80;
-  function handleHandleTouchStart(event) {
+  function handleHandleTouchStart(event: React.TouchEvent) {
     dragStartY.current = event.touches[0].clientY;
     draggedRef.current = false;
   }
-  function handleHandleTouchMove(event) {
+  function handleHandleTouchMove(event: React.TouchEvent) {
     if (dragStartY.current === null) return;
     const delta = event.touches[0].clientY - dragStartY.current;
     if (Math.abs(delta) > 6) draggedRef.current = true;

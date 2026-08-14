@@ -6,6 +6,7 @@ import { authedFetch } from "@/lib/authedFetch";
 import ConfirmModal from "@/components/ConfirmModal";
 import { FacilityTypeIcon } from "@/components/map/iconography";
 import { useModalFocus } from "@/lib/useModalFocus";
+import type { FacilityWithType } from "@/types/domain";
 import { isVideoPlayable } from "@/lib/videoPlayback";
 import { compressVideo, terminateFFmpeg } from "@/lib/compressVideo";
 import {
@@ -19,6 +20,11 @@ export default function FacilityVideoModal({
   onUpdate,
   showToast,
   onClose,
+}: {
+  facility: FacilityWithType;
+  onUpdate: () => void | Promise<void>;
+  showToast: (message: string, type?: string) => void;
+  onClose: () => void;
 }) {
   // null | "checking" | "loading" | "compressing" | "preparing" | "uploading"
   const [phase, setPhase] = useState<string | null>(null);
@@ -95,7 +101,7 @@ export default function FacilityVideoModal({
     onUpdate();
   }
 
-  async function handleUpload(e) {
+  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 

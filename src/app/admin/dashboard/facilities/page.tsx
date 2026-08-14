@@ -64,7 +64,7 @@ export default function StandaloneFacilitiesPage() {
     setPage(1);
   }
 
-  function showToast(message, type = "success") {
+  function showToast(message: string, type = "success") {
     setToast({ message, type });
   }
 
@@ -129,7 +129,7 @@ export default function StandaloneFacilitiesPage() {
     return () => window.clearTimeout(timer);
   }, [fetchData]);
 
-  async function handleDelete(facility) {
+  async function handleDelete(facility: FacilityWithType) {
     const error = await deleteFacility(facility);
     setConfirmDelete(null);
     if (error) {
@@ -140,7 +140,7 @@ export default function StandaloneFacilitiesPage() {
     showToast("시설이 삭제되었어요");
   }
 
-  async function handleToggleInstalled(facility) {
+  async function handleToggleInstalled(facility: FacilityWithType) {
     setTogglingId(facility.id);
     const { error } = await supabase
       .from("building_facilities")
