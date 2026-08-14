@@ -1,53 +1,31 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import NextImage from "next/image";
 import { supabase } from "@/lib/supabaseClient";
-import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
 import { invalidateNeighborBuildings } from "@/lib/neighborBuildings";
 import type {
   Building,
-  BuildingPhoto,
   FacilityWithType,
   FacilityType,
   College,
 } from "@/types/domain";
 import { useRouter, useParams } from "next/navigation";
-import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
-import AddFacilityButton from "@/components/admin/AddFacilityButton";
-import BulkRetranslateButton from "@/components/admin/BulkRetranslateButton";
+import BuildingPhotoManager from "@/components/admin/BuildingPhotoManager";
 import BuildingVideoManager from "@/components/admin/BuildingVideoManager";
 import FacilityDetailModal from "@/components/admin/FacilityDetailModal";
-import { FacilityTypeIcon } from "@/components/map/iconography";
-import { getFacilityBadges } from "@/lib/facilityBadges";
-import type { FacilityBadge } from "@/lib/facilityBadges";
+import BuildingDetailHeader from "@/components/admin/building-detail/BuildingDetailHeader";
+import BuildingNameCard from "@/components/admin/building-detail/BuildingNameCard";
+import BuildingCollegeCard from "@/components/admin/building-detail/BuildingCollegeCard";
+import BuildingPolygonCard from "@/components/admin/building-detail/BuildingPolygonCard";
+import BuildingFacilityListCard from "@/components/admin/building-detail/BuildingFacilityListCard";
 import type { Feature, Geometry, Polygon } from "geojson";
 import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
 
-const PolygonEditor = dynamic(() => import("@/components/PolygonEditor"), {
-  ssr: false,
-});
-
-const BuildingPolygonPreview = dynamic(
-  () => import("@/components/BuildingPolygonPreview"),
-  { ssr: false },
-);
-
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
-
-const FACILITY_BADGE_LABELS: Record<FacilityBadge, string> = {
-  missing: "미설치",
-  translation_needed: "번역 필요",
-};
-
-const FACILITY_BADGE_CLASSES: Record<FacilityBadge, string> = {
-  missing: "ku-facility-row-badge--missing",
-  translation_needed: "ku-facility-row-badge--translation",
-};
 
 function getBuildingCenter(building: Building | null): [number, number] {
   const geom = (building?.geojson as Feature<Geometry> | null)?.geometry;
@@ -260,6 +238,21 @@ export default function BuildingDetail() {
     showToast("소속 단과대학이 저장되었어요!");
   }
 
+  async function handleSavePolygon(newGeojson: Feature<Polygon>) {
+    const { error } = await supabase
+      .from("buildings")
+      .update({ geojson: newGeojson as unknown as Json })
+      .eq("id", id);
+    if (error) {
+      showToast("저장에 실패했어요", "error");
+      return;
+    }
+    invalidateNeighborBuildings();
+    setEditingPolygon(false);
+    await fetchData();
+    showToast("폴리곤이 저장되었어요!");
+  }
+
   async function handleToggleInstalled(facility: FacilityWithType) {
     setTogglingId(facility.id);
     const { error } = await supabase
@@ -294,70 +287,12 @@ export default function BuildingDetail() {
 
   return (
     <div className="ku-admin-shell ku-admin-detail-shell">
-      {/* 헤더 */}
-      <div
-        className="ku-admin-detail-header"
-        style={{
-          background: "var(--ku-surface)",
-          borderBottom: "1px solid var(--ku-border)",
-          padding: "16px 24px",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            onClick={() => navigateWithUnsavedCheck("/admin/dashboard")}
-            aria-label="건물 목록으로 돌아가기"
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontSize: 20,
-              color: "var(--ku-text-2)",
-            }}
-          >
-            ←
-          </button>
-          <div>
-            <div style={{ fontSize: 18, fontWeight: 600 }}>{building.name}</div>
-            <div style={{ fontSize: 12, color: "var(--ku-text-2)" }}>
-              {building.name_en}
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            className="ku-admin-detail-save-status"
-            data-unsaved={hasUnsavedChanges}
-            role="status"
-            aria-label={
-              hasUnsavedChanges
-                ? `저장하지 않은 변경 ${unsavedChangeCount}개`
-                : "모든 변경 저장됨"
-            }
-          >
-            {hasUnsavedChanges
-              ? `저장하지 않은 변경 ${unsavedChangeCount}개`
-              : "모든 변경 저장됨"}
-          </div>
-          <button
-            onClick={() => navigateWithUnsavedCheck("/")}
-            style={{
-              fontSize: 13,
-              color: "var(--ku-text-2)",
-              background: "none",
-              border: "1px solid var(--ku-border)",
-              borderRadius: 6,
-              padding: "6px 12px",
-              cursor: "pointer",
-            }}
-          >
-            지도 보기
-          </button>
-        </div>
-      </div>
+      <BuildingDetailHeader
+        building={building}
+        hasUnsavedChanges={hasUnsavedChanges}
+        unsavedChangeCount={unsavedChangeCount}
+        onNavigate={navigateWithUnsavedCheck}
+      />
 
       <div className="ku-admin-detail-grid">
         {/* 건물 사진 */}
@@ -375,7 +310,7 @@ export default function BuildingDetail() {
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>
             건물 사진
           </div>
-          <PhotoManager buildingId={id} showToast={showToast} />
+          <BuildingPhotoManager buildingId={id} showToast={showToast} />
         </div>
 
         {/* 건물 동영상 */}
@@ -400,376 +335,42 @@ export default function BuildingDetail() {
           />
         </div>
 
-        {/* 건물명 수정 */}
-        <div
-          id="building-name"
-          className="ku-admin-detail-card ku-admin-detail-card--name"
-          style={{
-            background: "var(--ku-surface)",
-            borderRadius: 10,
-            padding: 20,
-            border: "1px solid var(--ku-border)",
-            marginBottom: 20,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 8,
-              marginBottom: 16,
-            }}
-          >
-            <span style={{ fontSize: 15, fontWeight: 600 }}>건물명 수정</span>
-            {hasUnsavedNameChanges && (
-              <span className="ku-admin-detail-unsaved-label">저장 안 됨</span>
-            )}
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div>
-              <label
-                htmlFor="building-edit-name"
-                style={{
-                  display: "block",
-                  fontSize: 12,
-                  color: "var(--ku-text-2)",
-                  marginBottom: 4,
-                }}
-              >
-                한국어
-              </label>
-              <input
-                id="building-edit-name"
-                type="text"
-                value={nameForm.name}
-                onChange={(e) =>
-                  setNameForm((f) => ({ ...f, name: e.target.value }))
-                }
-                style={{
-                  width: "100%",
-                  padding: "8px 10px",
-                  border: "1px solid var(--ku-border)",
-                  borderRadius: 6,
-                  fontSize: 13,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="building-edit-name-en"
-                style={{
-                  display: "block",
-                  fontSize: 12,
-                  color: "var(--ku-text-2)",
-                  marginBottom: 4,
-                }}
-              >
-                영어
-              </label>
-              <input
-                id="building-edit-name-en"
-                type="text"
-                value={nameForm.name_en}
-                onChange={(e) =>
-                  setNameForm((f) => ({ ...f, name_en: e.target.value }))
-                }
-                style={{
-                  width: "100%",
-                  padding: "8px 10px",
-                  border: "1px solid var(--ku-border)",
-                  borderRadius: 6,
-                  fontSize: 13,
-                  outline: "none",
-                  boxSizing: "border-box",
-                }}
-              />
-            </div>
-            <button
-              onClick={handleSaveName}
-              disabled={savingName}
-              style={{
-                alignSelf: "flex-end",
-                padding: "8px 20px",
-                background: savingName
-                  ? "var(--ku-primary-disabled)"
-                  : "var(--ku-primary)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                fontSize: 13,
-                cursor: savingName ? "default" : "pointer",
-              }}
-            >
-              {savingName ? "저장 중..." : "저장"}
-            </button>
-          </div>
-        </div>
+        <BuildingNameCard
+          form={nameForm}
+          setForm={setNameForm}
+          hasUnsavedChanges={hasUnsavedNameChanges}
+          saving={savingName}
+          onSave={handleSaveName}
+        />
 
-        {/* 소속 단과대학 */}
-        <div
-          id="building-college"
-          className="ku-admin-detail-card ku-admin-detail-card--college"
-          style={{
-            background: "var(--ku-surface)",
-            borderRadius: 10,
-            padding: 20,
-            border: "1px solid var(--ku-border)",
-            marginBottom: 20,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              gap: 8,
-              marginBottom: 16,
-            }}
-          >
-            <span style={{ fontSize: 15, fontWeight: 600 }}>소속 단과대학</span>
-            {hasUnsavedCollegeChanges && (
-              <span className="ku-admin-detail-unsaved-label">저장 안 됨</span>
-            )}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <select
-              aria-label="소속 단과대학 선택"
-              value={selectedCollegeId ?? ""}
-              onChange={(e) =>
-                setSelectedCollegeId(
-                  e.target.value ? Number(e.target.value) : null,
-                )
-              }
-              style={{
-                flex: 1,
-                padding: "8px 10px",
-                border: "1px solid var(--ku-border)",
-                borderRadius: 6,
-                fontSize: 13,
-                outline: "none",
-                background: "var(--ku-surface)",
-              }}
-            >
-              <option value="">선택 안 함</option>
-              {colleges.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={handleSaveCollege}
-              disabled={savingCollege}
-              style={{
-                padding: "8px 16px",
-                background: "var(--ku-primary)",
-                color: "#fff",
-                border: "none",
-                borderRadius: 6,
-                fontSize: 13,
-                cursor: savingCollege ? "not-allowed" : "pointer",
-                opacity: savingCollege ? 0.7 : 1,
-              }}
-            >
-              {savingCollege ? "저장 중..." : "저장"}
-            </button>
-          </div>
-        </div>
+        <BuildingCollegeCard
+          colleges={colleges}
+          selectedCollegeId={selectedCollegeId}
+          onSelect={setSelectedCollegeId}
+          hasUnsavedChanges={hasUnsavedCollegeChanges}
+          saving={savingCollege}
+          onSave={handleSaveCollege}
+        />
 
-        {/* 폴리곤 편집 */}
-        <div
-          id="building-polygon"
-          className="ku-admin-detail-card ku-admin-detail-card--polygon"
-          style={{
-            background: "var(--ku-surface)",
-            borderRadius: 10,
-            padding: 20,
-            border: "1px solid var(--ku-border)",
-            marginBottom: 20,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: editingPolygon ? 16 : 0,
-            }}
-          >
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 600 }}>
-                  건물 폴리곤
-                </span>
-                {editingPolygon && (
-                  <span className="ku-admin-detail-unsaved-label">편집 중</span>
-                )}
-              </div>
-              {!editingPolygon && (
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: building?.geojson
-                      ? "var(--ku-status-installed-fg)"
-                      : "var(--ku-text-3)",
-                    marginTop: 4,
-                  }}
-                >
-                  {building?.geojson
-                    ? "✅ 폴리곤 데이터 있음"
-                    : "❌ 폴리곤 없음 — 편집으로 추가"}
-                </div>
-              )}
-            </div>
-            {!editingPolygon && (
-              <button
-                onClick={() => setEditingPolygon(true)}
-                style={{
-                  fontSize: 13,
-                  padding: "6px 14px",
-                  background: "none",
-                  border: "1px solid var(--ku-primary-text)",
-                  color: "var(--ku-primary-text)",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                }}
-              >
-                편집
-              </button>
-            )}
-          </div>
+        <BuildingPolygonCard
+          buildingId={id}
+          geojson={(building.geojson as unknown as Feature<Polygon>) ?? null}
+          editing={editingPolygon}
+          onStartEdit={() => setEditingPolygon(true)}
+          onSave={handleSavePolygon}
+          onCancel={() => setEditingPolygon(false)}
+        />
 
-          {!editingPolygon && building.geojson && (
-            <div style={{ marginTop: 16 }}>
-              <BuildingPolygonPreview
-                key={JSON.stringify(building.geojson)}
-                geojson={building.geojson as unknown as Feature<Polygon>}
-                buildingId={id}
-              />
-            </div>
-          )}
-
-          {editingPolygon && (
-            <PolygonEditor
-              geojson={
-                (building?.geojson as unknown as Feature<Polygon> | null) ??
-                null
-              }
-              excludeId={id}
-              onSave={async (newGeojson) => {
-                const { error } = await supabase
-                  .from("buildings")
-                  .update({ geojson: newGeojson as unknown as Json })
-                  .eq("id", id);
-                if (error) {
-                  showToast("저장에 실패했어요", "error");
-                  return;
-                }
-                invalidateNeighborBuildings();
-                setEditingPolygon(false);
-                await fetchData();
-                showToast("폴리곤이 저장되었어요!");
-              }}
-              onCancel={() => setEditingPolygon(false)}
-            />
-          )}
-        </div>
-
-        {/* 시설 목록 */}
-        <div
-          id="building-facilities"
-          className="ku-admin-detail-card ku-admin-detail-card--facilities"
-          style={{
-            background: "var(--ku-surface)",
-            borderRadius: 10,
-            padding: 20,
-            border: "1px solid var(--ku-border)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 16,
-              flexWrap: "wrap",
-              gap: 8,
-            }}
-          >
-            <div style={{ fontSize: 15, fontWeight: 600 }}>시설 현황</div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                flexWrap: "wrap",
-              }}
-            >
-              <BulkRetranslateButton
-                facilities={facilities}
-                onDone={fetchData}
-                showToast={showToast}
-              />
-              <AddFacilityButton
-                buildingId={id}
-                center={buildingCenter}
-                facilityTypes={facilityTypes}
-                onAdd={fetchData}
-                showToast={showToast}
-                buttonRef={addFacilityRef}
-              />
-            </div>
-          </div>
-
-          {facilities.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                color: "var(--ku-text-3)",
-                fontSize: 13,
-                padding: "20px 0",
-              }}
-            >
-              등록된 시설이 없어요
-            </div>
-          ) : (
-            facilities.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className="ku-facility-row"
-                onClick={() => setSelectedFacilityId(f.id)}
-              >
-                <span className="ku-facility-row-icon">
-                  <FacilityTypeIcon code={f.facility_types?.code} size={18} />
-                </span>
-                <span className="ku-facility-row-body">
-                  <span className="ku-facility-row-name">
-                    {f.name ?? f.facility_types?.label}
-                  </span>
-                  <span className="ku-facility-row-desc">
-                    {f.description}
-                    {f.floor_info && ` · ${f.floor_info}`}
-                  </span>
-                </span>
-                <span className="ku-facility-row-badges">
-                  {getFacilityBadges(f).map((badge) => (
-                    <span
-                      key={badge}
-                      className={`ku-facility-row-badge ${FACILITY_BADGE_CLASSES[badge]}`}
-                    >
-                      {FACILITY_BADGE_LABELS[badge]}
-                    </span>
-                  ))}
-                </span>
-                <span className="ku-facility-row-chevron" aria-hidden="true">
-                  ›
-                </span>
-              </button>
-            ))
-          )}
-        </div>
+        <BuildingFacilityListCard
+          buildingId={id}
+          buildingCenter={buildingCenter}
+          facilities={facilities}
+          facilityTypes={facilityTypes}
+          addFacilityRef={addFacilityRef}
+          onChanged={fetchData}
+          onSelectFacility={setSelectedFacilityId}
+          showToast={showToast}
+        />
         <div
           id="building-danger"
           className="ku-admin-detail-danger"
@@ -873,467 +474,5 @@ export default function BuildingDetail() {
         />
       )}
     </div>
-  );
-}
-
-type PhotoUploadStatus =
-  "queued" | "compressing" | "uploading" | "success" | "error";
-
-interface PhotoUploadItem {
-  id: string;
-  file: File;
-  status: PhotoUploadStatus;
-  error?: string;
-}
-
-const photoUploadStatusLabel: Record<PhotoUploadStatus, string> = {
-  queued: "대기 중",
-  compressing: "압축 중",
-  uploading: "업로드 중",
-  success: "완료",
-  error: "실패",
-};
-
-function PhotoManager({
-  buildingId,
-  showToast,
-}: {
-  buildingId: number;
-  showToast: (message: string, type?: string) => void;
-}) {
-  const [photos, setPhotos] = useState<BuildingPhoto[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [uploadItems, setUploadItems] = useState<PhotoUploadItem[]>([]);
-  const [confirmDeletePhoto, setConfirmDeletePhoto] =
-    useState<BuildingPhoto | null>(null);
-  const [draftCaptions, setDraftCaptions] = useState<Record<string, string>>(
-    {},
-  );
-  const [savingCaption, setSavingCaption] = useState<number | null>(null);
-
-  const fetchPhotos = useCallback(async () => {
-    const { data } = await supabase
-      .from("building_photos")
-      .select("*")
-      .eq("building_id", buildingId)
-      .order("created_at");
-    setPhotos(data ?? []);
-    const initial: Record<string, string> = {};
-    (data ?? []).forEach((p) => {
-      initial[p.id] = p.caption ?? "";
-    });
-    setDraftCaptions(initial);
-  }, [buildingId]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => void fetchPhotos(), 0);
-    return () => window.clearTimeout(timer);
-  }, [fetchPhotos]);
-
-  async function handleSaveCaption(photoId: number) {
-    const caption = draftCaptions[photoId] ?? "";
-    const original = photos.find((p) => p.id === photoId)?.caption ?? "";
-    if (caption === original) return;
-    setSavingCaption(photoId);
-
-    const updateData = {
-      caption: caption || null,
-      caption_en: null,
-      caption_zh: null,
-    };
-
-    if (caption) {
-      try {
-        const res = await authedFetch("/api/translate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ texts: { caption } }),
-        });
-        if (!res.ok) throw new Error("translate failed");
-        const { en, zh } = await res.json();
-        updateData.caption_en = en.caption ?? null;
-        updateData.caption_zh = zh.caption ?? null;
-      } catch {
-        // 번역 실패해도 캡션 저장은 진행
-      }
-    }
-
-    const { error } = await supabase
-      .from("building_photos")
-      .update(updateData)
-      .eq("id", photoId);
-    setSavingCaption(null);
-    if (error) {
-      showToast("캡션 저장 실패", "error");
-      return;
-    }
-    setPhotos((prev) =>
-      prev.map((p) => (p.id === photoId ? { ...p, ...updateData } : p)),
-    );
-  }
-
-  function convertToWebP(file: File) {
-    return new Promise<Blob>((resolve, reject) => {
-      const objectUrl = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(objectUrl);
-        const MAX = 1920;
-        let w = img.naturalWidth;
-        let h = img.naturalHeight;
-        if (w > MAX || h > MAX) {
-          if (w >= h) {
-            h = Math.round((h * MAX) / w);
-            w = MAX;
-          } else {
-            w = Math.round((w * MAX) / h);
-            h = MAX;
-          }
-        }
-        const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
-        canvas.toBlob(
-          (blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error("WebP 변환 실패"));
-          },
-          "image/webp",
-          0.75,
-        );
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        reject(new Error("이미지 로드 실패"));
-      };
-      img.src = objectUrl;
-    });
-  }
-
-  function updateUploadItem(
-    id: string,
-    status: PhotoUploadStatus,
-    error?: string,
-  ) {
-    setUploadItems((current) =>
-      current.map((item) =>
-        item.id === id ? { ...item, status, error } : item,
-      ),
-    );
-  }
-
-  async function uploadPhoto(item: PhotoUploadItem) {
-    updateUploadItem(item.id, "compressing");
-    let blob: Blob;
-    try {
-      blob = (await convertToWebP(item.file)) as Blob;
-    } catch (error) {
-      return {
-        ...item,
-        status: "error" as const,
-        error:
-          error instanceof Error ? error.message : "이미지 압축에 실패했어요",
-      };
-    }
-
-    updateUploadItem(item.id, "uploading");
-    const formData = new FormData();
-    formData.append("file", blob, "photo.webp");
-    formData.append("buildingId", String(buildingId));
-    formData.append("originalName", item.file.name);
-
-    try {
-      const res = await authedFetch("/api/upload-building-photo", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.error) {
-        return {
-          ...item,
-          status: "error" as const,
-          error: data.error ?? `서버 응답 오류 (${res.status})`,
-        };
-      }
-      return { ...item, status: "success" as const, error: undefined };
-    } catch {
-      return {
-        ...item,
-        status: "error" as const,
-        error: "네트워크 오류가 발생했어요",
-      };
-    }
-  }
-
-  async function runUploads(
-    targets: PhotoUploadItem[],
-    existingSuccessCount: number,
-  ) {
-    if (targets.length === 0) return;
-    setUploading(true);
-    const results: PhotoUploadItem[] = [];
-    for (const target of targets) {
-      const result = await uploadPhoto(target);
-      results.push(result);
-      updateUploadItem(result.id, result.status, result.error);
-    }
-
-    await fetchPhotos();
-    setUploading(false);
-    const successCount =
-      existingSuccessCount +
-      results.filter((item) => item.status === "success").length;
-    const failureCount = results.filter(
-      (item) => item.status === "error",
-    ).length;
-    showToast(
-      failureCount > 0
-        ? `${successCount}장 업로드 완료 · ${failureCount}장 실패`
-        : `${successCount}장 업로드됐어요!`,
-      failureCount > 0 ? "warning" : "success",
-    );
-  }
-
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files as FileList);
-    e.target.value = "";
-    if (!files.length) return;
-    const batchId = Date.now();
-    const items = files.map((file, index) => ({
-      id: `${batchId}-${index}`,
-      file,
-      status: "queued" as const,
-    }));
-    setUploadItems(items);
-    await runUploads(items, 0);
-  }
-
-  async function handleRetryFailed() {
-    const failed = uploadItems
-      .filter((item) => item.status === "error")
-      .map((item) => ({
-        ...item,
-        status: "queued" as const,
-        error: undefined,
-      }));
-    const failedIds = new Set(failed.map((item) => item.id));
-    setUploadItems((current) =>
-      current.map((item) =>
-        failedIds.has(item.id)
-          ? { ...item, status: "queued", error: undefined }
-          : item,
-      ),
-    );
-    await runUploads(
-      failed,
-      uploadItems.filter((item) => item.status === "success").length,
-    );
-  }
-
-  async function handleDelete(photo: BuildingPhoto) {
-    const res = await authedFetch("/api/delete-building-photo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ photoId: photo.id, url: photo.url }),
-    });
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      showToast(`삭제 실패: ${data.error}`, "error");
-      return;
-    }
-    setConfirmDeletePhoto(null);
-    await fetchPhotos();
-    showToast("사진이 삭제되었어요");
-  }
-
-  return (
-    <>
-      {photos.length === 0 ? (
-        <div
-          style={{
-            width: "100%",
-            height: 120,
-            background: "var(--ku-border)",
-            borderRadius: 8,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--ku-text-3)",
-            fontSize: 13,
-          }}
-        >
-          등록된 사진 없음
-        </div>
-      ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 8,
-          }}
-        >
-          {photos.map((photo) => (
-            <div
-              key={photo.id}
-              style={{ display: "flex", flexDirection: "column", gap: 4 }}
-            >
-              <div style={{ position: "relative", aspectRatio: "4/3" }}>
-                <NextImage
-                  src={photo.url}
-                  alt={photo.caption ?? ""}
-                  fill
-                  sizes="(max-width: 767px) 30vw, 180px"
-                  unoptimized
-                  style={{
-                    objectFit: "cover",
-                    borderRadius: 6,
-                  }}
-                />
-                <button
-                  onClick={() => setConfirmDeletePhoto(photo)}
-                  className="ku-photo-delete-button"
-                  aria-label="사진 삭제"
-                  style={{
-                    position: "absolute",
-                    top: 4,
-                    right: 4,
-                    width: 22,
-                    height: 22,
-                    borderRadius: "50%",
-                    background: "var(--ku-overlay)",
-                    color: "#fff",
-                    border: "none",
-                    cursor: "pointer",
-                    fontSize: 11,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  ✕
-                </button>
-              </div>
-              <input
-                value={draftCaptions[photo.id] ?? ""}
-                onChange={(e) =>
-                  setDraftCaptions((prev) => ({
-                    ...prev,
-                    [photo.id]: e.target.value,
-                  }))
-                }
-                onBlur={() => handleSaveCaption(photo.id)}
-                aria-label="사진 설명"
-                placeholder="설명 추가..."
-                maxLength={100}
-                style={{
-                  width: "100%",
-                  fontSize: 11,
-                  padding: "4px 6px",
-                  border: "1px solid var(--ku-border)",
-                  borderRadius: 4,
-                  outline: "none",
-                  color: "var(--ku-text-1)",
-                  background:
-                    savingCaption === photo.id
-                      ? "var(--ku-divider)"
-                      : "var(--ku-surface)",
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-      <label
-        className="ku-admin-row-action"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: 12,
-          padding: "8px 16px",
-          background: "var(--ku-primary)",
-          color: "#fff",
-          borderRadius: 8,
-          fontSize: 13,
-          cursor: uploading ? "not-allowed" : "pointer",
-          opacity: uploading ? 0.7 : 1,
-        }}
-      >
-        {uploading ? "업로드 중..." : "사진 추가"}
-        <input
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleUpload}
-          disabled={uploading}
-          style={{ display: "none" }}
-        />
-      </label>
-      {uploadItems.length > 0 && (
-        <div
-          className="ku-photo-upload-panel"
-          aria-label="사진 업로드 진행 상황"
-        >
-          <div
-            className="ku-photo-upload-summary"
-            role="status"
-            aria-live="polite"
-            aria-label={`성공 ${
-              uploadItems.filter((item) => item.status === "success").length
-            }개 · 실패 ${
-              uploadItems.filter((item) => item.status === "error").length
-            }개${uploading ? " · 처리 중" : ""}`}
-          >
-            성공{" "}
-            {uploadItems.filter((item) => item.status === "success").length}개 ·
-            실패 {uploadItems.filter((item) => item.status === "error").length}
-            개{uploading ? " · 처리 중" : ""}
-          </div>
-          <ul className="ku-photo-upload-list">
-            {uploadItems.map((item) => (
-              <li key={item.id} data-status={item.status}>
-                <span className="ku-photo-upload-name" title={item.file.name}>
-                  {item.file.name}
-                </span>
-                <span className="ku-photo-upload-state">
-                  {photoUploadStatusLabel[item.status]}
-                  {item.error ? ` · ${item.error}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
-          {!uploading &&
-            uploadItems.some((item) => item.status === "error") && (
-              <button
-                type="button"
-                className="ku-photo-upload-retry"
-                onClick={handleRetryFailed}
-              >
-                실패한 사진 다시 시도
-              </button>
-            )}
-          {!uploading &&
-            uploadItems.every((item) => item.status === "success") && (
-              <button
-                type="button"
-                className="ku-photo-upload-clear"
-                onClick={() => setUploadItems([])}
-              >
-                업로드 결과 닫기
-              </button>
-            )}
-        </div>
-      )}
-      {confirmDeletePhoto && (
-        <ConfirmModal
-          message="사진을 삭제할까요?"
-          description="삭제한 사진은 복구할 수 없어요."
-          confirmLabel="삭제"
-          onConfirm={() => handleDelete(confirmDeletePhoto)}
-          onCancel={() => setConfirmDeletePhoto(null)}
-        />
-      )}
-    </>
   );
 }
