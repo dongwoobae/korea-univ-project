@@ -59,8 +59,6 @@ export async function POST(request) {
       return NextResponse.json({ error: "잘못된 동영상 URL" }, { status: 400 });
     }
 
-    console.log(`[delete-facility-video] facilityId=${facilityId} key=${key}`);
-
     const { data: updated, error: dbError } = await supabaseAdmin
       .from("building_facilities")
       .update({ video_url: null })
@@ -94,7 +92,6 @@ export async function POST(request) {
 
     revalidatePath("/api/facilities");
 
-    console.log("[delete-facility-video] success");
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[delete-facility-video] unexpected error:", err);

@@ -14,13 +14,18 @@ const eslintConfig = defineConfig([
     rules: {
       "react-hooks/set-state-in-effect": "warn",
       "react-hooks/immutability": "warn",
+      // 로그 싱크가 없어 stdout이 유일한 출력이다. 실패만 남기고 성공·진입
+      // 로그는 두지 않는다 — 성공은 응답과 액세스 로그가 이미 말한다.
+      "no-console": ["error", { allow: ["warn", "error"] }],
     },
   },
-  // 빌드/유틸 스크립트는 CommonJS require 허용.
+  // 빌드/유틸 스크립트는 CommonJS require 허용. stdout이 이 스크립트들의 UI라
+  // no-console도 풀어 준다.
   {
     files: ["src/scripts/**"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
+      "no-console": "off",
     },
   },
   // Override default ignores of eslint-config-next.

@@ -39,8 +39,6 @@ export async function POST(request: Request) {
     if (!key) {
       return NextResponse.json({ error: "잘못된 사진 URL" }, { status: 400 });
     }
-    console.log(`[delete-landmark-photo] landmarkId=${landmarkId} key=${key}`);
-
     const { data: updated, error: dbError } = await supabaseAdmin
       .from("landmarks")
       .update({ photo_url: null })
