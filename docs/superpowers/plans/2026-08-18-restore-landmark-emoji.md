@@ -553,8 +553,42 @@ Expected: 둘 다 통과.
 
 - [ ] **Step 3: 변경한 파일만 포맷 검사**
 
-Run: `npx prettier --check --end-of-line auto $(git diff --name-only main...HEAD)`
+Run: `npx prettier --check --end-of-line auto $(git diff --name-only main...HEAD | grep -v '.sql
+마이그레이션 `.sql`은 걸러야 한다 — prettier에 파서가 없어 `No parser could be inferred`로 죽는다.
+
 Expected: 통과. **전체 `format:check`는 돌리지 마라** — CRLF 때문에 손대지 않은 파일이 무더기로 실패한다.
+
+- [ ] **Step 4: e2e 전체**
+
+Run: `npm run test:e2e`
+Expected: 전부 통과.
+
+- [ ] **Step 5: 카테고리 아이콘이 남았는지 눈으로 확인**
+
+`LANDMARK_CATEGORY_ICON_SVG`/`LANDMARK_CATEGORY_ICON`의 남은 소비자가 클러스터와 필터 토글 둘뿐인지 확인한다.
+
+Run: `grep -rn "LANDMARK_ICON" src/`
+Expected: `mapIcons.ts` 정의, `iconography.tsx` 정의, `LandmarkMarkers.tsx`의 클러스터, `FilterPanel.tsx`의 토글, 테스트 2파일. **개별 명소 렌더 지점에는 남아 있으면 안 된다.**
+
+---
+
+- [ ] **Step 6: 이모지의 광학 크기를 눈으로 본다**
+
+`LandmarkEmoji`의 `size`는 `fontSize`로 들어가는데, 호출부 값 15·15·16·20은 lucide 아이콘 시절 픽셀 박스 값을 그대로 옮긴 것이라 이모지 글리프 기준으로 검증된 적이 없다. 지도 마커(30px 원)·검색 결과·팝업·관리자 목록 네 곳에서 이모지가 왜소하거나 넘치지 않는지 확인하고, 어긋나면 그 자리 값만 조정한다. `MapBrowseList`는 34px 고정 박스라 가려질 수 있으니 나머지 세 곳을 먼저 본다.
+
+---
+
+## 배포 후 확인
+
+마이그레이션은 `ci.yml`의 적용 job이 e2e까지 통과한 뒤 main 머지 시점에 실행된다. Vercel 배포는 그 체인을 기다리지 않으므로 **프론트가 먼저 뜨는 창이 생긴다.** 그 사이 명소 저장은 실패하고(감수하기로 한 것), 지도는 Task 3의 폴백 덕에 기본 이모지로 뜬다.
+
+- [ ] 관리자 명소 목록에서 4건이 각각 🐿️ 🌳 🌸 🕊️로 뜨는지 본다. 이름이 완전일치하지 않은 행은 `✨`로 남아 있다 — 폼에서 고치면 저장과 함께 캐시가 무효화된다.
+- [ ] 공개 지도(`/`)에서 마커가 같은 이모지로 뜨는지 본다. 브라우저에 남은 옛 응답이 보이면 새로고침 한 번.
+
+## 계획서 회수
+
+구현이 끝나고 검증까지 통과해 base 브랜치로 머지할 때 이 파일을 `git rm`하고 그 삭제를 feature 브랜치에 커밋한다. git 이력이 전문을 보존한다.
+)`Expected: 통과. **전체`format:check`는 돌리지 마라** — CRLF 때문에 손대지 않은 파일이 무더기로 실패한다.
 
 - [ ] **Step 4: e2e 전체**
 
