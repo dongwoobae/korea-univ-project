@@ -22,13 +22,12 @@ async function getFFmpeg(): Promise<FFmpeg> {
   return instance;
 }
 
-/**
- * @param {File} file
- * @param {(progress: number) => void} onProgress  0~100
- * @param {(phase: "loading" | "compressing") => void} onPhase
- * @returns {Promise<Blob>}
- */
-export async function compressVideo(file, onProgress, onPhase) {
+export async function compressVideo(
+  file: File,
+  /** 0~100 */
+  onProgress?: (progress: number) => void,
+  onPhase?: (phase: "loading" | "compressing") => void,
+): Promise<Blob> {
   const needsLoad = ffmpeg === null;
   if (needsLoad) onPhase?.("loading");
 

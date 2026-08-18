@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import type { SlopeSegment } from "@/types/domain";
+import type { SlopePoint, SlopeSegment } from "@/types/domain";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AdminListControls from "@/components/admin/AdminListControls";
@@ -16,7 +16,7 @@ import {
 } from "@/lib/adminList";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 
-function buildGpx(name, points) {
+function buildGpx(name: string, points: SlopePoint[]) {
   const trkpts = points
     .map(
       (p) =>
@@ -34,7 +34,7 @@ ${trkpts}
 </gpx>`;
 }
 
-function downloadGpx(route) {
+function downloadGpx(route: SlopeSegment) {
   const content = buildGpx(route.name, route.segments);
   const blob = new Blob([content], { type: "application/gpx+xml" });
   const url = URL.createObjectURL(blob);

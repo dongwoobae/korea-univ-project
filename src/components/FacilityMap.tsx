@@ -28,7 +28,11 @@ const markerIcon = new L.Icon({
   iconAnchor: [12, 41],
 });
 
-function ClickHandler({ onMapClick }) {
+function ClickHandler({
+  onMapClick,
+}: {
+  onMapClick: (lat: number, lng: number) => void;
+}) {
   useMapEvents({
     click(e) {
       onMapClick(e.latlng.lat, e.latlng.lng);
@@ -37,7 +41,7 @@ function ClickHandler({ onMapClick }) {
   return null;
 }
 
-function MapInstanceCapture({ onReady }) {
+function MapInstanceCapture({ onReady }: { onReady: (map: L.Map) => void }) {
   const map = useMap();
   useEffect(() => {
     onReady(map);

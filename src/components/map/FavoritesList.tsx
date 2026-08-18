@@ -2,8 +2,17 @@
 
 import { Star } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import type { Favorite } from "@/types/domain";
 
-export default function FavoritesList({ show, favorites, onSelect }) {
+export default function FavoritesList({
+  show,
+  favorites,
+  onSelect,
+}: {
+  show: boolean;
+  favorites: Favorite[];
+  onSelect: (id: number, name: string) => void;
+}) {
   const { t } = useLanguage();
   if (!show) return null;
 

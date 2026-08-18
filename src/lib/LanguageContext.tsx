@@ -38,8 +38,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, newLang);
   }
 
-  const t = (key: string) =>
-    translations[lang]?.[key] ?? translations.ko[key] ?? key;
+  // 키 유니온이 아니라 임의 string을 받는 계약이라(LanguageContextValue.t)
+  // 조회 시점에 사전을 느슨한 레코드로 본다.
+  const t = (key: string) => {
+    const table = translations[lang] as Record<string, string | undefined>;
+    const ko = translations.ko as Record<string, string | undefined>;
+    return table?.[key] ?? ko[key] ?? key;
+  };
 
   return (
     <LanguageContext.Provider value={{ lang, setLang, t }}>

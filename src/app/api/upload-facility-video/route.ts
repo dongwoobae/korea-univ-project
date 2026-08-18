@@ -12,7 +12,7 @@ const supabaseAdmin = createClient(
 const ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_SIZE = 200 * 1024 * 1024; // 200MB
 
-export async function POST(request) {
+export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
 
@@ -21,7 +21,7 @@ export async function POST(request) {
     const file = formData.get("file");
     const facilityId = formData.get("facilityId");
 
-    if (!file || !facilityId) {
+    if (!(file instanceof File) || !facilityId) {
       return NextResponse.json(
         { error: "파일 또는 시설 ID 누락" },
         { status: 400 },
@@ -52,10 +52,6 @@ export async function POST(request) {
           : "mp4";
     const key = `facility-videos/${facilityId}/${Date.now()}.${ext}`;
 
-    console.log(
-      `[upload-facility-video] facilityId=${facilityId} size=${buffer.length} key=${key}`,
-    );
-
     await r2.send(
       new PutObjectCommand({
         Bucket: R2_BUCKET,
@@ -77,7 +73,6 @@ export async function POST(request) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
 
-    console.log("[upload-facility-video] success:", videoUrl);
     return NextResponse.json({ videoUrl });
   } catch (err) {
     console.error("[upload-facility-video] unexpected error:", err);

@@ -19,9 +19,19 @@ import {
   Plus,
   Satellite,
 } from "lucide-react";
-import type { FeatureCollection } from "geojson";
+import type {
+  Feature,
+  FeatureCollection,
+  GeoJsonProperties,
+  Geometry,
+} from "geojson";
 import "leaflet/dist/leaflet.css";
-import type { Favorite, Landmark, MapFacility } from "@/types/domain";
+import type {
+  BuildingFeature,
+  Favorite,
+  Landmark,
+  MapFacility,
+} from "@/types/domain";
 import { campusColor, satelliteCampusColor } from "@/lib/theme";
 import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
@@ -87,16 +97,26 @@ function loadFavoritesFromStorage() {
   }
 }
 
-function buildingColor(feature, tileMode, prefersDarkMode) {
+type TileMode = keyof typeof TILES;
+
+function buildingColor(
+  feature: BuildingFeature | undefined,
+  tileMode: TileMode,
+  prefersDarkMode: boolean,
+) {
   const useBrightColors = tileMode === "satellite" || prefersDarkMode;
   const colors = useBrightColors ? satelliteCampusColor : campusColor;
   return (
-    colors[feature?.properties?.campus] ??
+    colors[feature?.properties?.campus ?? ""] ??
     (useBrightColors ? "#FF4D3D" : "#963A32")
   );
 }
 
-function baseStyle(feature, tileMode, prefersDarkMode) {
+function baseStyle(
+  feature: BuildingFeature | undefined,
+  tileMode: TileMode,
+  prefersDarkMode: boolean,
+) {
   const color = buildingColor(feature, tileMode, prefersDarkMode);
   const satellite = tileMode === "satellite";
   return {
@@ -108,7 +128,11 @@ function baseStyle(feature, tileMode, prefersDarkMode) {
   };
 }
 
-function hoverStyle(feature, tileMode, prefersDarkMode) {
+function hoverStyle(
+  feature: BuildingFeature | undefined,
+  tileMode: TileMode,
+  prefersDarkMode: boolean,
+) {
   const color = buildingColor(feature, tileMode, prefersDarkMode);
   const satellite = tileMode === "satellite";
   return {
@@ -307,9 +331,9 @@ export default function Map() {
   const activeLayerRef = useRef<L.Polygon | null>(null);
   const activeBuildingIdRef = useRef<number | null>(null);
   const layerMapRef = useRef<Record<number, L.Polygon>>({});
-  const featureMapRef = useRef<Record<number, unknown>>({});
+  const featureMapRef = useRef<Record<number, BuildingFeature>>({});
   const favoriteIdsRef = useRef(
-    new Set(loadFavoritesFromStorage().map((f) => f.id)),
+    new Set(loadFavoritesFromStorage().map((f: Favorite) => f.id)),
   );
   // isMobile을 ref로도 관리 — onEachFeature 클로저에서 항상 최신값 참조
   const isMobileRef = useRef(false);
@@ -317,11 +341,15 @@ export default function Map() {
   // (state로 두면 마우스 이동마다 Map 전체가 리렌더되어 드래그가 무거워짐)
   const tooltipRef = useRef<HTMLDivElement | null>(null);
 
+  // react-leaflet의 StyleFunction은 Feature<Geometry, any>를 넘긴다. 이 지도의
+  // GeoJSON은 건물 폴리곤만 싣기에 좁혀 받는다.
   const geoJsonStyle = useCallback(
-    (feature) =>
-      activeBuildingIdRef.current === feature?.properties?.id
-        ? hoverStyle(feature, tileMode, prefersDarkMode)
-        : baseStyle(feature, tileMode, prefersDarkMode),
+    (feature?: Feature<Geometry, GeoJsonProperties>) => {
+      const building = feature as BuildingFeature | undefined;
+      return activeBuildingIdRef.current === building?.properties?.id
+        ? hoverStyle(building, tileMode, prefersDarkMode)
+        : baseStyle(building, tileMode, prefersDarkMode);
+    },
     [tileMode, prefersDarkMode],
   );
 
@@ -337,7 +365,7 @@ export default function Map() {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  function handleBuildingSelectFromSearch(feature) {
+  function handleBuildingSelectFromSearch(feature: BuildingFeature) {
     const bId = feature.properties.id;
     if (activeLayerRef.current && activeBuildingIdRef.current !== bId) {
       activeLayerRef.current.setStyle(
@@ -358,7 +386,8 @@ export default function Map() {
   }
 
   useEffect(() => {
-    const handler = (e) => setToast(e.detail);
+    const handler = (e: Event) =>
+      setToast((e as CustomEvent<{ message: string; type: string }>).detail);
     window.addEventListener("showToast", handler);
     return () => window.removeEventListener("showToast", handler);
   }, []);
@@ -367,7 +396,7 @@ export default function Map() {
     const handler = () => {
       const updated = loadFavoritesFromStorage();
       setFavoritesList(updated);
-      favoriteIdsRef.current = new Set(updated.map((f) => f.id));
+      favoriteIdsRef.current = new Set(updated.map((f: Favorite) => f.id));
       Object.entries(layerMapRef.current).forEach(([id, layer]) => {
         const numId = Number(id);
         const isActive = activeBuildingIdRef.current === numId;
@@ -386,21 +415,11 @@ export default function Map() {
   useEffect(() => {
     Object.entries(layerMapRef.current).forEach(([id, layer]) => {
       const feature = featureMapRef.current[Number(id)];
-      if (
-        !feature ||
-        typeof feature !== "object" ||
-        !("properties" in feature)
-      ) {
-        return;
-      }
-      const properties = feature.properties as Record<
-        string,
-        string | null | undefined
-      >;
+      if (!feature) return;
       const label = localizedValue(
-        properties.name,
-        properties.name_en,
-        properties.name_zh,
+        feature.properties.name,
+        feature.properties.name_en,
+        feature.properties.name_zh,
         lang,
       );
       if (label) layer.getTooltip()?.setContent(label);
@@ -414,7 +433,7 @@ export default function Map() {
     );
   }, [buildingLabelsVisible]);
 
-  function onEachFeature(feature, layer) {
+  function onEachFeature(feature: BuildingFeature, layer: L.Polygon) {
     const bId = feature.properties.id;
     layerMapRef.current[bId] = layer;
     featureMapRef.current[bId] = feature;
@@ -435,7 +454,7 @@ export default function Map() {
       });
     }
     layer.on({
-      mouseover(e) {
+      mouseover(e: L.LeafletMouseEvent) {
         if (isMobileRef.current || (mapRef.current?.getZoom() ?? 16) >= 17) {
           return;
         }
@@ -447,12 +466,12 @@ export default function Map() {
         setTooltip({
           visible: true,
           name: feature.properties.name,
-          name_en: feature.properties.name_en,
+          name_en: feature.properties.name_en ?? "",
           x: clientX - rect.left + 12,
           y: clientY - rect.top - 36,
         });
       },
-      mousemove(e) {
+      mousemove(e: L.LeafletMouseEvent) {
         if (isMobileRef.current || (mapRef.current?.getZoom() ?? 16) >= 17) {
           return;
         }
@@ -491,7 +510,7 @@ export default function Map() {
     });
   }
 
-  function handleSelectById(id, name) {
+  function handleSelectById(id: number, name: string) {
     if (activeLayerRef.current && activeBuildingIdRef.current !== id) {
       activeLayerRef.current.setStyle(
         baseStyle(

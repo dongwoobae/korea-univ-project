@@ -1,14 +1,41 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useState,
+  type CSSProperties,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
 import { ChevronDown, ChevronUp, Mountain } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
+import type { LangCode } from "@/lib/translations";
+import type { FacilityType } from "@/types/domain";
 import { campusColor } from "@/lib/theme";
 import { getFacilityColor } from "./facilityColors";
 import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
 import SlopeLegend from "./SlopeLegend";
 
-const CAMPUS_LIST = [
+export type CampusKey = "인문사회계" | "자연계" | "녹지캠퍼스" | "의료원";
+
+/** 캠퍼스 필터 토글 맵. 키는 CAMPUS_LIST의 campus 값과 같다. */
+export type CampusFlags = Record<CampusKey, boolean>;
+
+/** FilterPanel이 그리는 시설 유형 — useMapData가 select하는 열만 온다. */
+type FilterFacilityType = Pick<
+  FacilityType,
+  "code" | "label" | "label_en" | "label_zh"
+>;
+
+type CampusItem = {
+  campus: CampusKey;
+  label: string;
+  label_en: string;
+  label_zh: string;
+};
+
+const CAMPUS_LIST: CampusItem[] = [
   {
     campus: "인문사회계",
     label: "인문·사회계",
@@ -35,19 +62,29 @@ const CAMPUS_LIST = [
   },
 ];
 
-function campusLabel(item, lang) {
+function campusLabel(item: CampusItem, lang: LangCode) {
   if (lang === "en") return item.label_en;
   if (lang === "zh") return item.label_zh;
   return item.label;
 }
 
-function facilityLabel(item, lang) {
+function facilityLabel(item: FilterFacilityType, lang: LangCode) {
   if (lang === "en") return item.label_en ?? item.label;
   if (lang === "zh") return item.label_zh ?? item.label;
   return item.label;
 }
 
-function Chip({ active, color, onClick, children }) {
+function Chip({
+  active,
+  color,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  color: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
   return (
     <button
       className="ku-chip"
@@ -75,6 +112,20 @@ export default function FilterPanel({
   onOpenChange,
   isFront,
   onActivate,
+}: {
+  isMobile: boolean;
+  facilityTypes: FilterFacilityType[];
+  activeTypes: Record<string, boolean>;
+  setActiveTypes: Dispatch<SetStateAction<Record<string, boolean>>>;
+  showSlope: boolean;
+  setShowSlope: Dispatch<SetStateAction<boolean>>;
+  activeCampuses: CampusFlags;
+  setActiveCampuses: Dispatch<SetStateAction<CampusFlags>>;
+  showLandmarks: boolean;
+  setShowLandmarks: Dispatch<SetStateAction<boolean>>;
+  onOpenChange?: (open: boolean) => void;
+  isFront: boolean;
+  onActivate: () => void;
 }) {
   const [campusSectionOpen, setCampusSectionOpen] = useState(false);
   const [facilitySectionOpen, setFacilitySectionOpen] = useState(false);

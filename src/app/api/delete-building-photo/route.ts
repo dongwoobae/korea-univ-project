@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-export async function POST(request) {
+export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
 
@@ -22,9 +22,6 @@ export async function POST(request) {
     }
 
     const storagePath = url.split("/building-photos/")[1]?.split("?")[0];
-    console.log(
-      `[delete-building-photo] photoId=${photoId} path=${storagePath}`,
-    );
 
     if (storagePath) {
       const { error: removeError } = await supabaseAdmin.storage
@@ -49,7 +46,6 @@ export async function POST(request) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
 
-    console.log("[delete-building-photo] success");
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[delete-building-photo] unexpected error:", err);

@@ -19,8 +19,18 @@ const STYLES = {
   },
 };
 
-export default function Toast({ message, type = "success", onClose }) {
-  const s = STYLES[type] ?? STYLES.success;
+// 호출부가 STYLES에 없는 값(예: "info")도 넘긴다. 좁은 유니온으로 조이면
+// 그 호출부가 깨지므로 string으로 받고 아래 조회에서 success로 떨어뜨린다.
+export default function Toast({
+  message,
+  type = "success",
+  onClose,
+}: {
+  message: string;
+  type?: string;
+  onClose: () => void;
+}) {
+  const s = STYLES[type as keyof typeof STYLES] ?? STYLES.success;
 
   useEffect(() => {
     const t = setTimeout(onClose, 3000);

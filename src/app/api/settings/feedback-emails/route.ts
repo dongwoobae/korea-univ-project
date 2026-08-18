@@ -7,11 +7,11 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const admin = createClient(supabaseUrl, serviceKey);
 
-function isEmail(s) {
+function isEmail(s: unknown): boolean {
   return typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 }
 
-async function verifyAdmin(request) {
+async function verifyAdmin(request: Request) {
   const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/, "");
   if (!token) return null;
   const client = createClient(supabaseUrl, anonKey, {
@@ -23,7 +23,7 @@ async function verifyAdmin(request) {
   return user;
 }
 
-export async function POST(request) {
+export async function POST(request: Request) {
   const user = await verifyAdmin(request);
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -33,7 +33,7 @@ export async function POST(request) {
   const to = body.to?.trim();
   const subject = body.subject?.trim();
   const ccRaw = Array.isArray(body.cc) ? body.cc : [];
-  const cc = ccRaw.map((s) => s?.trim()).filter(Boolean);
+  const cc = ccRaw.map((s: unknown) => (s as string)?.trim()).filter(Boolean);
 
   if (!isEmail(to))
     return Response.json({ error: "수신 이메일 형식 오류" }, { status: 400 });

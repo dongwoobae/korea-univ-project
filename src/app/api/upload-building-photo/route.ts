@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 );
 
-export async function POST(request) {
+export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
 
@@ -16,7 +16,7 @@ export async function POST(request) {
     const file = formData.get("file");
     const buildingId = formData.get("buildingId");
 
-    if (!file || !buildingId) {
+    if (!(file instanceof File) || !buildingId) {
       return NextResponse.json(
         { error: "파일 또는 건물 ID 누락" },
         { status: 400 },
@@ -25,10 +25,6 @@ export async function POST(request) {
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const fileName = `${buildingId}/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
-
-    console.log(
-      `[upload-building-photo] buildingId=${buildingId} size=${buffer.length}`,
-    );
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from("building-photos")
@@ -56,7 +52,6 @@ export async function POST(request) {
       return NextResponse.json({ error: dbError.message }, { status: 500 });
     }
 
-    console.log("[upload-building-photo] success:", photo.url);
     return NextResponse.json({ id: photo.id, url: photo.url });
   } catch (err) {
     console.error("[upload-building-photo] unexpected error:", err);
