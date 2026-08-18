@@ -236,6 +236,7 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
         name: `추가 명소 ${String(index + 1).padStart(2, "0")}`,
         name_en: `Extra landmark ${index + 1}`,
         description: "페이지네이션 검증용 명소",
+        icon: "📍",
         lat: 37.5895,
         lng: 127.0322,
         photo_url: null,

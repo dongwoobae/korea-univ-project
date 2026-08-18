@@ -314,6 +314,12 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       page.getByRole("heading", { name: "현재 지도 안의 시설과 명소" }),
     ).toBeVisible();
     await expect(page.getByText("다람쥐길", { exact: true })).toBeVisible();
+    const squirrelTrailRow = page.getByRole("button", {
+      name: /다람쥐길.*지도 보기/,
+    });
+    await expect(squirrelTrailRow.locator(".ku-map-browse-icon")).toContainText(
+      "🐿️",
+    );
 
     await page.getByRole("button", { name: "현재 지도 목록 닫기" }).click();
     await page.getByRole("button", { name: "시설", exact: true }).click();

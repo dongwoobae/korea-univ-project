@@ -29,6 +29,7 @@ test.describe("공개 지도 통합 검색 · 콤보박스", () => {
       '.ku-search-result[data-kind="landmark"]',
     );
     await expect(landmarkOption).toBeVisible();
+    await expect(landmarkOption).toContainText("🐿️");
     // 명소임을 시각적으로 구분: "명소" 태그
     await expect(
       landmarkOption.getByText("명소", { exact: true }),
