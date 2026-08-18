@@ -41,7 +41,7 @@ const landmarkMarkerIcon = (
 ) => {
   const emoji = landmarkEmoji(landmark.icon);
   return cachedIcon(
-    `landmark|${landmark.id}|${name}|${emoji}|${showLabel}`,
+    JSON.stringify(["landmark", landmark.id, name, emoji, showLabel]),
     () =>
       L.divIcon({
         className: "",
