@@ -163,7 +163,7 @@ Expected: FAIL — `landmarkEmoji is not a function` 또는 import 해석 실패
 
 - [ ] **Step 3: 최소 구현을 넣는다**
 
-`src/lib/mapIcons.ts`의 `export const LANDMARK_ICON_SVG = Sparkles;` 아래에 넣는다.
+`src/lib/mapIcons.ts`의 `FACILITY_CLUSTER_ICON_SVG` 아래, `sizedIconSvg` 위에 넣는다.
 
 ```ts
 export const LANDMARK_FALLBACK_EMOJI = "✨";
@@ -200,10 +200,14 @@ git commit -m "feat(map): 명소 이모지 폴백 함수를 세운다"
 
 - [ ] **Step 1: import를 바꾼다**
 
-`LANDMARK_ICON_SVG`는 클러스터가 계속 쓰므로 남긴다.
+`LANDMARK_CATEGORY_ICON_SVG`는 클러스터가 계속 쓰므로 남긴다.
 
 ```ts
-import { LANDMARK_ICON_SVG, landmarkEmoji, sizedIconSvg } from "@/lib/mapIcons";
+import {
+  LANDMARK_CATEGORY_ICON_SVG,
+  landmarkEmoji,
+  sizedIconSvg,
+} from "@/lib/mapIcons";
 ```
 
 - [ ] **Step 2: `landmarkMarkerIcon`의 캐시 키와 html을 바꾼다**
@@ -249,7 +253,7 @@ lucide SVG는 `sizedIconSvg(..., 15)`가 크기를 정했지만 이모지는 텍
 
 - [ ] **Step 4: 클러스터는 건드리지 않는다**
 
-`landmarkClusterIcon`은 여러 명소를 묶은 것이라 고를 이모지가 없다. `LANDMARK_ICON_SVG`(`Sparkles`) 그대로 둔다.
+`landmarkClusterIcon`은 여러 명소를 묶은 것이라 고를 이모지가 없다. `LANDMARK_CATEGORY_ICON_SVG`(`Sparkles`) 그대로 둔다.
 
 - [ ] **Step 5: 검증**
 
@@ -540,7 +544,7 @@ git commit -m "test: 명소 이모지 복원에 맞춰 회귀 단언을 뒤집�
 - [ ] **Step 1: 단위 테스트**
 
 Run: `npm run test`
-Expected: 전부 통과. `mapIcons.test.ts`의 `LANDMARK_ICON_SVG` = sparkles 단언은 **그대로 통과해야 한다** — 그 상수는 이제 클러스터·필터 토글이 쓰는 카테고리 아이콘이다.
+Expected: 전부 통과. `mapIcons.test.ts`의 `LANDMARK_CATEGORY_ICON_SVG` = sparkles 단언은 **그대로 통과해야 한다** — 그 상수는 이제 클러스터·필터 토글이 쓰는 카테고리 아이콘이다.
 
 - [ ] **Step 2: typecheck와 lint**
 
@@ -559,7 +563,7 @@ Expected: 전부 통과.
 
 - [ ] **Step 5: 카테고리 아이콘이 남았는지 눈으로 확인**
 
-`LANDMARK_ICON_SVG`/`LANDMARK_ICON`의 남은 소비자가 클러스터와 필터 토글 둘뿐인지 확인한다.
+`LANDMARK_CATEGORY_ICON_SVG`/`LANDMARK_CATEGORY_ICON`의 남은 소비자가 클러스터와 필터 토글 둘뿐인지 확인한다.
 
 Run: `grep -rn "LANDMARK_ICON" src/`
 Expected: `mapIcons.ts` 정의, `iconography.tsx` 정의, `LandmarkMarkers.tsx`의 클러스터, `FilterPanel.tsx`의 토글, 테스트 2파일. **개별 명소 렌더 지점에는 남아 있으면 안 된다.**

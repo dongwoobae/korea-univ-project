@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   FACILITY_CLUSTER_ICON_SVG,
+  LANDMARK_CATEGORY_ICON_SVG,
   LANDMARK_FALLBACK_EMOJI,
-  LANDMARK_ICON_SVG,
   SUBWAY_ICON_SVG,
   facilityIconKey,
   facilityIconSvg,
@@ -55,7 +55,7 @@ describe("facilityIconSvg", () => {
 
 describe("sizedIconSvg", () => {
   it("width·height만 바꾸고 stroke-width는 건드리지 않는다", () => {
-    const out = sizedIconSvg(LANDMARK_ICON_SVG, 15);
+    const out = sizedIconSvg(LANDMARK_CATEGORY_ICON_SVG, 15);
     expect(out).toContain('width="15"');
     expect(out).toContain('height="15"');
     expect(out).toContain('stroke-width="2"');
@@ -64,7 +64,7 @@ describe("sizedIconSvg", () => {
 
 describe("마커 전용 아이콘", () => {
   it("명소·지하철·시설 클러스터 아이콘을 노출한다", () => {
-    expect(LANDMARK_ICON_SVG).toContain("lucide-sparkles");
+    expect(LANDMARK_CATEGORY_ICON_SVG).toContain("lucide-sparkles");
     expect(SUBWAY_ICON_SVG).toContain("lucide-train-front");
     expect(FACILITY_CLUSTER_ICON_SVG).toContain("lucide-accessibility");
   });
@@ -73,6 +73,7 @@ describe("마커 전용 아이콘", () => {
 describe("landmarkEmoji", () => {
   it("저장된 이모지를 그대로 돌려준다", () => {
     expect(landmarkEmoji("🐿️")).toBe("🐿️");
+    expect(landmarkEmoji("  🐿️  ")).toBe("🐿️");
   });
 
   it("값이 없으면 기본 이모지로 떨어진다", () => {

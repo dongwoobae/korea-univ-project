@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { FACILITY_ICON_SVG, LANDMARK_ICON_SVG } from "@/lib/mapIcons";
-import { FACILITY_ICON, LANDMARK_ICON } from "./iconography";
+import { FACILITY_ICON_SVG, LANDMARK_CATEGORY_ICON_SVG } from "@/lib/mapIcons";
+import { FACILITY_ICON, LANDMARK_CATEGORY_ICON } from "./iconography";
 
 function lucideClass(displayName: string): string {
   return `lucide-${displayName.replace(/(?<!^)([A-Z])/g, "-$1").toLowerCase()}`;
@@ -16,8 +16,8 @@ describe("아이콘 테이블 짝 맞추기", () => {
   });
 
   it("명소 아이콘도 마커와 JSX가 일치한다", () => {
-    expect(LANDMARK_ICON_SVG).toContain(
-      `class="lucide ${lucideClass(LANDMARK_ICON.displayName!)}"`,
+    expect(LANDMARK_CATEGORY_ICON_SVG).toContain(
+      `class="lucide ${lucideClass(LANDMARK_CATEGORY_ICON.displayName!)}"`,
     );
   });
 });

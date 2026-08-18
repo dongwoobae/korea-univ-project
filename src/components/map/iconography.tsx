@@ -32,8 +32,8 @@ export function FacilityTypeIcon({ code, size = 18 }: FacilityTypeIconProps) {
   return <Icon size={size} aria-hidden="true" />;
 }
 
-export const LANDMARK_ICON = Sparkles;
+export const LANDMARK_CATEGORY_ICON = Sparkles;
 
 export function LandmarkIcon({ size = 18 }: { size?: number }) {
-  return <LANDMARK_ICON size={size} aria-hidden="true" />;
+  return <LANDMARK_CATEGORY_ICON size={size} aria-hidden="true" />;
 }

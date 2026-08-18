@@ -38,20 +38,21 @@ export const FACILITY_ICON_SVG: Record<FacilityIconKey, string> = {
   fallback: Accessibility,
 };
 
-export const LANDMARK_ICON_SVG = Sparkles;
+export const LANDMARK_CATEGORY_ICON_SVG = Sparkles;
+export const SUBWAY_ICON_SVG = TrainFront;
+export const FACILITY_CLUSTER_ICON_SVG = Accessibility;
+
 export const LANDMARK_FALLBACK_EMOJI = "✨";
 
 /**
- * 마이그레이션이 프론트 배포보다 늦게 적용되는 창에서는 응답에 icon 필드가
- * 아예 없다. 타입은 string이라 컴파일이 잡아주지 못한다.
+ * 타입은 `string`이지만 배포 창에서는 필드 자체가 오지 않는다 —
+ * 근거는 `docs/superpowers/specs/2026-08-18-restore-landmark-emoji-design.md`의
+ * "배포 순서" 절에 있다.
  */
 export function landmarkEmoji(icon: string | null | undefined): string {
   const value = icon?.trim();
   return value ? value : LANDMARK_FALLBACK_EMOJI;
 }
-
-export const SUBWAY_ICON_SVG = TrainFront;
-export const FACILITY_CLUSTER_ICON_SVG = Accessibility;
 
 /** lucide-static SVG는 24px 고정이라 자리 크기에 맞춰 덮어쓴다. */
 export function sizedIconSvg(svg: string, size: number): string {

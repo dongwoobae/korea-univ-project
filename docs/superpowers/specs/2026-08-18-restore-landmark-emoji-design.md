@@ -136,9 +136,12 @@ lucide SVG는 `stroke="currentColor"`로 색을 상속했지만 이모지는 자
 마커의 `color: #C08A2D`가 더 이상 아이콘에 걸리지 않는다. 마커 테두리·라벨
 색은 그대로 두고 아이콘만 이모지 색으로 뜬다.
 
-`LANDMARK_ICON`(`iconography.tsx`)과 `LANDMARK_ICON_SVG`(`mapIcons.ts`)는
-남기되 의미가 **명소 카테고리 아이콘**으로 좁아진다. 클러스터와 필터 토글이
-소비자다.
+`LANDMARK_ICON_SVG`(`mapIcons.ts`)와 `LANDMARK_ICON`(`iconography.tsx`)은
+**명소 카테고리 아이콘**만 뜻하게 되므로 `LANDMARK_CATEGORY_ICON_SVG`·
+`LANDMARK_CATEGORY_ICON`으로 이름을 바꾼다. 소비자는 클러스터와 필터 토글
+둘뿐이다. 이름을 두면 개별 명소용 `landmarkEmoji`와 구분이 안 돼, 다섯 렌더
+지점에서 잘못 고르기 쉽다. `LandmarkIcon` 컴포넌트 이름은 그대로 두고 소비자가
+사라지는 대로 걷는다.
 
 ## 관리자 폼
 
@@ -167,7 +170,7 @@ lucide SVG는 `stroke="currentColor"`로 색을 상속했지만 이모지는 자
 - **`e2e/public-map.spec.ts`가 명소 마커 안의 `svg.lucide-sparkles`를 단언한다** —
   개별 마커가 이모지로 바뀌면 깨진다. 이모지 텍스트 단언으로 바꾼다. 클러스터를
   단언하는 쪽은 그대로 둔다.
-- `mapIcons.test.ts`·`iconography.test.ts`의 `LANDMARK_ICON_SVG` = sparkles
+- `mapIcons.test.ts`·`iconography.test.ts`의 `LANDMARK_CATEGORY_ICON_SVG` = sparkles
   단언은 유지한다. 대상이 카테고리 아이콘으로 좁아진 것을 이름·문구에 반영한다.
 - e2e `mockBackend`의 명소 픽스처에 `icon`을 되살리고, 명소 마커에 이모지가
   보이는지 단언을 더한다.
