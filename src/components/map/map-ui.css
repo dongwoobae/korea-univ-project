@@ -766,12 +766,18 @@
   z-index: 3000;
   inset: 0;
   display: grid;
-  place-items: center;
+  justify-items: center;
+  /* start + margin:auto 조합 — 여유가 있으면 가운데, 없으면 위에서부터 쌓아
+     스크롤로 닿게 한다. center로 두면 넘친 위쪽이 스크롤 범위 밖으로 나간다. */
+  align-items: start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px;
   background: var(--ku-backdrop);
 }
 .ku-feedback-modal {
   width: min(440px, 100%);
+  margin: auto 0;
   padding: 24px;
   border: 1px solid var(--ku-border);
   border-radius: 16px;
@@ -1218,6 +1224,14 @@
     background: transparent;
     box-shadow: none;
     backdrop-filter: none;
+    /* 패널은 화면 폭을 다 쓰지만 보이는 것은 트리거와 드롭다운뿐이다. 나머지
+       투명 구간이 z-index 1050으로 지도와 언어 목록(1000)의 탭을 삼키지 않게
+       통과시키고, 실제 조작 대상에만 되돌려준다. */
+    pointer-events: none;
+  }
+  .ku-mobile-filter-trigger,
+  .ku-mobile-filter-content {
+    pointer-events: auto;
   }
   .ku-mobile-filter-trigger {
     display: flex;

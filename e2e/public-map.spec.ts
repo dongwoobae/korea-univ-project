@@ -487,6 +487,41 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByRole("button", { name: "제출하기" })).toBeEnabled();
   });
 
+  test("작은 화면에서 오류 안내가 붙어도 제출과 메일 대안에 닿는다", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.route("**/api/feedback", (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "test failure" }),
+      }),
+    );
+    await page.goto("/");
+
+    await page.getByTitle("피드백 보내기").click();
+    await page
+      .getByLabel("내용")
+      .fill("작은 화면에서도 재시도할 수 있어야 한다");
+    await page.getByRole("button", { name: "제출하기" }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "서버 제출에 실패했습니다" }),
+    ).toBeVisible();
+
+    // 오류 문구가 붙으면 모달이 뷰포트보다 높아진다. 위아래 모두 닿아야 한다.
+    const submit = page.getByRole("button", { name: "제출하기" });
+    await submit.scrollIntoViewIfNeeded();
+    await expect(submit).toBeInViewport();
+    await expect(
+      page.getByRole("link", { name: "메일 앱으로 피드백 보내기" }),
+    ).toBeInViewport();
+
+    const title = page.getByRole("heading", { name: "피드백 보내기" });
+    await title.scrollIntoViewIfNeeded();
+    await expect(title).toBeInViewport();
+  });
+
   test("지도 영역 밖의 현재 위치는 이동하지 않고 안내한다", async ({
     page,
   }) => {
