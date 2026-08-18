@@ -200,6 +200,9 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
       state.landmarks.find((landmark) => landmark.name === "E2E 포토존")
         ?.photo_url,
     ).toContain("uploaded-landmark");
+    expect(
+      state.landmarks.find((landmark) => landmark.name === "E2E 포토존")?.icon,
+    ).toBe("📸");
 
     const row = page.getByText("E2E 포토존").locator("xpath=../..");
     await row.getByRole("button", { name: "삭제" }).click();
