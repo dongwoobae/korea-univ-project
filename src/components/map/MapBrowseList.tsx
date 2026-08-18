@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { List, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import { landmarkEmoji } from "@/lib/mapIcons";
-import { FacilityTypeIcon } from "./iconography";
+import { FacilityTypeIcon, LandmarkEmoji } from "./iconography";
 
 export interface MapBrowseItem {
   key: string;
@@ -99,9 +98,7 @@ export default function MapBrowseList({
                   >
                     <span className="ku-map-browse-icon">
                       {item.kind === "landmark" ? (
-                        <span aria-hidden="true" style={{ fontSize: 16 }}>
-                          {landmarkEmoji(item.icon)}
-                        </span>
+                        <LandmarkEmoji icon={item.icon} size={16} />
                       ) : (
                         <FacilityTypeIcon code={item.code} size={16} />
                       )}

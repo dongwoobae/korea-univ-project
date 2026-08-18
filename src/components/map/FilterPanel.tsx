@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, Mountain } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { campusColor } from "@/lib/theme";
 import { getFacilityColor } from "./facilityColors";
-import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
+import { FacilityTypeIcon, LandmarkCategoryIcon } from "./iconography";
 import SlopeLegend from "./SlopeLegend";
 
 const CAMPUS_LIST = [
@@ -201,7 +201,7 @@ export default function FilterPanel({
             checked={showLandmarks}
             onChange={() => setShowLandmarks((show) => !show)}
           />
-          <LandmarkIcon size={15} />
+          <LandmarkCategoryIcon size={15} />
           <span>{t("landmarkToggle")}</span>
         </label>
         <SlopeLegend show={showSlope} />

@@ -12,6 +12,7 @@ import {
   landmarkEmoji,
   sizedIconSvg,
 } from "@/lib/mapIcons";
+import { LandmarkEmoji } from "./iconography";
 
 function escapeHtml(value: string): string {
   return value
@@ -159,9 +160,7 @@ function LandmarkMarkers({
                     color: "#222",
                   }}
                 >
-                  <span aria-hidden="true" style={{ fontSize: 15 }}>
-                    {landmarkEmoji(landmark.icon)}
-                  </span>
+                  <LandmarkEmoji icon={landmark.icon} size={15} />
                   {name}
                 </div>
                 {description && (
