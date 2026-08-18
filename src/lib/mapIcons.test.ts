@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   FACILITY_CLUSTER_ICON_SVG,
+  LANDMARK_FALLBACK_EMOJI,
   LANDMARK_ICON_SVG,
   SUBWAY_ICON_SVG,
   facilityIconKey,
   facilityIconSvg,
+  landmarkEmoji,
   sizedIconSvg,
 } from "./mapIcons";
 
@@ -65,5 +67,18 @@ describe("마커 전용 아이콘", () => {
     expect(LANDMARK_ICON_SVG).toContain("lucide-sparkles");
     expect(SUBWAY_ICON_SVG).toContain("lucide-train-front");
     expect(FACILITY_CLUSTER_ICON_SVG).toContain("lucide-accessibility");
+  });
+});
+
+describe("landmarkEmoji", () => {
+  it("저장된 이모지를 그대로 돌려준다", () => {
+    expect(landmarkEmoji("🐿️")).toBe("🐿️");
+  });
+
+  it("값이 없으면 기본 이모지로 떨어진다", () => {
+    expect(landmarkEmoji(null)).toBe(LANDMARK_FALLBACK_EMOJI);
+    expect(landmarkEmoji(undefined)).toBe(LANDMARK_FALLBACK_EMOJI);
+    expect(landmarkEmoji("")).toBe(LANDMARK_FALLBACK_EMOJI);
+    expect(landmarkEmoji("   ")).toBe(LANDMARK_FALLBACK_EMOJI);
   });
 });

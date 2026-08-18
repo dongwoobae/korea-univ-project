@@ -39,6 +39,17 @@ export const FACILITY_ICON_SVG: Record<FacilityIconKey, string> = {
 };
 
 export const LANDMARK_ICON_SVG = Sparkles;
+export const LANDMARK_FALLBACK_EMOJI = "✨";
+
+/**
+ * 마이그레이션이 프론트 배포보다 늦게 적용되는 창에서는 응답에 icon 필드가
+ * 아예 없다. 타입은 string이라 컴파일이 잡아주지 못한다.
+ */
+export function landmarkEmoji(icon: string | null | undefined): string {
+  const value = icon?.trim();
+  return value ? value : LANDMARK_FALLBACK_EMOJI;
+}
+
 export const SUBWAY_ICON_SVG = TrainFront;
 export const FACILITY_CLUSTER_ICON_SVG = Accessibility;
 
