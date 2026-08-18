@@ -582,9 +582,9 @@
 .ku-map-browse-trigger strong {
   display: grid;
   place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
   color: #fff;
   background: #8c0000;
@@ -1259,13 +1259,13 @@
   .ku-mobile-filter-badge {
     display: grid;
     place-items: center;
-    min-width: 22px;
-    height: 22px;
-    padding: 0 6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
     border-radius: 999px;
     color: #fff;
     background: #8c0000;
-    font-size: 12px;
+    font-size: 11px;
   }
   .ku-mobile-filter-content {
     margin-top: 8px;
@@ -1306,8 +1306,10 @@
   .ku-map-zoom {
     display: none;
   }
+  /* 한 줄로 눕힌 출처 표기(아래 12 + 높이 24)를 8px 띄우고 그 위에 앉는다.
+     패널 bottom·max-height는 트리거가 내려온 만큼 따라 내려오고 늘어난다. */
   .ku-map-browse {
-    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(44px + env(safe-area-inset-bottom, 0px));
     left: 16px;
   }
   .ku-map-browse-trigger {
@@ -1317,13 +1319,13 @@
   .ku-map-browse-panel {
     position: fixed;
     right: 16px;
-    bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     width: auto;
-    max-height: calc(100dvh - 236px);
+    max-height: calc(100dvh - 188px);
   }
   .ku-map-browse-list {
-    max-height: calc(100dvh - 346px);
+    max-height: calc(100dvh - 298px);
   }
   /* 지도를 가리지 않도록 한 줄로 눕히고 최소 크기로 줄인다 — 표기 의무만 지키는
      각주 취급. 배경은 남긴다. 타일 위에서 글자가 읽히지 않는다. */

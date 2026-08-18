@@ -89,6 +89,33 @@ test.describe("공개 지도 P0 개선 (모바일·데이터 오류)", () => {
     expect(Math.round(language.height)).toBe(Math.round(favorite.height));
   });
 
+  test("모바일에서 목록 패널이 지도 액션 버튼·출처 표기와 겹치지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.setViewportSize(MOBILE);
+    await page.goto("/");
+
+    // 트리거는 한 줄짜리 출처 표기 위에 앉는다
+    const attribution = (await page.locator(".ku-attribution").boundingBox())!;
+    const trigger = (await page
+      .locator(".ku-map-browse-trigger")
+      .boundingBox())!;
+    expect(attribution.y - (trigger.y + trigger.height)).toBeGreaterThanOrEqual(
+      4,
+    );
+
+    // 패널은 화면 폭을 다 쓰므로 열려 있는 동안 액션 버튼을 치운다
+    const locate = page.getByRole("button", { name: "현 위치" });
+    await expect(locate).toBeVisible();
+    await page.locator(".ku-map-browse-trigger").click();
+    await expect(page.locator(".ku-map-browse-panel")).toBeVisible();
+    await expect(locate).toBeHidden();
+
+    await page.locator(".ku-map-browse-heading button").click();
+    await expect(locate).toBeVisible();
+  });
+
   test("모바일에서 즐겨찾기 진입점과 개수 배지를 노출한다", async ({
     page,
   }) => {

@@ -272,6 +272,7 @@ export default function Map() {
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [browseOpen, setBrowseOpen] = useState(false);
   const [frontMapPanel, setFrontMapPanel] = useState<"filter" | "browse">(
     "filter",
   );
@@ -789,7 +790,7 @@ export default function Map() {
       <div
         className="ku-map-actions"
         data-panel-open={Boolean(selectedBuilding)}
-        data-overlay-open={mobileFilterOpen}
+        data-overlay-open={mobileFilterOpen || browseOpen}
       >
         <div className="ku-map-zoom" aria-label="지도 확대 및 축소">
           <button
@@ -869,6 +870,7 @@ export default function Map() {
           items={browseItems}
           isFront={frontMapPanel === "browse"}
           onActivate={() => setFrontMapPanel("browse")}
+          onOpenChange={setBrowseOpen}
           onSelect={(item) => {
             mapRef.current?.flyTo([item.lat, item.lng], 18, { animate: true });
           }}
