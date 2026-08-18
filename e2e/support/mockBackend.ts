@@ -263,6 +263,7 @@ function createState(authenticated: boolean): MockState {
         description: "학생들이 쉬어가는 길",
         description_en: "A quiet student trail",
         description_zh: "安静的学生步道",
+        icon: "🐿️",
         lat: 37.58955,
         lng: 127.03225,
         photo_url: "https://cdn.test/landmark.webp",

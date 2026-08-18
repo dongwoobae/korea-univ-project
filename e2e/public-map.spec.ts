@@ -92,8 +92,8 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       1,
     );
     await expect(
-      page.locator('[data-testid^="landmark-marker-"] svg.lucide-sparkles'),
-    ).toHaveCount(1);
+      page.locator('[data-testid^="landmark-marker-"]'),
+    ).toContainText("🐿️");
     await expect(
       page.getByRole("button", { name: /캠퍼스 영역/ }),
     ).toHaveAttribute("aria-expanded", "false");
