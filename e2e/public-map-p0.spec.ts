@@ -71,6 +71,24 @@ test.describe("공개 지도 P0 개선 (모바일·데이터 오류)", () => {
     await expect(page.getByPlaceholder("건물 검색...")).toBeVisible();
   });
 
+  test("모바일 상단 컨트롤이 서로 붙지 않는다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.setViewportSize(MOBILE);
+    await page.goto("/");
+
+    const favorite = (await page.locator(".ku-favorite-button").boundingBox())!;
+    const language = (await page
+      .locator(".ku-language-trigger")
+      .boundingBox())!;
+
+    expect(language.x - (favorite.x + favorite.width)).toBeGreaterThanOrEqual(
+      8,
+    );
+    // 크기가 다르면 하나만 눌린 상태처럼 읽힌다
+    expect(Math.round(language.width)).toBe(Math.round(favorite.width));
+    expect(Math.round(language.height)).toBe(Math.round(favorite.height));
+  });
+
   test("모바일에서 즐겨찾기 진입점과 개수 배지를 노출한다", async ({
     page,
   }) => {
