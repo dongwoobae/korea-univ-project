@@ -164,6 +164,9 @@ lucide SVG는 `stroke="currentColor"`로 색을 상속했지만 이모지는 자
 - **`e2e/admin-content.spec.ts`가 이모지 입력란이 없다고 단언한다** — 폼을
   되살리면 반드시 깨진다. 입력란이 0개라는 단언과 그 이유를 적은 주석을 함께
   뒤집고, 입력값이 저장되는지를 단언한다.
+- **`e2e/public-map.spec.ts`가 명소 마커 안의 `svg.lucide-sparkles`를 단언한다** —
+  개별 마커가 이모지로 바뀌면 깨진다. 이모지 텍스트 단언으로 바꾼다. 클러스터를
+  단언하는 쪽은 그대로 둔다.
 - `mapIcons.test.ts`·`iconography.test.ts`의 `LANDMARK_ICON_SVG` = sparkles
   단언은 유지한다. 대상이 카테고리 아이콘으로 좁아진 것을 이름·문구에 반영한다.
 - e2e `mockBackend`의 명소 픽스처에 `icon`을 되살리고, 명소 마커에 이모지가
