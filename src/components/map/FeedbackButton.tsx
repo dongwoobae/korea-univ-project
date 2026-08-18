@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { MessageSquare, X } from "lucide-react";
 import {
   FEEDBACK_EMAILS_FALLBACK,
@@ -109,148 +110,157 @@ export default function FeedbackButton() {
         <span className="ku-map-action-label">{t("feedback")}</span>
       </button>
 
-      {open && (
-        <div
-          className="ku-feedback-backdrop"
-          role="presentation"
-          onMouseDown={(event) => {
-            if (
-              event.target === event.currentTarget &&
-              status.kind !== "submitting"
-            ) {
-              setOpen(false);
-            }
-          }}
-        >
+      {/* 실행 버튼이 있는 .ku-map-actions는 z-index로 쌓임 맥락을 만들어
+          모달의 z-index를 그 안에 가둔다. body로 빼내 검색·필터·목록 컨트롤 위에 띄운다. */}
+      {open &&
+        createPortal(
           <div
-            ref={dialogRef}
-            className="ku-feedback-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="feedback-title"
+            className="ku-feedback-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (
+                event.target === event.currentTarget &&
+                status.kind !== "submitting"
+              ) {
+                setOpen(false);
+              }
+            }}
           >
-            <div className="ku-feedback-header">
-              <h2 className="ku-feedback-title" id="feedback-title">
-                피드백 보내기
-              </h2>
-              <button
-                className="ku-feedback-close"
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="닫기"
-                disabled={status.kind === "submitting"}
-              >
-                <X size={17} aria-hidden="true" />
-              </button>
-            </div>
-            <p className="ku-feedback-help">
-              발견한 오류나 필요한 접근성 정보를 알려주세요. 서버로 바로
-              접수되며, 원한다면 메일 앱으로도 보낼 수 있습니다.
-            </p>
-
-            {status.kind === "success" ? (
-              <>
-                <p className="ku-feedback-status" data-kind="success">
-                  {status.message}
-                </p>
-                <div className="ku-feedback-actions">
-                  <button
-                    className="ku-button ku-button--primary"
-                    type="button"
-                    onClick={() => setOpen(false)}
-                  >
-                    확인
-                  </button>
-                </div>
-              </>
-            ) : (
-              <form onSubmit={submitFeedback}>
-                <span className="ku-feedback-label" id="feedback-type-label">
-                  유형
-                </span>
-                <div
-                  className="ku-feedback-types"
-                  role="group"
-                  aria-labelledby="feedback-type-label"
-                >
-                  {FEEDBACK_TYPES.map((item) => (
-                    <button
-                      className="ku-chip"
-                      type="button"
-                      key={item.value}
-                      data-active={type === item.value}
-                      onClick={() => setType(item.value)}
-                      disabled={status.kind === "submitting"}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-                <label className="ku-feedback-label" htmlFor="feedback-content">
-                  내용
-                </label>
-                <textarea
-                  ref={contentRef}
-                  className="ku-feedback-textarea"
-                  id="feedback-content"
-                  value={content}
-                  onChange={(event) => {
-                    setContent(event.target.value);
-                    if (status.kind === "error") setStatus(IDLE_STATUS);
-                  }}
-                  placeholder="어떤 점을 개선하면 좋을지 적어주세요."
-                  minLength={3}
-                  maxLength={2000}
-                  required
+            <div
+              ref={dialogRef}
+              className="ku-feedback-modal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="feedback-title"
+            >
+              <div className="ku-feedback-header">
+                <h2 className="ku-feedback-title" id="feedback-title">
+                  피드백 보내기
+                </h2>
+                <button
+                  className="ku-feedback-close"
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="닫기"
                   disabled={status.kind === "submitting"}
-                />
-                <div className="ku-feedback-honeypot" aria-hidden="true">
-                  <label htmlFor="feedback-website">웹사이트</label>
-                  <input
-                    id="feedback-website"
-                    tabIndex={-1}
-                    autoComplete="off"
-                    value={website}
-                    onChange={(event) => setWebsite(event.target.value)}
-                  />
-                </div>
-                <p className="ku-feedback-privacy">
-                  이름·연락처는 수집하지 않습니다. 작성 내용, 현재 페이지 주소와
-                  제출 시각이 저장됩니다. 민감한 개인정보는 입력하지 마세요.
-                </p>
-                {status.message && (
-                  <p
-                    className="ku-feedback-status"
-                    data-kind={status.kind}
-                    role={status.kind === "error" ? "alert" : "status"}
-                    aria-live="polite"
-                  >
+                >
+                  <X size={17} aria-hidden="true" />
+                </button>
+              </div>
+              <p className="ku-feedback-help">
+                발견한 오류나 필요한 접근성 정보를 알려주세요. 서버로 바로
+                접수되며, 원한다면 메일 앱으로도 보낼 수 있습니다.
+              </p>
+
+              {status.kind === "success" ? (
+                <>
+                  <p className="ku-feedback-status" data-kind="success">
                     {status.message}
                   </p>
-                )}
-                <div className="ku-feedback-actions">
-                  <a
-                    className="ku-button ku-button--link"
-                    href={mailtoUrl()}
-                    aria-label="메일 앱으로 피드백 보내기"
+                  <div className="ku-feedback-actions">
+                    <button
+                      className="ku-button ku-button--primary"
+                      type="button"
+                      onClick={() => setOpen(false)}
+                    >
+                      확인
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <form onSubmit={submitFeedback}>
+                  <span className="ku-feedback-label" id="feedback-type-label">
+                    유형
+                  </span>
+                  <div
+                    className="ku-feedback-types"
+                    role="group"
+                    aria-labelledby="feedback-type-label"
                   >
-                    메일로 보내기
-                  </a>
-                  <button
-                    className="ku-button ku-button--primary"
-                    type="submit"
-                    disabled={
-                      content.trim().length < 3 || status.kind === "submitting"
-                    }
+                    {FEEDBACK_TYPES.map((item) => (
+                      <button
+                        className="ku-chip"
+                        type="button"
+                        key={item.value}
+                        data-active={type === item.value}
+                        onClick={() => setType(item.value)}
+                        disabled={status.kind === "submitting"}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                  <label
+                    className="ku-feedback-label"
+                    htmlFor="feedback-content"
                   >
-                    {status.kind === "submitting" ? "제출 중…" : "제출하기"}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+                    내용
+                  </label>
+                  <textarea
+                    ref={contentRef}
+                    className="ku-feedback-textarea"
+                    id="feedback-content"
+                    value={content}
+                    onChange={(event) => {
+                      setContent(event.target.value);
+                      if (status.kind === "error") setStatus(IDLE_STATUS);
+                    }}
+                    placeholder="어떤 점을 개선하면 좋을지 적어주세요."
+                    minLength={3}
+                    maxLength={2000}
+                    required
+                    disabled={status.kind === "submitting"}
+                  />
+                  <div className="ku-feedback-honeypot" aria-hidden="true">
+                    <label htmlFor="feedback-website">웹사이트</label>
+                    <input
+                      id="feedback-website"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={website}
+                      onChange={(event) => setWebsite(event.target.value)}
+                    />
+                  </div>
+                  <p className="ku-feedback-privacy">
+                    이름·연락처는 수집하지 않습니다. 작성 내용, 현재 페이지
+                    주소와 제출 시각이 저장됩니다. 민감한 개인정보는 입력하지
+                    마세요.
+                  </p>
+                  {status.message && (
+                    <p
+                      className="ku-feedback-status"
+                      data-kind={status.kind}
+                      role={status.kind === "error" ? "alert" : "status"}
+                      aria-live="polite"
+                    >
+                      {status.message}
+                    </p>
+                  )}
+                  <div className="ku-feedback-actions">
+                    <a
+                      className="ku-button ku-button--link"
+                      href={mailtoUrl()}
+                      aria-label="메일 앱으로 피드백 보내기"
+                    >
+                      메일로 보내기
+                    </a>
+                    <button
+                      className="ku-button ku-button--primary"
+                      type="submit"
+                      disabled={
+                        content.trim().length < 3 ||
+                        status.kind === "submitting"
+                      }
+                    >
+                      {status.kind === "submitting" ? "제출 중…" : "제출하기"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </>
   );
 }

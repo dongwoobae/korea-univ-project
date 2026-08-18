@@ -582,9 +582,9 @@
 .ku-map-browse-trigger strong {
   display: grid;
   place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 999px;
   color: #fff;
   background: #8c0000;
@@ -766,12 +766,18 @@
   z-index: 3000;
   inset: 0;
   display: grid;
-  place-items: center;
+  justify-items: center;
+  /* start + margin:auto 조합 — 여유가 있으면 가운데, 없으면 위에서부터 쌓아
+     스크롤로 닿게 한다. center로 두면 넘친 위쪽이 스크롤 범위 밖으로 나간다. */
+  align-items: start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 20px;
   background: var(--ku-backdrop);
 }
 .ku-feedback-modal {
   width: min(440px, 100%);
+  margin: auto 0;
   padding: 24px;
   border: 1px solid var(--ku-border);
   border-radius: 16px;
@@ -1117,7 +1123,8 @@
   .ku-search-control {
     top: 16px;
     left: 16px;
-    width: calc(100vw - 80px);
+    /* 오른쪽 여백 16 + 언어 버튼 48 + 사이 간격 8 */
+    width: calc(100vw - 88px);
     padding: 0;
     border: 0;
     background: transparent;
@@ -1145,11 +1152,16 @@
     left: 16px;
     width: calc(100vw - 32px);
   }
+  /* 모바일에서 보이는 것은 트리거뿐이다. 껍데기를 트리거로 옮겨 옆에 붙는
+     즐겨찾기 버튼과 테두리·배경·크기를 똑같이 맞춘다. 컨테이너에 두면 테두리
+     2px만큼 커지고 배경도 반투명이라 혼자 눌린 것처럼 보인다. */
   .ku-language {
     top: 16px;
     right: 16px;
     padding: 0;
-    border-radius: 12px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
   }
   .ku-language-inline {
     display: none;
@@ -1160,10 +1172,11 @@
     justify-content: center;
     width: 48px;
     height: 48px;
-    border: 0;
+    border: 1px solid var(--ku-border-input);
     border-radius: 12px;
     color: var(--ku-text-1);
-    background: transparent;
+    background: var(--ku-surface);
+    box-shadow: var(--ku-shadow-floating);
     cursor: pointer;
     font-size: 14px;
     font-weight: 700;
@@ -1218,6 +1231,14 @@
     background: transparent;
     box-shadow: none;
     backdrop-filter: none;
+    /* 패널은 화면 폭을 다 쓰지만 보이는 것은 트리거와 드롭다운뿐이다. 나머지
+       투명 구간이 z-index 1050으로 지도와 언어 목록(1000)의 탭을 삼키지 않게
+       통과시키고, 실제 조작 대상에만 되돌려준다. */
+    pointer-events: none;
+  }
+  .ku-mobile-filter-trigger,
+  .ku-mobile-filter-content {
+    pointer-events: auto;
   }
   .ku-mobile-filter-trigger {
     display: flex;
@@ -1238,13 +1259,13 @@
   .ku-mobile-filter-badge {
     display: grid;
     place-items: center;
-    min-width: 22px;
-    height: 22px;
-    padding: 0 6px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
     border-radius: 999px;
     color: #fff;
     background: #8c0000;
-    font-size: 12px;
+    font-size: 11px;
   }
   .ku-mobile-filter-content {
     margin-top: 8px;
@@ -1285,8 +1306,10 @@
   .ku-map-zoom {
     display: none;
   }
+  /* 한 줄로 눕힌 출처 표기(아래 12 + 높이 24)를 8px 띄우고 그 위에 앉는다.
+     패널 bottom·max-height는 트리거가 내려온 만큼 따라 내려오고 늘어난다. */
   .ku-map-browse {
-    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(44px + env(safe-area-inset-bottom, 0px));
     left: 16px;
   }
   .ku-map-browse-trigger {
@@ -1296,23 +1319,33 @@
   .ku-map-browse-panel {
     position: fixed;
     right: 16px;
-    bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(100px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     width: auto;
-    max-height: calc(100dvh - 236px);
+    max-height: calc(100dvh - 188px);
   }
   .ku-map-browse-list {
-    max-height: calc(100dvh - 346px);
+    max-height: calc(100dvh - 298px);
   }
+  /* 지도를 가리지 않도록 한 줄로 눕히고 최소 크기로 줄인다 — 표기 의무만 지키는
+     각주 취급. 배경은 남긴다. 타일 위에서 글자가 읽히지 않는다. */
   .ku-attribution {
-    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-    left: 16px;
-    gap: 5px;
-    padding: 7px 9px;
-    font-size: 10.5px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: 12px;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    box-shadow: none;
+    font-size: 10px;
   }
   .ku-attribution img {
-    height: 22px;
+    height: 16px;
+  }
+  .ku-attribution-separator {
+    width: 1px;
+    height: 12px;
   }
   .ku-attribution[data-hidden="true"] {
     display: none;

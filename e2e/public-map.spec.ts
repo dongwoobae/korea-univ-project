@@ -381,6 +381,36 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     expect(scrollWidth).toBeLessThanOrEqual(390);
   });
 
+  test("모바일에서 피드백 모달이 지도 컨트롤 위를 덮는다", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    await page.getByTitle("피드백 보내기").click();
+    await expect(
+      page.getByRole("dialog", { name: "피드백 보내기" }),
+    ).toBeVisible();
+
+    for (const selector of [
+      ".ku-search-input",
+      ".ku-mobile-filter-trigger",
+      ".ku-map-browse-trigger",
+    ]) {
+      const control = page.locator(selector);
+      await expect(control).toBeVisible();
+      const coveredByModal = await control.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        );
+        return Boolean(hit?.closest(".ku-feedback-backdrop"));
+      });
+      expect(coveredByModal, `${selector}가 피드백 모달 위로 튀어나온다`).toBe(
+        true,
+      );
+    }
+  });
+
   test("시스템 색상 모드에 맞춰 기본 지도 타일을 교체한다", async ({
     page,
   }) => {
@@ -455,6 +485,41 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       page.getByRole("link", { name: "메일 앱으로 피드백 보내기" }),
     ).toHaveAttribute("href", /^mailto:/);
     await expect(page.getByRole("button", { name: "제출하기" })).toBeEnabled();
+  });
+
+  test("작은 화면에서 오류 안내가 붙어도 제출과 메일 대안에 닿는다", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.route("**/api/feedback", (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "test failure" }),
+      }),
+    );
+    await page.goto("/");
+
+    await page.getByTitle("피드백 보내기").click();
+    await page
+      .getByLabel("내용")
+      .fill("작은 화면에서도 재시도할 수 있어야 한다");
+    await page.getByRole("button", { name: "제출하기" }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "서버 제출에 실패했습니다" }),
+    ).toBeVisible();
+
+    // 오류 문구가 붙으면 모달이 뷰포트보다 높아진다. 위아래 모두 닿아야 한다.
+    const submit = page.getByRole("button", { name: "제출하기" });
+    await submit.scrollIntoViewIfNeeded();
+    await expect(submit).toBeInViewport();
+    await expect(
+      page.getByRole("link", { name: "메일 앱으로 피드백 보내기" }),
+    ).toBeInViewport();
+
+    const title = page.getByRole("heading", { name: "피드백 보내기" });
+    await title.scrollIntoViewIfNeeded();
+    await expect(title).toBeInViewport();
   });
 
   test("지도 영역 밖의 현재 위치는 이동하지 않고 안내한다", async ({

@@ -37,6 +37,85 @@ test.describe("공개 지도 P0 개선 (모바일·데이터 오류)", () => {
     await expect(page.getByRole("listbox")).toHaveCount(0);
   });
 
+  test("모바일 시설 필터의 투명 영역이 지도와 언어 선택을 가로채지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.setViewportSize(MOBILE);
+    await page.goto("/");
+    await page.waitForSelector(".ku-map-loading", { state: "detached" });
+
+    // 모바일 필터 패널은 화면 폭 전체를 차지하지만 보이는 것은 트리거뿐이다.
+    // 트리거 오른쪽의 투명 구간이 히트 테스트를 가져가면 안 된다.
+    const triggerBox = (await page
+      .locator(".ku-mobile-filter-trigger")
+      .boundingBox())!;
+    const y = Math.round(triggerBox.y + triggerBox.height / 2);
+    for (const x of [200, 260, 320, 370]) {
+      const hitsPanel = await page.evaluate(
+        ({ x, y }) =>
+          Boolean(document.elementFromPoint(x, y)?.closest(".ku-filter-panel")),
+        { x, y },
+      );
+      expect(hitsPanel, `x=${x} 지점을 필터 패널이 가로챈다`).toBe(false);
+    }
+
+    // 같은 구간에 언어 목록의 첫 항목이 놓인다 — 한국어로 되돌릴 수 있어야 한다.
+    const langTrigger = page.locator(".ku-language-trigger");
+    await langTrigger.click();
+    await page.getByRole("option", { name: "EN", exact: true }).click();
+    await expect(page.getByPlaceholder("Search buildings...")).toBeVisible();
+
+    await langTrigger.click();
+    await page.getByRole("option", { name: "한국어", exact: true }).click();
+    await expect(page.getByPlaceholder("건물 검색...")).toBeVisible();
+  });
+
+  test("모바일 상단 컨트롤이 서로 붙지 않는다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.setViewportSize(MOBILE);
+    await page.goto("/");
+
+    const favorite = (await page.locator(".ku-favorite-button").boundingBox())!;
+    const language = (await page
+      .locator(".ku-language-trigger")
+      .boundingBox())!;
+
+    expect(language.x - (favorite.x + favorite.width)).toBeGreaterThanOrEqual(
+      8,
+    );
+    // 크기가 다르면 하나만 눌린 상태처럼 읽힌다
+    expect(Math.round(language.width)).toBe(Math.round(favorite.width));
+    expect(Math.round(language.height)).toBe(Math.round(favorite.height));
+  });
+
+  test("모바일에서 목록 패널이 지도 액션 버튼·출처 표기와 겹치지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.setViewportSize(MOBILE);
+    await page.goto("/");
+
+    // 트리거는 한 줄짜리 출처 표기 위에 앉는다
+    const attribution = (await page.locator(".ku-attribution").boundingBox())!;
+    const trigger = (await page
+      .locator(".ku-map-browse-trigger")
+      .boundingBox())!;
+    expect(attribution.y - (trigger.y + trigger.height)).toBeGreaterThanOrEqual(
+      4,
+    );
+
+    // 패널은 화면 폭을 다 쓰므로 열려 있는 동안 액션 버튼을 치운다
+    const locate = page.getByRole("button", { name: "현 위치" });
+    await expect(locate).toBeVisible();
+    await page.locator(".ku-map-browse-trigger").click();
+    await expect(page.locator(".ku-map-browse-panel")).toBeVisible();
+    await expect(locate).toBeHidden();
+
+    await page.locator(".ku-map-browse-heading button").click();
+    await expect(locate).toBeVisible();
+  });
+
   test("모바일에서 즐겨찾기 진입점과 개수 배지를 노출한다", async ({
     page,
   }) => {

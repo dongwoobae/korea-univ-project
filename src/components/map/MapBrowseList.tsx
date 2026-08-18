@@ -23,6 +23,7 @@ interface MapBrowseListProps {
   onSelect: (item: MapBrowseItem) => void;
   isFront: boolean;
   onActivate: () => void;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export default function MapBrowseList({
@@ -30,6 +31,7 @@ export default function MapBrowseList({
   onSelect,
   isFront,
   onActivate,
+  onOpenChange,
 }: MapBrowseListProps) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
@@ -38,6 +40,10 @@ export default function MapBrowseList({
   useEffect(() => {
     if (open) closeButtonRef.current?.focus();
   }, [open]);
+
+  useEffect(() => {
+    onOpenChange?.(open);
+  }, [open, onOpenChange]);
 
   return (
     <div
