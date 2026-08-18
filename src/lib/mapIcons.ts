@@ -38,9 +38,21 @@ export const FACILITY_ICON_SVG: Record<FacilityIconKey, string> = {
   fallback: Accessibility,
 };
 
-export const LANDMARK_ICON_SVG = Sparkles;
+export const LANDMARK_CATEGORY_ICON_SVG = Sparkles;
 export const SUBWAY_ICON_SVG = TrainFront;
 export const FACILITY_CLUSTER_ICON_SVG = Accessibility;
+
+export const LANDMARK_FALLBACK_EMOJI = "✨";
+
+/**
+ * 타입은 `string`이지만 배포 창에서는 필드 자체가 오지 않는다 —
+ * 근거는 `docs/superpowers/specs/2026-08-18-restore-landmark-emoji-design.md`의
+ * "배포 순서" 절에 있다.
+ */
+export function landmarkEmoji(icon: string | null | undefined): string {
+  const value = icon?.trim();
+  return value ? value : LANDMARK_FALLBACK_EMOJI;
+}
 
 /** lucide-static SVG는 24px 고정이라 자리 크기에 맞춰 덮어쓴다. */
 export function sizedIconSvg(svg: string, size: number): string {

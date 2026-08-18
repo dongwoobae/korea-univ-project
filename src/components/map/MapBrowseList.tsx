@@ -3,13 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { List, X } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
-import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
+import { FacilityTypeIcon, LandmarkEmoji } from "./iconography";
 
 export interface MapBrowseItem {
   key: string;
   kind: "facility" | "landmark";
-  /** landmark는 아이콘이 고정이라 쓰지 않는다. */
+  /** facility 전용. landmark는 icon을 쓴다. */
   code: string | null;
+  /** landmark 전용. facility는 code로 아이콘을 고른다. */
+  icon: string | null;
   name: string;
   detail: string;
   lat: number;
@@ -96,7 +98,7 @@ export default function MapBrowseList({
                   >
                     <span className="ku-map-browse-icon">
                       {item.kind === "landmark" ? (
-                        <LandmarkIcon size={16} />
+                        <LandmarkEmoji icon={item.icon} size={16} />
                       ) : (
                         <FacilityTypeIcon code={item.code} size={16} />
                       )}

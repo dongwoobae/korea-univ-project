@@ -21,7 +21,7 @@ import type {
 import type { LangCode } from "@/lib/translations";
 import { useLanguage } from "@/lib/LanguageContext";
 import { campusColor } from "@/lib/theme";
-import { LandmarkIcon } from "./iconography";
+import { LandmarkEmoji } from "./iconography";
 
 const VOICE_LANG_MAP = { ko: "ko-KR", en: "en-US", zh: "zh-CN" };
 
@@ -438,8 +438,8 @@ export default function SearchControl({
                 onClick={() => handleSelect(result)}
               >
                 {result.kind === "landmark" && (
-                  <span className="ku-search-result-icon" aria-hidden="true">
-                    <LandmarkIcon size={15} />
+                  <span className="ku-search-result-icon">
+                    <LandmarkEmoji icon={result.landmark.icon} size={15} />
                   </span>
                 )}
                 <span className="ku-search-result-name">{result.name}</span>

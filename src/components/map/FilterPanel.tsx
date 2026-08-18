@@ -14,7 +14,7 @@ import type { LangCode } from "@/lib/translations";
 import type { FacilityType } from "@/types/domain";
 import { campusColor } from "@/lib/theme";
 import { getFacilityColor } from "./facilityColors";
-import { FacilityTypeIcon, LandmarkIcon } from "./iconography";
+import { FacilityTypeIcon, LandmarkCategoryIcon } from "./iconography";
 import SlopeLegend from "./SlopeLegend";
 
 export type CampusKey = "인문사회계" | "자연계" | "녹지캠퍼스" | "의료원";
@@ -252,7 +252,7 @@ export default function FilterPanel({
             checked={showLandmarks}
             onChange={() => setShowLandmarks((show) => !show)}
           />
-          <LandmarkIcon size={15} />
+          <LandmarkCategoryIcon size={15} />
           <span>{t("landmarkToggle")}</span>
         </label>
         <SlopeLegend show={showSlope} />

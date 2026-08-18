@@ -10,7 +10,11 @@ import {
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
-import { facilityIconKey, type FacilityIconKey } from "@/lib/mapIcons";
+import {
+  facilityIconKey,
+  landmarkEmoji,
+  type FacilityIconKey,
+} from "@/lib/mapIcons";
 
 // Leaflet divIcon은 HTML 문자열을, JSX는 컴포넌트를 요구해 같은 매핑을 두 벌 둔다.
 export const FACILITY_ICON: Record<FacilityIconKey, LucideIcon> = {
@@ -32,8 +36,21 @@ export function FacilityTypeIcon({ code, size = 18 }: FacilityTypeIconProps) {
   return <Icon size={size} aria-hidden="true" />;
 }
 
-export const LANDMARK_ICON = Sparkles;
+export const LANDMARK_CATEGORY_ICON = Sparkles;
 
-export function LandmarkIcon({ size = 18 }: { size?: number }) {
-  return <LANDMARK_ICON size={size} aria-hidden="true" />;
+export function LandmarkCategoryIcon({ size = 18 }: { size?: number }) {
+  return <LANDMARK_CATEGORY_ICON size={size} aria-hidden="true" />;
+}
+
+interface LandmarkEmojiProps {
+  icon: string | null | undefined;
+  size?: number;
+}
+
+export function LandmarkEmoji({ icon, size = 18 }: LandmarkEmojiProps) {
+  return (
+    <span aria-hidden="true" style={{ fontSize: size }}>
+      {landmarkEmoji(icon)}
+    </span>
+  );
 }

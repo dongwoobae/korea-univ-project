@@ -7,8 +7,12 @@ import L from "leaflet";
 import type { Landmark } from "@/types/domain";
 import { useLanguage } from "@/lib/LanguageContext";
 import { groupByPixelGrid } from "@/lib/mapMarkerLayout";
-import { LANDMARK_ICON_SVG, sizedIconSvg } from "@/lib/mapIcons";
-import { LandmarkIcon } from "./iconography";
+import {
+  LANDMARK_CATEGORY_ICON_SVG,
+  landmarkEmoji,
+  sizedIconSvg,
+} from "@/lib/mapIcons";
+import { LandmarkEmoji } from "./iconography";
 
 function escapeHtml(value: string): string {
   return value
@@ -35,21 +39,25 @@ const landmarkMarkerIcon = (
   landmark: Landmark,
   name: string,
   showLabel: boolean,
-) =>
-  cachedIcon(`landmark|${landmark.id}|${name}|${showLabel}`, () =>
-    L.divIcon({
-      className: "",
-      html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${escapeHtml(landmark.id)}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#C08A2D;box-shadow:0 2px 7px rgba(28,25,23,0.22);"><span aria-hidden="true" style="display:flex">${sizedIconSvg(LANDMARK_ICON_SVG, 15)}</span></div>${showLabel ? `<span data-testid="landmark-label" style="padding:2px 5px;border-radius:999px;color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span>` : ""}</div>`,
-      iconAnchor: [17, 17],
-      popupAnchor: [0, -20],
-    }),
+) => {
+  const emoji = landmarkEmoji(landmark.icon);
+  return cachedIcon(
+    JSON.stringify(["landmark", landmark.id, name, emoji, showLabel]),
+    () =>
+      L.divIcon({
+        className: "",
+        html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${escapeHtml(landmark.id)}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#C08A2D;box-shadow:0 2px 7px rgba(28,25,23,0.22);"><span aria-hidden="true" style="display:flex;font-size:15px;line-height:1">${escapeHtml(emoji)}</span></div>${showLabel ? `<span data-testid="landmark-label" style="padding:2px 5px;border-radius:999px;color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span>` : ""}</div>`,
+        iconAnchor: [17, 17],
+        popupAnchor: [0, -20],
+      }),
   );
+};
 
 const landmarkClusterIcon = (count: number) =>
   cachedIcon(`cluster|${count}`, () =>
     L.divIcon({
       className: "",
-      html: `<div class="ku-marker-cluster ku-marker-cluster--landmark" data-testid="landmark-marker-cluster"><span aria-hidden="true" style="display:flex">${sizedIconSvg(LANDMARK_ICON_SVG, 16)}</span><strong>${count}</strong></div>`,
+      html: `<div class="ku-marker-cluster ku-marker-cluster--landmark" data-testid="landmark-marker-cluster"><span aria-hidden="true" style="display:flex">${sizedIconSvg(LANDMARK_CATEGORY_ICON_SVG, 16)}</span><strong>${count}</strong></div>`,
       iconSize: [42, 42],
       iconAnchor: [21, 21],
     }),
@@ -152,7 +160,7 @@ function LandmarkMarkers({
                     color: "#222",
                   }}
                 >
-                  <LandmarkIcon size={15} />
+                  <LandmarkEmoji icon={landmark.icon} size={15} />
                   {name}
                 </div>
                 {description && (

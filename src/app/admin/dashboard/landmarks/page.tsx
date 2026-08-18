@@ -10,7 +10,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import LandmarkFormModal from "@/components/admin/LandmarkFormModal";
 import AdminListControls from "@/components/admin/AdminListControls";
 import AdminPagination from "@/components/admin/AdminPagination";
-import { LandmarkIcon } from "@/components/map/iconography";
+import { LandmarkEmoji } from "@/components/map/iconography";
 import {
   buildAdminSearchFilter,
   formatAdminUpdatedAt,
@@ -231,7 +231,7 @@ export default function LandmarksPage() {
               }}
             >
               <div style={{ display: "grid", placeItems: "center", width: 28 }}>
-                <LandmarkIcon size={20} />
+                <LandmarkEmoji icon={landmark.icon} size={20} />
               </div>
               <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                 <div
