@@ -381,6 +381,36 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     expect(scrollWidth).toBeLessThanOrEqual(390);
   });
 
+  test("모바일에서 피드백 모달이 지도 컨트롤 위를 덮는다", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+
+    await page.getByTitle("피드백 보내기").click();
+    await expect(
+      page.getByRole("dialog", { name: "피드백 보내기" }),
+    ).toBeVisible();
+
+    for (const selector of [
+      ".ku-search-input",
+      ".ku-mobile-filter-trigger",
+      ".ku-map-browse-trigger",
+    ]) {
+      const control = page.locator(selector);
+      await expect(control).toBeVisible();
+      const coveredByModal = await control.evaluate((element) => {
+        const rect = element.getBoundingClientRect();
+        const hit = document.elementFromPoint(
+          rect.left + rect.width / 2,
+          rect.top + rect.height / 2,
+        );
+        return Boolean(hit?.closest(".ku-feedback-backdrop"));
+      });
+      expect(coveredByModal, `${selector}가 피드백 모달 위로 튀어나온다`).toBe(
+        true,
+      );
+    }
+  });
+
   test("시스템 색상 모드에 맞춰 기본 지도 타일을 교체한다", async ({
     page,
   }) => {
