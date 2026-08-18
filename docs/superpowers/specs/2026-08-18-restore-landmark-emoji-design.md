@@ -140,8 +140,10 @@ lucide SVG는 `stroke="currentColor"`로 색을 상속했지만 이모지는 자
 **명소 카테고리 아이콘**만 뜻하게 되므로 `LANDMARK_CATEGORY_ICON_SVG`·
 `LANDMARK_CATEGORY_ICON`으로 이름을 바꾼다. 소비자는 클러스터와 필터 토글
 둘뿐이다. 이름을 두면 개별 명소용 `landmarkEmoji`와 구분이 안 돼, 다섯 렌더
-지점에서 잘못 고르기 쉽다. `LandmarkIcon` 컴포넌트 이름은 그대로 두고 소비자가
-사라지는 대로 걷는다.
+지점에서 잘못 고르기 쉽다. 소비자가 필터 토글 하나만 남으면 `LandmarkIcon`을
+`LandmarkCategoryIcon`으로 이름을 바꾼다. 같은 파일에 네 JSX 렌더 지점이 공유할
+`LandmarkEmoji`를 새로 둔다. `divIcon`은 HTML 문자열을 요구해 그 경로만
+`landmarkEmoji()`를 직접 부른다.
 
 ## 관리자 폼
 

@@ -420,7 +420,7 @@ export default function SearchControl({
                 onClick={() => handleSelect(result)}
               >
                 {result.kind === "landmark" && (
-                  <span className="ku-search-result-icon" aria-hidden="true">
+                  <span className="ku-search-result-icon">
                     <LandmarkEmoji icon={result.landmark.icon} size={15} />
                   </span>
                 )}
