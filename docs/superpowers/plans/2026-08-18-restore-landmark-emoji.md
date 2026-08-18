@@ -96,22 +96,22 @@ git commit -m "feat(db): landmarks.icon을 되살리고 명소 4건을 이름으
 
 - [ ] **Step 1: 세 블록에 `icon`을 넣는다**
 
-`landmarks` 블록을 찾아 알파벳 순서를 지켜 `id` 다음, `image_url` 앞에 넣는다.
+`landmarks` 블록을 찾아 알파벳 순서를 지켜 `description_zh` 다음, `id` 앞에 넣는다 — 생성기는 컬럼을 알파벳 순으로 뽑고 `icon`이 `id`보다 앞이다.
 
 `Row`:
 
 ```ts
-id: string;
+description_zh: string | null;
 icon: string;
-image_url: string | null;
+id: string;
 ```
 
 `Insert`와 `Update`는 선택 필드로 넣는다(둘 다 default가 있으므로 생략 가능하다):
 
 ```ts
-          id?: string;
+          description_zh?: string | null;
           icon?: string;
-          image_url?: string | null;
+          id?: string;
 ```
 
 - [ ] **Step 2: typecheck로 확인한다**
