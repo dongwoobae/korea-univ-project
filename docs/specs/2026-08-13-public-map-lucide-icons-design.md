@@ -23,7 +23,7 @@
 | `FeedbackButton` 다국어화   | 미착수. 배포 순서와 무관한 독립 항목 |
 
 머지된 브랜치는 로컬·원격 모두 지웠다. 계획서
-`docs/superpowers/plans/2026-08-13-public-map-lucide-icons.md`도 규칙대로 회수했다
+`docs/plans/2026-08-13-public-map-lucide-icons.md`도 규칙대로 회수했다
 (PR #11에 포함).
 
 ### 이어받을 때 시간 낭비를 막아 줄 것들

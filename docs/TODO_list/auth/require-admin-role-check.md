@@ -69,5 +69,5 @@ Supabase 프로젝트에서 이메일 가입을 켜거나, 공개 화면에 로�
 ## 출처
 
 2026-08-06 codex 3-lane 리뷰 lane C(공격자). 설계 문서
-`docs/superpowers/specs/2026-08-04-facility-detail-modal-and-building-video-design.md`의
+`docs/specs/2026-08-04-facility-detail-modal-and-building-video-design.md`의
 `후속 과제`에도 같은 항목이 있으나, 위 "왜 지금 값어치가 올라갔나" 사유로 이쪽으로 옮긴다.

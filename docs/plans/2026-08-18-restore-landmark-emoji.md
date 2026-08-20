@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js · React · Supabase(PostgREST) · Leaflet(`divIcon`) · vitest · Playwright
 
-**설계 문서:** `docs/superpowers/specs/2026-08-18-restore-landmark-emoji-design.md`
+**설계 문서:** `docs/specs/2026-08-18-restore-landmark-emoji-design.md`
 
 ---
 

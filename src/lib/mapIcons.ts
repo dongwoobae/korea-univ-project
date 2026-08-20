@@ -46,7 +46,7 @@ export const LANDMARK_FALLBACK_EMOJI = "✨";
 
 /**
  * 타입은 `string`이지만 배포 창에서는 필드 자체가 오지 않는다 —
- * 근거는 `docs/superpowers/specs/2026-08-18-restore-landmark-emoji-design.md`의
+ * 근거는 `docs/specs/2026-08-18-restore-landmark-emoji-design.md`의
  * "배포 순서" 절에 있다.
  */
 export function landmarkEmoji(icon: string | null | undefined): string {

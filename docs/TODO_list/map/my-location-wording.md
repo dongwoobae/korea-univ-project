@@ -45,4 +45,4 @@
 
 ## 출처
 
-2026-08-13 · `docs/superpowers/specs/2026-08-13-public-map-lucide-icons-design.md`
+2026-08-13 · `docs/specs/2026-08-13-public-map-lucide-icons-design.md`
