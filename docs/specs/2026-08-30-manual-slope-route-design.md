@@ -89,7 +89,10 @@ supabase.from("slope_segments").select("id, name, segments");
    중앙값으로 치환한다
 2. `processRawPoints()` — 포인트를 순회하며 haversine 거리를 누적하다가 **10m를
    넘으면** 한 구간을 끊는다. 마지막 포인트는 5m만 넘어도 끊는다.
-   구간 경사는 `(고도차 / 누적거리) * 100`이다
+   구간 경사는 `(고도차 / 누적거리) * 100`이다.
+   **마지막 남은 거리가 5m에 못 미치면 구간을 새로 만들지 않고 직전 구간의
+   끝 좌표만 마지막 포인트로 늘린다.** `distance`와 `slope`는 다시 계산하지 않아서,
+   지도에 그려진 선의 실제 길이와 팝업에 뜨는 거리·경사가 어긋난다
 3. 절댓값이 **30%를 넘으면 0으로 대체한다** (노이즈로 간주)
 4. 구간마다 `Polyline`을 그리고 `slopeColor()`로 색을 정한다. 팝업에 경사와
    구간 거리를 띄운다
@@ -301,15 +304,56 @@ vitest가 node 환경이라 컴포넌트를 테스트할 수 없다. 그래서 *
 | `src/components/slope/SlopeRouteMap.tsx`    | 신규 | Leaflet + geoman만. 명령형 코드 격리                             |
 | `src/components/slope/SlopeSegmentList.tsx` | 신규 | 구간 입력 폼. 순수 표현                                          |
 | `src/components/SlopeRouteEditor.tsx`       | 신규 | 위 둘을 조합하고 폼 상태를 보유                                  |
-| `src/app/admin/slopes/new/page.tsx`         | 신규 | 신규 등록                                                        |
-| `src/app/admin/slopes/[id]/page.tsx`        | 신규 | 수정 (수기 경로 한정)                                            |
+| `src/app/admin/slopes/new/page.tsx`         | 신규 | 신규 등록 + 자체 인증 확인                                       |
+| `src/app/admin/slopes/[id]/page.tsx`        | 신규 | 수정 (수기 경로 한정) + 자체 인증 확인                           |
 | `src/app/admin/dashboard/slopes/page.tsx`   | 수정 | 진입 버튼, 배지, 행 버튼 분기                                    |
+| `src/types/domain.ts`                       | 수정 | 저장 포맷을 표현하는 타입 추가 (5.2.2)                           |
 
 편집기를 `src/components/`에 두는 것은 성격이 같은 `PolygonEditor.tsx`(건물 폴리곤
 편집기) 옆이기 때문이다.
 
 라우팅은 건물의 기존 관례를 그대로 따른다. 목록은 `/admin/dashboard/<entity>`,
 편집기는 `/admin/<entity>/new` 와 `/admin/<entity>/[id]`다.
+
+#### 5.2.1 인증은 페이지가 직접 확인한다
+
+**`/admin/slopes/*`는 `/admin/dashboard/layout.tsx` 바깥이라 그 레이아웃의 인증
+검사를 상속받지 못한다.** 관리자 레이아웃과 사이드바도 마찬가지로 상속되지 않는다.
+
+`src/app/admin/dashboard/layout.tsx`는 `supabase.auth.getUser()`로 확인하고
+비로그인이면 `/admin`으로 보낸다. 같은 이유로 `/admin/buildings/new/page.tsx`는
+페이지 안에서 같은 검사를 따로 한다.
+
+신규 두 페이지도 `buildings/new`와 같은 방식으로 **페이지 안에서 인증을 확인하고
+비로그인이면 `/admin`으로 리다이렉트한다.** 빠뜨리면 비로그인 사용자에게 편집
+UI가 그대로 노출된다. `slope_segments`는 `anon` SELECT가 열려 있어 기존 경로
+데이터까지 함께 보인다.
+
+#### 5.2.2 저장 포맷 타입
+
+현재 `SlopePoint`에는 `slope`와 `distance`가 없다. `SlopeLayer`가 파일 안에서
+`StoredPoint` / `MetricPoint`를 따로 선언해 쓰고 있다. 편집기와 수정 페이지가
+저장된 경사값을 읽어야 하므로 그 타입이 `domain.ts`에 있어야 한다. 없으면 지역
+중복 타입이나 캐스팅으로 때우게 된다.
+
+혼재 기간을 드러내는 union으로 정의한다.
+
+```ts
+/** GPX 측정 원본 포인트 (폐기 예정) */
+export interface MeasuredSlopePoint {
+  lat: number;
+  lng: number;
+  ele: number | null;
+}
+
+/** 수기 입력 구간 끝점. 첫 포인트에는 slope·distance가 없다 */
+export interface ManualSlopePoint extends MeasuredSlopePoint {
+  slope?: number;
+  distance?: number;
+}
+```
+
+2단계에서 GPX가 사라지면 `MeasuredSlopePoint`와 `ele`를 함께 없앤다.
 
 ### 5.3 상태 모델과 불변식
 
@@ -344,15 +388,24 @@ slopes.length === Math.max(0, vertices.length - 1)
 **꼭짓점이 바뀌었을 때 입력값 유지**는 순수 함수
 `reconcileSlopes(prevVertices, nextVertices, slopes)`가 담당한다.
 
-- 꼭짓점 **개수가 같으면** 값을 그대로 유지한다. 드래그와 전체 이동이 여기 해당하고
-  실제로 가장 흔한 편집이다
-- **개수가 바뀌면** 앞에서부터 인덱스 기준으로 유지하고 부족분은 `null`, 초과분은
-  버린다. 그리고 `realigned: true`를 함께 돌려준다
-- `realigned`이면 "꼭짓점이 바뀌어 구간이 재정렬됐어요. 값을 확인하세요" 배너를
+- 꼭짓점 **개수가 같으면** 인덱스 기준으로 값을 그대로 유지한다. 드래그와 전체
+  이동이 여기 해당하고 실제로 가장 흔한 편집이다
+- **개수가 바뀌면 인덱스를 쓰지 않는다.** 이전 구간을 `양 끝점 좌표` 쌍으로 기억해
+  두고, 새 구간 중 **두 끝점이 모두 그대로인 구간만** 값을 물려받는다. 나머지는
+  `null`이다. 하나라도 값을 잃으면 `realigned: true`를 함께 돌려준다
+- `realigned`이면 "꼭짓점이 바뀌어 일부 구간의 값을 다시 입력해야 해요" 배너를
   띄운다
 
-구간이 1~4개인 데이터에 좌표 기반 정밀 재매핑을 넣는 것은 과하다. 값이 밀렸을 때
-사용자에게 알리는 것으로 충분하다.
+**인덱스 기준으로 밀면 값이 엉뚱한 구간에 붙는다.** `A-B-C`에 `[AB, BC]`를 넣은
+뒤 A와 B 사이에 X를 끼워 `A-X-B-C`가 되면, 인덱스 규칙은 `[AB, BC, null]`을 만들어
+**원래 `B-C`의 값이 `X-B` 구간으로 옮겨간다.** 사용자가 배너를 보고 빈 칸만 채우면
+틀린 경사가 정상 데이터로 저장된다. 배리어프리 정보에서 이런 조용한 오염은 3.2절의
+"0%로 뭉개짐"과 같은 부류의 사고다.
+
+좌표 쌍 매칭은 이 경우를 정확히 처리한다. `A-X-B-C`에서 `B-C`만 살아남고
+`A-X`·`X-B`는 비워지는데, 실제로 다시 재야 하는 구간이 정확히 그 둘이다.
+꼭짓점 개수가 같을 때 인덱스를 쓰는 이유는, 드래그로 좌표가 미세하게 바뀌었다고
+멀쩡한 실측값을 날리지 않기 위해서다.
 
 **실시간 색상 미리보기.** geoman 편집 레이어(얇은 실선) 아래에 구간별 색상
 폴리라인을 별도 `FeatureGroup`으로 그린다. 입력값이 바뀔 때마다 `slopeColor()`로
@@ -367,15 +420,23 @@ slopes.length === Math.max(0, vertices.length - 1)
 - 이름이 비어 있다
 - 꼭짓점이 2개 미만이다
 - 값이 입력되지 않은 구간이 있다
-- 값이 0 미만이거나 30 초과다
+- 값이 음수이거나 100을 초과한다
 
-30% 상한은 현행 `processRawPoints`가 노이즈로 버리는 기준과 맞춘 것이다. 보행
-경사로가 30%를 넘으면 사실상 계단이다.
+**차단선을 100%에 두는 이유.** 초안은 상한을 30%로 잡았는데, 그 숫자는
+`processRawPoints`가 **믿을 수 없는 GPS 고도를 노이즈로 버리는** 휴리스틱에서
+가져온 것이다. 현장에서 직접 잰 값에는 그 근거가 없다. 실제로 30%를 넘는
+경사로가 있다면 그것이야말로 이 지도가 반드시 실어야 할 정보인데, 상한으로
+막으면 **가장 위험한 구간만 기록되지 않는다.**
+
+100%는 45도다. 걸어 다니는 노면일 수 없으므로 물리적 불가능만 걸러낸다.
 
 **경고만 하고 저장은 허용하는 조건**
 
-- 8.33%를 넘는 구간에 "법적 기준 초과" 표시를 한다. 실제로 존재하는 경사로이므로
+- 8.33%를 넘으면 "법적 기준(1/12) 초과"를 표시한다. 실제로 존재하는 경사로이므로
   오류가 아니라 정보다
+- 30%를 넘으면 "이 값이 맞나요? 30%를 넘는 보행 경사로는 매우 드뭅니다"를
+  강하게 표시한다. `7.2`를 `72`로 잘못 친 오타를 잡는 장치가 상한 대신 여기다.
+  경고일 뿐 저장은 막지 않는다
 
 ### 5.6 목록 페이지 변경
 
@@ -408,23 +469,35 @@ slopes.length === Math.max(0, vertices.length - 1)
 
 - `haversine()` — 알려진 두 좌표 사이 거리
 - `buildSegments(vertices)` — 구간별 거리 계산, 꼭짓점 2개 미만이면 빈 배열
-- `reconcileSlopes()` — 개수 동일(값 유지), 증가(뒤가 `null`), 감소(초과분 버림),
+- `reconcileSlopes()` — 개수 동일(인덱스로 값 유지), 중간 삽입(`A-B-C` → `A-X-B-C`
+  에서 `B-C` 값만 살아남고 `A-X`·`X-B`가 `null`), 중간 삭제, 끝점 추가·삭제,
   각 경우의 `realigned` 플래그
 - `toStoredSegments(vertices, slopes)` — 첫 포인트에 `slope`가 없는지, 모든
   포인트에 `ele: null`이 있는지, 길이가 맞는지
-- 검증 규칙 경계값 — 0, 8.33, 30, 30.1
+- 검증 규칙 경계값 — 0, 8.33, 8.34, 30, 30.1, 100, 100.1, 음수
 
 ### 6.2 Playwright — `e2e/admin-buildings-slopes.spec.ts`에 추가
 
-- 목록에서 "경로 직접 그리기"를 눌러 편집기로 이동한다
-- 이름 없이 저장을 시도하면 막힌다
+**지도에 선을 그리는 것부터 저장까지 전 구간을 덮는다.** 이 파일에는 이미 관리자
+지도에서 `.leaflet-pm-icon-polygon`을 눌러 좌표 4개를 클릭하고 폴리곤을 닫는
+테스트가 안정적으로 돌고 있다. 폴리라인도 같은 패턴이므로 제외할 이유가 없다.
+
+- 편집기에서 폴리라인 도구를 눌러 좌표 3개를 클릭하고 선을 완성하면 구간 2개가
+  목록에 생긴다
+- 구간에 값을 넣고 저장하면 `mockBackend`에 들어간 payload가 5.1절 포맷과 맞는다.
+  첫 포인트에 `slope`가 없고, `distance`가 계산돼 있고, `gpx_file`이 `null`이다
+- 8.33% 초과 경고와 30% 초과 경고가 뜨지만 저장은 막히지 않는다
+- 값이 빈 구간이 있으면 저장 버튼이 막힌다
+- 꼭짓점을 중간에 하나 끼우면 재정렬 배너가 뜨고 영향받은 구간만 비워진다
+- 수정 페이지에서 기존 수기 경로를 열면 구간 값이 채워진 채로 뜨고, 값을 고쳐
+  저장하면 반영된다
+- 목록에서 "경로 직접 그리기"로 편집기에 진입한다
 - 시드한 수기 경로 행에 "직접 입력" 배지가 뜨고 다운로드 버튼이 없다
+- 비로그인 상태로 `/admin/slopes/new`에 가면 `/admin`으로 리다이렉트된다
 
 `mockBackend.ts`의 `slopes` 픽스처에 `gpx_file: null`이고 `slope`를 실은 행을
-하나 추가한다.
-
-**geoman으로 선을 그리는 동작 자체는 e2e에서 다루지 않는다.** 지도 클릭 자동화는
-불안정해지기 쉽고, 검증 가치가 같은 로직을 순수 함수로 테스트하는 것보다 낮다.
+하나 추가한다. 이 목은 POST/PATCH를 in-memory로 반영하므로 저장 payload를 그대로
+검증할 수 있다.
 
 ---
 
@@ -433,8 +506,9 @@ slopes.length === Math.max(0, vertices.length - 1)
 기존 10개 행을 삭제한 뒤, 별도 커밋으로 정리한다. 삭제 전에 하면 살아 있는
 데이터가 안 그려진다.
 
-- `src/types/domain.ts` — `SlopePoint`에서 `ele` 제거. GPX가 없으면 고도라는 개념
-  자체가 사라진다
+- `src/types/domain.ts` — `MeasuredSlopePoint`를 없애고 `ManualSlopePoint`만
+  남긴다. 거기서 `ele`도 뺀다. GPX가 없으면 고도라는 개념 자체가 사라지고,
+  `slope`·`distance`는 첫 포인트를 빼면 항상 있으므로 선택 필드일 이유도 없어진다
 - `src/components/map/SlopeLayer.tsx` — `processRawPoints`, `medianFilter`,
   레이어 내부 `haversine`, 이중 포맷 감지 분기 제거. 현재 119줄 중 계산 로직
   약 70줄이 사라지고 폴리라인 렌더링만 남는다
@@ -461,10 +535,11 @@ slopes.length === Math.max(0, vertices.length - 1)
 
 ## 9. 검토자가 오인하기 쉬운 기존 동작
 
-- `/admin/slopes/new`에서는 관리자 사이드바의 "경사도" 탭이 강조되지 않는다.
-  `src/app/admin/dashboard/layout.tsx`가 `pathname.startsWith("/admin/dashboard/slopes/")`로
-  판단하기 때문이다. `/admin/buildings/new`도 똑같이 동작하는 기존 동작이므로
-  이번에 고치지 않는다
+- `/admin/slopes/*`는 관리자 대시보드 레이아웃 **바깥**이다. 사이드바의 "경사도"
+  탭이 강조되지 않는 정도가 아니라 **사이드바와 인증 검사 자체를 상속받지
+  않는다.** `/admin/buildings/*`가 페이지마다 인증을 따로 확인하는 이유이며,
+  이번 두 페이지도 같다 (5.2.1). 사이드바가 없는 것은 기존 편집기 화면과 동일한
+  동작이므로 고치지 않는다
 - `slope_segments`의 쓰기 권한은 `authenticated` 전체에 열려 있다. 이번 설계가
   넓히는 것이 아니라 원래 그렇다
 - 공개 지도의 경사도 오버레이는 기본값이 꺼짐이다. 3장의 잘못된 데이터가 노출되는
