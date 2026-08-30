@@ -46,3 +46,6 @@ supabase/.temp
 *.tsbuildinfo
 next-env.d.ts
 /.next-e2e/
+
+# subagent-driven-development 작업 공간 (스크래치)
+.superpowers/
