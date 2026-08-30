@@ -399,4 +399,22 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(page.getByText("E2E-route", { exact: true })).toHaveCount(0);
     await expect(page.getByText('"E2E-route" 경로를 삭제했어요')).toBeVisible();
   });
+
+  test("목록에서 경로 직접 그리기로 편집기에 들어간다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await page.getByRole("button", { name: "경로 직접 그리기" }).click();
+    await expect(page).toHaveURL(/\/admin\/slopes\/new$/);
+    await expect(
+      page.getByRole("heading", { name: "경사도 경로 그리기" }),
+    ).toBeVisible();
+  });
+
+  test("비로그인 상태로 편집기에 가면 로그인 화면으로 보낸다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: false });
+    await page.goto("/admin/slopes/new");
+    await expect(page).toHaveURL(/\/admin$/);
+  });
 });

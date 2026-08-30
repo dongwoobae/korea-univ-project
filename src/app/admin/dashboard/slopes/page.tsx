@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { SlopePoint, SlopeSegment } from "@/types/domain";
 import Toast from "@/components/Toast";
@@ -46,6 +47,7 @@ function downloadGpx(route: SlopeSegment) {
 }
 
 export default function SlopesPage() {
+  const router = useRouter();
   const [slopes, setSlopes] = useState<SlopeSegment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -262,8 +264,32 @@ export default function SlopesPage() {
           padding: 24,
         }}
       >
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 16 }}>
-          등록된 경로 (총 {totalCount}개)
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 600 }}>
+            등록된 경로 (총 {totalCount}개)
+          </div>
+          <button
+            onClick={() => router.push("/admin/slopes/new")}
+            style={{
+              padding: "8px 16px",
+              background: "var(--ku-primary)",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: "pointer",
+            }}
+          >
+            경로 직접 그리기
+          </button>
         </div>
         <AdminListControls
           searchValue={searchQuery}
