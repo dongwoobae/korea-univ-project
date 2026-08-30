@@ -417,4 +417,62 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.goto("/admin/slopes/new");
     await expect(page).toHaveURL(/\/admin$/);
   });
+
+  test("폴리라인을 그리면 구간이 생기고 꼭짓점을 더 넣을 수 없다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await expect(map).toBeVisible();
+
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+      { x: 520, y: 260 },
+    ];
+    for (const position of points) await map.click({ position });
+    // 마지막 점을 한 번 더 눌러 선을 끝낸다.
+    await map.click({ position: points[2] });
+
+    await expect(page.getByText("구간 1")).toBeVisible();
+    await expect(page.getByText("구간 2")).toBeVisible();
+    await expect(page.getByText("구간 3")).toHaveCount(0);
+
+    // 꼭짓점 삽입용 중간점 핸들이 없어야 한다.
+    await expect(page.locator(".marker-icon-middle")).toHaveCount(0);
+
+    // 꼭짓점을 오른쪽 클릭해도 지워지지 않아야 한다.
+    await page.locator(".marker-icon").first().click({ button: "right" });
+    await expect(page.getByText("구간 1")).toBeVisible();
+    await expect(page.getByText("구간 2")).toBeVisible();
+
+    // 선을 하나 그리면 그리기 버튼이 잠긴다.
+    await expect(
+      page.locator(".leaflet-pm-icon-polyline").locator(".."),
+    ).toHaveClass(/pm-disabled/);
+  });
+
+  test("지우고 다시 그리기로 경로를 비운다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+    await expect(page.getByText("구간 1")).toBeVisible();
+
+    await page.getByRole("button", { name: "지우고 다시 그리기" }).click();
+    await expect(page.getByText("구간 1")).toHaveCount(0);
+    await expect(
+      page.locator(".leaflet-pm-icon-polyline").locator(".."),
+    ).not.toHaveClass(/pm-disabled/);
+  });
 });
