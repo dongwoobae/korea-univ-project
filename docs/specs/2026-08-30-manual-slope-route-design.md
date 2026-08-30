@@ -297,17 +297,17 @@ vitest가 node 환경이라 컴포넌트를 테스트할 수 없다. 그래서 *
 파일 경계를 일치시킨다.** 판단이 필요한 로직은 전부 순수 함수로 빼고 컴포넌트는
 얇게 유지한다.
 
-| 파일                                        | 상태 | 책임                                                             |
-| ------------------------------------------- | ---- | ---------------------------------------------------------------- |
-| `src/lib/slopeRoute.ts`                     | 신규 | 순수 함수 전부. 거리 계산, 구간 생성, 값 재정렬, 저장 변환, 검증 |
-| `src/lib/slopeRoute.test.ts`                | 신규 | 위 함수들의 단위 테스트                                          |
-| `src/components/slope/SlopeRouteMap.tsx`    | 신규 | Leaflet + geoman만. 명령형 코드 격리                             |
-| `src/components/slope/SlopeSegmentList.tsx` | 신규 | 구간 입력 폼. 순수 표현                                          |
-| `src/components/SlopeRouteEditor.tsx`       | 신규 | 위 둘을 조합하고 폼 상태를 보유                                  |
-| `src/app/admin/slopes/new/page.tsx`         | 신규 | 신규 등록 + 자체 인증 확인                                       |
-| `src/app/admin/slopes/[id]/page.tsx`        | 신규 | 수정 (수기 경로 한정) + 자체 인증 확인                           |
-| `src/app/admin/dashboard/slopes/page.tsx`   | 수정 | 진입 버튼, 배지, 행 버튼 분기                                    |
-| `src/types/domain.ts`                       | 수정 | 저장 포맷을 표현하는 타입 추가 (5.2.2)                           |
+| 파일                                        | 상태 | 책임                                                  |
+| ------------------------------------------- | ---- | ----------------------------------------------------- |
+| `src/lib/slopeRoute.ts`                     | 신규 | 순수 함수 전부. 거리 계산, 구간 생성, 저장 변환, 검증 |
+| `src/lib/slopeRoute.test.ts`                | 신규 | 위 함수들의 단위 테스트                               |
+| `src/components/slope/SlopeRouteMap.tsx`    | 신규 | Leaflet + geoman만. 명령형 코드 격리                  |
+| `src/components/slope/SlopeSegmentList.tsx` | 신규 | 구간 입력 폼. 순수 표현                               |
+| `src/components/SlopeRouteEditor.tsx`       | 신규 | 위 둘을 조합하고 폼 상태를 보유                       |
+| `src/app/admin/slopes/new/page.tsx`         | 신규 | 신규 등록 + 자체 인증 확인                            |
+| `src/app/admin/slopes/[id]/page.tsx`        | 신규 | 수정 (수기 경로 한정) + 자체 인증 확인                |
+| `src/app/admin/dashboard/slopes/page.tsx`   | 수정 | 진입 버튼, 배지, 행 버튼 분기                         |
+| `src/types/domain.ts`                       | 수정 | 저장 포맷을 표현하는 타입 추가 (5.2.2)                |
 
 편집기를 `src/components/`에 두는 것은 성격이 같은 `PolygonEditor.tsx`(건물 폴리곤
 편집기) 옆이기 때문이다.
@@ -336,41 +336,29 @@ UI가 그대로 노출된다. `slope_segments`는 `anon` SELECT가 열려 있어
 저장된 경사값을 읽어야 하므로 그 타입이 `domain.ts`에 있어야 한다. 없으면 지역
 중복 타입이나 캐스팅으로 때우게 된다.
 
-혼재 기간을 드러내는 union으로 정의하고, **`SlopeSegment`가 그 union을 쓰도록
-연결까지 바꾼다.** 타입만 추가하고 `SlopeSegment.segments`를 그대로 두면 편집기가
-여전히 저장값을 읽지 못한다.
+**union으로 만들지 않는다.** `{ lat, lng, ele }`와 `{ lat, lng, ele, slope }`의
+union은 `point.slope` 접근이 컴파일되지 않는다. 측정형 쪽에 그 속성이 없기
+때문이다. 두 세대를 구분하는 것은 타입이 아니라 `slope`의 존재 여부이므로,
+**선택 속성 하나짜리 인터페이스**가 정확한 모델이다.
 
 ```ts
-/** GPX 측정 원본 포인트 (2단계에서 폐기) */
-export interface MeasuredSlopePoint {
+export interface SlopePoint {
   lat: number;
   lng: number;
+  /** GPX 측정 원본에만 있다. 수기 경로는 null (2단계에서 제거) */
   ele: number | null;
-}
-
-/** 수기 입력 구간 끝점. 첫 포인트에는 slope·distance가 없다 */
-export interface ManualSlopePoint {
-  lat: number;
-  lng: number;
-  ele: null;
+  /** 수기 경로의 구간 값. 첫 포인트에는 없다 */
   slope?: number;
   distance?: number;
 }
-
-/** 혼재 기간 동안 segments에 들어 있을 수 있는 포인트 */
-export type SlopePoint = MeasuredSlopePoint | ManualSlopePoint;
-
-export type SlopeSegment = Omit<Tables["slope_segments"]["Row"], "segments"> & {
-  segments: SlopePoint[];
-};
 ```
 
-기존 이름 `SlopePoint`를 union 별칭으로 재정의하므로 `SlopeSegment`와
-`SlopeLayer`의 기존 사용처는 그대로 컴파일된다. `SlopeLayer`가 파일 안에 들고
-있는 `StoredPoint`·`MetricPoint`는 이 타입으로 대체한다.
+`SlopeLayer`가 파일 안에 들고 있는 `StoredPoint`는 정확히 이 모양이다. 지역
+타입을 지우고 이 타입을 쓴다. `SlopeSegment`는 이미 `segments: SlopePoint[]`이므로
+연결이 그대로 유지된다.
 
-2단계에서 GPX가 사라지면 `MeasuredSlopePoint`와 union을 함께 없애고
-`ManualSlopePoint`만 남긴다.
+2단계에서 GPX가 사라지면 `ele`를 없애고, 첫 포인트를 제외하면 `slope`·`distance`가
+항상 있으므로 선택 속성 표기도 정리한다.
 
 ### 5.3 상태 모델과 불변식
 
@@ -402,38 +390,46 @@ slopes.length === Math.max(0, vertices.length - 1)
 "경로 지우고 다시 그리기"로 레이어와 입력값을 함께 비우고 버튼을 되살린다.
 이 흐름이 없으면 폴리라인을 여러 개 그렸을 때 무엇을 저장할지가 정의되지 않는다.
 
-#### 5.4.1 꼭짓점 변경은 geoman의 세부 이벤트로 추적한다
+#### 5.4.1 그리기가 끝나면 꼭짓점 개수를 고정한다
 
-**앞뒤 좌표 배열을 비교해서 무슨 일이 있었는지 추측하지 않는다.** 추측은 틀린다.
-`A-B-C-D`에서 B를 지우고 X를 넣어 `A-X-C-D`가 되면 꼭짓점 개수가 그대로라서,
-개수로 갈라지는 어떤 규칙도 이것을 단순 이동으로 오인하고 `B-C`의 실측값을
-`X-C`에 물려준다. 좌표 쌍으로만 매칭하면 반대로, 드래그로 좌표가 조금 움직였을
-뿐인데 멀쩡한 값을 전부 날린다.
+**꼭짓점 추가와 삭제를 허용하지 않는다.** geoman 옵션 두 개로 막는다.
 
-geoman 2.19.3은 무슨 일이 일어났는지 직접 알려준다. 그것을 그대로 쓴다.
+- `hideMiddleMarkers: true` — 변의 중간점 핸들을 없애 꼭짓점 삽입을 막는다
+- `preventMarkerRemoval: true` — 꼭짓점 삭제를 막는다
 
-- `pm:vertexadded` — 꼭짓점이 끼워졌다. 그 자리의 구간 하나가 둘로 쪼개지므로
-  **쪼개진 두 구간을 모두 `null`로 비우고**, 나머지는 그대로 둔다
-- `pm:vertexremoved` — 꼭짓점이 빠졌다. 그 꼭짓점에 붙어 있던 두 구간이 하나로
-  합쳐지므로 **합쳐진 구간을 `null`로 비우고**, 나머지는 그대로 둔다
-- `pm:markerdragend` — 꼭짓점 하나가 이동했다. 개수와 순서가 그대로이므로
-  **값은 모두 유지하고** 인접 구간의 `distance`만 다시 계산한다
-- `pm:dragend` — 선 전체가 이동했다. 상대 형상이 그대로이므로 값도 거리도 유지한다
-- `pm:create` — 새로 그렸다. 모든 구간이 `null`이다
+**위치 조정은 드래그로 얼마든지 할 수 있다.** 꼭짓점 하나를 끌거나 선 전체를
+옮기는 것은 개수와 순서를 바꾸지 않는다. 형상 자체가 잘못됐으면 "지우고 다시
+그리기"로 처음부터 그린다. 꼭짓점 2~5개짜리 경로에서 다시 그리는 비용은 클릭
+몇 번이다.
 
-값을 하나라도 비웠으면 "꼭짓점이 바뀌어 일부 구간의 값을 다시 입력해야 해요"
-배너를 띄운다.
+이 제약의 대가로 **구간과 입력값의 대응이 그리기 직후에 확정되고 그 뒤로 절대
+어긋나지 않는다.** `slopes.length`는 `pm:create` 이후 변하지 않으므로 값을 옮겨
+붙이는 로직이 아예 없다. 값이 엉뚱한 구간에 붙는 사고의 여지도 함께 사라진다.
 
-이 규칙이 중요한 이유는, 잘못 물려받은 값이 **빈칸으로 보이지 않기 때문**이다.
-사용자는 배너를 보고 빈 칸만 채우고 저장한다. 틀린 경사가 정상 데이터로
-남는다. 3.2절에서 지적한 "0%로 뭉개짐"과 같은 부류의 조용한 오염이다.
+**이벤트는 "뭔가 바뀌었다"는 신호로만 쓰고, 좌표는 항상 레이어에서 다시 읽는다.**
+어떤 이벤트가 왔는지로 무슨 편집이었는지 추론하지 않는다.
 
-순수 함수는 이벤트 종류와 인덱스를 받는 형태가 된다.
+- 변경 신호를 받으면 `layer.getLatLngs()`로 좌표 전체를 다시 읽는다
+- `slopes`는 건드리지 않는다
+- **모든 구간의 `distance`를 다시 계산한다**
 
-- `applyVertexAdded(slopes, index)`
-- `applyVertexRemoved(slopes, index)`
+거리를 반드시 다시 계산하는 이유는, 선 전체 이동이 화면에서는 평행이동이어도
+위도·경도가 바뀌기 때문이다. 경도 1도의 실제 길이는 위도에 따라 달라지므로
+haversine 거리가 보존되지 않는다. 5.1절이 "`distance`는 저장 좌표에서 계산한다"고
+못박은 이상, 거리는 들고 다니는 값이 아니라 좌표에서 매번 유도하는 값이어야 한다.
 
-둘 다 배열 하나와 정수 하나를 받아 새 배열을 돌려주므로 단위 테스트가 쉽다.
+**`pm:vertexadded`는 구독하지 않는다.** geoman은 이 이벤트를 그리는 중에도 클릭
+할 때마다 발생시키며(`_fireVertexAdded(marker, void 0, latlng, "Draw")`), 그때
+`indexPath`는 `undefined`다. 또 이 이벤트는 지도가 아니라 레이어에 발생한다
+(타입 선언 파일도 `DRAW MODE EVENTS ON LAYER ONLY`라고 적어 두었다). 꼭짓점
+삽입을 막은 이상 구독할 이유가 없다.
+
+`pm:edit`도 삽입·삭제 때 세부 이벤트보다 **먼저** 발생하므로 둘을 같이 구독하면
+같은 변경이 두 번 처리된다. 좌표를 레이어에서 다시 읽는 방식은 몇 번 호출되든
+같은 결과가 나오므로 이 문제를 받지 않는다.
+
+방어적으로, `slopes.length !== vertices.length - 1`이면 저장을 막고 다시 그리기를
+안내한다. 위 설계대로면 일어나지 않지만, 어긋난 상태로 저장되는 것보다 낫다.
 
 #### 5.4.2 실시간 색상 미리보기
 
@@ -449,7 +445,9 @@ geoman 편집 레이어(얇은 실선) 아래에 구간별 색상 폴리라인�
   전역 편집 모드에서 색칠용 선에 꼭짓점 핸들이 붙는다
 - `interactive: false` — 없으면 미리보기 선이 위에 깔려 편집 선으로 가야 할
   클릭을 가로챈다
-- 편집 레이어보다 아래 pane에 그린다
+- `map.createPane("slopePreview")`로 전용 pane을 만들고 `z-index`를 Leaflet 기본
+  `overlayPane`(400)보다 낮은 350으로 준다. "아래에 그린다"를 말로만 두면 실제
+  순서가 보장되지 않는다
 
 `src/lib/neighborLayer.ts`가 배경 건물 레이어에 `interactive: false`를 주는 것과
 같은 이유다.
@@ -502,7 +500,14 @@ geoman 편집 레이어(얇은 실선) 아래에 구간별 색상 폴리라인�
 - `gpx_file === null`인 행에 "직접 입력" 배지와 "수정" 버튼을 노출하고
   **다운로드 버튼은 숨긴다.** `buildGpx()`가 고도를 그대로 문자열 보간하기 때문에
   수기 경로를 내려받으면 고도가 `null`로 찍힌 GPX가 나온다
-- GPX 행은 지금 그대로 둔다(다운로드, 삭제). 곧 폐기되므로 손대지 않는다
+- GPX 행은 조회·다운로드·삭제만 남긴다. 곧 폐기되므로 손대지 않는다
+- **GPX 업로드는 v1에서 막는다.** 업로드 영역을 없애고 "GPX 등록은 종료됐어요.
+  경로는 직접 그려서 등록해주세요"만 남긴다
+
+업로드를 v1에서 닫는 이유는, 열어두면 **폐기 대상이 계속 늘어나기 때문**이다.
+7절이 "기존 10개를 지운다"고 고정된 수를 말하는 동안 11번째 GPX 행이 생기면
+정리가 끝나지 않는다. 애초에 3장에서 이 파이프라인을 못 믿겠다고 결론 낸 이상,
+새 GPX를 더 받을 이유가 없다.
 
 `/admin/slopes/[id]`는 수기 경로만 연다. GPX 경로 id로 접근하면 안내 후 목록으로
 돌려보낸다. GPX 행을 편집 가능하게 만들면 측정 원본이 훼손된다.
@@ -525,15 +530,12 @@ geoman 편집 레이어(얇은 실선) 아래에 구간별 색상 폴리라인�
 
 - `haversine()` — 알려진 두 좌표 사이 거리
 - `buildSegments(vertices)` — 구간별 거리 계산, 꼭짓점 2개 미만이면 빈 배열
-- `applyVertexAdded(slopes, index)` — 끼워진 자리의 구간이 둘로 쪼개져 **둘 다
-  `null`**이 되고 나머지는 그대로인지. 맨 앞·맨 뒤에 끼운 경우도 본다
-- `applyVertexRemoved(slopes, index)` — 합쳐진 구간이 `null`이 되고 나머지는
-  그대로인지. 끝 꼭짓점을 지운 경우(구간이 합쳐지지 않고 하나 사라지는 경우)도 본다
-- **삭제와 삽입이 같이 일어나 꼭짓점 수가 그대로인 경우** — `A-B-C-D`에서 B를
-  지우고 X를 넣어 `A-X-C-D`가 되면, 두 이벤트가 순서대로 적용되어 `B-C`의 값이
-  `X-C`로 옮겨가지 않는지. 배열 비교였다면 놓쳤을 사례다
+- `recomputeDistances(vertices, slopes)` — 좌표가 바뀌면 모든 구간 거리가 다시
+  계산되고 **`slopes`는 그대로**인지. 선 전체를 위도 방향으로 옮겼을 때 거리가
+  실제로 달라지는 것까지 확인한다 (그래서 거리를 들고 다니면 안 된다)
 - `toStoredSegments(vertices, slopes)` — 첫 포인트에 `slope`가 없는지, 모든
   포인트에 `ele: null`이 있는지, 길이가 맞는지
+- `slopes.length !== vertices.length - 1`이면 저장이 막히는지 (방어 조건)
 - 검증 규칙 경계값 — 0, 8.33, 8.34, 30, 30.1, 100, 100.1, 음수, `NaN`, `Infinity`
 - 중복 꼭짓점으로 생긴 0m 구간을 저장 전에 걸러내는지
 
@@ -549,9 +551,13 @@ geoman 편집 레이어(얇은 실선) 아래에 구간별 색상 폴리라인�
   첫 포인트에 `slope`가 없고, `distance`가 계산돼 있고, `gpx_file`이 `null`이다
 - 8.33% 초과 경고와 30% 초과 경고가 뜨지만 저장은 막히지 않는다
 - 값이 빈 구간이 있으면 저장 버튼이 막힌다
-- 꼭짓점을 중간에 하나 끼우면 재정렬 배너가 뜨고 영향받은 구간만 비워진다
+- **선을 완성한 뒤 변 중간에 꼭짓점을 끼울 수 없고, 꼭짓점을 지울 수도 없다**
+  (5.4.1). 중간점 핸들이 아예 없는지 확인한다
+- **꼭짓점을 드래그하면 입력값은 그대로 남고 구간 거리 표시만 바뀐다**
 - 선을 하나 그린 뒤에는 폴리라인 그리기 버튼이 잠기고, "지우고 다시 그리기"로만
-  풀린다
+  풀린다. 다시 그리면 입력값도 함께 비워진다
+- 값을 입력한 상태로 페이지를 벗어나려 하면 미저장 경고가 뜬다 (5.7절이 약속한
+  동작)
 - 수정 페이지에서 기존 수기 경로를 열면 구간 값이 채워진 채로 뜨고, 값을 고쳐
   저장하면 반영된다
 - 목록에서 "경로 직접 그리기"로 편집기에 진입한다
@@ -574,18 +580,27 @@ geoman 편집 레이어(얇은 실선) 아래에 구간별 색상 폴리라인�
 
 ## 7. 2단계 폐기 계획
 
-기존 10개 행을 삭제한 뒤, 별도 커밋으로 정리한다. 삭제 전에 하면 살아 있는
-데이터가 안 그려진다.
+**삭제 기준은 "기존 10개"가 아니라 `gpx_file IS NOT NULL`이다.** 개수를 세어
+지우면 놓치는 행이 생긴다. v1에서 업로드를 막았으므로(5.6) 이 집합은 더 늘지
+않지만, 조건으로 지우는 편이 안전하다.
 
-- `src/types/domain.ts` — `MeasuredSlopePoint`를 없애고 `ManualSlopePoint`만
-  남긴다. 거기서 `ele`도 뺀다. GPX가 없으면 고도라는 개념 자체가 사라지고,
-  `slope`·`distance`는 첫 포인트를 빼면 항상 있으므로 선택 필드일 이유도 없어진다
+순서는 이렇다.
+
+1. `gpx_file IS NOT NULL`인 행을 GPX로 내려받아 저장소 밖에 보관한다. 3장의
+   결론은 "이 값을 믿지 않는다"이지 "측정 기록을 없앤다"가 아니다
+2. 같은 조건으로 삭제한다
+3. `select count(*) ... where gpx_file is not null`이 0인지 확인한다
+4. 아래 정리를 별도 커밋으로 넣는다. 순서를 바꾸면 살아 있는 데이터가 안 그려진다
+
+- `src/types/domain.ts` — `SlopePoint`에서 `ele`를 없애고, 첫 포인트를 제외하면
+  항상 있는 `slope`·`distance`의 선택 속성 표기를 정리한다
 - `src/components/map/SlopeLayer.tsx` — `processRawPoints`, `medianFilter`,
   레이어 내부 `haversine`, 이중 포맷 감지 분기 제거. 현재 119줄 중 계산 로직
   약 70줄이 사라지고 폴리라인 렌더링만 남는다
-- `src/app/admin/dashboard/slopes/page.tsx` — GPX 업로드 UI, `buildGpx`,
-  `downloadGpx` 제거
-- `e2e/admin-buildings-slopes.spec.ts` — GPX 업로드/거부/다운로드 테스트 제거
+- `src/app/admin/dashboard/slopes/page.tsx` — v1에서 남겨둔 업로드 종료 안내와
+  `buildGpx`·`downloadGpx`, 그리고 `gpx_file` 분기 제거. 모든 행이 수기 경로다
+- `e2e/admin-buildings-slopes.spec.ts` — GPX 업로드/거부/다운로드 테스트와
+  GPX 행 관련 분기 테스트 제거
 - 남아 있는 수기 행의 `ele: null` 키는 **정리하지 않는다.** 읽는 코드가 없으면
   무해하고 jsonb 일괄 UPDATE는 순수 비용이다
 
@@ -611,8 +626,12 @@ geoman 편집 레이어(얇은 실선) 아래에 구간별 색상 폴리라인�
   않는다.** `/admin/buildings/*`가 페이지마다 인증을 따로 확인하는 이유이며,
   이번 두 페이지도 같다 (5.2.1). 사이드바가 없는 것은 기존 편집기 화면과 동일한
   동작이므로 고치지 않는다
-- `slope_segments`의 쓰기 권한은 `authenticated` 전체에 열려 있다. 이번 설계가
-  넓히는 것이 아니라 원래 그렇다
+- **인증 확인은 로그인 여부까지고 관리자 역할은 보지 않는다.** 5.2.1절의 페이지
+  검사도 `supabase.auth.getUser()`로 로그인만 본다. `slope_segments`의 RLS 역시
+  `authenticated` 전체에 쓰기를 허용하므로, 일반 로그인 계정이 경사도 경로를
+  만들고 고치고 지울 수 있다. 이것은 이번 설계가 넓히는 것이 아니라 관리자
+  화면 전체의 기존 상태이며 `docs/TODO_list/auth/require-admin-role-check.md`에
+  별도 과제로 잡혀 있다. 그 과제가 해결되면 이 두 페이지도 함께 적용받는다
 - 공개 지도의 경사도 오버레이는 기본값이 꺼짐이다. 3장의 잘못된 데이터가 노출되는
   범위는 토글을 켠 사용자로 한정된다. 문제의 심각도를 낮추지는 않지만 전환을
   급하게 밀어붙일 이유는 아니다
