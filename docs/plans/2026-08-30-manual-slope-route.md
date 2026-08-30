@@ -1,22 +1,25 @@
 # 경사도 경로 수기 입력 구현 계획
 
-> **작업자 안내:** 이 계획은 태스크 단위로 실행한다. 각 태스크는 RED → GREEN →
-> 커밋으로 닫는다. 체크박스(`- [ ]`)로 진행을 표시한다.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use
+> superpowers:subagent-driven-development (recommended) or
+> superpowers:executing-plans to implement this plan task-by-task. Steps use
+> checkbox (`- [ ]`) syntax for tracking.
 
-**목표:** 관리자가 지도에 폴리라인을 그리고 꼭짓점 사이 구간마다 현장 실측
+**Goal:** 관리자가 지도에 폴리라인을 그리고 꼭짓점 사이 구간마다 현장 실측
 경사도(%)를 입력해 저장하는 기능을 만들고, 기존 GPX 업로드를 닫는다.
 
-**설계 문서:** `docs/specs/2026-08-30-manual-slope-route-design.md`
-이 계획은 그 문서를 전제한다. 왜 이렇게 하는지가 궁금하면 그쪽을 본다.
-
-**접근:** DB 마이그레이션이 없다. `slope_segments.segments` jsonb에
+**Architecture:** DB 마이그레이션이 없다. `slope_segments.segments` jsonb에
 `{lat, lng, ele: null, slope, distance}` 모양으로 넣으면 `SlopeLayer`의 기존
 "구버전 포맷" 감지 분기가 그대로 렌더한다. 판단이 들어가는 로직은 전부
-`src/lib/slopeRoute.ts`의 순수 함수로 빼고, 컴포넌트는 얇게 둔다.
+`src/lib/slopeRoute.ts`의 순수 함수로 빼고, 컴포넌트는 얇게 둔다. vitest가 node
+환경이라 컴포넌트를 못 덮으므로 테스트 가능한 경계와 파일 경계를 일치시킨다.
 
-**기술 스택:** Next.js 16 App Router, React 19, TypeScript, Supabase JS,
+**Tech Stack:** Next.js 16 App Router, React 19, TypeScript, Supabase JS,
 Leaflet 1.9 + `@geoman-io/leaflet-geoman-free` 2.19.3, vitest(node 환경),
 Playwright + `e2e/support/mockBackend.ts`
+
+**Spec:** `docs/specs/2026-08-30-manual-slope-route-design.md`
+이 계획은 그 문서를 전제하고 그 문서에서 논지를 가져온다. 실행자는 둘 다 읽는다.
 
 ---
 
