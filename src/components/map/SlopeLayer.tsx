@@ -7,7 +7,6 @@ import type { SlopePoint, SlopeSegment } from "@/types/domain";
  * 구버전 행은 slope·distance를 계산해 저장했고 신버전은 원시 포인트만 담는다.
  * 어느 쪽이 왔는지는 아래 SlopeLayer가 slope 유무로 가른다.
  */
-type StoredPoint = SlopePoint & { slope?: number; distance?: number };
 type MetricPoint = SlopePoint & { slope: number; distance: number };
 
 function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -74,7 +73,7 @@ function processRawPoints(points: SlopePoint[]): MetricPoint[] {
 
 export default function SlopeLayer({ slopes }: { slopes: SlopeSegment[] }) {
   return slopes.flatMap((route) => {
-    const raw = route.segments as StoredPoint[] | null;
+    const raw = route.segments as SlopePoint[] | null;
     if (!raw?.length) return [];
 
     // 구버전(slope 필드 있음) / 신버전(raw points) 자동 감지
