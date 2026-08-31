@@ -636,6 +636,45 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(page.getByLabel("구간 1 경사도")).toHaveValue("9.4");
   });
 
+  test("열어둔 사이 행이 바뀌면 덮어쓰지 않고 알린다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+
+    // 다른 곳에서 같은 행을 먼저 저장한 상황.
+    const row = state.slopes.find((slope) => slope.id === 2)!;
+    row.updated_at = "2026-09-01T00:00:00Z";
+
+    await page.getByLabel("구간 1 경사도").fill("9.4");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+
+    await expect(
+      page.getByText("다른 곳에서 바뀌었거나 삭제된 경로예요"),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/slopes\/2$/);
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("9.4");
+    expect((row.segments as Array<Record<string, unknown>>)[1].slope).toBe(7.2);
+  });
+
+  test("열어둔 사이 GPX 행이 되면 측정 원본을 덮지 않는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+
+    const row = state.slopes.find((slope) => slope.id === 2)!;
+    row.gpx_file = "restored.gpx";
+
+    await page.getByLabel("구간 1 경사도").fill("9.4");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+
+    await expect(
+      page.getByText("다른 곳에서 바뀌었거나 삭제된 경로예요"),
+    ).toBeVisible();
+    expect((row.segments as Array<Record<string, unknown>>)[1].slope).toBe(7.2);
+  });
+
   test("구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다", async ({
     page,
   }) => {
