@@ -371,6 +371,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     const deleteConfirm = page
       .getByText('"정문-중앙광장" 경로를 삭제할까요?')
       .locator("..");
+    await expect(deleteConfirm).toBeVisible();
     await deleteConfirm.getByRole("button", { name: "취소" }).click();
     await expect(
       page.getByText("정문-중앙광장", { exact: true }),
@@ -513,13 +514,13 @@ test.describe("건물과 경사도 관리자 흐름", () => {
 
     await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
 
-    const saved = state.slopes.find(
-      (row) => row.name === "안암병원 정문 경사로",
-    );
-    expect(saved).toBeTruthy();
-    expect(saved!.gpx_file).toBeNull();
+    // 픽스처에도 같은 이름의 행이 있어 name으로 find하면 그쪽이 잡힌다.
+    // 방금 저장한 행은 POST 처리가 배열 끝에 push하므로 마지막 행이다.
+    const saved = state.slopes[state.slopes.length - 1];
+    expect(saved.name).toBe("안암병원 정문 경사로");
+    expect(saved.gpx_file).toBeNull();
 
-    const segments = saved!.segments as Array<Record<string, unknown>>;
+    const segments = saved.segments as Array<Record<string, unknown>>;
     expect(segments).toHaveLength(2);
     expect(segments[0].slope).toBeUndefined();
     expect(segments[0].ele).toBeNull();
