@@ -79,7 +79,6 @@ export default function EditSlopeRoutePage() {
       .update({
         name: nextName,
         segments: segments as unknown as Json,
-        updated_at: new Date().toISOString(),
       })
       .eq("id", params.id);
     setSaving(false);

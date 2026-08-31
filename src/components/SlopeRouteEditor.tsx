@@ -76,12 +76,11 @@ export default function SlopeRouteEditor({
   const errors = validateRoute(name, vertices, slopes);
   const canSave = errors.length === 0 && !saving;
   const dirty =
-    name.trim() !== initialName ||
+    name.trim() !== initialName.trim() ||
     !verticesEqual(vertices, initialVertices ?? []) ||
     !slopesEqual(slopes, initialSlopes);
 
-  // 현장 실측값이라 잃으면 다시 재야 한다. 건물 상세 화면과 같은 방식으로
-  // 탭을 닫거나 새로고침할 때도 경고한다.
+  // 현장 실측값이라 잃으면 다시 재야 한다. 건물 상세 화면과 같은 방식이다.
   useEffect(() => {
     if (!dirty) return;
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {

@@ -702,6 +702,11 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       .locator(".leaflet-pane.slope-preview-pane path")
       .first();
     const before = await preview.getAttribute("d");
+    const segmentCard = page.locator('label[for="slope-0"]').locator("..");
+    const distanceBefore = await segmentCard
+      .locator("span")
+      .first()
+      .textContent();
 
     const mapBox = (await map.boundingBox())!;
     const marker = page.locator(".marker-icon").first();
@@ -715,6 +720,12 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.mouse.up();
 
     await expect(preview).not.toHaveAttribute("d", before ?? "");
+    // 드래그는 좌표만 바꾼다. 구간 거리 표시는 새 좌표로 다시 계산되어
+    // 바뀌지만, 사용자가 입력한 경사값은 그대로 남아 있어야 한다(6.2절).
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("1");
+    await expect(segmentCard.locator("span").first()).not.toHaveText(
+      distanceBefore ?? "",
+    );
   });
 
   test("저장이 실패해도 그린 경로와 입력값이 남는다", async ({ page }) => {
