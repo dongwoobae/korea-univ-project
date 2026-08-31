@@ -337,67 +337,77 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     expect(state.photos).toHaveLength(3);
   });
 
-  test("잘못된 GPX를 오류 메시지와 함께 거부한다", async ({ page }) => {
+  test("검색으로 목록을 좁히고 초기화한다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
-    const input = page.locator("#gpx-input");
 
-    await input.setInputFiles({
-      name: "broken.gpx",
-      mimeType: "application/gpx+xml",
-      buffer: Buffer.from("<gpx><broken>"),
-    });
-    await page.getByRole("button", { name: "업로드 & 저장" }).click();
-    await expect(
-      page.getByText(/업로드 실패: GPX 파일을 파싱할 수 없습니다/),
-    ).toBeVisible();
-  });
-
-  test("정상 GPX를 등록·다운로드·삭제한다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-    const input = page.locator("#gpx-input");
-    const validGpx = `<?xml version="1.0"?><gpx><trk><trkseg>
-      <trkpt lat="37.5890" lon="127.0320"><ele>20</ele></trkpt>
-      <trkpt lat="37.5892" lon="127.0322"><ele>22</ele></trkpt>
-    </trkseg></trk></gpx>`;
-    await input.setInputFiles({
-      name: "E2E-route.gpx",
-      mimeType: "application/gpx+xml",
-      buffer: Buffer.from(validGpx),
-    });
-    await page.getByRole("button", { name: "업로드 & 저장" }).click();
-    await expect(page.getByText("E2E-route", { exact: true })).toBeVisible();
-    await expect(page.getByText('"E2E-route" 경로를 등록했어요')).toBeVisible();
     await page
       .getByRole("searchbox", { name: "경사도 경로 검색" })
-      .fill("E2E-route.gpx");
-    await expect(page.getByText("정문-중앙광장", { exact: true })).toHaveCount(
-      0,
-    );
+      .fill("중앙광장");
+    await expect(page.getByText("안암병원 정문 경사로")).toHaveCount(0);
     await expect(
       page.getByRole("status", { name: "총 1개 중 현재 1개 표시" }),
     ).toBeVisible();
+
     await page.getByRole("button", { name: "초기화" }).click();
+    await expect(page.getByText("안암병원 정문 경사로")).toBeVisible();
+    await expect(
+      page.getByRole("status", { name: "총 2개 중 현재 2개 표시" }),
+    ).toBeVisible();
+  });
+
+  test("GPX 경로를 다운로드하고 삭제한다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+
+    const row = page.getByText("정문-중앙광장").locator("xpath=../..");
     const downloadPromise = page.waitForEvent("download");
-    const routeRow = page
-      .getByText("E2E-route", { exact: true })
-      .locator("xpath=../..");
-    await routeRow.getByRole("button", { name: "다운로드" }).click();
-    expect((await downloadPromise).suggestedFilename()).toBe("E2E-route.gpx");
+    await row.getByRole("button", { name: "다운로드" }).click();
+    expect((await downloadPromise).suggestedFilename()).toBe(
+      "정문-중앙광장.gpx",
+    );
 
-    await routeRow.getByRole("button", { name: "삭제" }).click();
+    await row.getByRole("button", { name: "삭제" }).click();
     const deleteConfirm = page
-      .getByText('"E2E-route" 경로를 삭제할까요?')
+      .getByText('"정문-중앙광장" 경로를 삭제할까요?')
       .locator("..");
-    await expect(deleteConfirm).toBeVisible();
     await deleteConfirm.getByRole("button", { name: "취소" }).click();
-    await expect(page.getByText("E2E-route", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("정문-중앙광장", { exact: true }),
+    ).toBeVisible();
 
-    await routeRow.getByRole("button", { name: "삭제" }).click();
+    await row.getByRole("button", { name: "삭제" }).click();
     await page.getByRole("button", { name: "경로 삭제" }).click();
-    await expect(page.getByText("E2E-route", { exact: true })).toHaveCount(0);
-    await expect(page.getByText('"E2E-route" 경로를 삭제했어요')).toBeVisible();
+    await expect(page.getByText("정문-중앙광장", { exact: true })).toHaveCount(
+      0,
+    );
+  });
+
+  test("수기 경로와 GPX 경로의 행 동작을 구분한다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+
+    const manual = page
+      .getByText("안암병원 정문 경사로")
+      .locator("xpath=../..");
+    await expect(manual.getByText("직접 입력")).toBeVisible();
+    await expect(manual.getByRole("button", { name: "수정" })).toBeVisible();
+    await expect(manual.getByRole("button", { name: "다운로드" })).toHaveCount(
+      0,
+    );
+
+    const gpx = page.getByText("정문-중앙광장").locator("xpath=../..");
+    await expect(gpx.getByRole("button", { name: "다운로드" })).toBeVisible();
+    await expect(gpx.getByRole("button", { name: "수정" })).toHaveCount(0);
+  });
+
+  test("GPX 업로드를 닫고 종료 안내를 보여준다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await expect(page.locator("#gpx-input")).toHaveCount(0);
+    await expect(
+      page.getByText("GPX 등록은 종료됐어요. 경로는 직접 그려서 등록해주세요"),
+    ).toBeVisible();
   });
 
   test("목록에서 경로 직접 그리기로 편집기에 들어간다", async ({ page }) => {
