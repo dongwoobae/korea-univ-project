@@ -98,6 +98,15 @@ describe("readStoredVertices / readStoredSlopes", () => {
     ]);
     expect(readStoredSlopes(stored)).toEqual([7.2, 4.5]);
   });
+
+  it("slope가 없는 포인트는 0이 아니라 미입력으로 읽는다", () => {
+    const stored = [
+      { lat: A.lat, lng: A.lng, ele: null },
+      { lat: B.lat, lng: B.lng, ele: null, distance: 111.2 },
+      { lat: C.lat, lng: C.lng, ele: null, slope: 4.5, distance: 88.1 },
+    ];
+    expect(readStoredSlopes(stored)).toEqual([null, 4.5]);
+  });
 });
 
 describe("slopeWarning", () => {

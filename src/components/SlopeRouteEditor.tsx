@@ -35,7 +35,7 @@ function slopesEqual(a: (number | null)[], b: (number | null)[]) {
 interface SlopeRouteEditorProps {
   initialName: string;
   initialVertices: Vertex[] | null;
-  initialSlopes: number[];
+  initialSlopes: (number | null)[];
   saving: boolean;
   onSave: (name: string, segments: SlopePoint[]) => void | Promise<void>;
   onCancel: () => void;

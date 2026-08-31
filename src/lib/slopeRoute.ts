@@ -122,8 +122,12 @@ export function readStoredVertices(segments: SlopePoint[]): Vertex[] {
   return segments.map((point) => ({ lat: point.lat, lng: point.lng }));
 }
 
-export function readStoredSlopes(segments: SlopePoint[]): number[] {
-  return segments.slice(1).map((point) => point.slope ?? 0);
+/**
+ * 값이 없는 구간은 0이 아니라 null이다. 0으로 읽으면 미입력이 "평지 0%"로
+ * 화면에 채워지고 저장 시 그대로 굳는다 — 이 기능이 없애려던 실패 양상이다.
+ */
+export function readStoredSlopes(segments: SlopePoint[]): (number | null)[] {
+  return segments.slice(1).map((point) => point.slope ?? null);
 }
 
 export function isManualRoute(route: { gpx_file: string | null }) {
