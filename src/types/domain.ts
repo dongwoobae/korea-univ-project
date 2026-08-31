@@ -18,7 +18,11 @@ export type FacilityCode =
 export interface SlopePoint {
   lat: number;
   lng: number;
+  /** GPX 측정 원본에만 있다. 수기 경로는 null (GPX 폐기 시 제거) */
   ele: number | null;
+  /** 수기 경로의 구간 값. 첫 포인트에는 없다 */
+  slope?: number;
+  distance?: number;
 }
 
 /** 경사 경로 (slope_segments Row + segments를 구체 타입으로) */

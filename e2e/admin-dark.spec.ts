@@ -77,6 +77,8 @@ const SCREENS = [
   { name: "명소 목록", path: "/admin/dashboard/landmarks" },
   { name: "건물 상세", path: "/admin/buildings/1" },
   { name: "건물 신규 등록", path: "/admin/buildings/new" },
+  { name: "경사도 경로 그리기", path: "/admin/slopes/new" },
+  { name: "경사도 경로 수정", path: "/admin/slopes/2" },
 ];
 
 test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {

@@ -283,6 +283,23 @@ function createState(authenticated: boolean): MockState {
         created_at: "2026-07-21T00:00:00Z",
         updated_at: "2026-07-22T00:00:00Z",
       },
+      {
+        id: 2,
+        name: "안암병원 정문 경사로",
+        gpx_file: null,
+        segments: [
+          { lat: 37.5861, lng: 127.0268, ele: null },
+          {
+            lat: 37.5862,
+            lng: 127.0269,
+            ele: null,
+            slope: 7.2,
+            distance: 12.4,
+          },
+        ],
+        created_at: "2026-08-30T00:00:00Z",
+        updated_at: "2026-08-30T00:00:00Z",
+      },
     ],
     photos: [
       {
