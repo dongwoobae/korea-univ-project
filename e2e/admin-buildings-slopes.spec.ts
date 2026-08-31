@@ -475,4 +475,79 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       page.locator(".leaflet-pm-icon-polyline").locator(".."),
     ).not.toHaveClass(/pm-disabled/);
   });
+
+  test("구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    await page.getByLabel("경로 이름").fill("안암병원 정문 경사로");
+
+    // 값이 비어 있으면 저장이 막힌다.
+    await expect(
+      page.getByRole("button", { name: "경로 저장" }),
+    ).toBeDisabled();
+
+    await page.getByLabel("구간 1 경사도").fill("7.2");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+
+    const saved = state.slopes.find(
+      (row) => row.name === "안암병원 정문 경사로",
+    );
+    expect(saved).toBeTruthy();
+    expect(saved!.gpx_file).toBeNull();
+
+    const segments = saved!.segments as Array<Record<string, unknown>>;
+    expect(segments).toHaveLength(2);
+    expect(segments[0].slope).toBeUndefined();
+    expect(segments[0].ele).toBeNull();
+    expect(segments[1].slope).toBe(7.2);
+    expect(typeof segments[1].distance).toBe("number");
+    expect(segments[1].distance).toBeGreaterThan(0);
+  });
+
+  test("법적 기준과 급경사 경고를 표시하되 저장은 막지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    await page.getByLabel("경로 이름").fill("급경사 시험");
+
+    await page.getByLabel("구간 1 경사도").fill("10");
+    await expect(page.getByText("법적 기준(1/12) 초과")).toBeVisible();
+    await expect(page.getByRole("button", { name: "경로 저장" })).toBeEnabled();
+
+    await page.getByLabel("구간 1 경사도").fill("45");
+    await expect(
+      page.getByText("이 값이 맞나요? 30%를 넘는 보행 경사로는 매우 드뭅니다"),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "경로 저장" })).toBeEnabled();
+
+    await page.getByLabel("구간 1 경사도").fill("120");
+    await expect(
+      page.getByRole("button", { name: "경로 저장" }),
+    ).toBeDisabled();
+  });
 });
