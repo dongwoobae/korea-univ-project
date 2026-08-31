@@ -127,6 +127,7 @@ export default function SlopeRouteMap({
       ).addTo(map);
       attachLine(line);
       lockDrawButton();
+      syncVertices();
       map.fitBounds(line.getBounds(), { padding: [40, 40] });
     }
 

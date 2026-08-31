@@ -402,6 +402,56 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(gpx.getByRole("button", { name: "수정" })).toHaveCount(0);
   });
 
+  test("수기 경로를 열어 값을 고쳐 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+
+    const row = page.getByText("안암병원 정문 경사로").locator("xpath=../..");
+    await row.getByRole("button", { name: "수정" }).click();
+    await expect(page).toHaveURL(/\/admin\/slopes\/2$/);
+
+    await expect(page.getByLabel("경로 이름")).toHaveValue(
+      "안암병원 정문 경사로",
+    );
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+
+    await page.getByLabel("구간 1 경사도").fill("9.4");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+
+    const saved = state.slopes.find((row) => row.id === 2);
+    const segments = saved!.segments as Array<Record<string, unknown>>;
+    expect(segments[1].slope).toBe(9.4);
+  });
+
+  test("GPX 경로 id로 수정 화면에 가면 목록으로 돌려보낸다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/1");
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+  });
+
+  test("비로그인 상태로 수정 화면에 가면 로그인 화면으로 보낸다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: false });
+    await page.goto("/admin/slopes/2");
+    await expect(page).toHaveURL(/\/admin$/);
+  });
+
+  test("수정 화면을 열면 불러온 경사값으로 미리보기 선이 그려진다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+
+    const preview = page
+      .locator(".leaflet-pane.slope-preview-pane path")
+      .first();
+    await expect(preview).toHaveAttribute("stroke", "#C96C24");
+  });
+
   test("GPX 업로드를 닫고 종료 안내를 보여준다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
