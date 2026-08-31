@@ -1080,7 +1080,7 @@ interface SlopeRouteEditorProps {
 }
 ```
 
-- [ ] **Step 1: 실패하는 e2e를 쓴다**
+- [x] **Step 1: 실패하는 e2e를 쓴다**
 
 ```ts
 test("구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다", async ({
@@ -1153,7 +1153,7 @@ test("법적 기준과 급경사 경고를 표시하되 저장은 막지 않는�
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다"
@@ -1161,7 +1161,7 @@ npx playwright test e2e/admin-buildings-slopes.spec.ts -g "구간 값을 넣어 
 
 기대: FAIL. "경로 이름" 입력이 없다.
 
-- [ ] **Step 3: 구간 입력 목록을 만든다**
+- [x] **Step 3: 구간 입력 목록을 만든다**
 
 `src/components/slope/SlopeSegmentList.tsx`
 
@@ -1277,7 +1277,7 @@ export default function SlopeSegmentList({
 }
 ```
 
-- [ ] **Step 4: 편집기를 만든다**
+- [x] **Step 4: 편집기를 만든다**
 
 `src/components/SlopeRouteEditor.tsx`
 
@@ -1469,7 +1469,7 @@ export default function SlopeRouteEditor({
 }
 ```
 
-- [ ] **Step 5: 페이지를 편집기로 교체한다**
+- [x] **Step 5: 페이지를 편집기로 교체한다**
 
 `src/app/admin/slopes/new/page.tsx`
 
@@ -1546,7 +1546,7 @@ export default function NewSlopeRoutePage() {
 }
 ```
 
-- [ ] **Step 6: 통과를 확인한다**
+- [x] **Step 6: 통과를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다"
@@ -1556,7 +1556,7 @@ npm run typecheck
 
 기대: 둘 다 PASS.
 
-- [ ] **Step 7: 커밋**
+- [x] **Step 7: 커밋**
 
 ```bash
 git add src/components/slope/SlopeSegmentList.tsx src/components/SlopeRouteEditor.tsx src/app/admin/slopes/new/page.tsx e2e/admin-buildings-slopes.spec.ts
@@ -1586,7 +1586,7 @@ EOF
 - 사용: `slopeColor` (`@/lib/theme`), 이미 받고 있는 `slopes` prop
 - 제공: 없음(내부 동작)
 
-- [ ] **Step 1: 실패하는 e2e를 쓴다**
+- [x] **Step 1: 실패하는 e2e를 쓴다**
 
 ```ts
 test("입력한 경사도에 따라 미리보기 선 색이 바뀐다", async ({ page }) => {
@@ -1615,7 +1615,7 @@ test("입력한 경사도에 따라 미리보기 선 색이 바뀐다", async ({
 색상값은 `src/lib/theme.ts`의 `slopeColor()` 그대로다. 1% 이하 `#B5AFA8`,
 8.33% 초과 12% 이하 `#AE3B1E`.
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "입력한 경사도에 따라 미리보기 선 색이 바뀐다"
@@ -1623,7 +1623,7 @@ npx playwright test e2e/admin-buildings-slopes.spec.ts -g "입력한 경사도�
 
 기대: FAIL. `.slope-preview-pane`이 없다.
 
-- [ ] **Step 3: 미리보기 레이어를 붙인다**
+- [x] **Step 3: 미리보기 레이어를 붙인다**
 
 `src/components/slope/SlopeRouteMap.tsx`에 import를 추가한다.
 
@@ -1705,7 +1705,7 @@ useEffect(() => {
 `slopes`를 의존성으로 두면 값이 바뀔 때마다 다시 칠해진다. 구간이 몇 개
 없으므로 통째로 재생성해도 무방하다.
 
-- [ ] **Step 4: 통과를 확인한다**
+- [x] **Step 4: 통과를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "입력한 경사도에 따라 미리보기 선 색이 바뀐다"
@@ -1716,7 +1716,7 @@ npm run typecheck
 기대: 전부 PASS. 두 번째 테스트로 미리보기가 편집 동작을 방해하지 않는지
 같이 확인한다.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/components/slope/SlopeRouteMap.tsx e2e/admin-buildings-slopes.spec.ts
