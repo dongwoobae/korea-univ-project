@@ -767,4 +767,27 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     );
     await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
   });
+
+  test("저장한 수기 경로가 공개 지도 경사도 오버레이에 그려진다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/");
+
+    // 경사도 오버레이는 기본값이 꺼짐이다.
+    await page.getByRole("checkbox", { name: "경사도" }).check();
+
+    // slopeColor(7.2)는 8.33 이하라 #C96C24다(src/lib/theme.ts).
+    const slopePath = page.locator('path[stroke="#C96C24"]').first();
+    await expect(slopePath).toBeVisible();
+
+    // 같은 픽스처의 GPX 행(id 1)도 같은 색 구간에 들 여지가 있어 색만으로는
+    // 어느 경로가 그려졌는지 증명하지 못한다. 팝업 내용으로 수기 경로(id 2)를
+    // 특정한다.
+    await slopePath.dispatchEvent("click");
+    const popup = page.locator(".leaflet-popup");
+    await expect(popup).toContainText("안암병원 정문 경사로");
+    await expect(popup).toContainText("7.2%");
+    await expect(popup).toContainText("12.4m");
+  });
 });
