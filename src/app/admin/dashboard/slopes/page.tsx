@@ -116,6 +116,21 @@ export default function SlopesPage() {
     return () => window.clearTimeout(timer);
   }, [fetchSlopes]);
 
+  // 수정 화면이 GPX 행을 열지 않고 여기로 돌려보낼 때 사유를 쿼리로 넘긴다.
+  // replace로 지워 새로고침·뒤로가기에 안내가 다시 뜨지 않게 한다.
+  useEffect(() => {
+    const redirected = new URLSearchParams(window.location.search).get(
+      "redirected",
+    );
+    if (redirected !== "gpx") return;
+    setToast({
+      message:
+        "GPX 경로는 측정 원본이라 수정할 수 없어요. 목록에서 다운로드만 가능해요",
+      type: "warning",
+    });
+    router.replace("/admin/dashboard/slopes");
+  }, [router]);
+
   async function handleDelete(route: SlopeSegment) {
     setDeletingId(route.id);
     const { error } = await supabase

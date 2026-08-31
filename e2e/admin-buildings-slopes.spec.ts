@@ -430,6 +430,21 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/slopes/1");
     await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(
+      page.getByText(
+        "GPX 경로는 측정 원본이라 수정할 수 없어요. 목록에서 다운로드만 가능해요",
+      ),
+    ).toBeVisible();
+  });
+
+  test("사유 없이 목록에 들어가면 GPX 안내가 뜨지 않는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await expect(
+      page.getByText(
+        "GPX 경로는 측정 원본이라 수정할 수 없어요. 목록에서 다운로드만 가능해요",
+      ),
+    ).toHaveCount(0);
   });
 
   test("비로그인 상태로 수정 화면에 가면 로그인 화면으로 보낸다", async ({

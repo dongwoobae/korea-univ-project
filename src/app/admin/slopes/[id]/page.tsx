@@ -47,8 +47,14 @@ export default function EditSlopeRoutePage() {
 
       if (cancelled) return;
 
-      // GPX 행을 편집 가능하게 만들면 측정 원본이 훼손된다.
-      if (error || !data || !isManualRoute(data as unknown as SlopeSegment)) {
+      // GPX 행을 편집 가능하게 만들면 측정 원본이 훼손된다. 리다이렉트가
+      // 즉시 언마운트되어 여기서 Toast를 띄워도 안 보이므로, 사유를 목록
+      // 페이지로 넘겨 거기서 안내한다.
+      if (data && !isManualRoute(data as unknown as SlopeSegment)) {
+        router.push("/admin/dashboard/slopes?redirected=gpx");
+        return;
+      }
+      if (error || !data) {
         router.push("/admin/dashboard/slopes");
         return;
       }
