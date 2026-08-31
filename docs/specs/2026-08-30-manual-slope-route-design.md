@@ -617,8 +617,8 @@ geoman 편집 레이어(얇은 실선) 아래에 구간별 색상 폴리라인�
 ### 7.1 캐시를 켜게 되면 같이 볼 것
 
 `/api/slopes`는 지금 캐시를 쓰지 않는다(`export const revalidate` 없음,
-Next 15+ 라우트 핸들러는 기본이 비캐시). `/api/buildings`(86400)나
-`/api/facilities`(3600)처럼 나중에 캐시를 켠다면, 이 기능의 두 저장
+Next 15+ 라우트 핸들러는 기본이 비캐시). `/api/buildings`나 `/api/facilities`가
+`revalidate`를 두는 것처럼 나중에 캐시를 켠다면, 이 기능의 두 저장
 경로(`/admin/slopes/new`, `/admin/slopes/[id]`)에는 무효화 훅이 전혀 없다는
 점을 함께 처리해야 한다. `/api/buildings`가 저장 시 `revalidatePath`를
 호출하는 것과 같은 장치가 필요해진다.
