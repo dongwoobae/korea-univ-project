@@ -550,4 +550,63 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       page.getByRole("button", { name: "경로 저장" }),
     ).toBeDisabled();
   });
+
+  test("입력한 경사도에 따라 미리보기 선 색이 바뀐다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    const preview = page
+      .locator(".leaflet-pane.slope-preview-pane path")
+      .first();
+
+    await page.getByLabel("구간 1 경사도").fill("1");
+    await expect(preview).toHaveAttribute("stroke", "#B5AFA8");
+
+    await page.getByLabel("구간 1 경사도").fill("10");
+    await expect(preview).toHaveAttribute("stroke", "#AE3B1E");
+  });
+
+  test("꼭짓점을 드래그하면 미리보기 선도 새 좌표를 따라간다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    await page.getByLabel("구간 1 경사도").fill("1");
+    const preview = page
+      .locator(".leaflet-pane.slope-preview-pane path")
+      .first();
+    const before = await preview.getAttribute("d");
+
+    const mapBox = (await map.boundingBox())!;
+    const marker = page.locator(".marker-icon").first();
+    const markerBox = (await marker.boundingBox())!;
+    await page.mouse.move(
+      markerBox.x + markerBox.width / 2,
+      markerBox.y + markerBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(mapBox.x + 250, mapBox.y + 260, { steps: 10 });
+    await page.mouse.up();
+
+    await expect(preview).not.toHaveAttribute("d", before ?? "");
+  });
 });
