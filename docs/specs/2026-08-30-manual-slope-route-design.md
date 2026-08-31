@@ -594,14 +594,34 @@ geoman 편집 레이어(얇은 실선) 아래에 구간별 색상 폴리라인�
 - `src/types/domain.ts` — `SlopePoint`에서 `ele`를 없애고, 첫 포인트를 제외하면
   항상 있는 `slope`·`distance`의 선택 속성 표기를 정리한다
 - `src/components/map/SlopeLayer.tsx` — `processRawPoints`, `medianFilter`,
-  레이어 내부 `haversine`, 이중 포맷 감지 분기 제거. 현재 119줄 중 계산 로직
-  약 70줄이 사라지고 폴리라인 렌더링만 남는다
+  레이어 내부 `haversine`, 이중 포맷 감지 분기 제거. 계산 로직이 사라지고
+  폴리라인 렌더링만 남는다
+- `src/lib/slopeRoute.ts` — `isManualRoute`를 지운다. `gpx_file IS NOT NULL`
+  행이 없어지면 모든 행이 수기 경로라 이 함수는 항상 `true`를 반환하는
+  죽은 판별자가 된다
 - `src/app/admin/dashboard/slopes/page.tsx` — v1에서 남겨둔 업로드 종료 안내와
-  `buildGpx`·`downloadGpx`, 그리고 `gpx_file` 분기 제거. 모든 행이 수기 경로다
+  `buildGpx`·`downloadGpx`, 그리고 `gpx_file` 분기 제거. 모든 행이 수기 경로다.
+  `?redirected=gpx` 쿼리로 GPX 안내 Toast를 띄우는 effect도 함께 지운다 —
+  GPX 행이 없으면 `/admin/slopes/[id]`가 그 리다이렉트를 더 이상 만들지
+  않는다. 이 effect가 `react-hooks/set-state-in-effect` 경고의 발생원이므로
+  같이 없어진다. 검색 placeholder("경로명 또는 GPX 파일명 검색")에서도
+  "GPX 파일명"을 뗀다
 - `e2e/admin-buildings-slopes.spec.ts` — GPX 업로드/거부/다운로드 테스트와
-  GPX 행 관련 분기 테스트 제거
+  GPX 행 관련 분기 테스트 제거. GPX 행(id 1)을 색상만으로는 구분 못 해
+  팝업 내용으로 특정한다는 주석도 함께 지운다 — 구분할 GPX 행이 없어진다
+- `e2e/support/mockBackend.ts` — `slopes` 픽스처의 GPX 행(id 1,
+  `gpx_file: "정문-중앙광장.gpx"`)을 지운다
 - 남아 있는 수기 행의 `ele: null` 키는 **정리하지 않는다.** 읽는 코드가 없으면
   무해하고 jsonb 일괄 UPDATE는 순수 비용이다
+
+### 7.1 캐시를 켜게 되면 같이 볼 것
+
+`/api/slopes`는 지금 캐시를 쓰지 않는다(`export const revalidate` 없음,
+Next 15+ 라우트 핸들러는 기본이 비캐시). `/api/buildings`(86400)나
+`/api/facilities`(3600)처럼 나중에 캐시를 켠다면, 이 기능의 두 저장
+경로(`/admin/slopes/new`, `/admin/slopes/[id]`)에는 무효화 훅이 전혀 없다는
+점을 함께 처리해야 한다. `/api/buildings`가 저장 시 `revalidatePath`를
+호출하는 것과 같은 장치가 필요해진다.
 
 ---
 
