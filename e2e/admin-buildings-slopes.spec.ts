@@ -479,7 +479,14 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(preview).toBeVisible();
     await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
 
-    await page.getByRole("button", { name: "지우고 다시 그리기" }).click();
+    await page.getByRole("button", { name: "경로 지우고 다시 그리기" }).click();
+    await expect(
+      page.getByText("그린 경로를 지우고 다시 그릴까요?"),
+    ).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "지우고 다시 그리기", exact: true })
+      .click();
 
     await expect(page.getByText("구간 1")).toHaveCount(0);
     await expect(
@@ -576,7 +583,22 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await map.click({ position: points[1] });
     await expect(page.getByText("구간 1")).toBeVisible();
 
-    await page.getByRole("button", { name: "지우고 다시 그리기" }).click();
+    // 실측값을 클릭 한 번에 날리지 않는다. 취소하면 그대로 남는다.
+    await page.getByRole("button", { name: "경로 지우고 다시 그리기" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "취소" })
+      .click();
+    await expect(page.getByText("구간 1")).toBeVisible();
+
+    await page.getByRole("button", { name: "경로 지우고 다시 그리기" }).click();
+    await expect(
+      page.getByText("그린 경로를 지우고 다시 그릴까요?"),
+    ).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "지우고 다시 그리기", exact: true })
+      .click();
     await expect(page.getByText("구간 1")).toHaveCount(0);
     await expect(
       page.locator(".leaflet-pm-icon-polyline").locator(".."),
