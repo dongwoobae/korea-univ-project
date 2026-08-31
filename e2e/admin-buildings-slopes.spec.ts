@@ -685,4 +685,86 @@ test.describe("건물과 경사도 관리자 흐름", () => {
 
     await expect(preview).not.toHaveAttribute("d", before ?? "");
   });
+
+  test("저장이 실패해도 그린 경로와 입력값이 남는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    // 목 뒤에 얹으면 LIFO로 먼저 걸린다. slope_segments POST만 500으로 돌린다.
+    await page.route("**/rest/v1/slope_segments*", async (route) => {
+      if (route.request().method() === "POST") {
+        await route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: JSON.stringify({ message: "서버 오류" }),
+        });
+        return;
+      }
+      await route.fallback();
+    });
+
+    await page.goto("/admin/slopes/new");
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    await page.getByLabel("경로 이름").fill("실패 시험");
+    await page.getByLabel("구간 1 경사도").fill("7.2");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+
+    await expect(page.getByText(/저장 실패/)).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/slopes\/new$/);
+    await expect(page.getByLabel("경로 이름")).toHaveValue("실패 시험");
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+  });
+
+  test("값을 입력한 채 벗어나려 하면 경고한다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+    await page.getByLabel("경로 이름").fill("작성 중");
+
+    // 편집기 하단의 취소 버튼. 모달이 뜨면 모달 안의 취소로 되돌아온다.
+    await page.getByRole("button", { name: "취소" }).first().click();
+    await expect(
+      page.getByText("저장하지 않은 변경사항이 있어요"),
+    ).toBeVisible();
+
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "취소" })
+      .click();
+    await expect(page.getByLabel("경로 이름")).toHaveValue("작성 중");
+  });
+
+  test("기존 수기 경로를 아무것도 고치지 않고 취소하면 경고 없이 나간다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+
+    // 지도가 좌표를 다시 읽어 state에 새 배열을 써넣는 것까지 기다린다.
+    const preview = page
+      .locator(".leaflet-pane.slope-preview-pane path")
+      .first();
+    await expect(preview).toBeVisible();
+
+    await page.getByRole("button", { name: "취소" }).click();
+
+    await expect(page.getByText("저장하지 않은 변경사항이 있어요")).toHaveCount(
+      0,
+    );
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+  });
 });

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import ConfirmModal from "@/components/ConfirmModal";
 import SlopeSegmentList from "@/components/slope/SlopeSegmentList";
 import {
   buildSegments,
@@ -15,6 +16,21 @@ const SlopeRouteMap = dynamic(
   () => import("@/components/slope/SlopeRouteMap"),
   { ssr: false },
 );
+
+// 지도가 좌표를 다시 읽어 배열을 새로 만들어도(편집 없이 마운트만 해도)
+// 참조가 아니라 값이 같으면 dirty가 아니어야 한다.
+function verticesEqual(a: Vertex[], b: Vertex[]) {
+  if (a.length !== b.length) return false;
+  return a.every(
+    (vertex, index) =>
+      vertex.lat === b[index].lat && vertex.lng === b[index].lng,
+  );
+}
+
+function slopesEqual(a: (number | null)[], b: (number | null)[]) {
+  if (a.length !== b.length) return false;
+  return a.every((slope, index) => slope === b[index]);
+}
 
 interface SlopeRouteEditorProps {
   initialName: string;
@@ -37,6 +53,7 @@ export default function SlopeRouteEditor({
   const [vertices, setVertices] = useState<Vertex[]>(initialVertices ?? []);
   const [slopes, setSlopes] = useState<(number | null)[]>(initialSlopes);
   const [mapKey, setMapKey] = useState(0);
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   const handleVerticesChange = useCallback((next: Vertex[]) => {
     setVertices(next);
@@ -60,6 +77,22 @@ export default function SlopeRouteEditor({
   const segments = buildSegments(vertices);
   const errors = validateRoute(name, vertices, slopes);
   const canSave = errors.length === 0 && !saving;
+  const dirty =
+    name.trim() !== initialName ||
+    !verticesEqual(vertices, initialVertices ?? []) ||
+    !slopesEqual(slopes, initialSlopes);
+
+  // 현장 실측값이라 잃으면 다시 재야 한다. 건물 상세 화면과 같은 방식으로
+  // 탭을 닫거나 새로고침할 때도 경고한다.
+  useEffect(() => {
+    if (!dirty) return;
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => window.removeEventListener("beforeunload", warnBeforeUnload);
+  }, [dirty]);
 
   function handleSave() {
     if (!canSave) return;
@@ -135,7 +168,13 @@ export default function SlopeRouteEditor({
         )}
         <button
           type="button"
-          onClick={onCancel}
+          onClick={() => {
+            if (dirty) {
+              setConfirmLeave(true);
+              return;
+            }
+            onCancel();
+          }}
           style={{
             padding: "10px 16px",
             background: "none",
@@ -179,6 +218,16 @@ export default function SlopeRouteEditor({
             <li key={error}>{error}</li>
           ))}
         </ul>
+      )}
+
+      {confirmLeave && (
+        <ConfirmModal
+          message="저장하지 않은 변경사항이 있어요"
+          description="지금 나가면 그린 경로와 입력한 경사도가 사라집니다."
+          confirmLabel="나가기"
+          onConfirm={onCancel}
+          onCancel={() => setConfirmLeave(false)}
+        />
       )}
     </div>
   );
