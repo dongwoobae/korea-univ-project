@@ -529,10 +529,9 @@ geoman 편집 레이어(얇은 실선) 아래에 구간별 색상 폴리라인�
 ### 6.1 vitest — `src/lib/slopeRoute.test.ts`
 
 - `haversine()` — 알려진 두 좌표 사이 거리
-- `buildSegments(vertices)` — 구간별 거리 계산, 꼭짓점 2개 미만이면 빈 배열
-- `recomputeDistances(vertices, slopes)` — 좌표가 바뀌면 모든 구간 거리가 다시
-  계산되고 **`slopes`는 그대로**인지. 선 전체를 위도 방향으로 옮겼을 때 거리가
-  실제로 달라지는 것까지 확인한다 (그래서 거리를 들고 다니면 안 된다)
+- `buildSegments(vertices)` — 구간별 거리 계산, 꼭짓점 2개 미만이면 빈 배열.
+  거리는 들고 다니지 않고 좌표에서 매번 다시 유도하므로, 같은 형상이라도 위도가
+  다르면 거리가 달라지는 것까지 확인한다
 - `toStoredSegments(vertices, slopes)` — 첫 포인트에 `slope`가 없는지, 모든
   포인트에 `ele: null`이 있는지, 길이가 맞는지
 - `slopes.length !== vertices.length - 1`이면 저장이 막히는지 (방어 조건)

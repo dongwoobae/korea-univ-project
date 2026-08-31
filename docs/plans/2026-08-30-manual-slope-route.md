@@ -97,7 +97,7 @@ Playwright + `e2e/support/mockBackend.ts`
   - `isManualRoute(route: { gpx_file: string | null }): boolean`
   - 상수 `LEGAL_SLOPE_LIMIT = 8.33`, `EXTREME_SLOPE_LIMIT = 30`, `MAX_SLOPE_INPUT = 100`
 
-- [ ] **Step 1: `SlopePoint`에 선택 속성을 추가한다**
+- [x] **Step 1: `SlopePoint`에 선택 속성을 추가한다**
 
 `src/types/domain.ts`의 기존 정의를 이걸로 바꾼다.
 
@@ -118,7 +118,7 @@ union으로 만들지 않는 이유는 설계 문서 5.2.2절에 있다. 요약�
 `{lat,lng,ele}`와 `{lat,lng,ele,slope}`의 union에서는 `point.slope` 접근이
 컴파일되지 않는다.
 
-- [ ] **Step 2: 실패하는 테스트를 쓴다**
+- [x] **Step 2: 실패하는 테스트를 쓴다**
 
 `src/lib/slopeRoute.test.ts`를 새로 만든다.
 
@@ -311,7 +311,7 @@ describe("isManualRoute", () => {
 });
 ```
 
-- [ ] **Step 3: 테스트가 실패하는지 확인한다**
+- [x] **Step 3: 테스트가 실패하는지 확인한다**
 
 ```
 npx vitest run src/lib/slopeRoute.test.ts
@@ -319,7 +319,7 @@ npx vitest run src/lib/slopeRoute.test.ts
 
 기대: `Failed to load ./slopeRoute` — 모듈이 없어 collect 단계에서 실패한다.
 
-- [ ] **Step 4: 구현한다**
+- [x] **Step 4: 구현한다**
 
 `src/lib/slopeRoute.ts`를 만든다.
 
@@ -457,7 +457,7 @@ export function isManualRoute(route: { gpx_file: string | null }) {
 }
 ```
 
-- [ ] **Step 5: 테스트가 통과하는지 확인한다**
+- [x] **Step 5: 테스트가 통과하는지 확인한다**
 
 ```
 npx vitest run src/lib/slopeRoute.test.ts
@@ -468,7 +468,7 @@ npm run typecheck
 
 `npm run typecheck`가 `SlopeLayer.tsx`에서 실패하면 Step 6에서 고친다.
 
-- [ ] **Step 6: `SlopeLayer`의 지역 타입을 정리한다**
+- [x] **Step 6: `SlopeLayer`의 지역 타입을 정리한다**
 
 `src/components/map/SlopeLayer.tsx` 상단의 지역 선언을 지운다.
 
@@ -484,7 +484,7 @@ type StoredPoint = SlopePoint & { slope?: number; distance?: number };
 const raw = route.segments as SlopePoint[] | null;
 ```
 
-- [ ] **Step 7: 전체 테스트와 빌드로 회귀를 확인한다**
+- [x] **Step 7: 전체 테스트와 빌드로 회귀를 확인한다**
 
 ```
 npm test
@@ -494,7 +494,7 @@ npx prettier --check --end-of-line auto src/lib/slopeRoute.ts src/lib/slopeRoute
 
 기대: 전부 통과. `SlopeLayer`의 기존 렌더링 동작은 바뀌지 않는다.
 
-- [ ] **Step 8: 커밋**
+- [x] **Step 8: 커밋**
 
 ```bash
 git add src/lib/slopeRoute.ts src/lib/slopeRoute.test.ts src/types/domain.ts src/components/map/SlopeLayer.tsx
@@ -531,7 +531,7 @@ EOF
 - 사용: 없음
 - 제공: `/admin/slopes/new` 경로. Task 3이 여기에 편집기를 꽂는다.
 
-- [ ] **Step 1: 실패하는 e2e를 쓴다**
+- [x] **Step 1: 실패하는 e2e를 쓴다**
 
 `e2e/admin-buildings-slopes.spec.ts` 맨 끝, `test.describe` 블록 안에 추가한다.
 
@@ -555,7 +555,7 @@ test("비로그인 상태로 편집기에 가면 로그인 화면으로 보낸�
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "목록에서 경로 직접 그리기로 편집기에 들어간다"
@@ -565,7 +565,7 @@ npx playwright test e2e/admin-buildings-slopes.spec.ts -g "목록에서 경로 �
 
 `-g`는 테스트 제목 전체가 필요하다. 부분 제목은 `No tests found`가 난다.
 
-- [ ] **Step 3: 편집기 페이지를 만든다**
+- [x] **Step 3: 편집기 페이지를 만든다**
 
 `src/app/admin/slopes/new/page.tsx`
 
@@ -605,7 +605,7 @@ export default function NewSlopeRoutePage() {
 }
 ```
 
-- [ ] **Step 4: 목록에 진입 버튼을 넣는다**
+- [x] **Step 4: 목록에 진입 버튼을 넣는다**
 
 `src/app/admin/dashboard/slopes/page.tsx`에서 `useRouter`를 import하고
 컴포넌트 안에 `const router = useRouter();`를 추가한다.
@@ -648,7 +648,7 @@ import { useRouter } from "next/navigation";
 </div>
 ```
 
-- [ ] **Step 5: 통과를 확인한다**
+- [x] **Step 5: 통과를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "목록에서 경로 직접 그리기로 편집기에 들어간다"
@@ -658,7 +658,7 @@ npm run typecheck
 
 기대: 둘 다 PASS.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add src/app/admin/slopes/new/page.tsx src/app/admin/dashboard/slopes/page.tsx e2e/admin-buildings-slopes.spec.ts
@@ -697,7 +697,7 @@ interface SlopeRouteMapProps {
 
 `slopes`는 Task 5의 색상 미리보기에서 쓴다. 이번 태스크에서는 받기만 한다.
 
-- [ ] **Step 1: 실패하는 e2e를 쓴다**
+- [x] **Step 1: 실패하는 e2e를 쓴다**
 
 ```ts
 test("폴리라인을 그리면 구간이 생기고 꼭짓점을 더 넣을 수 없다", async ({
@@ -754,7 +754,7 @@ test("지우고 다시 그리기로 경로를 비운다", async ({ page }) => {
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "폴리라인을 그리면 구간이 생기고 꼭짓점을 더 넣을 수 없다"
@@ -762,7 +762,7 @@ npx playwright test e2e/admin-buildings-slopes.spec.ts -g "폴리라인을 그�
 
 기대: FAIL. `.leaflet-container`가 없다.
 
-- [ ] **Step 3: 지도 컴포넌트를 만든다**
+- [x] **Step 3: 지도 컴포넌트를 만든다**
 
 `src/components/slope/SlopeRouteMap.tsx`
 
@@ -913,7 +913,7 @@ export default function SlopeRouteMap({
 }
 ```
 
-- [ ] **Step 4: 페이지에 꽂는다**
+- [x] **Step 4: 페이지에 꽂는다**
 
 `src/app/admin/slopes/new/page.tsx`를 이렇게 바꾼다.
 
@@ -1016,7 +1016,7 @@ export default function NewSlopeRoutePage() {
 `mapKey`를 올려 지도를 통째로 다시 마운트하는 것이 초기화다. geoman 레이어와
 툴바 상태를 손으로 되돌리는 것보다 확실하다.
 
-- [ ] **Step 5: 통과를 확인한다**
+- [x] **Step 5: 통과를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "폴리라인을 그리면 구간이 생기고 꼭짓점을 더 넣을 수 없다"
@@ -1028,7 +1028,7 @@ npm run typecheck
 
 디버깅이 필요하면 `--headed --debug`를 붙인다.
 
-- [ ] **Step 6: 커밋**
+- [x] **Step 6: 커밋**
 
 ```bash
 git add src/components/slope/SlopeRouteMap.tsx src/app/admin/slopes/new/page.tsx e2e/admin-buildings-slopes.spec.ts
