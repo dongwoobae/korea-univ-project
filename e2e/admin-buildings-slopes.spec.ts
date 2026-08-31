@@ -467,6 +467,37 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(preview).toHaveAttribute("stroke", "#C96C24");
   });
 
+  test("수정 화면에서 지우고 다시 그리기를 누르면 선과 입력값이 함께 비워지고 다시 그릴 수 있다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+
+    const preview = page
+      .locator(".leaflet-pane.slope-preview-pane path")
+      .first();
+    await expect(preview).toBeVisible();
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+
+    await page.getByRole("button", { name: "지우고 다시 그리기" }).click();
+
+    await expect(page.getByText("구간 1")).toHaveCount(0);
+    await expect(
+      page.locator(".leaflet-pm-icon-polyline").locator(".."),
+    ).not.toHaveClass(/pm-disabled/);
+
+    const map = page.locator(".leaflet-container");
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    await expect(page.getByText("구간 1")).toBeVisible();
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("");
+  });
+
   test("GPX 업로드를 닫고 종료 안내를 보여준다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");

@@ -16,18 +16,24 @@ interface SlopeRouteMapProps {
   initialVertices: Vertex[] | null;
   onVerticesChange: (vertices: Vertex[]) => void;
   slopes: (number | null)[];
+  // next/dynamic(ssr:false)로 불러온 컴포넌트는 ref를 가로채 로더 자신의
+  // 핸들({ retry })로 덮어써서 부모까지 전달하지 않는다. 그래서 명령형
+  // reset은 ref 대신 이 콜백으로 등록해 노출한다.
+  onResetReady?: (reset: () => void) => void;
 }
 
 export default function SlopeRouteMap({
   initialVertices,
   onVerticesChange,
   slopes,
+  onResetReady,
 }: SlopeRouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const lineRef = useRef<L.Polyline | null>(null);
   const onChangeRef = useRef(onVerticesChange);
+  const onResetReadyRef = useRef(onResetReady);
   const initialRef = useRef(initialVertices);
   const previewRef = useRef<L.LayerGroup | null>(null);
   const verticesRef = useRef<Vertex[]>([]);
@@ -39,6 +45,10 @@ export default function SlopeRouteMap({
   useEffect(() => {
     onChangeRef.current = onVerticesChange;
   }, [onVerticesChange]);
+
+  useEffect(() => {
+    onResetReadyRef.current = onResetReady;
+  }, [onResetReady]);
 
   useEffect(() => {
     if (mapRef.current) return;
@@ -89,6 +99,24 @@ export default function SlopeRouteMap({
       map.pm.disableDraw("Line");
       map.pm.Toolbar.setButtonDisabled("drawPolyline", true);
     }
+
+    // PolygonEditor.handleReset과 같은 방식: 레이어를 지도에서 직접 지우고
+    // 그리기를 다시 연다. mapKey로 지도를 리마운트하면 이 effect가 initial을
+    // 다시 읽어 원래 선을 되그리므로 그 방식은 쓰지 않는다.
+    function resetLine() {
+      map.pm.disableGlobalEditMode();
+      map.pm.disableGlobalDragMode();
+      const line = lineRef.current;
+      if (line) map.removeLayer(line);
+      lineRef.current = null;
+      previewRef.current?.clearLayers();
+      verticesRef.current = [];
+      map.pm.Toolbar.setButtonDisabled("drawPolyline", false);
+      map.pm.enableDraw("Line");
+      onChangeRef.current([]);
+      setVertexVersion((version) => version + 1);
+    }
+    onResetReadyRef.current?.(resetLine);
 
     function attachLine(line: L.Polyline) {
       lineRef.current = line;

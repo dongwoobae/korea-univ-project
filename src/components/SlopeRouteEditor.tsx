@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import ConfirmModal from "@/components/ConfirmModal";
 import SlopeSegmentList from "@/components/slope/SlopeSegmentList";
@@ -52,7 +52,7 @@ export default function SlopeRouteEditor({
   const [name, setName] = useState(initialName);
   const [vertices, setVertices] = useState<Vertex[]>(initialVertices ?? []);
   const [slopes, setSlopes] = useState<(number | null)[]>(initialSlopes);
-  const [mapKey, setMapKey] = useState(0);
+  const resetMapRef = useRef<() => void>(() => {});
   const [confirmLeave, setConfirmLeave] = useState(false);
 
   const handleVerticesChange = useCallback((next: Vertex[]) => {
@@ -69,9 +69,7 @@ export default function SlopeRouteEditor({
   }
 
   function handleReset() {
-    setVertices([]);
-    setSlopes([]);
-    setMapKey((key) => key + 1);
+    resetMapRef.current();
   }
 
   const segments = buildSegments(vertices);
@@ -136,10 +134,12 @@ export default function SlopeRouteEditor({
         }}
       >
         <SlopeRouteMap
-          key={mapKey}
           initialVertices={initialVertices}
           onVerticesChange={handleVerticesChange}
           slopes={slopes}
+          onResetReady={(reset) => {
+            resetMapRef.current = reset;
+          }}
         />
         <SlopeSegmentList
           segments={segments}
