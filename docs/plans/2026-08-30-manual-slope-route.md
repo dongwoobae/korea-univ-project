@@ -1748,7 +1748,7 @@ EOF
 - 사용: `isManualRoute` (`@/lib/slopeRoute`)
 - 제공: 목록 행의 "수정" 버튼. Task 7이 여기서 진입한다.
 
-- [ ] **Step 1: 목 픽스처에 수기 경로를 넣는다**
+- [x] **Step 1: 목 픽스처에 수기 경로를 넣는다**
 
 `e2e/support/mockBackend.ts`의 `slopes` 배열에 두 번째 행을 추가한다.
 
@@ -1766,7 +1766,7 @@ EOF
 },
 ```
 
-- [ ] **Step 2: 실패하는 e2e를 쓴다**
+- [x] **Step 2: 실패하는 e2e를 쓴다**
 
 ```ts
 test("수기 경로와 GPX 경로의 행 동작을 구분한다", async ({ page }) => {
@@ -1793,7 +1793,7 @@ test("GPX 업로드를 닫고 종료 안내를 보여준다", async ({ page }) =
 });
 ```
 
-- [ ] **Step 3: 실패를 확인한다**
+- [x] **Step 3: 실패를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "수기 경로와 GPX 경로의 행 동작을 구분한다"
@@ -1801,7 +1801,7 @@ npx playwright test e2e/admin-buildings-slopes.spec.ts -g "수기 경로와 GPX 
 
 기대: FAIL. "직접 입력" 배지가 없다.
 
-- [ ] **Step 4: 업로드 영역을 안내로 바꾼다**
+- [x] **Step 4: 업로드 영역을 안내로 바꾼다**
 
 `src/app/admin/dashboard/slopes/page.tsx`에서 "GPX 파일 업로드" 카드 전체를
 아래 안내 블록으로 교체하고, 그 카드만 쓰던 것들을 함께 지운다.
@@ -1831,7 +1831,7 @@ npx playwright test e2e/admin-buildings-slopes.spec.ts -g "수기 경로와 GPX 
 업로드를 지금 닫는 이유는, 열어두면 폐기 대상이 계속 늘어나기 때문이다.
 설계 문서 5.6절에 있다.
 
-- [ ] **Step 5: 행 버튼을 분기한다**
+- [x] **Step 5: 행 버튼을 분기한다**
 
 import에 추가한다.
 
@@ -1908,7 +1908,7 @@ import { isManualRoute } from "@/lib/slopeRoute";
 수기 경로에서 다운로드를 숨기는 이유는 `buildGpx()`가 고도를 그대로 문자열
 보간해서 `<ele>null</ele>`이 찍힌 GPX가 나오기 때문이다.
 
-- [ ] **Step 6: 통과를 확인한다**
+- [x] **Step 6: 통과를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "수기 경로와 GPX 경로의 행 동작을 구분한다"
@@ -1919,7 +1919,7 @@ npm run lint
 
 기대: PASS. lint가 미사용 변수를 잡으면 Step 4에서 남긴 상태·함수를 지운다.
 
-- [ ] **Step 7: 깨진 기존 GPX 테스트를 정리한다**
+- [x] **Step 7: 깨진 기존 GPX 테스트를 정리한다**
 
 업로드 UI가 사라졌으므로 아래 두 테스트가 실패한다. 지운다.
 
@@ -1945,7 +1945,7 @@ test("GPX 경로를 다운로드하고 삭제한다", async ({ page }) => {
 });
 ```
 
-- [ ] **Step 8: 파일 전체를 돌린다**
+- [x] **Step 8: 파일 전체를 돌린다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts
@@ -1954,7 +1954,7 @@ npm test
 
 기대: 전부 PASS.
 
-- [ ] **Step 9: 커밋**
+- [x] **Step 9: 커밋**
 
 ```bash
 git add src/app/admin/dashboard/slopes/page.tsx e2e/support/mockBackend.ts e2e/admin-buildings-slopes.spec.ts
@@ -1986,7 +1986,7 @@ EOF
   `isManualRoute` (`@/lib/slopeRoute`), `SlopeSegment` (`@/types/domain`)
 - 제공: 없음
 
-- [ ] **Step 1: 실패하는 e2e를 쓴다**
+- [x] **Step 1: 실패하는 e2e를 쓴다**
 
 ```ts
 test("수기 경로를 열어 값을 고쳐 저장한다", async ({ page }) => {
@@ -2026,7 +2026,7 @@ test("비로그인 상태로 수정 화면에 가면 로그인 화면으로 보�
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "수기 경로를 열어 값을 고쳐 저장한다"
@@ -2034,7 +2034,7 @@ npx playwright test e2e/admin-buildings-slopes.spec.ts -g "수기 경로를 열�
 
 기대: FAIL. `/admin/slopes/2`가 404다.
 
-- [ ] **Step 3: 수정 페이지를 만든다**
+- [x] **Step 3: 수정 페이지를 만든다**
 
 `src/app/admin/slopes/[id]/page.tsx`
 
@@ -2155,7 +2155,7 @@ export default function EditSlopeRoutePage() {
 }
 ```
 
-- [ ] **Step 4: 통과를 확인한다**
+- [x] **Step 4: 통과를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "수기 경로를 열어 값을 고쳐 저장한다"
@@ -2166,7 +2166,7 @@ npm run typecheck
 
 기대: 셋 다 PASS.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add "src/app/admin/slopes/[id]/page.tsx" e2e/admin-buildings-slopes.spec.ts
@@ -2194,7 +2194,7 @@ EOF
 - 사용: 없음
 - 제공: 없음
 
-- [ ] **Step 1: 실패하는 e2e를 쓴다**
+- [x] **Step 1: 실패하는 e2e를 쓴다**
 
 ```ts
 test("저장이 실패해도 그린 경로와 입력값이 남는다", async ({ page }) => {
@@ -2255,7 +2255,7 @@ test("값을 입력한 채 벗어나려 하면 경고한다", async ({ page }) =
 });
 ```
 
-- [ ] **Step 2: 실패를 확인한다**
+- [x] **Step 2: 실패를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "값을 입력한 채 벗어나려 하면 경고한다"
@@ -2266,7 +2266,7 @@ npx playwright test e2e/admin-buildings-slopes.spec.ts -g "값을 입력한 채 
 "저장이 실패해도..." 테스트는 이미 통과할 수 있다. Task 4에서 실패 시
 상태를 유지하도록 만들었기 때문이다. 통과하면 그대로 두고 회귀 방지로 남긴다.
 
-- [ ] **Step 3: 이탈 경고를 붙인다**
+- [x] **Step 3: 이탈 경고를 붙인다**
 
 `src/components/SlopeRouteEditor.tsx`에 import를 추가한다.
 
@@ -2313,7 +2313,7 @@ onClick={() => {
 같은 라벨의 버튼이 있으므로 테스트는 `getByRole("dialog")`로 모달 안을 좁혀
 구분한다.
 
-- [ ] **Step 4: 통과를 확인한다**
+- [x] **Step 4: 통과를 확인한다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "값을 입력한 채 벗어나려 하면 경고한다"
@@ -2322,7 +2322,7 @@ npx playwright test e2e/admin-buildings-slopes.spec.ts -g "저장이 실패해�
 
 기대: 둘 다 PASS.
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add src/components/SlopeRouteEditor.tsx e2e/admin-buildings-slopes.spec.ts
@@ -2347,7 +2347,7 @@ EOF
 
 - 테스트: `e2e/public-map-p1.spec.ts` 또는 `e2e/admin-buildings-slopes.spec.ts`
 
-- [ ] **Step 1: 실패할 수 있는 e2e를 쓴다**
+- [x] **Step 1: 실패할 수 있는 e2e를 쓴다**
 
 `e2e/admin-buildings-slopes.spec.ts`에 추가한다.
 
@@ -2370,7 +2370,7 @@ test("저장한 수기 경로가 공개 지도 경사도 오버레이에 그려�
 `slopeColor(7.2)`는 `src/lib/theme.ts` 기준 5% 초과 8.33% 이하이므로
 `#C96C24`다.
 
-- [ ] **Step 2: 돌려본다**
+- [x] **Step 2: 돌려본다**
 
 ```
 npx playwright test e2e/admin-buildings-slopes.spec.ts -g "저장한 수기 경로가 공개 지도 경사도 오버레이에 그려진다"
@@ -2386,7 +2386,7 @@ FAIL이면 설계의 핵심 가정이 깨진 것이다. `SlopeLayer.tsx`의
 감싸고 `<span>{t("slopeToggle")}</span>`을 넣는 구조에서 온다. 한국어
 `slopeToggle`은 "경사도"다.
 
-- [ ] **Step 3: 전체 검증**
+- [x] **Step 3: 전체 검증**
 
 ```
 npm test
@@ -2398,7 +2398,7 @@ npx prettier --check --end-of-line auto $(git diff --name-only main...HEAD)
 
 기대: 전부 통과.
 
-- [ ] **Step 4: 커밋**
+- [x] **Step 4: 커밋**
 
 ```bash
 git add e2e/admin-buildings-slopes.spec.ts
