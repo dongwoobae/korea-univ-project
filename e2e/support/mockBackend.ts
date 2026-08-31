@@ -8,7 +8,7 @@
  *      - 건물 1: 중앙도서관(id 1, 인문사회계)
  *      - 시설: `f-installed`(설치 경사로·건물 미소속) · `f-building`(건물 1 소속 엘리베이터)
  *              · `f-uninstalled`(미설치 주차)
- *      - 명소 1(다람쥐길) · 경사 1 · 사진 1
+ *      - 명소 1(다람쥐길) · 경사 2(GPX 1 · 수기 1) · 사진 1
  *
  * 2) 라우팅: `installMockBackend()`가 전역 `page.route`로 모든 요청을 가로챈다.
  *      - `/rest/v1/<table>` → `handleRest()`: PostgREST 흉내.
