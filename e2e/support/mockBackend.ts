@@ -336,6 +336,19 @@ const filterId = (url: URL) => {
   return value?.startsWith("eq.") ? value.slice(3) : null;
 };
 
+// 쓰기 요청에 붙은 id 외 필터(`?gpx_file=is.null`, `?updated_at=eq.<v>`)를
+// 행에 대조한다. 실제 PostgREST는 이 조건을 쓰기에도 적용하므로, 여기서
+// 무시하면 낙관적 잠금과 GPX 보호가 목 위에서만 통과한다.
+const matchesWriteFilters = (row: Row, url: URL) => {
+  for (const [key, value] of url.searchParams) {
+    if (key === "id" || key === "select" || key === "columns") continue;
+    if (value === "is.null" && row[key] != null) return false;
+    if (value.startsWith("eq.") && String(row[key]) !== value.slice(3))
+      return false;
+  }
+  return true;
+};
+
 // `in.("a","b")` → Set{a, b}. supabase-js의 `.in()`이 만드는 형태.
 const parseInList = (value: string) =>
   new Set(
@@ -665,7 +678,9 @@ async function handleRest(route: Route, state: MockState, url: URL) {
     return json(route, single ? created : [created], 201);
   }
   const id = filterId(url);
-  const index = target.findIndex((row) => String(row.id) === id);
+  const index = target.findIndex(
+    (row) => String(row.id) === id && matchesWriteFilters(row, url),
+  );
   if (method === "PATCH" && index >= 0) {
     Object.assign(target[index], body, {
       updated_at: "2026-07-23T00:00:00Z",
@@ -704,7 +719,17 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       state.facilities.filter((row) => row.is_installed),
     );
   if (path === "/api/landmarks") return json(route, state.landmarks);
-  if (path === "/api/slopes") return json(route, state.slopes);
+  // 실제 라우트는 id·name·segments만 select한다. 넓게 돌려주면 공개 지도가
+  // 응답에 없는 필드에 기대도 e2e가 초록으로 남는다.
+  if (path === "/api/slopes")
+    return json(
+      route,
+      state.slopes.map((row) => ({
+        id: row.id,
+        name: row.name,
+        segments: row.segments,
+      })),
+    );
   if (path === "/api/feedback") {
     const submission = route.request().postDataJSON() as Row;
     state.feedbackSubmissions.push(submission);
