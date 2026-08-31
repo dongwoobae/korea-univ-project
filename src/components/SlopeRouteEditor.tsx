@@ -35,7 +35,7 @@ function slopesEqual(a: (number | null)[], b: (number | null)[]) {
 interface SlopeRouteEditorProps {
   initialName: string;
   initialVertices: Vertex[] | null;
-  initialSlopes: number[];
+  initialSlopes: (number | null)[];
   saving: boolean;
   onSave: (name: string, segments: SlopePoint[]) => void | Promise<void>;
   onCancel: () => void;
@@ -54,6 +54,7 @@ export default function SlopeRouteEditor({
   const [slopes, setSlopes] = useState<(number | null)[]>(initialSlopes);
   const resetMapRef = useRef<() => void>(() => {});
   const [confirmLeave, setConfirmLeave] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const handleVerticesChange = useCallback((next: Vertex[]) => {
     setVertices(next);
@@ -69,6 +70,7 @@ export default function SlopeRouteEditor({
   }
 
   function handleReset() {
+    setConfirmReset(false);
     resetMapRef.current();
   }
 
@@ -151,7 +153,7 @@ export default function SlopeRouteEditor({
         {vertices.length > 0 && (
           <button
             type="button"
-            onClick={handleReset}
+            onClick={() => setConfirmReset(true)}
             style={{
               padding: "10px 16px",
               background: "none",
@@ -162,7 +164,7 @@ export default function SlopeRouteEditor({
               cursor: "pointer",
             }}
           >
-            지우고 다시 그리기
+            경로 지우고 다시 그리기
           </button>
         )}
         <button
@@ -217,6 +219,16 @@ export default function SlopeRouteEditor({
             <li key={error}>{error}</li>
           ))}
         </ul>
+      )}
+
+      {confirmReset && (
+        <ConfirmModal
+          message="그린 경로를 지우고 다시 그릴까요?"
+          description="그린 선과 입력한 경사도가 모두 사라집니다. 현장에서 잰 값이라 되돌릴 수 없어요."
+          confirmLabel="지우고 다시 그리기"
+          onConfirm={handleReset}
+          onCancel={() => setConfirmReset(false)}
+        />
       )}
 
       {confirmLeave && (

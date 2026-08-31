@@ -1,11 +1,12 @@
 "use client";
 import { Polyline, Popup } from "react-leaflet";
 import { slopeColor } from "@/lib/theme";
+import { readRoutePoints } from "@/lib/slopeRoute";
 import type { SlopePoint, SlopeSegment } from "@/types/domain";
 
 /**
- * 구버전 행은 slope·distance를 계산해 저장했고 신버전은 원시 포인트만 담는다.
- * 어느 쪽이 왔는지는 아래 SlopeLayer가 slope 유무로 가른다.
+ * 수기 입력 행은 구간 값을 포인트에 실어 저장하고, GPX 측정 행은 원시 좌표와
+ * 고도만 담는다. 어느 쪽이 왔는지는 아래 SlopeLayer가 slope 유무로 가른다.
  */
 type MetricPoint = SlopePoint & { slope: number; distance: number };
 
@@ -71,14 +72,18 @@ function processRawPoints(points: SlopePoint[]): MetricPoint[] {
   return result;
 }
 
-export default function SlopeLayer({ slopes }: { slopes: SlopeSegment[] }) {
-  return slopes.flatMap((route) => {
-    const raw = route.segments as SlopePoint[] | null;
-    if (!raw?.length) return [];
+// /api/slopes는 id·name·segments만 select한다. Row 전체를 받는 것처럼 쓰면
+// 런타임에 없는 필드를 있는 것으로 보증하게 된다.
+type SlopeRoute = Pick<SlopeSegment, "id" | "name" | "segments">;
 
-    // 구버전(slope 필드 있음) / 신버전(raw points) 자동 감지
+export default function SlopeLayer({ slopes }: { slopes: SlopeRoute[] }) {
+  return slopes.flatMap((route) => {
+    const raw = readRoutePoints(route.segments);
+    if (!raw) return [];
+
+    // 수기 입력(slope 필드 있음) / GPX 측정(원시 좌표) 자동 감지
     const segs: MetricPoint[] =
-      raw[1]?.slope !== undefined
+      raw[1].slope !== undefined
         ? (raw as MetricPoint[])
         : processRawPoints(raw);
 

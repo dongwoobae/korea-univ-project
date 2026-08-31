@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSegments,
+  readRoutePoints,
   haversine,
   isManualRoute,
   readStoredSlopes,
@@ -98,6 +99,15 @@ describe("readStoredVertices / readStoredSlopes", () => {
     ]);
     expect(readStoredSlopes(stored)).toEqual([7.2, 4.5]);
   });
+
+  it("slope가 없는 포인트는 0이 아니라 미입력으로 읽는다", () => {
+    const stored = [
+      { lat: A.lat, lng: A.lng, ele: null },
+      { lat: B.lat, lng: B.lng, ele: null, distance: 111.2 },
+      { lat: C.lat, lng: C.lng, ele: null, slope: 4.5, distance: 88.1 },
+    ];
+    expect(readStoredSlopes(stored)).toEqual([null, 4.5]);
+  });
 });
 
 describe("slopeWarning", () => {
@@ -182,5 +192,56 @@ describe("isManualRoute", () => {
   it("gpx_file이 null이면 수기 경로다", () => {
     expect(isManualRoute({ gpx_file: null })).toBe(true);
     expect(isManualRoute({ gpx_file: "정문.gpx" })).toBe(false);
+  });
+});
+
+describe("readRoutePoints", () => {
+  const raw = [
+    { lat: 37.589, lng: 127.032, ele: 20 },
+    { lat: 37.59, lng: 127.032, ele: 22 },
+  ];
+  const metric = toStoredSegments([A, B, C], [7.2, 4.5]);
+
+  it("정상 행은 그대로 돌려준다", () => {
+    expect(readRoutePoints(raw)).toEqual(raw);
+    expect(readRoutePoints(metric)).toEqual(metric);
+  });
+
+  it("배열이 아니면 거른다", () => {
+    expect(readRoutePoints("xx")).toBeNull();
+    expect(readRoutePoints(null)).toBeNull();
+    expect(readRoutePoints({ lat: 1, lng: 2 })).toBeNull();
+  });
+
+  it("포인트가 2개 미만이면 거른다", () => {
+    expect(readRoutePoints([])).toBeNull();
+    expect(readRoutePoints([raw[0]])).toBeNull();
+  });
+
+  it("좌표가 유한한 수가 아니면 경로 전체를 거른다", () => {
+    expect(readRoutePoints([{ lat: null, lng: 127.032 }, raw[1]])).toBeNull();
+    expect(readRoutePoints([{ lat: "37", lng: 127.032 }, raw[1]])).toBeNull();
+    expect(readRoutePoints([raw[0], { lat: 37.59, lng: NaN }])).toBeNull();
+  });
+
+  // 0%로 그리면 경사로가 평지로 보인다. 안 그리는 편이 안전하다.
+  it("경사값이 실린 행의 값이 유한하지 않으면 경로 전체를 거른다", () => {
+    expect(
+      readRoutePoints([
+        { lat: A.lat, lng: A.lng, ele: null },
+        { lat: B.lat, lng: B.lng, ele: null, slope: null, distance: 12.4 },
+      ]),
+    ).toBeNull();
+    expect(
+      readRoutePoints([
+        { lat: A.lat, lng: A.lng, ele: null },
+        { lat: B.lat, lng: B.lng, ele: null, slope: 7.2, distance: null },
+      ]),
+    ).toBeNull();
+  });
+
+  // GPX 측정 행은 slope가 아예 없다. 이건 정상이므로 원시 경로로 통과시킨다.
+  it("경사값이 없는 측정 행은 거르지 않는다", () => {
+    expect(readRoutePoints(raw)).toEqual(raw);
   });
 });

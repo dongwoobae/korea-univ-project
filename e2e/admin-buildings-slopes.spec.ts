@@ -479,7 +479,14 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(preview).toBeVisible();
     await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
 
-    await page.getByRole("button", { name: "지우고 다시 그리기" }).click();
+    await page.getByRole("button", { name: "경로 지우고 다시 그리기" }).click();
+    await expect(
+      page.getByText("그린 경로를 지우고 다시 그릴까요?"),
+    ).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "지우고 다시 그리기", exact: true })
+      .click();
 
     await expect(page.getByText("구간 1")).toHaveCount(0);
     await expect(
@@ -576,11 +583,96 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await map.click({ position: points[1] });
     await expect(page.getByText("구간 1")).toBeVisible();
 
-    await page.getByRole("button", { name: "지우고 다시 그리기" }).click();
+    // 실측값을 클릭 한 번에 날리지 않는다. 취소하면 그대로 남는다.
+    await page.getByRole("button", { name: "경로 지우고 다시 그리기" }).click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "취소" })
+      .click();
+    await expect(page.getByText("구간 1")).toBeVisible();
+
+    await page.getByRole("button", { name: "경로 지우고 다시 그리기" }).click();
+    await expect(
+      page.getByText("그린 경로를 지우고 다시 그릴까요?"),
+    ).toBeVisible();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "지우고 다시 그리기", exact: true })
+      .click();
     await expect(page.getByText("구간 1")).toHaveCount(0);
     await expect(
       page.locator(".leaflet-pm-icon-polyline").locator(".."),
     ).not.toHaveClass(/pm-disabled/);
+  });
+
+  test("없는 경로 id로 수정 화면에 가면 사유와 함께 목록으로 돌려보낸다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/999");
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(
+      page.getByText("경로를 찾을 수 없어요. 이미 삭제됐을 수 있어요"),
+    ).toBeVisible();
+  });
+
+  test("수정 화면에서 값을 고친 채 벗어나려 하면 경고한다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+
+    await page.getByLabel("구간 1 경사도").fill("9.4");
+    await page.getByRole("button", { name: "취소" }).first().click();
+    await expect(
+      page.getByText("저장하지 않은 변경사항이 있어요"),
+    ).toBeVisible();
+
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "취소" })
+      .click();
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("9.4");
+  });
+
+  test("열어둔 사이 행이 바뀌면 덮어쓰지 않고 알린다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+
+    // 다른 곳에서 같은 행을 먼저 저장한 상황.
+    const row = state.slopes.find((slope) => slope.id === 2)!;
+    row.updated_at = "2026-09-01T00:00:00Z";
+
+    await page.getByLabel("구간 1 경사도").fill("9.4");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+
+    await expect(
+      page.getByText("다른 곳에서 바뀌었거나 삭제된 경로예요"),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/slopes\/2$/);
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("9.4");
+    expect((row.segments as Array<Record<string, unknown>>)[1].slope).toBe(7.2);
+  });
+
+  test("열어둔 사이 GPX 행이 되면 측정 원본을 덮지 않는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+
+    const row = state.slopes.find((slope) => slope.id === 2)!;
+    row.gpx_file = "restored.gpx";
+
+    await page.getByLabel("구간 1 경사도").fill("9.4");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+
+    await expect(
+      page.getByText("다른 곳에서 바뀌었거나 삭제된 경로예요"),
+    ).toBeVisible();
+    expect((row.segments as Array<Record<string, unknown>>)[1].slope).toBe(7.2);
   });
 
   test("구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다", async ({
@@ -810,26 +902,39 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
   });
 
-  test("저장한 수기 경로가 공개 지도 경사도 오버레이에 그려진다", async ({
+  test("편집기에서 저장한 경로가 공개 지도에 그대로 그려진다", async ({
     page,
   }) => {
+    // 이 설계 전체가 "toStoredSegments의 출력을 SlopeLayer가 그대로 읽는다"에
+    // 걸려 있다. 픽스처가 아니라 실제 저장 payload로 끝단을 확인한다.
     await installMockBackend(page, { authenticated: true });
-    await page.goto("/");
+    await page.goto("/admin/slopes/new");
 
-    // 경사도 오버레이는 기본값이 꺼짐이다.
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 360, y: 150 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    await page.getByLabel("경로 이름").fill("끝단 시험 경사로");
+    await page.getByLabel("구간 1 경사도").fill("10");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+
+    await page.goto("/");
     await page.getByRole("checkbox", { name: "경사도" }).check();
 
-    // slopeColor(7.2)는 8.33 이하라 #C96C24다(src/lib/theme.ts).
-    const slopePath = page.locator('path[stroke="#C96C24"]').first();
-    await expect(slopePath).toBeVisible();
+    // slopeColor(10)은 8.33 초과 12 이하라 #AE3B1E다(src/lib/theme.ts).
+    // 픽스처의 두 행은 이 색이 아니라 방금 저장한 경로만 잡힌다.
+    const saved = page.locator('path[stroke="#AE3B1E"]').first();
+    await expect(saved).toBeVisible();
 
-    // 같은 픽스처의 GPX 행(id 1)도 같은 색 구간에 들 여지가 있어 색만으로는
-    // 어느 경로가 그려졌는지 증명하지 못한다. 팝업 내용으로 수기 경로(id 2)를
-    // 특정한다.
-    await slopePath.dispatchEvent("click");
+    await saved.dispatchEvent("click");
     const popup = page.locator(".leaflet-popup");
-    await expect(popup).toContainText("안암병원 정문 경사로");
-    await expect(popup).toContainText("7.2%");
-    await expect(popup).toContainText("12.4m");
+    await expect(popup).toContainText("끝단 시험 경사로");
+    await expect(popup).toContainText("10%");
   });
 });

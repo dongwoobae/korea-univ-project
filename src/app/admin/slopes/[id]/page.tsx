@@ -22,7 +22,8 @@ export default function EditSlopeRoutePage() {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [vertices, setVertices] = useState<Vertex[]>([]);
-  const [slopes, setSlopes] = useState<number[]>([]);
+  const [slopes, setSlopes] = useState<(number | null)[]>([]);
+  const [loadedAt, setLoadedAt] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -34,6 +35,7 @@ export default function EditSlopeRoutePage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (cancelled) return;
       if (!user) {
         router.push("/admin");
         return;
@@ -55,12 +57,13 @@ export default function EditSlopeRoutePage() {
         return;
       }
       if (error || !data) {
-        router.push("/admin/dashboard/slopes");
+        router.push("/admin/dashboard/slopes?redirected=missing");
         return;
       }
 
       const route = data as unknown as SlopeSegment;
       setName(route.name);
+      setLoadedAt(route.updated_at);
       setVertices(readStoredVertices(route.segments));
       setSlopes(readStoredSlopes(route.segments));
       setLoading(false);
@@ -74,16 +77,30 @@ export default function EditSlopeRoutePage() {
 
   async function handleSave(nextName: string, segments: SlopePoint[]) {
     setSaving(true);
-    const { error } = await supabase
+    // 화면을 연 뒤 행이 바뀌었을 수 있다. 조건을 쓰기에 같이 걸어 마지막
+    // 저장이 조용히 이기는 것과, GPX로 돌아간 행의 측정 원본이 덮이는 것을
+    // 둘 다 막는다. 조건이 안 맞으면 PostgREST는 오류가 아니라 0행을 준다.
+    const { data, error } = await supabase
       .from("slope_segments")
       .update({
         name: nextName,
         segments: segments as unknown as Json,
       })
-      .eq("id", params.id);
+      .eq("id", params.id)
+      .is("gpx_file", null)
+      .eq("updated_at", loadedAt ?? "")
+      .select("id");
     setSaving(false);
     if (error) {
       setToast({ message: "저장 실패: " + error.message, type: "error" });
+      return;
+    }
+    if (!data?.length) {
+      setToast({
+        message:
+          "다른 곳에서 바뀌었거나 삭제된 경로예요. 새로고침해서 확인해주세요",
+        type: "error",
+      });
       return;
     }
     router.push("/admin/dashboard/slopes");
@@ -97,6 +114,9 @@ export default function EditSlopeRoutePage() {
         경사도 경로 수정
       </h1>
       <SlopeRouteEditor
+        // 편집기와 지도는 초기 props를 마운트 때 한 번만 읽는다. id가 바뀌면
+        // 새로 세우지 않는 한 이전 경로의 선과 입력값이 남는다.
+        key={params.id}
         initialName={name}
         initialVertices={vertices}
         initialSlopes={slopes}
