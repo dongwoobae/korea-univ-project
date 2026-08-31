@@ -605,6 +605,37 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     ).not.toHaveClass(/pm-disabled/);
   });
 
+  test("없는 경로 id로 수정 화면에 가면 사유와 함께 목록으로 돌려보낸다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/999");
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(
+      page.getByText("경로를 찾을 수 없어요. 이미 삭제됐을 수 있어요"),
+    ).toBeVisible();
+  });
+
+  test("수정 화면에서 값을 고친 채 벗어나려 하면 경고한다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+
+    await page.getByLabel("구간 1 경사도").fill("9.4");
+    await page.getByRole("button", { name: "취소" }).first().click();
+    await expect(
+      page.getByText("저장하지 않은 변경사항이 있어요"),
+    ).toBeVisible();
+
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "취소" })
+      .click();
+    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("9.4");
+  });
+
   test("구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다", async ({
     page,
   }) => {

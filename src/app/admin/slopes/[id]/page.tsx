@@ -22,7 +22,7 @@ export default function EditSlopeRoutePage() {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [vertices, setVertices] = useState<Vertex[]>([]);
-  const [slopes, setSlopes] = useState<number[]>([]);
+  const [slopes, setSlopes] = useState<(number | null)[]>([]);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -34,6 +34,7 @@ export default function EditSlopeRoutePage() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+      if (cancelled) return;
       if (!user) {
         router.push("/admin");
         return;
@@ -55,7 +56,7 @@ export default function EditSlopeRoutePage() {
         return;
       }
       if (error || !data) {
-        router.push("/admin/dashboard/slopes");
+        router.push("/admin/dashboard/slopes?redirected=missing");
         return;
       }
 
