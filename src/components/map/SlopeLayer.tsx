@@ -72,7 +72,11 @@ function processRawPoints(points: SlopePoint[]): MetricPoint[] {
   return result;
 }
 
-export default function SlopeLayer({ slopes }: { slopes: SlopeSegment[] }) {
+// /api/slopes는 id·name·segments만 select한다. Row 전체를 받는 것처럼 쓰면
+// 런타임에 없는 필드를 있는 것으로 보증하게 된다.
+type SlopeRoute = Pick<SlopeSegment, "id" | "name" | "segments">;
+
+export default function SlopeLayer({ slopes }: { slopes: SlopeRoute[] }) {
   return slopes.flatMap((route) => {
     const raw = readRoutePoints(route.segments);
     if (!raw) return [];
