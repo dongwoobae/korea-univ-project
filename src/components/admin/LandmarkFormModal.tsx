@@ -15,6 +15,14 @@ const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
   ssr: false,
 });
 
+/** 588KB짜리 이모지 목록이 이 모달을 열기 전까지 따라오지 않게 한다. */
+const EmojiPicker = dynamic(() => import("./EmojiPicker"), {
+  ssr: false,
+  loading: () => (
+    <div style={{ fontSize: 12, color: "#888" }}>불러오는 중…</div>
+  ),
+});
+
 interface LandmarkFormModalProps {
   center: [number, number];
   landmark: Landmark | null;
@@ -47,6 +55,7 @@ export default function LandmarkFormModal({
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [pendingPhoto, setPendingPhoto] = useState<File | null>(null);
   const titleId = useId();
   const fieldId = useId();
@@ -91,7 +100,7 @@ export default function LandmarkFormModal({
 
   function validate(): string | null {
     if (!form.name.trim()) return "명소 이름을 입력해주세요";
-    if (!form.icon.trim()) return "이모지를 입력해주세요";
+    if (!form.icon.trim()) return "이모지를 골라주세요";
     if (!form.lat || !form.lng) return "지도에서 위치를 선택해주세요";
     return null;
   }
@@ -346,16 +355,36 @@ export default function LandmarkFormModal({
           style={{ ...inputStyle, minHeight: 60, resize: "vertical" }}
         />
 
-        <label style={labelStyle} htmlFor={`${fieldId}-icon`}>
+        <div style={labelStyle} id={`${fieldId}-icon-label`}>
           이모지 *
-        </label>
-        <input
+        </div>
+        <button
           id={`${fieldId}-icon`}
-          value={form.icon}
-          onChange={(e) => setForm({ ...form, icon: e.target.value })}
-          maxLength={4}
-          style={{ ...inputStyle, width: 90, fontSize: 20 }}
-        />
+          type="button"
+          aria-labelledby={`${fieldId}-icon-label ${fieldId}-icon`}
+          aria-expanded={pickerOpen}
+          aria-haspopup="listbox"
+          onClick={() => setPickerOpen((open) => !open)}
+          style={{
+            ...inputStyle,
+            width: 90,
+            fontSize: 20,
+            cursor: "pointer",
+            textAlign: "center",
+          }}
+        >
+          {form.icon}
+        </button>
+        {pickerOpen && (
+          <EmojiPicker
+            selected={form.icon}
+            onSelect={(emoji) => {
+              setForm((prev) => ({ ...prev, icon: emoji }));
+              setPickerOpen(false);
+            }}
+            onClose={() => setPickerOpen(false)}
+          />
+        )}
 
         <div style={labelStyle}>위치 (지도에서 클릭해서 선택) *</div>
         <div
