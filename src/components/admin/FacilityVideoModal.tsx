@@ -424,21 +424,9 @@ export default function FacilityVideoModal({
                 />
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   <label
-                    className="ku-admin-row-action"
-                    style={{
-                      flex: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      textAlign: "center",
-                      padding: "8px",
-                      border: "1px solid #2563EB",
-                      color: "#2563EB",
-                      borderRadius: 6,
-                      fontSize: 13,
-                      cursor: busy ? "not-allowed" : "pointer",
-                      opacity: busy ? 0.6 : 1,
-                    }}
+                    className="ku-file-trigger"
+                    data-disabled={busy}
+                    style={{ flex: 1 }}
                   >
                     {phaseLabel ?? "동영상 교체"}
                     <input
@@ -446,24 +434,13 @@ export default function FacilityVideoModal({
                       accept="video/mp4,video/webm,video/quicktime"
                       onChange={handleUpload}
                       disabled={busy}
-                      style={{ display: "none" }}
                     />
                   </label>
                   <button
                     onClick={() => setConfirmDelete(true)}
                     disabled={deleting || busy}
-                    className="ku-admin-row-action ku-admin-row-action--danger"
-                    style={{
-                      flex: 1,
-                      padding: "8px",
-                      background: "none",
-                      border: "1px solid #DC2626",
-                      color: "#DC2626",
-                      borderRadius: 6,
-                      fontSize: 13,
-                      cursor: deleting || busy ? "not-allowed" : "pointer",
-                      opacity: deleting || busy ? 0.6 : 1,
-                    }}
+                    className="ku-admin-button ku-admin-button--danger ku-admin-row-action ku-admin-row-action--danger"
+                    style={{ flex: 1 }}
                   >
                     {deleting ? "삭제 중..." : "동영상 삭제"}
                   </button>
@@ -471,21 +448,8 @@ export default function FacilityVideoModal({
               </>
             ) : (
               <label
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  minHeight: 100,
-                  border: "1px dashed #d1d5db",
-                  borderRadius: 8,
-                  color: "#6b7280",
-                  fontSize: 13,
-                  cursor: busy ? "not-allowed" : "pointer",
-                  opacity: busy ? 0.7 : 1,
-                  padding: 16,
-                  gap: 6,
-                }}
+                className="ku-file-trigger ku-file-trigger--dropzone"
+                data-disabled={busy}
               >
                 <span style={{ fontSize: 28 }}>🎬</span>
                 {phaseLabel ??
@@ -495,7 +459,6 @@ export default function FacilityVideoModal({
                   accept="video/mp4,video/webm,video/quicktime"
                   onChange={handleUpload}
                   disabled={busy}
-                  style={{ display: "none" }}
                 />
               </label>
             )}

@@ -338,20 +338,9 @@ export default function BuildingPhotoManager({
         </div>
       )}
       <label
-        className="ku-admin-row-action"
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: 12,
-          padding: "8px 16px",
-          background: "var(--ku-primary)",
-          color: "#fff",
-          borderRadius: 8,
-          fontSize: 13,
-          cursor: uploading ? "not-allowed" : "pointer",
-          opacity: uploading ? 0.7 : 1,
-        }}
+        className="ku-file-trigger ku-file-trigger--filled"
+        data-disabled={uploading}
+        style={{ marginTop: 12 }}
       >
         {uploading ? "업로드 중..." : "사진 추가"}
         <input
@@ -360,7 +349,6 @@ export default function BuildingPhotoManager({
           multiple
           onChange={handleUpload}
           disabled={uploading}
-          style={{ display: "none" }}
         />
       </label>
       {uploadItems.length > 0 && (

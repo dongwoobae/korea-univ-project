@@ -435,9 +435,7 @@ export default function LandmarkFormModal({
           </div>
         )}
 
-        <label style={labelStyle} htmlFor={`${fieldId}-photo`}>
-          사진
-        </label>
+        <div style={labelStyle}>사진</div>
         {form.photo_url && (
           <div
             style={{
@@ -459,17 +457,33 @@ export default function LandmarkFormModal({
             />
           </div>
         )}
-        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-          <input
-            id={`${fieldId}-photo`}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            disabled={uploading || saving}
-            onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null)}
-            style={{ flex: 1, fontSize: 12 }}
-          />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            marginTop: 8,
+          }}
+        >
+          <label
+            className="ku-file-trigger"
+            data-disabled={uploading || saving}
+          >
+            {uploading
+              ? "업로드 중..."
+              : form.photo_url
+                ? "사진 변경"
+                : "사진 선택"}
+            <input
+              id={`${fieldId}-photo`}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              disabled={uploading || saving}
+              onChange={(e) => handlePhotoChange(e.target.files?.[0] ?? null)}
+            />
+          </label>
           {pendingPhoto && !landmark && (
-            <span style={{ fontSize: 12, color: "#2563EB" }}>
+            <span style={{ fontSize: 12, color: "var(--ku-primary-text)" }}>
               저장 시 업로드: {pendingPhoto.name}
             </span>
           )}
@@ -478,16 +492,7 @@ export default function LandmarkFormModal({
               type="button"
               onClick={handleDeletePhoto}
               disabled={uploading || saving}
-              className="ku-admin-row-action ku-admin-row-action--danger"
-              style={{
-                padding: "7px 10px",
-                border: "1px solid #DC2626",
-                borderRadius: 6,
-                background: "#fff",
-                color: "#DC2626",
-                fontSize: 12,
-                cursor: "pointer",
-              }}
+              className="ku-admin-button ku-admin-button--danger ku-admin-row-action ku-admin-row-action--danger"
             >
               사진 삭제
             </button>

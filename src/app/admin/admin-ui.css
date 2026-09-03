@@ -138,6 +138,53 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+.ku-admin-button--danger {
+  border-color: var(--ku-danger);
+  color: var(--ku-danger);
+}
+/* 파일 선택 트리거는 <button>이 아니라 숨은 input을 감싼 <label>이라
+   .ku-admin-button:disabled가 걸리지 않는다. 비활성 표시만 data-disabled로
+   하고, 클릭 차단은 안쪽 input의 disabled가 맡는다. */
+.ku-file-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid var(--ku-primary-text);
+  border-radius: 8px;
+  color: var(--ku-primary-text);
+  background: var(--ku-surface);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ku-file-trigger input[type="file"] {
+  display: none;
+}
+.ku-file-trigger--filled {
+  border-color: var(--ku-primary);
+  color: #fff;
+  background: var(--ku-primary);
+}
+.ku-file-trigger--dropzone {
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-height: 100px;
+  padding: 16px;
+  border-style: dashed;
+  border-color: var(--ku-border-input);
+  color: var(--ku-text-3);
+  font-weight: 500;
+  white-space: normal;
+  text-align: center;
+}
+.ku-file-trigger[data-disabled="true"] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .ku-admin-main {
   width: min(1180px, 100%);
   margin: 0 auto;
@@ -1105,6 +1152,10 @@ button.ku-admin-overview-item {
    최소 터치 영역 44px 확보. 위험 동작은 인접 버튼과 간격을 추가로 벌린다. */
 @media (max-width: 767px) {
   .ku-admin-row-action {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .ku-file-trigger {
     min-width: 44px;
     min-height: 44px;
   }
