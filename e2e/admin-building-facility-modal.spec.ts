@@ -17,7 +17,7 @@ test.describe("건물 상세 시설 모달", () => {
   test("시설 행 아이콘이 유형별로 갈린다", async ({ page }) => {
     // 유형별 클래스까지 봐야 모든 행이 폴백 아이콘으로 떨어지는 회귀를 잡는다.
     const rows = page.locator("#building-facilities .ku-facility-row-icon");
-    await expect(rows.locator("svg.lucide-arrow-up-down")).toHaveCount(2);
+    await expect(rows.locator("svg.lucide-elevator")).toHaveCount(2);
     await expect(rows.locator("svg.lucide-trending-up")).toHaveCount(1);
     await expect(rows.locator("svg.lucide-square-parking")).toHaveCount(1);
   });

@@ -272,7 +272,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     ).toHaveCount(1);
     await expect(
       page.locator(
-        '[data-testid^="facility-marker-"]:not([data-testid$="cluster"]) svg.lucide-arrow-up-down',
+        '[data-testid^="facility-marker-"]:not([data-testid$="cluster"]) svg.lucide-elevator',
       ),
     ).toHaveCount(2);
     await expect(page.getByTestId("landmark-label")).toBeVisible();

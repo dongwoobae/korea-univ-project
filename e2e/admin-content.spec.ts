@@ -181,10 +181,17 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     const dialog = page.getByRole("dialog");
     await dialog.getByPlaceholder("예: 다람쥐길").fill("E2E 포토존");
     await dialog.getByPlaceholder("명소 설명").fill("학생회관 앞 포토존");
-    // 이모지는 필수라 비우면 저장이 막힌다. 기본값이 들어와 있는지까지 본다.
-    const iconInput = dialog.getByLabel("이모지 *");
-    await expect(iconInput).toHaveValue("✨");
-    await iconInput.fill("📸");
+    // 이모지는 피커에서 고른다. 기본값이 들어와 있는지까지 본다.
+    const iconButton = dialog.getByLabel(/이모지 \*/);
+    await expect(iconButton).toHaveText("✨");
+    await iconButton.click();
+    await dialog
+      .getByLabel("이모지 검색")
+      .fill("플래시를 터트리고 있는 카메라");
+    await dialog
+      .getByRole("option", { name: "플래시를 터트리고 있는 카메라" })
+      .click();
+    await expect(iconButton).toHaveText("📸");
     await dialog.getByTitle("현재 위치로 이동").click();
     await dialog.locator('input[type="file"]').setInputFiles({
       name: "photo.webp",
