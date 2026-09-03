@@ -1,6 +1,5 @@
 import {
   Accessibility,
-  ArrowUpDown,
   GripVertical,
   Sparkles,
   SquareParking,
@@ -8,7 +7,52 @@ import {
   TrainFront,
   TrendingUp,
 } from "lucide-static";
+import type { IconNode } from "lucide-react";
 import type { FacilityCode } from "@/types/domain";
+
+/**
+ * lucide 1.31.0에 엘리베이터가 없어 직접 그린다. 아이콘 2,025개 중 이름에
+ * `elevator`·`lift`가 붙은 것이 없고, `tags.json` 1,767건을 같은 말로 훑어도
+ * 나오는 것은 `cable-car`·`forklift`·`layers-arrow-up`뿐이다.
+ *
+ * 화살표를 상자 안이 아니라 **위에 얹는** 것이 표준 픽토그램이고, 그 배치라야
+ * 정렬(sort) 아이콘으로 읽히지 않는다. 상자 안을 문 이음새 하나로 끝낸 이유는
+ * 가장 작은 렌더가 15px(공개 지도 필터 패널)이라서다 — 휠체어를 넣으면 그
+ * 크기에서 바퀴와 사람이 한 덩어리로 뭉친다. 접근성 여부는 이 앱 전체가
+ * 전제하는 것이고 `building_facilities`에 그것을 가르는 컬럼도 없다.
+ */
+export const ELEVATOR_ICON_NODE: IconNode = [
+  ["path", { d: "M8 7V3", key: "elev-up-stem" }],
+  ["path", { d: "m6 5 2-2 2 2", key: "elev-up-head" }],
+  ["path", { d: "M16 3v4", key: "elev-down-stem" }],
+  ["path", { d: "m14 5 2 2 2-2", key: "elev-down-head" }],
+  [
+    "rect",
+    { x: "4", y: "9", width: "16", height: "13", rx: "2", key: "elev-car" },
+  ],
+  ["path", { d: "M12 9v13", key: "elev-seam" }],
+];
+
+/** lucide-static이 내보내는 문자열과 같은 모양으로 만든다. */
+function iconNodeToSvg(name: string, node: IconNode): string {
+  const children = node
+    .map(([tag, attrs]) => {
+      const rendered = Object.entries(attrs)
+        .filter(([name]) => name !== "key")
+        .map(([name, value]) => `${name}="${value}"`)
+        .join(" ");
+      return `<${tag} ${rendered} />`;
+    })
+    .join("");
+  return (
+    `<svg class="lucide lucide-${name}" xmlns="http://www.w3.org/2000/svg"` +
+    ` width="24" height="24" viewBox="0 0 24 24" fill="none"` +
+    ` stroke="currentColor" stroke-width="2" stroke-linecap="round"` +
+    ` stroke-linejoin="round">${children}</svg>`
+  );
+}
+
+export const ELEVATOR_ICON_SVG = iconNodeToSvg("elevator", ELEVATOR_ICON_NODE);
 
 export type FacilityIconKey = FacilityCode | "fallback";
 
@@ -30,7 +74,7 @@ export function facilityIconKey(
 }
 
 export const FACILITY_ICON_SVG: Record<FacilityIconKey, string> = {
-  elevator: ArrowUpDown,
+  elevator: ELEVATOR_ICON_SVG,
   restroom: Toilet,
   ramp: TrendingUp,
   parking: SquareParking,
