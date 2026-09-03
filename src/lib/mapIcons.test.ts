@@ -82,4 +82,33 @@ describe("landmarkEmoji", () => {
     expect(landmarkEmoji("")).toBe(LANDMARK_FALLBACK_EMOJI);
     expect(landmarkEmoji("   ")).toBe(LANDMARK_FALLBACK_EMOJI);
   });
+
+  // RLS가 with check (true)라 REST로 직접 쓴 값이 여기까지 온다. DB check는
+  // 길이만 봐서 이모지가 아닌 값을 막지 못한다.
+  it("이모지가 아닌 값은 기본 이모지로 떨어진다", () => {
+    expect(landmarkEmoji("ABCDEFGHIJKLMNO!")).toBe(LANDMARK_FALLBACK_EMOJI);
+    expect(landmarkEmoji("가나다")).toBe(LANDMARK_FALLBACK_EMOJI);
+    expect(landmarkEmoji("0123456789012345")).toBe(LANDMARK_FALLBACK_EMOJI);
+    expect(landmarkEmoji("‮")).toBe(LANDMARK_FALLBACK_EMOJI);
+    expect(landmarkEmoji("‍‍‍")).toBe(LANDMARK_FALLBACK_EMOJI);
+  });
+
+  it("이모지에 글자가 섞이면 기본 이모지로 떨어진다", () => {
+    expect(landmarkEmoji("🌳ABCDEFGHIJKLM")).toBe(LANDMARK_FALLBACK_EMOJI);
+  });
+
+  it("ZWJ 시퀀스와 스킨톤 조합은 그대로 돌려준다", () => {
+    expect(landmarkEmoji("👨‍👩‍👧‍👦")).toBe("👨‍👩‍👧‍👦");
+    expect(landmarkEmoji("🧑🏽‍🚀")).toBe("🧑🏽‍🚀");
+    expect(landmarkEmoji("🏳️‍🌈")).toBe("🏳️‍🌈");
+  });
+
+  // Extended_Pictographic만으로는 이 둘이 걸러진다 — 국기는 Regional_Indicator,
+  // 키캡은 숫자에 U+20E3이 붙은 형태다.
+  it("국기와 키캡도 그대로 돌려준다", () => {
+    expect(landmarkEmoji("🇰🇷")).toBe("🇰🇷");
+    expect(landmarkEmoji("🏴󠁧󠁢󠁳󠁣󠁴󠁿")).toBe("🏴󠁧󠁢󠁳󠁣󠁴󠁿");
+    expect(landmarkEmoji("1️⃣")).toBe("1️⃣");
+    expect(landmarkEmoji("#️⃣")).toBe("#️⃣");
+  });
 });

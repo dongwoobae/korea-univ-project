@@ -129,20 +129,37 @@ alter table landmarks
 밖으로 넘친다. `escapeHtml`은 `& < > "`만 막으므로 U+202E(RTL 재정의)나
 단독 ZWJ도 통과한다.
 
-그래서 `landmarkEmoji()`에 가드를 둔다 — 값에 `\p{Extended_Pictographic}`가
-없으면 `LANDMARK_FALLBACK_EMOJI`로 떨어뜨린다. 저장된 값이 무엇이든 화면이
-지켜지고, **상한 8에도 이미 있던 같은 구멍이 함께 닫힌다.**
+그래서 `landmarkEmoji()`에 가드를 둔다 — 이모지가 아닌 값은
+`LANDMARK_FALLBACK_EMOJI`로 떨어뜨린다. 저장된 값이 무엇이든 화면이 지켜지고,
+**상한 8에도 이미 있던 같은 구멍이 함께 닫힌다.**
 
-`u` 플래그의 `\p{Extended_Pictographic}`를 쓴다. `v` 플래그의
-`\p{RGI_Emoji}`가 더 정확하지만 ES2024라 지원 범위가 좁다.
+판정은 세 조각이다. `\p{Extended_Pictographic}` 하나로는 부족한데, **국기가
+`Regional_Indicator`이고 키캡(`1️⃣`)은 숫자에 `U+20E3`이 붙은 형태**라 둘 다
+그 속성에 들지 않기 때문이다. 실측으로 확인했다.
+
+1. 키캡 전용 패턴 — 숫자·`#`·`*`가 앞에 오는 유일한 경우다
+2. 전체 일치 — 글리프(`Extended_Pictographic`·`Regional_Indicator`)와 이어
+   붙이는 부품(ZWJ·이형 선택자·스킨톤·태그)만 허용한다. `🌳ABC` 같은 혼합이
+   여기서 걸린다
+3. 글리프 존재 — 부품만 있고 글리프가 없는 값(ZWJ 단독)을 막는다
+
+`v` 플래그의 `\p{RGI_Emoji}`가 한 줄로 끝나지만 ES2024라 지원 범위가 좁다.
+
+`emojibase-data` 3,979건 전수로 검증했다. 거부된 5건은 전부 `component`
+그룹(맨 스킨톤 수정자)이고 피커가 이미 제외하는 그룹이다.
 
 ### 빈 문자열
 
 `landmarks.icon`은 `not null`이지만 빈 문자열은 `not null`도 길이 `check`도
-통과한다. `LandmarkFormModal`의 초기값이 `landmark?.icon ?? "✨"`라 `??`가
-`null`·`undefined`만 잡고 `""`는 그대로 둔다. 그 상태에서 `validate()`가
+통과한다. `LandmarkFormModal`의 초기값이 `landmark?.icon ?? "✨"`였고 `??`는
+`null`·`undefined`만 잡아 `""`를 그대로 뒀다. 그 상태에서 `validate()`가
 저장을 막으므로, 자유 입력이 없어진 뒤 피커 로딩까지 실패하면 이름 수정조차
-못 하게 된다. `??`를 `||`로 바꾼다.
+못 하게 된다.
+
+`|| "✨"`로 바꾸는 대신 **초기값도 `landmarkEmoji(landmark?.icon)`을 쓴다.**
+폴백 리터럴이 폼에 복제돼 있던 것이 사라지고, 공백·이모지 아닌 값까지 같은
+규칙으로 처리된다. 이 경로의 보장은 `mapIcons.test.ts`가 진다 — 이 저장소의
+vitest는 `environment: "node"`라 컴포넌트 테스트가 없다.
 
 ## UI
 
@@ -249,5 +266,5 @@ alter table landmarks
 허용하는 UI가 8에서 거부당한다. 반대 순서로 배포되는 동안에는 상한만 넓어진
 상태라 무해하다.
 
-렌더 가드(`landmarkEmoji`)와 `??` → `||`은 피커와 독립이고 현재 코드의 구멍을
+렌더 가드(`landmarkEmoji`)와 폼 초기값은 피커와 독립이고 현재 코드의 구멍을
 닫는 것이므로 마이그레이션과 함께 먼저 나간다.

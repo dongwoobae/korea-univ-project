@@ -6,6 +6,7 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { inferCampusFromPoint } from "@/lib/campusGeometry";
+import { landmarkEmoji } from "@/lib/mapIcons";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
 import { useModalFocus } from "@/lib/useModalFocus";
 import type { Landmark } from "@/types/domain";
@@ -39,7 +40,7 @@ export default function LandmarkFormModal({
     description: landmark?.description ?? "",
     description_en: landmark?.description_en ?? "",
     description_zh: landmark?.description_zh ?? "",
-    icon: landmark?.icon ?? "✨",
+    icon: landmarkEmoji(landmark?.icon),
     lat: landmark?.lat != null ? String(landmark.lat) : "",
     lng: landmark?.lng != null ? String(landmark.lng) : "",
     photo_url: landmark?.photo_url ?? "",

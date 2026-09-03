@@ -44,14 +44,33 @@ export const FACILITY_CLUSTER_ICON_SVG = Accessibility;
 
 export const LANDMARK_FALLBACK_EMOJI = "✨";
 
+/** 키캡(1️⃣)만 숫자·#·*로 시작한다. 그 밖의 ASCII는 아래에서 허용하지 않는다. */
+const KEYCAP = /^[0-9#*]️?⃣$/;
+
+/**
+ * 이어 붙이는 부품(ZWJ·이형 선택자·스킨톤·태그)까지 허용하되,
+ * `Extended_Pictographic`만으로는 국기(Regional_Indicator)가 빠진다.
+ */
+const EMOJI_ONLY =
+  /^[\p{Extended_Pictographic}\p{Regional_Indicator}‍️\u{1F3FB}-\u{1F3FF}\u{E0020}-\u{E007F}]+$/u;
+
+/** 부품만 있고 글리프가 없는 값(ZWJ 단독 등)을 막는다. */
+const HAS_GLYPH = /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u;
+
 /**
  * 타입은 `string`이지만 배포 창에서는 필드 자체가 오지 않는다 —
  * 근거는 `docs/specs/2026-08-18-restore-landmark-emoji-design.md`의
  * "배포 순서" 절에 있다.
+ *
+ * 이모지가 아닌 값까지 걸러내는 이유는
+ * `docs/specs/2026-09-03-landmark-emoji-picker-design.md`의 "렌더 가드" 절에 있다.
  */
 export function landmarkEmoji(icon: string | null | undefined): string {
   const value = icon?.trim();
-  return value ? value : LANDMARK_FALLBACK_EMOJI;
+  if (!value) return LANDMARK_FALLBACK_EMOJI;
+  const isEmoji =
+    KEYCAP.test(value) || (EMOJI_ONLY.test(value) && HAS_GLYPH.test(value));
+  return isEmoji ? value : LANDMARK_FALLBACK_EMOJI;
 }
 
 /** lucide-static SVG는 24px 고정이라 자리 크기에 맞춰 덮어쓴다. */
