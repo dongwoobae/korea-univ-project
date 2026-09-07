@@ -161,7 +161,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByText("중앙 엘리베이터")).toBeVisible();
 
     const rampRow = page
-      .locator(".ku-facility-row")
+      .locator(".ku-facility-card")
       .filter({ hasText: "북측 진입로" });
     await expect(rampRow).toContainText("경사로");
     await expect(rampRow.locator("svg.lucide-trending-up")).toHaveCount(1);

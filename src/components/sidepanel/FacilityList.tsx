@@ -88,7 +88,7 @@ export default function FacilityList({
                   : (facility[`video_caption_${lang}`] ??
                     facility.video_caption);
               return (
-                <div className="ku-facility-row" key={facility.id}>
+                <div className="ku-facility-card" key={facility.id}>
                   <div className="ku-facility-main">
                     <div className="ku-facility-icon">
                       <FacilityTypeIcon

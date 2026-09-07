@@ -1044,7 +1044,10 @@
   display: grid;
   gap: 8px;
 }
-.ku-facility-row {
+/* admin-ui.css 의 .ku-facility-row 와 이름이 겹치면 안 된다. 두 파일이 한
+   문서에 함께 실릴 때 그쪽 flex 규칙이 이 카드에 걸려, 영상이 이름과 같은
+   행으로 들어오면서 이름이 한 글자씩 세로로 접힌다. */
+.ku-facility-card {
   padding: 11px 13px;
   border-radius: 10px;
   background: var(--ku-bg);
