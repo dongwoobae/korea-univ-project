@@ -175,6 +175,13 @@ a {
   background: var(--ku-surface);
 }
 
+/* Leaflet 기본 CSS의 will-change: transform은 건물 SVG를 별도 합성 레이어로
+   만든다. 그러면 moveend에 transform과 viewBox를 함께 옮길 때 크롬이 transform만
+   먼저 적용해 폴리곤이 한 프레임 밀렸다 돌아온다(2026-09-08 사용자 녹화로 확인). */
+.leaflet-overlay-pane svg.leaflet-zoom-animated {
+  will-change: auto;
+}
+
 @media (prefers-color-scheme: dark) {
   .leaflet-tile-pane {
     filter: brightness(0.86) saturate(0.82);
