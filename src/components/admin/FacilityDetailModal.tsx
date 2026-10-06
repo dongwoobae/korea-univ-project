@@ -11,6 +11,7 @@ interface FacilityDetailModalProps {
   toggling: boolean;
   onToggleInstalled: () => void;
   onTranslated: () => void | Promise<void>;
+  onRequestEdit: () => void;
   onRequestDelete: () => void;
   onClose: () => void;
   showToast: (message: string, type?: string) => void;
@@ -21,6 +22,7 @@ export default function FacilityDetailModal({
   toggling,
   onToggleInstalled,
   onTranslated,
+  onRequestEdit,
   onRequestDelete,
   onClose,
   showToast,
@@ -115,6 +117,23 @@ export default function FacilityDetailModal({
             }}
           >
             닫기
+          </button>
+          <button
+            type="button"
+            onClick={onRequestEdit}
+            className="ku-admin-row-action"
+            style={{
+              flex: 1,
+              padding: "10px",
+              background: "none",
+              border: "1px solid var(--ku-primary-text)",
+              borderRadius: 8,
+              fontSize: 13,
+              color: "var(--ku-primary-text)",
+              cursor: "pointer",
+            }}
+          >
+            수정
           </button>
           <button
             type="button"

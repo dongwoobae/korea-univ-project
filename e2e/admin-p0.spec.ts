@@ -68,4 +68,33 @@ test.describe("관리자 P0 개선 (모바일 메뉴·상태변경 오류)", () 
     await expect(status).toBeVisible();
     await expect(toggle).toHaveText("미설치로 변경");
   });
+
+  test("건물 안 시설을 수정해도 동영상이 남는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/buildings/1");
+
+    await page
+      .locator(".ku-facility-row", { hasText: "지하 주차장 진입로" })
+      .click();
+    const detail = page.getByRole("dialog", { name: "지하 주차장 진입로" });
+    await detail.getByRole("button", { name: "수정" }).click();
+
+    const form = page.getByRole("dialog", { name: "시설 수정" });
+    await expect(form.getByLabel("시설 이름 (선택)")).toHaveValue(
+      "지하 주차장 진입로",
+    );
+    await form.getByLabel("시설 이름 (선택)").fill("지하 주차장 진입 경사로");
+    await form.getByRole("button", { name: "저장", exact: true }).click();
+
+    await expect(
+      page.locator(".ku-facility-row", { hasText: "지하 주차장 진입 경사로" }),
+    ).toBeVisible();
+    const saved = state.facilities.find(
+      (facility) => facility.id === "f-building-video",
+    )!;
+    expect(saved.name).toBe("지하 주차장 진입 경사로");
+    expect(saved.video_url).toBe(
+      "https://cdn.example.com/facility-videos/f-building-video/1.mp4",
+    );
+  });
 });

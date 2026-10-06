@@ -16,6 +16,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import BuildingPhotoManager from "@/components/admin/BuildingPhotoManager";
 import BuildingVideoManager from "@/components/admin/BuildingVideoManager";
 import FacilityDetailModal from "@/components/admin/FacilityDetailModal";
+import FacilityFormModal from "@/components/admin/FacilityFormModal";
 import BuildingDetailHeader from "@/components/admin/building-detail/BuildingDetailHeader";
 import BuildingNameCard from "@/components/admin/building-detail/BuildingNameCard";
 import BuildingCollegeCard from "@/components/admin/building-detail/BuildingCollegeCard";
@@ -72,12 +73,17 @@ export default function BuildingDetail() {
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(
     null,
   );
+  const [editingFacilityId, setEditingFacilityId] = useState<string | null>(
+    null,
+  );
   const addFacilityRef = useRef<HTMLButtonElement>(null);
 
   // 객체가 아니라 id를 들고 매 렌더 목록에서 찾는다.
   // 객체를 붙들면 fetchData() 뒤 모달이 옛 값을 보여준다.
   const selectedFacility =
     facilities.find((f) => f.id === selectedFacilityId) ?? null;
+  const editingFacility =
+    facilities.find((f) => f.id === editingFacilityId) ?? null;
 
   const hasUnsavedNameChanges = Boolean(
     building &&
@@ -468,8 +474,30 @@ export default function BuildingDetail() {
           toggling={togglingId === selectedFacility.id}
           onToggleInstalled={() => handleToggleInstalled(selectedFacility)}
           onTranslated={fetchData}
+          onRequestEdit={() => {
+            setEditingFacilityId(selectedFacility.id);
+            setSelectedFacilityId(null);
+          }}
           onRequestDelete={() => setConfirmModal(selectedFacility)}
           onClose={() => setSelectedFacilityId(null)}
+          showToast={showToast}
+        />
+      )}
+      {editingFacility && (
+        <FacilityFormModal
+          buildingId={id}
+          center={
+            editingFacility.lat != null && editingFacility.lng != null
+              ? [editingFacility.lat, editingFacility.lng]
+              : buildingCenter
+          }
+          facilityTypes={facilityTypes}
+          facility={editingFacility}
+          onClose={() => setEditingFacilityId(null)}
+          onSaved={() => {
+            setEditingFacilityId(null);
+            void fetchData();
+          }}
           showToast={showToast}
         />
       )}

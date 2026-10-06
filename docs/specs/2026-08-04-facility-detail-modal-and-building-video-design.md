@@ -204,7 +204,6 @@
 
 ## 후속 과제
 
-- 시설 이름·설명·층·좌표를 모달에서 편집하기
 - 배지 규칙을 건물 관리 목록의 경고 카드 정의와 맞추기 (서버 SQL은 `translation_status`만, 클라이언트는 필드 누락까지 본다)
 - `video_caption` 번역 실패를 판정에 포함하기. 지금은 `translateFacility` 대상이 아니라 어느 배지에도 안 잡힌다
 - 동영상 교체 시 R2에 남는 옛 객체 정리
@@ -214,3 +213,7 @@
 - `facility-video-confirm`이 `videoUrl`을 검증 없이 저장한다. 임의 외부 URL이 공개 화면의 `<video src>`로 렌더된다
 - `facility-video-presign`이 `fileSize`를 생략하면 상한 검사를 통과하고, presigned PUT에는 크기 조건이 없다. `facilityId`도 검증 없이 R2 key에 들어간다
 - 동영상 업로드 3종 API가 시설의 건물 소속을 확인하지 않는다. 다른 건물의 시설 id로 호출하면 그대로 처리된다
+
+## 후속 반영
+
+- 2026-10-06 — 건물 상세의 시설 모달에 `수정`을 달아 독립 시설과 같은 `FacilityFormModal`로 유형·이름·설명·층·좌표·설치 상태를 고친다. 저장 payload에 `video_url`이 없어 동영상은 유지된다. 같은 시설을 동시에 고칠 때의 문제는 `docs/TODO_list/admin/facility-concurrent-edit.md`.
