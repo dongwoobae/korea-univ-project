@@ -8,7 +8,7 @@
  *      - 건물 1: 중앙도서관(id 1, 인문사회계)
  *      - 시설: `f-installed`(설치 경사로·건물 미소속) · `f-building`(건물 1 소속 엘리베이터)
  *              · `f-uninstalled`(미설치 주차)
- *      - 명소 1(다람쥐길) · 경사 2(GPX 1 · 수기 1) · 사진 1
+ *      - 명소 1(다람쥐길) · 경사 2(수기) · 사진 1
  *
  * 2) 라우팅: `installMockBackend()`가 전역 `page.route`로 모든 요청을 가로챈다.
  *      - `/rest/v1/<table>` → `handleRest()`: PostgREST 흉내.
@@ -275,10 +275,10 @@ function createState(authenticated: boolean): MockState {
       {
         id: 1,
         name: "정문-중앙광장",
-        gpx_file: "정문-중앙광장.gpx",
+        gpx_file: null,
         segments: [
-          { lat: 37.589, lng: 127.032, ele: 20 },
-          { lat: 37.5892, lng: 127.0322, ele: 22 },
+          { lat: 37.589, lng: 127.032 },
+          { lat: 37.5892, lng: 127.0322, slope: 3, distance: 28.4 },
         ],
         created_at: "2026-07-21T00:00:00Z",
         updated_at: "2026-07-22T00:00:00Z",
@@ -336,9 +336,9 @@ const filterId = (url: URL) => {
   return value?.startsWith("eq.") ? value.slice(3) : null;
 };
 
-// 쓰기 요청에 붙은 id 외 필터(`?gpx_file=is.null`, `?updated_at=eq.<v>`)를
+// 쓰기 요청에 붙은 id 외 필터(`?updated_at=eq.<v>`)를
 // 행에 대조한다. 실제 PostgREST는 이 조건을 쓰기에도 적용하므로, 여기서
-// 무시하면 낙관적 잠금과 GPX 보호가 목 위에서만 통과한다.
+// 무시하면 낙관적 잠금이 목 위에서만 통과한다.
 const matchesWriteFilters = (row: Row, url: URL) => {
   for (const [key, value] of url.searchParams) {
     if (key === "id" || key === "select" || key === "columns") continue;

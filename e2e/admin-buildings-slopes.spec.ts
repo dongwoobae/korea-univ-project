@@ -356,17 +356,11 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     ).toBeVisible();
   });
 
-  test("GPX 경로를 다운로드하고 삭제한다", async ({ page }) => {
+  test("경로를 삭제한다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
 
     const row = page.getByText("정문-중앙광장").locator("xpath=../..");
-    const downloadPromise = page.waitForEvent("download");
-    await row.getByRole("button", { name: "다운로드" }).click();
-    expect((await downloadPromise).suggestedFilename()).toBe(
-      "정문-중앙광장.gpx",
-    );
-
     await row.getByRole("button", { name: "삭제" }).click();
     const deleteConfirm = page
       .getByText('"정문-중앙광장" 경로를 삭제할까요?')
@@ -384,22 +378,16 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     );
   });
 
-  test("수기 경로와 GPX 경로의 행 동작을 구분한다", async ({ page }) => {
+  test("목록에 GPX 안내·다운로드가 남지 않는다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
 
-    const manual = page
-      .getByText("안암병원 정문 경사로")
-      .locator("xpath=../..");
-    await expect(manual.getByText("직접 입력")).toBeVisible();
-    await expect(manual.getByRole("button", { name: "수정" })).toBeVisible();
-    await expect(manual.getByRole("button", { name: "다운로드" })).toHaveCount(
-      0,
-    );
-
-    const gpx = page.getByText("정문-중앙광장").locator("xpath=../..");
-    await expect(gpx.getByRole("button", { name: "다운로드" })).toBeVisible();
-    await expect(gpx.getByRole("button", { name: "수정" })).toHaveCount(0);
+    await expect(page.getByText("안암병원 정문 경사로")).toBeVisible();
+    await expect(page.getByText(/GPX/)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "다운로드" })).toHaveCount(0);
+    await expect(
+      page.getByRole("searchbox", { name: "경사도 경로 검색" }),
+    ).toHaveAttribute("placeholder", "경로명 검색");
   });
 
   test("수기 경로를 열어 값을 고쳐 저장한다", async ({ page }) => {
@@ -424,27 +412,13 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     expect(segments[1].slope).toBe(9.4);
   });
 
-  test("GPX 경로 id로 수정 화면에 가면 목록으로 돌려보낸다", async ({
+  test("사유 없이 목록에 들어가면 리다이렉트 안내가 뜨지 않는다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/1");
-    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
-    await expect(
-      page.getByText(
-        "GPX 경로는 측정 원본이라 수정할 수 없어요. 목록에서 다운로드만 가능해요",
-      ),
-    ).toBeVisible();
-  });
-
-  test("사유 없이 목록에 들어가면 GPX 안내가 뜨지 않는다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
-    await expect(
-      page.getByText(
-        "GPX 경로는 측정 원본이라 수정할 수 없어요. 목록에서 다운로드만 가능해요",
-      ),
-    ).toHaveCount(0);
+    await expect(page.getByText("저장 형식이 깨진 경로라")).toHaveCount(0);
+    await expect(page.getByText("경로를 찾을 수 없어요")).toHaveCount(0);
   });
 
   test("비로그인 상태로 수정 화면에 가면 로그인 화면으로 보낸다", async ({
@@ -503,15 +477,6 @@ test.describe("건물과 경사도 관리자 흐름", () => {
 
     await expect(page.getByText("구간 1")).toBeVisible();
     await expect(page.getByLabel("구간 1 경사도")).toHaveValue("");
-  });
-
-  test("GPX 업로드를 닫고 종료 안내를 보여준다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-    await expect(page.locator("#gpx-input")).toHaveCount(0);
-    await expect(
-      page.getByText("GPX 등록은 종료됐어요. 경로는 직접 그려서 등록해주세요"),
-    ).toBeVisible();
   });
 
   test("목록에서 경로 직접 그리기로 편집기에 들어간다", async ({ page }) => {
@@ -616,6 +581,23 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     ).toBeVisible();
   });
 
+  test("저장 형식이 깨진 경로는 열지 않고 목록에서 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    const row = state.slopes.find((slope) => slope.id === 2)!;
+    row.segments = [
+      { lat: 37.5861, lng: 127.0268 },
+      { lat: 37.5862, lng: 127.0269, distance: 12.4 },
+    ];
+
+    await page.goto("/admin/slopes/2");
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(
+      page.getByText("저장 형식이 깨진 경로라 열 수 없어요"),
+    ).toBeVisible();
+  });
+
   test("수정 화면에서 값을 고친 채 벗어나려 하면 경고한다", async ({
     page,
   }) => {
@@ -656,26 +638,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     expect((row.segments as Array<Record<string, unknown>>)[1].slope).toBe(7.2);
   });
 
-  test("열어둔 사이 GPX 행이 되면 측정 원본을 덮지 않는다", async ({
-    page,
-  }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/2");
-    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
-
-    const row = state.slopes.find((slope) => slope.id === 2)!;
-    row.gpx_file = "restored.gpx";
-
-    await page.getByLabel("구간 1 경사도").fill("9.4");
-    await page.getByRole("button", { name: "경로 저장" }).click();
-
-    await expect(
-      page.getByText("다른 곳에서 바뀌었거나 삭제된 경로예요"),
-    ).toBeVisible();
-    expect((row.segments as Array<Record<string, unknown>>)[1].slope).toBe(7.2);
-  });
-
-  test("구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다", async ({
+  test("구간 값을 넣어 저장하면 저장 포맷으로 들어간다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
@@ -710,8 +673,10 @@ test.describe("건물과 경사도 관리자 흐름", () => {
 
     const segments = saved.segments as Array<Record<string, unknown>>;
     expect(segments).toHaveLength(2);
-    expect(segments[0].slope).toBeUndefined();
-    expect(segments[0].ele).toBeNull();
+    expect(segments[0]).toEqual({
+      lat: expect.any(Number),
+      lng: expect.any(Number),
+    });
     expect(segments[1].slope).toBe(7.2);
     expect(typeof segments[1].distance).toBe("number");
     expect(segments[1].distance).toBeGreaterThan(0);

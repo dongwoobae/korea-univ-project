@@ -14,21 +14,25 @@ export type Landmark = Tables["landmarks"]["Row"];
 export type FacilityCode =
   "elevator" | "restroom" | "ramp" | "parking" | "braille";
 
-/** slope_segments.segments(jsonb) 내부 포인트 */
-export interface SlopePoint {
+/** slope_segments.segments(jsonb)의 시작 꼭짓점 */
+export interface SlopeRouteStart {
   lat: number;
   lng: number;
-  /** GPX 측정 원본에만 있다. 수기 경로는 null (GPX 폐기 시 제거) */
-  ele: number | null;
-  /** 수기 경로의 구간 값. 첫 포인트에는 없다 */
-  slope?: number;
-  distance?: number;
 }
 
-/** 경사 경로 (slope_segments Row + segments를 구체 타입으로) */
-export type SlopeSegment = Omit<Tables["slope_segments"]["Row"], "segments"> & {
-  segments: SlopePoint[];
-};
+/** 시작 다음 꼭짓점. 앞 꼭짓점에서 여기까지 구간의 값을 싣는다 */
+export interface SlopeRoutePoint extends SlopeRouteStart {
+  /** 구간 경사. 단위는 도(°), 0~45. 판정은 src/lib/slopeScale.ts */
+  slope: number;
+  /** 구간 길이(m) */
+  distance: number;
+}
+
+/** readRoutePoints를 통과한 경로 */
+export type SlopeRoutePoints = [SlopeRouteStart, ...SlopeRoutePoint[]];
+
+/** segments는 jsonb라 readRoutePoints로 읽기 전에는 모양을 믿지 않는다 */
+export type SlopeSegment = Tables["slope_segments"]["Row"];
 
 /**
  * 조인 형상 — 쿼리마다 select하는 필드가 달라 조인 부분은 Partial로 넓혀

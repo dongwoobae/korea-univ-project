@@ -3,7 +3,7 @@
 import { useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import type { SlopePoint, SlopeSegment } from "@/types/domain";
+import type { SlopeSegment } from "@/types/domain";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import AdminListControls from "@/components/admin/AdminListControls";
@@ -16,40 +16,10 @@ import {
   type AdminListSort,
 } from "@/lib/adminList";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
-import { isManualRoute } from "@/lib/slopeRoute";
-
-function buildGpx(name: string, points: SlopePoint[]) {
-  const trkpts = points
-    .map(
-      (p) =>
-        `      <trkpt lat="${p.lat}" lon="${p.lng}"><ele>${p.ele}</ele></trkpt>`,
-    )
-    .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="KU Barrier-Free Map">
-  <trk>
-    <name>${name}</name>
-    <trkseg>
-${trkpts}
-    </trkseg>
-  </trk>
-</gpx>`;
-}
-
-function downloadGpx(route: SlopeSegment) {
-  const content = buildGpx(route.name, route.segments);
-  const blob = new Blob([content], { type: "application/gpx+xml" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = route.gpx_file ?? `${route.name}.gpx`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 const REDIRECT_NOTICE: Record<string, string> = {
-  gpx: "GPX 경로는 측정 원본이라 수정할 수 없어요. 목록에서 다운로드만 가능해요",
   missing: "경로를 찾을 수 없어요. 이미 삭제됐을 수 있어요",
+  invalid: "저장 형식이 깨진 경로라 열 수 없어요. 지우고 다시 그려주세요",
 };
 
 export default function SlopesPage() {
@@ -82,10 +52,7 @@ export default function SlopesPage() {
   const fetchSlopes = useCallback(async () => {
     const { from, to } = getAdminPageRange(page);
     let query = supabase.from("slope_segments").select("*", { count: "exact" });
-    const searchFilter = buildAdminSearchFilter(
-      ["name", "gpx_file"],
-      debouncedSearch,
-    );
+    const searchFilter = buildAdminSearchFilter(["name"], debouncedSearch);
     if (searchFilter) query = query.or(searchFilter);
     query =
       sort === "name"
@@ -111,7 +78,7 @@ export default function SlopesPage() {
       setPage(pageCount);
       return;
     }
-    setSlopes((data ?? []) as unknown as SlopeSegment[]);
+    setSlopes(data ?? []);
     setTotalCount(nextTotal);
     setLoading(false);
   }, [debouncedSearch, page, sort]);
@@ -153,20 +120,6 @@ export default function SlopesPage() {
     <div style={{ padding: 24 }}>
       <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
         경사도 경로 관리
-      </div>
-
-      <div
-        style={{
-          background: "var(--ku-surface)",
-          borderRadius: 10,
-          border: "1px solid var(--ku-border)",
-          padding: 24,
-          marginBottom: 24,
-          fontSize: 13,
-          color: "var(--ku-text-2)",
-        }}
-      >
-        GPX 등록은 종료됐어요. 경로는 직접 그려서 등록해주세요
       </div>
 
       {/* 경로 목록 */}
@@ -212,7 +165,7 @@ export default function SlopesPage() {
             setPage(1);
           }}
           searchLabel="경사도 경로 검색"
-          searchPlaceholder="경로명 또는 GPX 파일명 검색"
+          searchPlaceholder="경로명 검색"
           resultCount={slopes.length}
           totalCount={totalCount}
           hasActiveFilters={hasActiveFilters}
@@ -275,64 +228,26 @@ export default function SlopesPage() {
                       marginTop: 2,
                     }}
                   >
-                    {s.segments?.length ?? 0}개 포인트 ·{" "}
+                    {Array.isArray(s.segments) ? s.segments.length : 0}개 포인트 ·{" "}
                     {formatAdminUpdatedAt(s.updated_at)}
-                    {isManualRoute(s) ? (
-                      <span
-                        style={{
-                          marginLeft: 8,
-                          padding: "2px 6px",
-                          borderRadius: 4,
-                          background: "var(--ku-border)",
-                          color: "var(--ku-text-2)",
-                          fontSize: 11,
-                        }}
-                      >
-                        직접 입력
-                      </span>
-                    ) : (
-                      <span
-                        style={{ marginLeft: 8, color: "var(--ku-text-3)" }}
-                      >
-                        ({s.gpx_file})
-                      </span>
-                    )}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  {isManualRoute(s) ? (
-                    <button
-                      onClick={() => router.push(`/admin/slopes/${s.id}`)}
-                      className="ku-admin-row-action"
-                      style={{
-                        fontSize: 13,
-                        color: "var(--ku-primary-text)",
-                        background: "none",
-                        border: "1px solid var(--ku-primary-text)",
-                        borderRadius: 6,
-                        padding: "6px 12px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      수정
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => downloadGpx(s)}
-                      className="ku-admin-row-action"
-                      style={{
-                        fontSize: 13,
-                        color: "var(--ku-primary-text)",
-                        background: "none",
-                        border: "1px solid var(--ku-primary-text)",
-                        borderRadius: 6,
-                        padding: "6px 12px",
-                        cursor: "pointer",
-                      }}
-                    >
-                      다운로드
-                    </button>
-                  )}
+                  <button
+                    onClick={() => router.push(`/admin/slopes/${s.id}`)}
+                    className="ku-admin-row-action"
+                    style={{
+                      fontSize: 13,
+                      color: "var(--ku-primary-text)",
+                      background: "none",
+                      border: "1px solid var(--ku-primary-text)",
+                      borderRadius: 6,
+                      padding: "6px 12px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    수정
+                  </button>
                   <button
                     onClick={() => setConfirmDelete(s)}
                     disabled={deletingId === s.id}

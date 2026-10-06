@@ -6,12 +6,12 @@ import { supabase } from "@/lib/supabaseClient";
 import SlopeRouteEditor from "@/components/SlopeRouteEditor";
 import Toast from "@/components/Toast";
 import {
-  isManualRoute,
+  readRoutePoints,
   readStoredSlopes,
   readStoredVertices,
   type Vertex,
 } from "@/lib/slopeRoute";
-import type { SlopePoint, SlopeSegment } from "@/types/domain";
+import type { SlopeRoutePoints } from "@/types/domain";
 import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
 
@@ -49,23 +49,22 @@ export default function EditSlopeRoutePage() {
 
       if (cancelled) return;
 
-      // GPX 행을 편집 가능하게 만들면 측정 원본이 훼손된다. 리다이렉트가
-      // 즉시 언마운트되어 여기서 Toast를 띄워도 안 보이므로, 사유를 목록
-      // 페이지로 넘겨 거기서 안내한다.
-      if (data && !isManualRoute(data as unknown as SlopeSegment)) {
-        router.push("/admin/dashboard/slopes?redirected=gpx");
-        return;
-      }
+      // 리다이렉트가 즉시 언마운트되어 여기서 Toast를 띄워도 안 보이므로,
+      // 사유를 목록 페이지로 넘겨 거기서 안내한다.
       if (error || !data) {
         router.push("/admin/dashboard/slopes?redirected=missing");
         return;
       }
+      const points = readRoutePoints(data.segments);
+      if (!points) {
+        router.push("/admin/dashboard/slopes?redirected=invalid");
+        return;
+      }
 
-      const route = data as unknown as SlopeSegment;
-      setName(route.name);
-      setLoadedAt(route.updated_at);
-      setVertices(readStoredVertices(route.segments));
-      setSlopes(readStoredSlopes(route.segments));
+      setName(data.name);
+      setLoadedAt(data.updated_at);
+      setVertices(readStoredVertices(points));
+      setSlopes(readStoredSlopes(points));
       setLoading(false);
     }
 
@@ -75,11 +74,11 @@ export default function EditSlopeRoutePage() {
     };
   }, [params.id, router]);
 
-  async function handleSave(nextName: string, segments: SlopePoint[]) {
+  async function handleSave(nextName: string, segments: SlopeRoutePoints) {
     setSaving(true);
     // 화면을 연 뒤 행이 바뀌었을 수 있다. 조건을 쓰기에 같이 걸어 마지막
-    // 저장이 조용히 이기는 것과, GPX로 돌아간 행의 측정 원본이 덮이는 것을
-    // 둘 다 막는다. 조건이 안 맞으면 PostgREST는 오류가 아니라 0행을 준다.
+    // 저장이 조용히 이기는 것을 막는다. 조건이 안 맞으면 PostgREST는 오류가
+    // 아니라 0행을 준다.
     const { data, error } = await supabase
       .from("slope_segments")
       .update({
@@ -87,7 +86,6 @@ export default function EditSlopeRoutePage() {
         segments: segments as unknown as Json,
       })
       .eq("id", params.id)
-      .is("gpx_file", null)
       .eq("updated_at", loadedAt ?? "")
       .select("id");
     setSaving(false);

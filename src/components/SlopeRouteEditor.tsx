@@ -10,7 +10,7 @@ import {
   validateRoute,
   type Vertex,
 } from "@/lib/slopeRoute";
-import type { SlopePoint } from "@/types/domain";
+import type { SlopeRoutePoints } from "@/types/domain";
 
 const SlopeRouteMap = dynamic(
   () => import("@/components/slope/SlopeRouteMap"),
@@ -37,7 +37,7 @@ interface SlopeRouteEditorProps {
   initialVertices: Vertex[] | null;
   initialSlopes: (number | null)[];
   saving: boolean;
-  onSave: (name: string, segments: SlopePoint[]) => void | Promise<void>;
+  onSave: (name: string, segments: SlopeRoutePoints) => void | Promise<void>;
   onCancel: () => void;
 }
 
