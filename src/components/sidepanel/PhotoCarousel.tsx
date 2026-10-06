@@ -68,7 +68,7 @@ export default function PhotoCarousel({
           {photos.length > 1 && (
             <>
               <button
-                aria-label="이전 사진"
+                aria-label={t("photoPrev")}
                 onClick={() =>
                   setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)
                 }
@@ -93,7 +93,7 @@ export default function PhotoCarousel({
                 <ChevronLeft size={18} aria-hidden="true" />
               </button>
               <button
-                aria-label="다음 사진"
+                aria-label={t("photoNext")}
                 onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)}
                 style={{
                   position: "absolute",
