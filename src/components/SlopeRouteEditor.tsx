@@ -10,7 +10,12 @@ import {
   validateRoute,
   type Vertex,
 } from "@/lib/slopeRoute";
-import { formatSlopeInput, toDegrees, type SlopeUnit } from "@/lib/slopeScale";
+import {
+  formatSlopeInput,
+  isSlopeDegInRange,
+  toDegrees,
+  type SlopeUnit,
+} from "@/lib/slopeScale";
 import type { SlopeRoutePoints } from "@/types/domain";
 
 const SlopeRouteMap = dynamic(
@@ -107,9 +112,11 @@ export default function SlopeRouteEditor({
     setUnit(next);
     writeUnitPreference(next);
     // 저장될 도 값은 그대로 두고 입력란 문자열만 새 단위로 다시 쓴다(설계 3.3).
+    // 범위 밖 값은 tan이 주기 함수라 %로 바꾸면 다른 값처럼 보이므로
+    // 쓰던 문자열을 그대로 둔다(설계 3.2).
     setDrafts((prev) =>
       slopes.map((slope, index) =>
-        slope === null || !Number.isFinite(slope)
+        slope === null || !Number.isFinite(slope) || !isSlopeDegInRange(slope)
           ? (prev[index] ?? "")
           : formatSlopeInput(slope, next),
       ),

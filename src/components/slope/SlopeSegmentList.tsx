@@ -94,7 +94,7 @@ export default function SlopeSegmentList({
                 id={`slope-${segment.index}`}
                 aria-label={`구간 ${segment.index + 1} 경사도`}
                 type="number"
-                step="0.1"
+                step="any"
                 inputMode="decimal"
                 value={drafts[segment.index] ?? ""}
                 onChange={(event) =>

@@ -8,7 +8,7 @@ import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import { KU_BOUNDS, containsPoint } from "@/lib/mapBounds";
-import { slopeColorFromDeg } from "@/lib/slopeScale";
+import { isSlopeDegInRange, slopeColorFromDeg } from "@/lib/slopeScale";
 import type { Vertex } from "@/lib/slopeRoute";
 import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
 import { addNeighborLayer } from "@/lib/neighborLayer";
@@ -269,7 +269,12 @@ export default function SlopeRouteMap({
       }).addTo(labels);
 
       const slope = slopes[i];
-      if (slope === null || slope === undefined || !Number.isFinite(slope))
+      if (
+        slope === null ||
+        slope === undefined ||
+        !Number.isFinite(slope) ||
+        !isSlopeDegInRange(slope)
+      )
         continue;
       L.polyline(
         [
