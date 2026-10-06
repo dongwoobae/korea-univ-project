@@ -27,15 +27,34 @@ export default function SlopeLegend({ show }: { show: boolean }) {
   return (
     <div className="ku-slope-legend" aria-label="경사도 범례">
       <div className="ku-slope-legend-title">경사도 범례</div>
-      {SLOPE_BANDS.map((band, index) => (
-        <div className="ku-slope-row" key={band.color}>
-          <span
-            className="ku-slope-line"
-            style={{ "--slope-color": band.color } as React.CSSProperties}
-          />
-          <span>{bandLabel(index)}</span>
+      <div className="ku-slope-scale" aria-hidden="true">
+        <div className="ku-slope-scale-bar">
+          {SLOPE_BANDS.map((band) => (
+            <span
+              className="ku-slope-scale-step"
+              key={band.color}
+              style={{ backgroundColor: band.color }}
+            />
+          ))}
         </div>
-      ))}
+        <div className="ku-slope-scale-ticks">
+          {SLOPE_BANDS.slice(0, -1).map((band, index) => (
+            <span
+              className="ku-slope-scale-tick"
+              key={band.color}
+              style={{ left: `${((index + 1) / SLOPE_BANDS.length) * 100}%` }}
+            >
+              <span>{trim(band.maxPercent)}%</span>
+              <span>{trim(percentToDeg(band.maxPercent))}°</span>
+            </span>
+          ))}
+        </div>
+      </div>
+      <ul className="ku-visually-hidden">
+        {SLOPE_BANDS.map((band, index) => (
+          <li key={band.color}>{bandLabel(index)}</li>
+        ))}
+      </ul>
       {SLOPE_REFERENCE_LINES.map((line) => (
         <div className="ku-slope-threshold" key={line.ratioLabel}>
           ▶ {line.label} {line.ratioLabel} · {trim(line.percent)}% ·{" "}

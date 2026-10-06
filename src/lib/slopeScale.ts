@@ -32,12 +32,12 @@ export interface SlopeBand {
 }
 
 export const SLOPE_BANDS: readonly SlopeBand[] = [
-  { maxPercent: 2, color: "#B5AFA8" },
-  { maxPercent: WALKWAY_RATIO * 100, color: "#DDC26A" },
-  { maxPercent: RELAXED_RATIO * 100, color: "#D89A3A" },
-  { maxPercent: RAMP_EXCEPTION_RATIO * 100, color: "#C96C24" },
-  { maxPercent: 15, color: "#AE3B1E" },
-  { maxPercent: Infinity, color: "#7A1414" },
+  { maxPercent: 2, color: "#91D4C6" },
+  { maxPercent: WALKWAY_RATIO * 100, color: "#36A980" },
+  { maxPercent: RELAXED_RATIO * 100, color: "#0465AF" },
+  { maxPercent: RAMP_EXCEPTION_RATIO * 100, color: "#E6B816" },
+  { maxPercent: 15, color: "#D75A07" },
+  { maxPercent: Infinity, color: "#9A023C" },
 ];
 
 export interface SlopeReferenceLine {

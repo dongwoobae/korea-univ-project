@@ -18,12 +18,12 @@ import {
 } from "./slopeScale";
 
 const BAND_COLORS = [
-  "#B5AFA8",
-  "#DDC26A",
-  "#D89A3A",
-  "#C96C24",
-  "#AE3B1E",
-  "#7A1414",
+  "#91D4C6",
+  "#36A980",
+  "#0465AF",
+  "#E6B816",
+  "#D75A07",
+  "#9A023C",
 ];
 
 // 변환을 거치지 않은 %로 칸을 찾는다. 테스트의 기대값 계산용.
@@ -97,14 +97,14 @@ describe("slopeColorFromDeg", () => {
   });
 
   it("E2E가 쓰는 값의 칸", () => {
-    expect(slopeColorFromDeg(1)).toBe("#B5AFA8");
-    expect(slopeColorFromDeg(3)).toBe("#DDC26A");
-    expect(slopeColorFromDeg(7.2)).toBe("#AE3B1E");
-    expect(slopeColorFromDeg(10)).toBe("#7A1414");
+    expect(slopeColorFromDeg(1)).toBe("#91D4C6");
+    expect(slopeColorFromDeg(3)).toBe("#36A980");
+    expect(slopeColorFromDeg(7.2)).toBe("#D75A07");
+    expect(slopeColorFromDeg(10)).toBe("#9A023C");
   });
 
   it("부동소수 오차로 경계를 살짝 넘어도 그 칸에 남는다", () => {
-    expect(slopeColorFromDeg(percentToDeg(100 / 12 + 1e-12))).toBe("#D89A3A");
+    expect(slopeColorFromDeg(percentToDeg(100 / 12 + 1e-12))).toBe("#0465AF");
   });
 });
 

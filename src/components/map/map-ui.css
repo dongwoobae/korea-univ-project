@@ -401,19 +401,46 @@
   font-size: 12px;
   font-weight: 700;
 }
-.ku-slope-row {
-  display: flex;
-  align-items: center;
-  min-height: 21px;
-  gap: 8px;
-  color: var(--ku-text-2);
-  font-size: 12px;
+.ku-slope-scale {
+  /* 양 끝 눈금 라벨이 패널 가장자리로 넘치지 않게 좌우 여백을 둔다 */
+  margin: 0 14px 6px;
 }
-.ku-slope-line {
-  width: 24px;
+.ku-slope-scale-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+}
+.ku-slope-scale-step {
+  flex: 1 1 0;
+}
+.ku-slope-scale-step:first-child {
+  border-radius: 3px 0 0 3px;
+}
+.ku-slope-scale-step:last-child {
+  border-radius: 0 3px 3px 0;
+}
+.ku-slope-scale-ticks {
+  position: relative;
+  height: 34px;
+}
+.ku-slope-scale-tick {
+  position: absolute;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translateX(-50%);
+  color: var(--ku-text-2);
+  font-size: 11px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.ku-slope-scale-tick::before {
+  width: 1px;
   height: 5px;
-  border-radius: 3px;
-  background: var(--slope-color);
+  margin-bottom: 2px;
+  background: var(--ku-text-2);
+  content: "";
 }
 .ku-slope-threshold {
   margin-top: 5px;
