@@ -438,7 +438,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     const preview = page
       .locator(".leaflet-pane.slope-preview-pane path")
       .first();
-    await expect(preview).toHaveAttribute("stroke", "#C96C24");
+    await expect(preview).toHaveAttribute("stroke", "#AE3B1E");
   });
 
   test("수정 화면에서 지우고 다시 그리기를 누르면 선과 입력값이 함께 비워지고 다시 그릴 수 있다", async ({
@@ -682,7 +682,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     expect(segments[1].distance).toBeGreaterThan(0);
   });
 
-  test("법적 기준과 급경사 경고를 표시하되 저장은 막지 않는다", async ({
+  test("완화 한도와 급경사 경고를 표시하되 저장은 막지 않는다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
@@ -700,16 +700,24 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.getByLabel("경로 이름").fill("급경사 시험");
 
     await page.getByLabel("구간 1 경사도").fill("10");
-    await expect(page.getByText("법적 기준(1/12) 초과")).toBeVisible();
+    await expect(page.getByText("1/12 완화 한도 초과")).toBeVisible();
     await expect(page.getByRole("button", { name: "경로 저장" })).toBeEnabled();
 
     await page.getByLabel("구간 1 경사도").fill("45");
     await expect(
-      page.getByText("이 값이 맞나요? 30%를 넘는 보행 경사로는 매우 드뭅니다"),
+      page.getByText(
+        "이 값이 맞나요? 30%(약 16.7°)를 넘는 보행 경사로는 매우 드뭅니다",
+      ),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "경로 저장" })).toBeEnabled();
 
     await page.getByLabel("구간 1 경사도").fill("120");
+    await expect(
+      page.getByRole("button", { name: "경로 저장" }),
+    ).toBeDisabled();
+
+    // tan(181°)는 1.75%다. % 기준 범위 검사라면 통과해 버린다(설계 3.2).
+    await page.getByLabel("구간 1 경사도").fill("181");
     await expect(
       page.getByRole("button", { name: "경로 저장" }),
     ).toBeDisabled();
@@ -736,7 +744,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(preview).toHaveAttribute("stroke", "#B5AFA8");
 
     await page.getByLabel("구간 1 경사도").fill("10");
-    await expect(preview).toHaveAttribute("stroke", "#AE3B1E");
+    await expect(preview).toHaveAttribute("stroke", "#7A1414");
   });
 
   test("꼭짓점을 드래그하면 미리보기 선도 새 좌표를 따라간다", async ({
@@ -892,14 +900,15 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.goto("/");
     await page.getByRole("checkbox", { name: "경사도" }).check();
 
-    // slopeColor(10)은 8.33 초과 12 이하라 #AE3B1E다(src/lib/theme.ts).
-    // 픽스처의 두 행은 이 색이 아니라 방금 저장한 경로만 잡힌다.
-    const saved = page.locator('path[stroke="#AE3B1E"]').first();
+    // 10°는 17.63%라 15% 초과 칸 #7A1414다(src/lib/slopeScale.ts).
+    // 픽스처의 두 행(3° #DDC26A, 7.2° #AE3B1E)은 이 색이 아니라 방금 저장한 경로만 잡힌다.
+    const saved = page.locator('path[stroke="#7A1414"]').first();
     await expect(saved).toBeVisible();
 
     await saved.dispatchEvent("click");
     const popup = page.locator(".leaflet-popup");
     await expect(popup).toContainText("끝단 시험 경사로");
-    await expect(popup).toContainText("10%");
+    await expect(popup).toContainText("17.6%");
+    await expect(popup).toContainText("10.0°");
   });
 });

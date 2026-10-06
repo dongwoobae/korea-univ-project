@@ -1,6 +1,11 @@
 "use client";
 import { Polyline, Popup } from "react-leaflet";
-import { slopeColor } from "@/lib/theme";
+import {
+  degToPercent,
+  formatDeg,
+  formatPercent,
+  slopeColorFromDeg,
+} from "@/lib/slopeScale";
 import { readRoutePoints } from "@/lib/slopeRoute";
 import type { SlopeSegment } from "@/types/domain";
 
@@ -16,7 +21,6 @@ export default function SlopeLayer({ slopes }: { slopes: SlopeRoute[] }) {
 
     return measured.map((point, i) => {
       const prev = points[i];
-      const absoluteSlope = Math.abs(point.slope);
       return (
         <Polyline
           key={`${route.id}-${i}`}
@@ -25,7 +29,7 @@ export default function SlopeLayer({ slopes }: { slopes: SlopeRoute[] }) {
             [point.lat, point.lng],
           ]}
           pathOptions={{
-            color: slopeColor(absoluteSlope),
+            color: slopeColorFromDeg(point.slope),
             weight: 5,
             opacity: 0.85,
           }}
@@ -36,7 +40,8 @@ export default function SlopeLayer({ slopes }: { slopes: SlopeRoute[] }) {
                 {route.name}
               </div>
               <div>
-                경사 <strong>{absoluteSlope}%</strong>
+                경사 <strong>{formatPercent(degToPercent(point.slope))}</strong>{" "}
+                ({formatDeg(point.slope)})
               </div>
               <div style={{ color: "#888", fontSize: 11 }}>
                 구간 거리 {point.distance}m

@@ -7,7 +7,7 @@ import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
-import { slopeColor } from "@/lib/theme";
+import { slopeColorFromDeg } from "@/lib/slopeScale";
 import type { Vertex } from "@/lib/slopeRoute";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
@@ -194,7 +194,7 @@ export default function SlopeRouteMap({
           [vertices[i + 1].lat, vertices[i + 1].lng],
         ],
         {
-          color: slopeColor(Math.abs(slope)),
+          color: slopeColorFromDeg(slope),
           weight: 8,
           opacity: 0.85,
           // geoman이 편집 대상으로 잡지 않게 한다. 없으면 색칠용 선에

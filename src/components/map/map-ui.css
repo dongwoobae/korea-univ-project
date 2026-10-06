@@ -424,6 +424,12 @@
   font-weight: 600;
 }
 
+.ku-slope-threshold + .ku-slope-threshold {
+  margin-top: 2px;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .ku-language {
   position: absolute;
   z-index: 1000;

@@ -5,7 +5,6 @@ import {
   haversine,
   readStoredSlopes,
   readStoredVertices,
-  slopeWarning,
   toStoredSegments,
   validateRoute,
 } from "./slopeRoute";
@@ -99,21 +98,6 @@ describe("readStoredVertices / readStoredSlopes", () => {
   });
 });
 
-describe("slopeWarning", () => {
-  it("8.33 이하는 경고가 없다", () => {
-    expect(slopeWarning(8.33)).toBeNull();
-  });
-
-  it("8.33 초과 30 이하는 법적 기준 경고다", () => {
-    expect(slopeWarning(8.34)).toBe("legal");
-    expect(slopeWarning(30)).toBe("legal");
-  });
-
-  it("30 초과는 강한 경고다", () => {
-    expect(slopeWarning(30.1)).toBe("extreme");
-  });
-});
-
 describe("validateRoute", () => {
   it("정상 입력에는 오류가 없다", () => {
     expect(validateRoute("정문 경사로", [A, B], [7.2])).toEqual([]);
@@ -152,22 +136,27 @@ describe("validateRoute", () => {
     );
   });
 
+  const RANGE_ERROR = "1번 구간의 경사도는 0~45°(0~100%) 사이여야 해요";
+
   it("음수를 막는다", () => {
-    expect(validateRoute("이름", [A, B], [-0.1])).toContain(
-      "1번 구간의 경사도는 0 이상이어야 해요",
-    );
+    expect(validateRoute("이름", [A, B], [-0.1])).toContain(RANGE_ERROR);
   });
 
-  it("100까지 허용하고 100 초과를 막는다", () => {
-    expect(validateRoute("이름", [A, B], [100])).toEqual([]);
-    expect(validateRoute("이름", [A, B], [100.1])).toContain(
-      "1번 구간의 경사도는 100% 이하여야 해요",
-    );
+  it("45°까지 허용하고 45° 초과를 막는다", () => {
+    expect(validateRoute("이름", [A, B], [45])).toEqual([]);
+    expect(validateRoute("이름", [A, B], [45.01])).toContain(RANGE_ERROR);
+  });
+
+  // tan은 주기 함수라 %로 바꿔 검사하면 181°가 1.75%로 통과한다(설계 3.2).
+  it("tan 주기성으로 범위를 비켜 가지 못한다", () => {
+    for (const deg of [181, -179, 200]) {
+      expect(validateRoute("이름", [A, B], [deg])).toContain(RANGE_ERROR);
+    }
   });
 
   // 30%는 경고일 뿐 저장은 된다. 실제로 존재하는 급경사를 막으면 안 된다.
-  it("30을 넘어도 저장은 막지 않는다", () => {
-    expect(validateRoute("이름", [A, B], [45])).toEqual([]);
+  it("30%를 넘어도 저장은 막지 않는다", () => {
+    expect(validateRoute("이름", [A, B], [20])).toEqual([]);
   });
 
   it("같은 자리를 두 번 찍어 생긴 0m 구간을 막는다", () => {

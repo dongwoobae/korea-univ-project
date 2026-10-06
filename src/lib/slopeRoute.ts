@@ -17,13 +17,6 @@ export interface RouteSegment {
   distance: number;
 }
 
-/** 건축법상 경사로 기준 1/12 */
-export const LEGAL_SLOPE_LIMIT = 8.33;
-/** 이 위는 오타를 의심한다. 저장은 막지 않는다. */
-export const EXTREME_SLOPE_LIMIT = 30;
-/** 45도. 이 위는 보행 노면이 아니라 입력 사고로 본다. */
-export const MAX_SLOPE_INPUT = 100;
-
 const EARTH_RADIUS_M = 6371000;
 
 function toRadians(degrees: number) {
@@ -65,12 +58,6 @@ export function buildSegments(vertices: Vertex[]): RouteSegment[] {
   return segments;
 }
 
-export function slopeWarning(slope: number): "extreme" | "legal" | null {
-  if (slope > EXTREME_SLOPE_LIMIT) return "extreme";
-  if (slope > LEGAL_SLOPE_LIMIT) return "legal";
-  return null;
-}
-
 export function validateRoute(
   name: string,
   vertices: Vertex[],
@@ -98,9 +85,9 @@ export function validateRoute(
       errors.push(`${label}가 숫자가 아니에요`);
       return;
     }
-    if (slope < 0) errors.push(`${label}는 0 이상이어야 해요`);
-    else if (slope > MAX_SLOPE_INPUT)
-      errors.push(`${label}는 ${MAX_SLOPE_INPUT}% 이하여야 해요`);
+    if (!isSlopeDegInRange(slope)) {
+      errors.push(`${label}는 0~45°(0~100%) 사이여야 해요`);
+    }
   });
 
   return errors;

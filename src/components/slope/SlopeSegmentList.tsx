@@ -1,6 +1,7 @@
 "use client";
 
-import { slopeWarning, type RouteSegment } from "@/lib/slopeRoute";
+import type { RouteSegment } from "@/lib/slopeRoute";
+import { slopeWarningFromDeg } from "@/lib/slopeScale";
 
 interface SlopeSegmentListProps {
   segments: RouteSegment[];
@@ -9,8 +10,8 @@ interface SlopeSegmentListProps {
 }
 
 const WARNING_TEXT = {
-  legal: "법적 기준(1/12) 초과",
-  extreme: "이 값이 맞나요? 30%를 넘는 보행 경사로는 매우 드뭅니다",
+  "relaxed-limit": "1/12 완화 한도 초과",
+  extreme: "이 값이 맞나요? 30%(약 16.7°)를 넘는 보행 경사로는 매우 드뭅니다",
 } as const;
 
 export default function SlopeSegmentList({
@@ -32,7 +33,7 @@ export default function SlopeSegmentList({
         const value = slopes[segment.index];
         const warning =
           value !== null && value !== undefined && Number.isFinite(value)
-            ? slopeWarning(value)
+            ? slopeWarningFromDeg(value)
             : null;
         return (
           <div
@@ -85,7 +86,7 @@ export default function SlopeSegmentList({
                   fontSize: 14,
                 }}
               />
-              <span style={{ fontSize: 13 }}>%</span>
+              <span style={{ fontSize: 13 }}>°</span>
             </div>
             {warning && (
               <div
