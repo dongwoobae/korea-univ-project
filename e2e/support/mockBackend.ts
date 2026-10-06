@@ -305,7 +305,7 @@ function createState(authenticated: boolean): MockState {
       {
         id: 1,
         building_id: 1,
-        url: "https://cdn.test/library.webp",
+        url: "https://cdn.test/library.webp?t=1700000000000",
         caption: "정문",
         caption_en: "Main entrance",
         caption_zh: "正门",

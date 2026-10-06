@@ -556,3 +556,42 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     ).toBeVisible();
   });
 });
+
+test("건물 사진을 크게 보고 내려받는다", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.photos.push({
+    id: 2,
+    building_id: 1,
+    url: "https://cdn.test/library-2.webp?t=1700000000001",
+    caption: "열람실",
+    caption_en: "Reading room",
+    caption_zh: "阅览室",
+  });
+  await page.goto("/");
+  await page.getByPlaceholder("건물 검색...").fill("중앙도서관");
+  await page.getByText("중앙도서관", { exact: true }).last().click();
+
+  const open = page.getByRole("button", { name: "사진 크게 보기" });
+  await open.click();
+  const dialog = page.getByRole("dialog", { name: "중앙도서관", exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("1 / 2");
+  await expect(dialog).toContainText("정문");
+
+  const href = await dialog
+    .getByRole("link", { name: "사진 다운로드" })
+    .getAttribute("href");
+  const url = new URL(href!);
+  expect(url.searchParams.get("t")).toBe("1700000000000");
+  expect(url.searchParams.get("download")).toBe("중앙도서관-1.webp");
+
+  await page.keyboard.press("ArrowRight");
+  await expect(dialog).toContainText("2 / 2");
+  await expect(dialog).toContainText("열람실");
+  await dialog.getByRole("button", { name: "이전 사진" }).click();
+  await expect(dialog).toContainText("1 / 2");
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(open).toBeFocused();
+});

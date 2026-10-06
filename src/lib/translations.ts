@@ -46,6 +46,10 @@ export const translations = {
 
     // SidePanel.js
     noPhoto: "사진 없음",
+    photoEnlarge: "사진 크게 보기",
+    photoPrev: "이전 사진",
+    photoNext: "다음 사진",
+    photoDownload: "사진 다운로드",
     loading: "불러오는 중...",
     noFacilityInfo: "등록된 접근성 정보가 없어요",
     facilitiesTitle: "시설 현황",
@@ -129,6 +133,10 @@ export const translations = {
     feedbackContentLine: "Details:",
 
     noPhoto: "No photo",
+    photoEnlarge: "View larger photo",
+    photoPrev: "Previous photo",
+    photoNext: "Next photo",
+    photoDownload: "Download photo",
     loading: "Loading...",
     noFacilityInfo: "No accessibility info available",
     facilitiesTitle: "Facilities",
@@ -208,6 +216,10 @@ export const translations = {
     feedbackContentLine: "内容：",
 
     noPhoto: "暂无照片",
+    photoEnlarge: "查看大图",
+    photoPrev: "上一张",
+    photoNext: "下一张",
+    photoDownload: "下载照片",
     loading: "加载中...",
     noFacilityInfo: "暂无无障碍设施信息",
     facilitiesTitle: "设施状况",

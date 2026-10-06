@@ -343,6 +343,7 @@ export default function SidePanel({
           photos={photos}
           photoIndex={photoIndex}
           setPhotoIndex={setPhotoIndex}
+          buildingName={buildingName}
           displayName={displayName}
           lang={lang}
           t={t}
