@@ -68,6 +68,12 @@ describe("isSlopeDegInRange", () => {
     }
   });
 
+  it("퍼센트 경계 100%는 통과하고 100.01%와 음수는 거부한다(설계 8.2)", () => {
+    expect(isSlopeDegInRange(percentToDeg(100))).toBe(true);
+    expect(isSlopeDegInRange(percentToDeg(100.01))).toBe(false);
+    expect(isSlopeDegInRange(percentToDeg(-1))).toBe(false);
+  });
+
   it("유한하지 않은 값을 거부한다", () => {
     expect(isSlopeDegInRange(NaN)).toBe(false);
     expect(isSlopeDegInRange(Infinity)).toBe(false);

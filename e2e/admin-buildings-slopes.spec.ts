@@ -1123,13 +1123,49 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     ).not.toBeChecked();
   });
 
-  test("주변 건물이 있어도 찍은 자리에 꼭짓점이 놓인다", async ({ page }) => {
-    // 스냅이 꺼져 있으면 건물 외곽선 근처를 찍어도 그 픽셀에 꼭짓점이 놓여야 한다.
+  for (const snapOn of [false, true]) {
+    test(`스냅이 ${snapOn ? "켜" : "꺼"}져 있으면 건물 외곽선 근처에서 꼭짓점이 ${snapOn ? "외곽선에 붙는다" : "찍은 자리에 놓인다"}`, async ({
+      page,
+    }) => {
+      await installMockBackend(page, { authenticated: true });
+      await page.goto("/admin/slopes/new");
+      const building = page
+        .locator(".leaflet-slopeBuildings-pane path")
+        .first();
+      await expect(building).toBeVisible();
+      if (snapOn) {
+        await page
+          .getByRole("checkbox", { name: "건물 외곽선에 붙이기" })
+          .check();
+      }
+
+      const box = (await building.boundingBox())!;
+      const target = { x: box.x - 8, y: box.y + box.height / 2 };
+      const map = page.locator(".leaflet-container");
+      const mapBox = (await map.boundingBox())!;
+      await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+      await page.mouse.move(target.x - 30, target.y);
+      await page.mouse.move(target.x, target.y, { steps: 5 });
+      await page.mouse.click(target.x, target.y);
+      const second = { x: mapBox.x + 200, y: mapBox.y + 80 };
+      await page.mouse.move(second.x, second.y, { steps: 5 });
+      await page.mouse.click(second.x, second.y);
+      await page.mouse.click(second.x, second.y);
+
+      const vertex = (await page
+        .locator(".marker-icon")
+        .first()
+        .boundingBox())!;
+      const centerX = vertex.x + vertex.width / 2;
+      expect(Math.abs(centerX - (snapOn ? box.x : target.x))).toBeLessThan(3);
+    });
+  }
+
+  test("범위 밖 각도는 미리보기에 그리지 않고 단위를 바꿔도 입력을 그대로 둔다", async ({
+    page,
+  }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/slopes/new");
-    await expect(
-      page.locator(".leaflet-tooltip.bldg-label").first(),
-    ).toBeVisible();
 
     const map = page.locator(".leaflet-container");
     await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
@@ -1140,13 +1176,16 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     for (const position of points) await map.click({ position });
     await map.click({ position: points[1] });
 
-    const mapBox = (await map.boundingBox())!;
-    const vertex = (await page.locator(".marker-icon").first().boundingBox())!;
-    expect(
-      Math.abs(vertex.x + vertex.width / 2 - (mapBox.x + points[0].x)),
-    ).toBeLessThan(3);
-    expect(
-      Math.abs(vertex.y + vertex.height / 2 - (mapBox.y + points[0].y)),
-    ).toBeLessThan(3);
+    const input = page.getByLabel("구간 1 경사도");
+    await input.fill("181");
+    await expect(
+      page.locator(".leaflet-pane.slope-preview-pane path"),
+    ).toHaveCount(0);
+
+    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+    await expect(input).toHaveValue("181");
+    await expect(
+      page.getByRole("button", { name: "경로 저장" }),
+    ).toBeDisabled();
   });
 });

@@ -233,5 +233,16 @@ describe("readRoutePoints", () => {
     expect(readRoutePoints(withMetrics(5, 0))).toBeNull();
     expect(readRoutePoints(withMetrics(5, -3))).toBeNull();
     expect(readRoutePoints(withMetrics(NaN, 10))).toBeNull();
+    expect(readRoutePoints(withMetrics(5, NaN))).toBeNull();
+    expect(readRoutePoints(withMetrics(5, Infinity))).toBeNull();
+  });
+
+  it("slope 0과 45는 받아들인다", () => {
+    const withSlope = (slope: number) => [
+      { lat: A.lat, lng: A.lng },
+      { lat: B.lat, lng: B.lng, slope, distance: 10 },
+    ];
+    expect(readRoutePoints(withSlope(0))).not.toBeNull();
+    expect(readRoutePoints(withSlope(45))).not.toBeNull();
   });
 });
