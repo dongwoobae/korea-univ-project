@@ -26,25 +26,25 @@
 
 ## 파일 지도
 
-| 파일 | 책임 | 작업 |
-| ---- | ---- | ---- |
-| `src/lib/slopeScale.ts` (신규) | 단위 변환, 기준선, 색 칸, 도를 받는 판정, 입력 단위 변환 | 1 |
-| `src/lib/slopeRoute.ts` | 경로 계산, 검증, 저장 포맷 변환, **유일한 decoder** | 2·3 |
-| `src/types/domain.ts` | 저장 포맷 타입 | 2 |
-| `src/components/map/SlopeLayer.tsx` | 공개 지도 경사 선 | 2·3 |
-| `src/components/map/SlopeLegend.tsx`, `map-ui.css` | 범례 | 3 |
-| `src/app/admin/dashboard/slopes/page.tsx` | 경로 목록 | 2 |
-| `src/app/admin/slopes/[id]/page.tsx`, `new/page.tsx` | 편집 페이지 | 2 |
-| `src/components/SlopeRouteEditor.tsx` | 편집기 상태(이름·꼭짓점·도 값·입력 문자열·단위·스냅) | 2·4·5·7 |
-| `src/components/slope/SlopeSegmentList.tsx` | 구간 입력 표현 | 3·5 |
-| `src/components/slope/SlopeRouteMap.tsx` | Leaflet·geoman 명령형 코드 | 3·4·6·7 |
-| `src/components/PolygonEditor.tsx` | geoman 한국어 | 4 |
-| `src/lib/mapBounds.ts` (신규) | 캠퍼스 표시 범위 | 6 |
-| `src/lib/neighborLayer.ts` | 회색 건물 레이어 옵션 | 7 |
-| `src/components/admin/FacilityDetailModal.tsx`, `src/app/admin/buildings/[id]/page.tsx` | 건물 안 시설 수정 | 8 |
-| `src/lib/photoDownload.ts` (신규), `src/components/sidepanel/PhotoLightbox.tsx` (신규), `PhotoCarousel.tsx` | 라이트박스·다운로드 | 9 |
-| `e2e/support/mockBackend.ts` | 목 백엔드 | 2·6·9 |
-| 문서 | 대체 배너·README | 10 |
+| 파일                                                                                                        | 책임                                                     | 작업    |
+| ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------- |
+| `src/lib/slopeScale.ts` (신규)                                                                              | 단위 변환, 기준선, 색 칸, 도를 받는 판정, 입력 단위 변환 | 1       |
+| `src/lib/slopeRoute.ts`                                                                                     | 경로 계산, 검증, 저장 포맷 변환, **유일한 decoder**      | 2·3     |
+| `src/types/domain.ts`                                                                                       | 저장 포맷 타입                                           | 2       |
+| `src/components/map/SlopeLayer.tsx`                                                                         | 공개 지도 경사 선                                        | 2·3     |
+| `src/components/map/SlopeLegend.tsx`, `map-ui.css`                                                          | 범례                                                     | 3       |
+| `src/app/admin/dashboard/slopes/page.tsx`                                                                   | 경로 목록                                                | 2       |
+| `src/app/admin/slopes/[id]/page.tsx`, `new/page.tsx`                                                        | 편집 페이지                                              | 2       |
+| `src/components/SlopeRouteEditor.tsx`                                                                       | 편집기 상태(이름·꼭짓점·도 값·입력 문자열·단위·스냅)     | 2·4·5·7 |
+| `src/components/slope/SlopeSegmentList.tsx`                                                                 | 구간 입력 표현                                           | 3·5     |
+| `src/components/slope/SlopeRouteMap.tsx`                                                                    | Leaflet·geoman 명령형 코드                               | 3·4·6·7 |
+| `src/components/PolygonEditor.tsx`                                                                          | geoman 한국어                                            | 4       |
+| `src/lib/mapBounds.ts` (신규)                                                                               | 캠퍼스 표시 범위                                         | 6       |
+| `src/lib/neighborLayer.ts`                                                                                  | 회색 건물 레이어 옵션                                    | 7       |
+| `src/components/admin/FacilityDetailModal.tsx`, `src/app/admin/buildings/[id]/page.tsx`                     | 건물 안 시설 수정                                        | 8       |
+| `src/lib/photoDownload.ts` (신규), `src/components/sidepanel/PhotoLightbox.tsx` (신규), `PhotoCarousel.tsx` | 라이트박스·다운로드                                      | 9       |
+| `e2e/support/mockBackend.ts`                                                                                | 목 백엔드                                                | 2·6·9   |
+| 문서                                                                                                        | 대체 배너·README                                         | 10      |
 
 ---
 
@@ -77,10 +77,12 @@ Expected: 모두 PASS. 실패가 있으면 이 계획을 시작하지 말고 보
 ### Task 1: `slopeScale.ts` — 단위와 판정 (설계 2.2·3.1·3.2·4장)
 
 **Files:**
+
 - Create: `src/lib/slopeScale.ts`
 - Test: `src/lib/slopeScale.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `WALKWAY_RATIO = 1/18`, `RELAXED_RATIO = 1/12`, `RAMP_EXCEPTION_RATIO = 1/8`, `MAX_SLOPE_DEG = 45`
   - `degToPercent(deg: number): number`, `percentToDeg(percent: number): number`
@@ -376,6 +378,7 @@ git commit -m "feat(slope): 경사 단위 변환과 기준선 판정을 한 모�
 색·문구는 아직 바꾸지 않는다(작업 3). 이 작업이 끝나도 화면 색은 지금과 같다.
 
 **Files:**
+
 - Modify: `src/types/domain.ts:17-31`
 - Modify: `src/lib/slopeRoute.ts`
 - Test: `src/lib/slopeRoute.test.ts`
@@ -387,6 +390,7 @@ git commit -m "feat(slope): 경사 단위 변환과 기준선 판정을 한 모�
 - Test: `e2e/admin-buildings-slopes.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `isSlopeDegInRange` (작업 1)
 - Produces:
   - `domain.ts`: `SlopeRouteStart { lat; lng }`, `SlopeRoutePoint extends SlopeRouteStart { slope: number /*도*/; distance: number }`, `SlopeRoutePoints = [SlopeRouteStart, ...SlopeRoutePoint[]]`, `SlopeSegment = Tables["slope_segments"]["Row"]` (`segments`는 `Json`). `SlopePoint`는 없어진다
@@ -443,9 +447,7 @@ describe("toStoredSegments", () => {
   it("경사도를 반올림하지 않는다", () => {
     expect(toStoredSegments([A, B], [7.26])[1].slope).toBe(7.26);
     const fromPercent = percentToDeg(12.5);
-    expect(toStoredSegments([A, B], [fromPercent])[1].slope).toBe(
-      fromPercent,
-    );
+    expect(toStoredSegments([A, B], [fromPercent])[1].slope).toBe(fromPercent);
   });
 
   it("경사도 0도 값으로 저장한다", () => {
@@ -454,9 +456,9 @@ describe("toStoredSegments", () => {
 });
 ```
 
-  3. `describe("readStoredVertices / readStoredSlopes", …)`에서 두 번째 테스트("slope가 없는 포인트는 0이 아니라 미입력으로 읽는다")를 지운다. 그런 행은 이제 decoder가 버린다.
-  4. `describe("isManualRoute", …)` 전체를 지운다.
-  5. `describe("readRoutePoints", …)` 전체를 아래로 바꾼다.
+3. `describe("readStoredVertices / readStoredSlopes", …)`에서 두 번째 테스트("slope가 없는 포인트는 0이 아니라 미입력으로 읽는다")를 지운다. 그런 행은 이제 decoder가 버린다.
+4. `describe("isManualRoute", …)` 전체를 지운다.
+5. `describe("readRoutePoints", …)` 전체를 아래로 바꾼다.
 
 ```ts
 describe("readRoutePoints", () => {
@@ -487,10 +489,17 @@ describe("readRoutePoints", () => {
   });
 
   it("좌표가 유한한 수가 아니면 경로 전체를 거른다", () => {
-    expect(readRoutePoints([{ lat: null, lng: 127.032 }, stored[1]])).toBeNull();
-    expect(readRoutePoints([{ lat: "37", lng: 127.032 }, stored[1]])).toBeNull();
     expect(
-      readRoutePoints([stored[0], { lat: 37.59, lng: NaN, slope: 1, distance: 1 }]),
+      readRoutePoints([{ lat: null, lng: 127.032 }, stored[1]]),
+    ).toBeNull();
+    expect(
+      readRoutePoints([{ lat: "37", lng: 127.032 }, stored[1]]),
+    ).toBeNull();
+    expect(
+      readRoutePoints([
+        stored[0],
+        { lat: 37.59, lng: NaN, slope: 1, distance: 1 },
+      ]),
     ).toBeNull();
   });
 
@@ -525,7 +534,7 @@ describe("readRoutePoints", () => {
 });
 ```
 
-  6. `describe("readStoredVertices / readStoredSlopes", …)`의 남은 테스트는 `stored`가 이제 `SlopeRoutePoints`라 그대로 통과해야 한다.
+6. `describe("readStoredVertices / readStoredSlopes", …)`의 남은 테스트는 `stored`가 이제 `SlopeRoutePoints`라 그대로 통과해야 한다.
 
 - [ ] **Step 3: 실패 확인**
 
@@ -545,7 +554,7 @@ import type {
 import { isSlopeDegInRange } from "@/lib/slopeScale";
 ```
 
-  2. `toStoredSegments`부터 파일 끝까지(104~172행)를 아래로 바꾼다. `LEGAL_SLOPE_LIMIT`·`slopeWarning`·`validateRoute`는 작업 3에서 바꾸므로 그대로 둔다.
+2. `toStoredSegments`부터 파일 끝까지(104~172행)를 아래로 바꾼다. `LEGAL_SLOPE_LIMIT`·`slopeWarning`·`validateRoute`는 작업 3에서 바꾸므로 그대로 둔다.
 
 ```ts
 export function toStoredSegments(
@@ -686,11 +695,11 @@ const REDIRECT_NOTICE: Record<string, string> = {
 };
 ```
 
-  3. `buildAdminSearchFilter(["name", "gpx_file"], …)` → `buildAdminSearchFilter(["name"], …)`. `setSlopes((data ?? []) as unknown as SlopeSegment[])` → `setSlopes(data ?? [])`.
-  4. "GPX 등록은 종료됐어요…" 안내 `<div>`(158~170행)를 통째로 지운다.
-  5. `searchPlaceholder="경로명 또는 GPX 파일명 검색"` → `searchPlaceholder="경로명 검색"`.
-  6. 행 부제의 `{s.segments?.length ?? 0}개 포인트` → `{Array.isArray(s.segments) ? s.segments.length : 0}개 포인트`. 그 뒤 `isManualRoute(s) ? (직접 입력 배지) : ((파일명))` 삼항(280~299행)을 지운다.
-  7. 행 버튼의 `isManualRoute(s) ? (수정 버튼) : (다운로드 버튼)` 삼항(303~335행)을 수정 버튼만 남긴다.
+3. `buildAdminSearchFilter(["name", "gpx_file"], …)` → `buildAdminSearchFilter(["name"], …)`. `setSlopes((data ?? []) as unknown as SlopeSegment[])` → `setSlopes(data ?? [])`.
+4. "GPX 등록은 종료됐어요…" 안내 `<div>`(158~170행)를 통째로 지운다.
+5. `searchPlaceholder="경로명 또는 GPX 파일명 검색"` → `searchPlaceholder="경로명 검색"`.
+6. 행 부제의 `{s.segments?.length ?? 0}개 포인트` → `{Array.isArray(s.segments) ? s.segments.length : 0}개 포인트`. 그 뒤 `isManualRoute(s) ? (직접 입력 배지) : ((파일명))` 삼항(280~299행)을 지운다.
+7. 행 버튼의 `isManualRoute(s) ? (수정 버튼) : (다운로드 버튼)` 삼항(303~335행)을 수정 버튼만 남긴다.
 
 - [ ] **Step 8: 편집 페이지가 decoder를 거치게** — `src/app/admin/slopes/[id]/page.tsx` 전체를 아래로 바꾼다.
 
@@ -854,94 +863,88 @@ Expected: PASS. 남은 `SlopePoint`·`isManualRoute` 참조가 있으면 여기�
       },
 ```
 
-  id 2 행의 `ele: null` 키는 그대로 둔다 — 운영 행과 같은 모양을 decoder가 받아야 한다.
+id 2 행의 `ele: null` 키는 그대로 둔다 — 운영 행과 같은 모양을 decoder가 받아야 한다.
 
 - [ ] **Step 11: E2E를 새 계약으로** — `e2e/admin-buildings-slopes.spec.ts`
 
   1. "GPX 경로를 다운로드하고 삭제한다"(359행)를 아래로 바꾼다.
 
 ```ts
-  test("경로를 삭제한다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
+test("경로를 삭제한다", async ({ page }) => {
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/dashboard/slopes");
 
-    const row = page.getByText("정문-중앙광장").locator("xpath=../..");
-    await row.getByRole("button", { name: "삭제" }).click();
-    const deleteConfirm = page
-      .getByText('"정문-중앙광장" 경로를 삭제할까요?')
-      .locator("..");
-    await expect(deleteConfirm).toBeVisible();
-    await deleteConfirm.getByRole("button", { name: "취소" }).click();
-    await expect(
-      page.getByText("정문-중앙광장", { exact: true }),
-    ).toBeVisible();
+  const row = page.getByText("정문-중앙광장").locator("xpath=../..");
+  await row.getByRole("button", { name: "삭제" }).click();
+  const deleteConfirm = page
+    .getByText('"정문-중앙광장" 경로를 삭제할까요?')
+    .locator("..");
+  await expect(deleteConfirm).toBeVisible();
+  await deleteConfirm.getByRole("button", { name: "취소" }).click();
+  await expect(page.getByText("정문-중앙광장", { exact: true })).toBeVisible();
 
-    await row.getByRole("button", { name: "삭제" }).click();
-    await page.getByRole("button", { name: "경로 삭제" }).click();
-    await expect(page.getByText("정문-중앙광장", { exact: true })).toHaveCount(
-      0,
-    );
-  });
+  await row.getByRole("button", { name: "삭제" }).click();
+  await page.getByRole("button", { name: "경로 삭제" }).click();
+  await expect(page.getByText("정문-중앙광장", { exact: true })).toHaveCount(0);
+});
 ```
 
-  2. "수기 경로와 GPX 경로의 행 동작을 구분한다"(387행)를 아래로 바꾼다.
+2. "수기 경로와 GPX 경로의 행 동작을 구분한다"(387행)를 아래로 바꾼다.
 
 ```ts
-  test("목록에 GPX 안내·다운로드가 남지 않는다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
+test("목록에 GPX 안내·다운로드가 남지 않는다", async ({ page }) => {
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/dashboard/slopes");
 
-    await expect(page.getByText("안암병원 정문 경사로")).toBeVisible();
-    await expect(page.getByText(/GPX/)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "다운로드" })).toHaveCount(0);
-    await expect(
-      page.getByRole("searchbox", { name: "경사도 경로 검색" }),
-    ).toHaveAttribute("placeholder", "경로명 검색");
-  });
+  await expect(page.getByText("안암병원 정문 경사로")).toBeVisible();
+  await expect(page.getByText(/GPX/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "다운로드" })).toHaveCount(0);
+  await expect(
+    page.getByRole("searchbox", { name: "경사도 경로 검색" }),
+  ).toHaveAttribute("placeholder", "경로명 검색");
+});
 ```
 
-  3. 다음 세 테스트를 지운다: "GPX 경로 id로 수정 화면에 가면 목록으로 돌려보낸다"(427행), "GPX 업로드를 닫고 종료 안내를 보여준다"(508행), "열어둔 사이 GPX 행이 되면 측정 원본을 덮지 않는다"(659행).
-  4. "사유 없이 목록에 들어가면 GPX 안내가 뜨지 않는다"(440행)를 아래로 바꾼다.
+3. 다음 세 테스트를 지운다: "GPX 경로 id로 수정 화면에 가면 목록으로 돌려보낸다"(427행), "GPX 업로드를 닫고 종료 안내를 보여준다"(508행), "열어둔 사이 GPX 행이 되면 측정 원본을 덮지 않는다"(659행).
+4. "사유 없이 목록에 들어가면 GPX 안내가 뜨지 않는다"(440행)를 아래로 바꾼다.
 
 ```ts
-  test("사유 없이 목록에 들어가면 리다이렉트 안내가 뜨지 않는다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-    await expect(page.getByText("저장 형식이 깨진 경로라")).toHaveCount(0);
-    await expect(page.getByText("경로를 찾을 수 없어요")).toHaveCount(0);
-  });
+test("사유 없이 목록에 들어가면 리다이렉트 안내가 뜨지 않는다", async ({
+  page,
+}) => {
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/dashboard/slopes");
+  await expect(page.getByText("저장 형식이 깨진 경로라")).toHaveCount(0);
+  await expect(page.getByText("경로를 찾을 수 없어요")).toHaveCount(0);
+});
 ```
 
-  5. "없는 경로 id로 수정 화면에 가면…"(608행) 바로 뒤에 추가한다.
+5. "없는 경로 id로 수정 화면에 가면…"(608행) 바로 뒤에 추가한다.
 
 ```ts
-  test("저장 형식이 깨진 경로는 열지 않고 목록에서 알린다", async ({
-    page,
-  }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    const row = state.slopes.find((slope) => slope.id === 2)!;
-    row.segments = [
-      { lat: 37.5861, lng: 127.0268 },
-      { lat: 37.5862, lng: 127.0269, distance: 12.4 },
-    ];
+test("저장 형식이 깨진 경로는 열지 않고 목록에서 알린다", async ({ page }) => {
+  const state = await installMockBackend(page, { authenticated: true });
+  const row = state.slopes.find((slope) => slope.id === 2)!;
+  row.segments = [
+    { lat: 37.5861, lng: 127.0268 },
+    { lat: 37.5862, lng: 127.0269, distance: 12.4 },
+  ];
 
-    await page.goto("/admin/slopes/2");
-    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
-    await expect(
-      page.getByText("저장 형식이 깨진 경로라 열 수 없어요"),
-    ).toBeVisible();
-  });
+  await page.goto("/admin/slopes/2");
+  await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+  await expect(
+    page.getByText("저장 형식이 깨진 경로라 열 수 없어요"),
+  ).toBeVisible();
+});
 ```
 
-  6. "구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다"(678행)의 제목을 "구간 값을 넣어 저장하면 저장 포맷으로 들어간다"로 바꾸고, `expect(segments[0].slope).toBeUndefined(); expect(segments[0].ele).toBeNull();` 두 줄을 아래 한 줄로 바꾼다.
+6. "구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다"(678행)의 제목을 "구간 값을 넣어 저장하면 저장 포맷으로 들어간다"로 바꾸고, `expect(segments[0].slope).toBeUndefined(); expect(segments[0].ele).toBeNull();` 두 줄을 아래 한 줄로 바꾼다.
 
 ```ts
-    expect(segments[0]).toEqual({
-      lat: expect.any(Number),
-      lng: expect.any(Number),
-    });
+expect(segments[0]).toEqual({
+  lat: expect.any(Number),
+  lng: expect.any(Number),
+});
 ```
 
 - [ ] **Step 12: 검증**
@@ -967,6 +970,7 @@ git commit -m "refactor(slope): 저장 포맷을 한 decoder로 읽고 GPX 분�
 ### Task 3: 판정·표시를 도 기준으로 (설계 3.2·3.4·4장)
 
 **Files:**
+
 - Modify: `src/lib/slopeRoute.ts` (경고·범위)
 - Test: `src/lib/slopeRoute.test.ts`
 - Modify: `src/components/slope/SlopeSegmentList.tsx`
@@ -977,6 +981,7 @@ git commit -m "refactor(slope): 저장 포맷을 한 decoder로 읽고 GPX 분�
 - Test: `e2e/admin-buildings-slopes.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `slopeColorFromDeg`, `slopeWarningFromDeg`, `isSlopeDegInRange`, `degToPercent`, `percentToDeg`, `formatPercent`, `formatDeg`, `SLOPE_BANDS`, `SLOPE_REFERENCE_LINES` (작업 1)
 - Produces: `validateRoute(name, vertices, slopes /* 도 */)` — 범위 오류 문구 `"N번 구간의 경사도는 0~45°(0~100%) 사이여야 해요"`. `slopeRoute.ts`의 `LEGAL_SLOPE_LIMIT`·`EXTREME_SLOPE_LIMIT`·`MAX_SLOPE_INPUT`·`slopeWarning`과 `theme.ts`의 `slopeColor`는 없어진다
 
@@ -986,28 +991,28 @@ git commit -m "refactor(slope): 저장 포맷을 한 decoder로 읽고 GPX 분�
   2. `describe("validateRoute", …)`의 "음수를 막는다", "100까지 허용하고 100 초과를 막는다", "30을 넘어도 저장은 막지 않는다"를 아래로 바꾼다.
 
 ```ts
-  const RANGE_ERROR = "1번 구간의 경사도는 0~45°(0~100%) 사이여야 해요";
+const RANGE_ERROR = "1번 구간의 경사도는 0~45°(0~100%) 사이여야 해요";
 
-  it("음수를 막는다", () => {
-    expect(validateRoute("이름", [A, B], [-0.1])).toContain(RANGE_ERROR);
-  });
+it("음수를 막는다", () => {
+  expect(validateRoute("이름", [A, B], [-0.1])).toContain(RANGE_ERROR);
+});
 
-  it("45°까지 허용하고 45° 초과를 막는다", () => {
-    expect(validateRoute("이름", [A, B], [45])).toEqual([]);
-    expect(validateRoute("이름", [A, B], [45.01])).toContain(RANGE_ERROR);
-  });
+it("45°까지 허용하고 45° 초과를 막는다", () => {
+  expect(validateRoute("이름", [A, B], [45])).toEqual([]);
+  expect(validateRoute("이름", [A, B], [45.01])).toContain(RANGE_ERROR);
+});
 
-  // tan은 주기 함수라 %로 바꿔 검사하면 181°가 1.75%로 통과한다(설계 3.2).
-  it("tan 주기성으로 범위를 비켜 가지 못한다", () => {
-    for (const deg of [181, -179, 200]) {
-      expect(validateRoute("이름", [A, B], [deg])).toContain(RANGE_ERROR);
-    }
-  });
+// tan은 주기 함수라 %로 바꿔 검사하면 181°가 1.75%로 통과한다(설계 3.2).
+it("tan 주기성으로 범위를 비켜 가지 못한다", () => {
+  for (const deg of [181, -179, 200]) {
+    expect(validateRoute("이름", [A, B], [deg])).toContain(RANGE_ERROR);
+  }
+});
 
-  // 30%는 경고일 뿐 저장은 된다. 실제로 존재하는 급경사를 막으면 안 된다.
-  it("30%를 넘어도 저장은 막지 않는다", () => {
-    expect(validateRoute("이름", [A, B], [20])).toEqual([]);
-  });
+// 30%는 경고일 뿐 저장은 된다. 실제로 존재하는 급경사를 막으면 안 된다.
+it("30%를 넘어도 저장은 막지 않는다", () => {
+  expect(validateRoute("이름", [A, B], [20])).toEqual([]);
+});
 ```
 
 - [ ] **Step 2: 실패 확인**
@@ -1020,20 +1025,20 @@ Expected: FAIL — 범위 문구가 다르고 181°가 통과함
   2. `validateRoute`의 경사 검사 블록을 아래로 바꾼다.
 
 ```ts
-  slopes.forEach((slope, index) => {
-    const label = `${index + 1}번 구간의 경사도`;
-    if (slope === null) {
-      errors.push(`${label}를 입력해주세요`);
-      return;
-    }
-    if (!Number.isFinite(slope)) {
-      errors.push(`${label}가 숫자가 아니에요`);
-      return;
-    }
-    if (!isSlopeDegInRange(slope)) {
-      errors.push(`${label}는 0~45°(0~100%) 사이여야 해요`);
-    }
-  });
+slopes.forEach((slope, index) => {
+  const label = `${index + 1}번 구간의 경사도`;
+  if (slope === null) {
+    errors.push(`${label}를 입력해주세요`);
+    return;
+  }
+  if (!Number.isFinite(slope)) {
+    errors.push(`${label}가 숫자가 아니에요`);
+    return;
+  }
+  if (!isSlopeDegInRange(slope)) {
+    errors.push(`${label}는 0~45°(0~100%) 사이여야 해요`);
+  }
+});
 ```
 
 Run: `npx vitest run src/lib/slopeRoute.test.ts` → PASS
@@ -1046,7 +1051,7 @@ import type { RouteSegment } from "@/lib/slopeRoute";
 import { slopeWarningFromDeg } from "@/lib/slopeScale";
 ```
 
-  2. `WARNING_TEXT`를 바꾼다.
+2. `WARNING_TEXT`를 바꾼다.
 
 ```ts
 const WARNING_TEXT = {
@@ -1055,7 +1060,7 @@ const WARNING_TEXT = {
 } as const;
 ```
 
-  3. `slopeWarning(value)` → `slopeWarningFromDeg(value)`. 입력란 옆 `<span style={{ fontSize: 13 }}>%</span>` → `°`. (작업 5에서 단위 선택으로 다시 바뀐다.)
+3. `slopeWarning(value)` → `slopeWarningFromDeg(value)`. 입력란 옆 `<span style={{ fontSize: 13 }}>%</span>` → `°`. (작업 5에서 단위 선택으로 다시 바뀐다.)
 
 - [ ] **Step 5: 지도 색** — `SlopeRouteMap.tsx` 10행 `import { slopeColor } from "@/lib/theme";` → `import { slopeColorFromDeg } from "@/lib/slopeScale";`, 197행 `color: slopeColor(Math.abs(slope))` → `color: slopeColorFromDeg(slope)`.
 
@@ -1065,10 +1070,10 @@ const WARNING_TEXT = {
   3. 팝업의 경사 줄을 바꾼다.
 
 ```tsx
-              <div>
-                경사 <strong>{formatPercent(degToPercent(point.slope))}</strong>{" "}
-                ({formatDeg(point.slope)})
-              </div>
+<div>
+  경사 <strong>{formatPercent(degToPercent(point.slope))}</strong> (
+  {formatDeg(point.slope)})
+</div>
 ```
 
 - [ ] **Step 7: 범례** — `src/components/map/SlopeLegend.tsx` 전체를 바꾼다.
@@ -1123,7 +1128,7 @@ export default function SlopeLegend({ show }: { show: boolean }) {
 }
 ```
 
-  `src/components/map/map-ui.css`의 `.ku-slope-threshold` 규칙 바로 뒤에 추가한다.
+`src/components/map/map-ui.css`의 `.ku-slope-threshold` 규칙 바로 뒤에 추가한다.
 
 ```css
 .ku-slope-threshold + .ku-slope-threshold {
@@ -1140,27 +1145,25 @@ export default function SlopeLegend({ show }: { show: boolean }) {
   2. "법적 기준과 급경사 경고를 표시하되 저장은 막지 않는다": 제목을 "완화 한도와 급경사 경고를 표시하되 저장은 막지 않는다"로, `"법적 기준(1/12) 초과"` → `"1/12 완화 한도 초과"`, `"이 값이 맞나요? 30%를 넘는 보행 경사로는 매우 드뭅니다"` → `"이 값이 맞나요? 30%(약 16.7°)를 넘는 보행 경사로는 매우 드뭅니다"`. `120` 입력 단언은 그대로 두고 그 뒤에 추가한다.
 
 ```ts
-    // tan(181°)는 1.75%다. % 기준 범위 검사라면 통과해 버린다(설계 3.2).
-    await page.getByLabel("구간 1 경사도").fill("181");
-    await expect(
-      page.getByRole("button", { name: "경로 저장" }),
-    ).toBeDisabled();
+// tan(181°)는 1.75%다. % 기준 범위 검사라면 통과해 버린다(설계 3.2).
+await page.getByLabel("구간 1 경사도").fill("181");
+await expect(page.getByRole("button", { name: "경로 저장" })).toBeDisabled();
 ```
 
-  3. "입력한 경사도에 따라 미리보기 선 색이 바뀐다": 마지막 `"#AE3B1E"` → `"#7A1414"` (10° = 17.63%).
-  4. "편집기에서 저장한 경로가 공개 지도에 그대로 그려진다": 주석과 셀렉터·팝업 단언을 바꾼다.
+3. "입력한 경사도에 따라 미리보기 선 색이 바뀐다": 마지막 `"#AE3B1E"` → `"#7A1414"` (10° = 17.63%).
+4. "편집기에서 저장한 경로가 공개 지도에 그대로 그려진다": 주석과 셀렉터·팝업 단언을 바꾼다.
 
 ```ts
-    // 10°는 17.63%라 15% 초과 칸 #7A1414다(src/lib/slopeScale.ts).
-    // 픽스처의 두 행(3° #DDC26A, 7.2° #AE3B1E)은 이 색이 아니라 방금 저장한 경로만 잡힌다.
-    const saved = page.locator('path[stroke="#7A1414"]').first();
-    await expect(saved).toBeVisible();
+// 10°는 17.63%라 15% 초과 칸 #7A1414다(src/lib/slopeScale.ts).
+// 픽스처의 두 행(3° #DDC26A, 7.2° #AE3B1E)은 이 색이 아니라 방금 저장한 경로만 잡힌다.
+const saved = page.locator('path[stroke="#7A1414"]').first();
+await expect(saved).toBeVisible();
 
-    await saved.dispatchEvent("click");
-    const popup = page.locator(".leaflet-popup");
-    await expect(popup).toContainText("끝단 시험 경사로");
-    await expect(popup).toContainText("17.6%");
-    await expect(popup).toContainText("10.0°");
+await saved.dispatchEvent("click");
+const popup = page.locator(".leaflet-popup");
+await expect(popup).toContainText("끝단 시험 경사로");
+await expect(popup).toContainText("17.6%");
+await expect(popup).toContainText("10.0°");
 ```
 
 - [ ] **Step 10: 검증**
@@ -1186,6 +1189,7 @@ git commit -m "fix(slope): 도로 저장된 경사를 %로 읽던 색·경고·�
 ### Task 4: 편집기 배치와 지도 표시 (설계 5.1·5.2·5.3·5.6)
 
 **Files:**
+
 - Modify: `src/components/SlopeRouteEditor.tsx` (그리드 → 수직)
 - Modify: `src/components/slope/SlopeRouteMap.tsx`
 - Modify: `src/components/PolygonEditor.tsx`
@@ -1193,61 +1197,62 @@ git commit -m "fix(slope): 도로 저장된 경사를 %로 읽던 색·경고·�
 - Test: `e2e/admin-buildings-slopes.spec.ts`
 
 **Interfaces:**
+
 - Produces: 지도 컨테이너 클래스 `ku-slope-route-map`, 구간 번호표 클래스 `ku-slope-segment-label` (작업 6·7이 같은 effect 구조를 쓴다)
 
 - [ ] **Step 1: 실패하는 E2E 작성** — `e2e/admin-buildings-slopes.spec.ts` 끝(`});` 앞)에 추가한다.
 
 ```ts
-  test("편집기 지도는 19까지 확대된다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/new");
+test("편집기 지도는 19까지 확대된다", async ({ page }) => {
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/slopes/new");
 
-    const zoomIn = page.locator(".leaflet-control-zoom-in");
-    await expect(zoomIn).not.toHaveClass(/leaflet-disabled/);
-    await zoomIn.click();
-    await expect(zoomIn).toHaveClass(/leaflet-disabled/);
-  });
+  const zoomIn = page.locator(".leaflet-control-zoom-in");
+  await expect(zoomIn).not.toHaveClass(/leaflet-disabled/);
+  await zoomIn.click();
+  await expect(zoomIn).toHaveClass(/leaflet-disabled/);
+});
 
-  test("선을 끝내면 구간마다 번호표가 뜬다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/new");
+test("선을 끝내면 구간마다 번호표가 뜬다", async ({ page }) => {
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/slopes/new");
 
-    const map = page.locator(".leaflet-container");
-    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
-    const points = [
-      { x: 300, y: 120 },
-      { x: 420, y: 180 },
-      { x: 520, y: 260 },
-    ];
-    for (const position of points) await map.click({ position });
-    await expect(page.locator(".ku-slope-segment-label")).toHaveCount(0);
-    await map.click({ position: points[2] });
+  const map = page.locator(".leaflet-container");
+  await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+  const points = [
+    { x: 300, y: 120 },
+    { x: 420, y: 180 },
+    { x: 520, y: 260 },
+  ];
+  for (const position of points) await map.click({ position });
+  await expect(page.locator(".ku-slope-segment-label")).toHaveCount(0);
+  await map.click({ position: points[2] });
 
-    const labels = page.locator(".ku-slope-segment-label");
-    await expect(labels).toHaveCount(2);
-    await expect(labels.nth(0)).toHaveText("1");
-    await expect(labels.nth(1)).toHaveText("2");
-  });
+  const labels = page.locator(".ku-slope-segment-label");
+  await expect(labels).toHaveCount(2);
+  await expect(labels.nth(0)).toHaveText("1");
+  await expect(labels.nth(1)).toHaveText("2");
+});
 
-  test("그리기 도구 문구가 한국어다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/new");
+test("그리기 도구 문구가 한국어다", async ({ page }) => {
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/slopes/new");
 
-    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
-    const actions = page.locator(".leaflet-pm-actions-container");
-    await expect(actions.getByText("끝내기")).toBeVisible();
-    await expect(actions.getByText("마지막 꼭지점 제거")).toBeVisible();
-  });
+  await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+  const actions = page.locator(".leaflet-pm-actions-container");
+  await expect(actions.getByText("끝내기")).toBeVisible();
+  await expect(actions.getByText("마지막 꼭지점 제거")).toBeVisible();
+});
 
-  test("모바일 폭에서도 지도가 화면 폭을 쓴다", async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 812 });
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/new");
+test("모바일 폭에서도 지도가 화면 폭을 쓴다", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 });
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/slopes/new");
 
-    // 페이지 좌우 패딩 24px을 빼면 327px다. 2열 그리드일 때는 47px이었다.
-    const box = await page.locator(".leaflet-container").boundingBox();
-    expect(box!.width).toBeGreaterThanOrEqual(320);
-  });
+  // 페이지 좌우 패딩 24px을 빼면 327px다. 2열 그리드일 때는 47px이었다.
+  const box = await page.locator(".leaflet-container").boundingBox();
+  expect(box!.width).toBeGreaterThanOrEqual(320);
+});
 ```
 
 - [ ] **Step 2: 실패 확인**
@@ -1258,21 +1263,21 @@ Expected: 4건 FAIL
 - [ ] **Step 3: 수직 배치** — `SlopeRouteEditor.tsx`의 `display: "grid"` 블록(130~150행)을 아래로 바꾼다.
 
 ```tsx
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <SlopeRouteMap
-          initialVertices={initialVertices}
-          onVerticesChange={handleVerticesChange}
-          slopes={slopes}
-          onResetReady={(reset) => {
-            resetMapRef.current = reset;
-          }}
-        />
-        <SlopeSegmentList
-          segments={segments}
-          slopes={slopes}
-          onSlopeChange={handleSlopeChange}
-        />
-      </div>
+<div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+  <SlopeRouteMap
+    initialVertices={initialVertices}
+    onVerticesChange={handleVerticesChange}
+    slopes={slopes}
+    onResetReady={(reset) => {
+      resetMapRef.current = reset;
+    }}
+  />
+  <SlopeSegmentList
+    segments={segments}
+    slopes={slopes}
+    onSlopeChange={handleSlopeChange}
+  />
+</div>
 ```
 
 - [ ] **Step 4: 지도 — 줌·한국어·번호표** — `SlopeRouteMap.tsx`
@@ -1280,66 +1285,66 @@ Expected: 4건 FAIL
   2. 지도 생성(60~63행)을 바꾼다. 처음 줌은 지금 실제로 보이던 18이다(설계 5.3).
 
 ```ts
-    const map = L.map(containerRef.current!, {
-      scrollWheelZoom: true,
-      maxZoom: 19,
-    }).setView(center, 18);
+const map = L.map(containerRef.current!, {
+  scrollWheelZoom: true,
+  maxZoom: 19,
+}).setView(center, 18);
 ```
 
-  3. 타일 레이어 옵션에 `maxZoom: 19`를 더한다.
-  4. `previewRef.current = L.layerGroup(…)` 다음 줄에 `labelsRef.current = L.layerGroup().addTo(map);`
-  5. `map.pm.addControls({` 바로 앞에 `map.pm.setLang("ko");`
-  6. cleanup에 `labelsRef.current = null;`
-  7. 미리보기 effect(182~209행)를 바꾼다. 번호표는 값 입력과 무관하게 모든 구간에 단다.
+3. 타일 레이어 옵션에 `maxZoom: 19`를 더한다.
+4. `previewRef.current = L.layerGroup(…)` 다음 줄에 `labelsRef.current = L.layerGroup().addTo(map);`
+5. `map.pm.addControls({` 바로 앞에 `map.pm.setLang("ko");`
+6. cleanup에 `labelsRef.current = null;`
+7. 미리보기 effect(182~209행)를 바꾼다. 번호표는 값 입력과 무관하게 모든 구간에 단다.
 
 ```ts
-  useEffect(() => {
-    const group = previewRef.current;
-    const labels = labelsRef.current;
-    if (!group || !labels) return;
-    group.clearLayers();
-    labels.clearLayers();
-    const vertices = verticesRef.current;
-    for (let i = 0; i < vertices.length - 1; i++) {
-      const from = vertices[i];
-      const to = vertices[i + 1];
-      L.marker([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], {
-        icon: L.divIcon({
-          className: "ku-slope-segment-label",
-          html: String(i + 1),
-          iconSize: [22, 22],
-          iconAnchor: [11, 11],
-        }),
-        interactive: false,
-        keyboard: false,
-        pmIgnore: true,
-      }).addTo(labels);
+useEffect(() => {
+  const group = previewRef.current;
+  const labels = labelsRef.current;
+  if (!group || !labels) return;
+  group.clearLayers();
+  labels.clearLayers();
+  const vertices = verticesRef.current;
+  for (let i = 0; i < vertices.length - 1; i++) {
+    const from = vertices[i];
+    const to = vertices[i + 1];
+    L.marker([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], {
+      icon: L.divIcon({
+        className: "ku-slope-segment-label",
+        html: String(i + 1),
+        iconSize: [22, 22],
+        iconAnchor: [11, 11],
+      }),
+      interactive: false,
+      keyboard: false,
+      pmIgnore: true,
+    }).addTo(labels);
 
-      const slope = slopes[i];
-      if (slope === null || slope === undefined || !Number.isFinite(slope))
-        continue;
-      L.polyline(
-        [
-          [from.lat, from.lng],
-          [to.lat, to.lng],
-        ],
-        {
-          color: slopeColorFromDeg(slope),
-          weight: 8,
-          opacity: 0.85,
-          // geoman이 편집 대상으로 잡지 않게 한다. 없으면 색칠용 선에
-          // 꼭짓점 핸들이 붙는다.
-          pmIgnore: true,
-          // 편집선으로 가야 할 클릭을 가로채지 않게 한다.
-          interactive: false,
-          pane: "slopePreview",
-        },
-      ).addTo(group);
-    }
-  }, [slopes, vertexVersion]);
+    const slope = slopes[i];
+    if (slope === null || slope === undefined || !Number.isFinite(slope))
+      continue;
+    L.polyline(
+      [
+        [from.lat, from.lng],
+        [to.lat, to.lng],
+      ],
+      {
+        color: slopeColorFromDeg(slope),
+        weight: 8,
+        opacity: 0.85,
+        // geoman이 편집 대상으로 잡지 않게 한다. 없으면 색칠용 선에
+        // 꼭짓점 핸들이 붙는다.
+        pmIgnore: true,
+        // 편집선으로 가야 할 클릭을 가로채지 않게 한다.
+        interactive: false,
+        pane: "slopePreview",
+      },
+    ).addTo(group);
+  }
+}, [slopes, vertexVersion]);
 ```
 
-  8. 반환 JSX의 `<div ref={containerRef}` 에 `className="ku-slope-route-map"`를 더한다.
+8. 반환 JSX의 `<div ref={containerRef}` 에 `className="ku-slope-route-map"`를 더한다.
 
 - [ ] **Step 5: 건물 영역 편집기도 한국어** — `PolygonEditor.tsx`의 `map.pm.addControls({` 바로 앞에 `map.pm.setLang("ko");`. geoman 언어는 전역이라 한쪽만 켜면 세션마다 달라진다(설계 5.6).
 
@@ -1390,77 +1395,79 @@ git commit -m "feat(slope): 편집기를 위아래로 놓고 줌 19·구간 번�
 ### Task 5: 입력 단위 선택 (설계 3.3)
 
 **Files:**
+
 - Modify: `src/components/SlopeRouteEditor.tsx`
 - Modify: `src/components/slope/SlopeSegmentList.tsx` (전체 교체)
 - Test: `e2e/admin-buildings-slopes.spec.ts`
 
 **Interfaces:**
+
 - Consumes: `SlopeUnit`, `toDegrees`, `formatSlopeInput`, `degToPercent`, `formatPercent`, `formatDeg`, `isSlopeDegInRange`, `slopeWarningFromDeg` (작업 1)
 - Produces: `SlopeSegmentList` props — `{ segments; drafts: string[]; slopes: (number | null)[] /*도*/; unit: SlopeUnit; onDraftChange(index, raw) }`. 라디오 접근 이름 `도(°)`·`퍼센트(%)`. 환산값 클래스 `ku-slope-converted`
 
 - [ ] **Step 1: 실패하는 E2E 작성** — 같은 파일 끝에 추가한다.
 
 ```ts
-  test("퍼센트로 입력하면 도로 바꿔 저장한다", async ({ page }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/new");
+test("퍼센트로 입력하면 도로 바꿔 저장한다", async ({ page }) => {
+  const state = await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/slopes/new");
 
-    const map = page.locator(".leaflet-container");
-    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
-    const points = [
-      { x: 300, y: 120 },
-      { x: 420, y: 180 },
-    ];
-    for (const position of points) await map.click({ position });
-    await map.click({ position: points[1] });
+  const map = page.locator(".leaflet-container");
+  await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+  const points = [
+    { x: 300, y: 120 },
+    { x: 420, y: 180 },
+  ];
+  for (const position of points) await map.click({ position });
+  await map.click({ position: points[1] });
 
-    await page.getByLabel("경로 이름").fill("퍼센트 입력 시험");
-    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
-    await page.getByLabel("구간 1 경사도").fill("12.5");
-    await page.getByRole("button", { name: "경로 저장" }).click();
-    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+  await page.getByLabel("경로 이름").fill("퍼센트 입력 시험");
+  await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+  await page.getByLabel("구간 1 경사도").fill("12.5");
+  await page.getByRole("button", { name: "경로 저장" }).click();
+  await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
 
-    const saved = state.slopes[state.slopes.length - 1];
-    const segments = saved.segments as Array<Record<string, unknown>>;
-    // atan(0.125) = 7.12501634890…°. 반올림 없이 저장한다(설계 2.2).
-    expect(segments[1].slope as number).toBeCloseTo(7.1250163489, 9);
-  });
+  const saved = state.slopes[state.slopes.length - 1];
+  const segments = saved.segments as Array<Record<string, unknown>>;
+  // atan(0.125) = 7.12501634890…°. 반올림 없이 저장한다(설계 2.2).
+  expect(segments[1].slope as number).toBeCloseTo(7.1250163489, 9);
+});
 
-  test("다른 단위 환산값을 보여주고 단위를 바꿔도 값이 유지된다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/new");
+test("다른 단위 환산값을 보여주고 단위를 바꿔도 값이 유지된다", async ({
+  page,
+}) => {
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/slopes/new");
 
-    const map = page.locator(".leaflet-container");
-    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
-    const points = [
-      { x: 300, y: 120 },
-      { x: 420, y: 180 },
-    ];
-    for (const position of points) await map.click({ position });
-    await map.click({ position: points[1] });
+  const map = page.locator(".leaflet-container");
+  await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+  const points = [
+    { x: 300, y: 120 },
+    { x: 420, y: 180 },
+  ];
+  for (const position of points) await map.click({ position });
+  await map.click({ position: points[1] });
 
-    const input = page.getByLabel("구간 1 경사도");
-    await input.fill("10");
-    await expect(page.getByText("= 17.6%")).toBeVisible();
+  const input = page.getByLabel("구간 1 경사도");
+  await input.fill("10");
+  await expect(page.getByText("= 17.6%")).toBeVisible();
 
-    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
-    await expect(input).toHaveValue("17.63");
-    await expect(page.getByText("= 10.0°")).toBeVisible();
+  await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+  await expect(input).toHaveValue("17.63");
+  await expect(page.getByText("= 10.0°")).toBeVisible();
 
-    await page.getByRole("radio", { name: "도(°)" }).check();
-    await expect(input).toHaveValue("10");
-  });
+  await page.getByRole("radio", { name: "도(°)" }).check();
+  await expect(input).toHaveValue("10");
+});
 
-  test("고른 입력 단위를 기억한다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/new");
-    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+test("고른 입력 단위를 기억한다", async ({ page }) => {
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/slopes/new");
+  await page.getByRole("radio", { name: "퍼센트(%)" }).check();
 
-    await page.reload();
-    await expect(page.getByRole("radio", { name: "퍼센트(%)" })).toBeChecked();
-  });
+  await page.reload();
+  await expect(page.getByRole("radio", { name: "퍼센트(%)" })).toBeChecked();
+});
 ```
 
 - [ ] **Step 2: 실패 확인**
@@ -1523,7 +1530,8 @@ export default function SlopeSegmentList({
           value !== null && value !== undefined && isSlopeDegInRange(value)
             ? value
             : null;
-        const warning = measured === null ? null : slopeWarningFromDeg(measured);
+        const warning =
+          measured === null ? null : slopeWarningFromDeg(measured);
         const converted =
           measured === null
             ? null
@@ -1640,56 +1648,56 @@ function writeUnitPreference(unit: SlopeUnit) {
 }
 ```
 
-  3. 상태 선언(`const [slopes, …]` 다음)에 추가한다.
+3. 상태 선언(`const [slopes, …]` 다음)에 추가한다.
 
 ```ts
-  const [unit, setUnit] = useState<SlopeUnit>(readUnitPreference);
-  const [drafts, setDrafts] = useState<string[]>(() =>
-    initialSlopes.map((slope) =>
-      slope === null ? "" : formatSlopeInput(slope, unit),
+const [unit, setUnit] = useState<SlopeUnit>(readUnitPreference);
+const [drafts, setDrafts] = useState<string[]>(() =>
+  initialSlopes.map((slope) =>
+    slope === null ? "" : formatSlopeInput(slope, unit),
+  ),
+);
+```
+
+4. `handleVerticesChange`를 바꾼다.
+
+```ts
+const handleVerticesChange = useCallback((next: Vertex[]) => {
+  setVertices(next);
+  const count = Math.max(0, next.length - 1);
+  setSlopes((prev) =>
+    prev.length === count ? prev : Array.from({ length: count }, () => null),
+  );
+  setDrafts((prev) =>
+    prev.length === count ? prev : Array.from({ length: count }, () => ""),
+  );
+}, []);
+```
+
+5. `handleSlopeChange`를 지우고 아래 둘을 둔다.
+
+```ts
+function handleDraftChange(index: number, raw: string) {
+  setDrafts((prev) => prev.map((draft, i) => (i === index ? raw : draft)));
+  const value = raw === "" ? null : toDegrees(Number(raw), unit);
+  setSlopes((prev) => prev.map((slope, i) => (i === index ? value : slope)));
+}
+
+function handleUnitChange(next: SlopeUnit) {
+  setUnit(next);
+  writeUnitPreference(next);
+  // 저장될 도 값은 그대로 두고 입력란 문자열만 새 단위로 다시 쓴다(설계 3.3).
+  setDrafts((prev) =>
+    slopes.map((slope, index) =>
+      slope === null || !Number.isFinite(slope)
+        ? (prev[index] ?? "")
+        : formatSlopeInput(slope, next),
     ),
   );
+}
 ```
 
-  4. `handleVerticesChange`를 바꾼다.
-
-```ts
-  const handleVerticesChange = useCallback((next: Vertex[]) => {
-    setVertices(next);
-    const count = Math.max(0, next.length - 1);
-    setSlopes((prev) =>
-      prev.length === count ? prev : Array.from({ length: count }, () => null),
-    );
-    setDrafts((prev) =>
-      prev.length === count ? prev : Array.from({ length: count }, () => ""),
-    );
-  }, []);
-```
-
-  5. `handleSlopeChange`를 지우고 아래 둘을 둔다.
-
-```ts
-  function handleDraftChange(index: number, raw: string) {
-    setDrafts((prev) => prev.map((draft, i) => (i === index ? raw : draft)));
-    const value = raw === "" ? null : toDegrees(Number(raw), unit);
-    setSlopes((prev) => prev.map((slope, i) => (i === index ? value : slope)));
-  }
-
-  function handleUnitChange(next: SlopeUnit) {
-    setUnit(next);
-    writeUnitPreference(next);
-    // 저장될 도 값은 그대로 두고 입력란 문자열만 새 단위로 다시 쓴다(설계 3.3).
-    setDrafts((prev) =>
-      slopes.map((slope, index) =>
-        slope === null || !Number.isFinite(slope)
-          ? (prev[index] ?? "")
-          : formatSlopeInput(slope, next),
-      ),
-    );
-  }
-```
-
-  6. 작업 4의 수직 블록에서 `SlopeSegmentList` 앞에 단위 선택을 넣고 props를 바꾼다.
+6. 작업 4의 수직 블록에서 `SlopeSegmentList` 앞에 단위 선택을 넣고 props를 바꾼다.
 
 ```tsx
         <fieldset
@@ -1754,6 +1762,7 @@ git commit -m "feat(slope): 경사를 도와 퍼센트 중 골라 입력하고 �
 ### Task 6: 현재 위치에서 열기 (설계 5.4)
 
 **Files:**
+
 - Create: `src/lib/mapBounds.ts`
 - Test: `src/lib/mapBounds.test.ts`
 - Modify: `src/components/map/Map.tsx:60,85,616`
@@ -1762,6 +1771,7 @@ git commit -m "feat(slope): 경사를 도와 퍼센트 중 골라 입력하고 �
 - Test: `e2e/admin-buildings-slopes.spec.ts`
 
 **Interfaces:**
+
 - Produces: `interface MapBounds { south; west; north; east }`, `KU_BOUNDS: MapBounds`, `containsPoint(bounds, lat, lng): boolean`. 목 옵션 `currentLocation?: {latitude; longitude} | null`(`null` = 권한 거부), `geolocationDelayMs?: number`
 
 - [ ] **Step 1: 실패하는 단위 테스트** — `src/lib/mapBounds.test.ts`
@@ -1841,7 +1851,7 @@ const KU_LATLNG_BOUNDS = L.latLngBounds(
 );
 ```
 
-  3. `map.setMaxBounds(KU_BOUNDS)` → `KU_LATLNG_BOUNDS`, `maxBounds={KU_BOUNDS}` → `maxBounds={KU_LATLNG_BOUNDS}`. `rg -n "KU_BOUNDS" src/components/map/Map.tsx`로 남은 Leaflet 용도가 없는지 확인한다.
+3. `map.setMaxBounds(KU_BOUNDS)` → `KU_LATLNG_BOUNDS`, `maxBounds={KU_BOUNDS}` → `maxBounds={KU_LATLNG_BOUNDS}`. `rg -n "KU_BOUNDS" src/components/map/Map.tsx`로 남은 Leaflet 용도가 없는지 확인한다.
 
 - [ ] **Step 4: 목 백엔드 위치 옵션** — `e2e/support/mockBackend.ts`
   1. `installMockBackend` 옵션 타입의 `currentLocation`을 바꾸고 지연을 더한다.
@@ -1853,34 +1863,34 @@ const KU_LATLNG_BOUNDS = L.latLngBounds(
     geolocationDelayMs?: number;
 ```
 
-  2. `addInitScript` 콜백 인자를 `({ authenticated, currentLocation, geolocationDelayMs })`로 받고, `navigator.geolocation` 스텁을 바꾼다.
+2. `addInitScript` 콜백 인자를 `({ authenticated, currentLocation, geolocationDelayMs })`로 받고, `navigator.geolocation` 스텁을 바꾼다.
 
 ```ts
-      Object.defineProperty(navigator, "geolocation", {
-        configurable: true,
-        value: {
-          getCurrentPosition(
-            success: PositionCallback,
-            error?: PositionErrorCallback | null,
-          ) {
-            const respond = () => {
-              if (currentLocation) {
-                success({ coords: currentLocation } as GeolocationPosition);
-              } else {
-                error?.({
-                  code: 1,
-                  message: "User denied Geolocation",
-                } as GeolocationPositionError);
-              }
-            };
-            if (geolocationDelayMs > 0) setTimeout(respond, geolocationDelayMs);
-            else respond();
-          },
-        },
-      });
+Object.defineProperty(navigator, "geolocation", {
+  configurable: true,
+  value: {
+    getCurrentPosition(
+      success: PositionCallback,
+      error?: PositionErrorCallback | null,
+    ) {
+      const respond = () => {
+        if (currentLocation) {
+          success({ coords: currentLocation } as GeolocationPosition);
+        } else {
+          error?.({
+            code: 1,
+            message: "User denied Geolocation",
+          } as GeolocationPositionError);
+        }
+      };
+      if (geolocationDelayMs > 0) setTimeout(respond, geolocationDelayMs);
+      else respond();
+    },
+  },
+});
 ```
 
-  3. 두 번째 인자 객체를 바꾼다. `??`를 쓰면 `null`(거부)이 기본값으로 덮인다.
+3. 두 번째 인자 객체를 바꾼다. `??`를 쓰면 `null`(거부)이 기본값으로 덮인다.
 
 ```ts
     {
@@ -1893,93 +1903,91 @@ const KU_LATLNG_BOUNDS = L.latLngBounds(
     },
 ```
 
-  4. 831행 주석의 `options.currentLocation: geolocation 좌표.`를 `options.currentLocation: geolocation 좌표(null이면 거부) / options.geolocationDelayMs: 응답 지연.`으로.
+4. 831행 주석의 `options.currentLocation: geolocation 좌표.`를 `options.currentLocation: geolocation 좌표(null이면 거부) / options.geolocationDelayMs: 응답 지연.`으로.
 
 - [ ] **Step 5: 실패하는 E2E 작성** — `e2e/admin-buildings-slopes.spec.ts` 끝에 추가한다. 좌표 `127.034`는 `KU_CENTER`에서 줌 18 기준 약 240px 동쪽이라 화면 안에 들어온다.
 
 ```ts
-  const NEAR_CENTER = { latitude: 37.5893, longitude: 127.034 };
-  const blueDot = (page: import("@playwright/test").Page) =>
-    page.locator('.leaflet-container path[fill="#2563EB"]');
+const NEAR_CENTER = { latitude: 37.5893, longitude: 127.034 };
+const blueDot = (page: import("@playwright/test").Page) =>
+  page.locator('.leaflet-container path[fill="#2563EB"]');
 
-  async function dotOffsetFromCenter(page: import("@playwright/test").Page) {
-    const mapBox = (await page.locator(".leaflet-container").boundingBox())!;
-    const dotBox = (await blueDot(page).boundingBox())!;
-    return {
-      x: dotBox.x + dotBox.width / 2 - (mapBox.x + mapBox.width / 2),
-      y: dotBox.y + dotBox.height / 2 - (mapBox.y + mapBox.height / 2),
-    };
-  }
+async function dotOffsetFromCenter(page: import("@playwright/test").Page) {
+  const mapBox = (await page.locator(".leaflet-container").boundingBox())!;
+  const dotBox = (await blueDot(page).boundingBox())!;
+  return {
+    x: dotBox.x + dotBox.width / 2 - (mapBox.x + mapBox.width / 2),
+    y: dotBox.y + dotBox.height / 2 - (mapBox.y + mapBox.height / 2),
+  };
+}
 
-  test("새 경로는 받은 위치를 가운데 두고 파란 점을 찍는다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, {
-      authenticated: true,
-      currentLocation: NEAR_CENTER,
-    });
-    await page.goto("/admin/slopes/new");
-
-    await expect(blueDot(page)).toHaveCount(1);
-    const offset = await dotOffsetFromCenter(page);
-    expect(Math.abs(offset.x)).toBeLessThan(3);
-    expect(Math.abs(offset.y)).toBeLessThan(3);
+test("새 경로는 받은 위치를 가운데 두고 파란 점을 찍는다", async ({ page }) => {
+  await installMockBackend(page, {
+    authenticated: true,
+    currentLocation: NEAR_CENTER,
   });
+  await page.goto("/admin/slopes/new");
 
-  test("위치 권한이 없으면 점 없이 기본 위치로 연다", async ({ page }) => {
-    await installMockBackend(page, {
-      authenticated: true,
-      currentLocation: null,
-    });
-    await page.goto("/admin/slopes/new");
-    await expect(page.locator(".leaflet-container")).toBeVisible();
-    await expect(blueDot(page)).toHaveCount(0);
+  await expect(blueDot(page)).toHaveCount(1);
+  const offset = await dotOffsetFromCenter(page);
+  expect(Math.abs(offset.x)).toBeLessThan(3);
+  expect(Math.abs(offset.y)).toBeLessThan(3);
+});
+
+test("위치 권한이 없으면 점 없이 기본 위치로 연다", async ({ page }) => {
+  await installMockBackend(page, {
+    authenticated: true,
+    currentLocation: null,
   });
+  await page.goto("/admin/slopes/new");
+  await expect(page.locator(".leaflet-container")).toBeVisible();
+  await expect(blueDot(page)).toHaveCount(0);
+});
 
-  test("캠퍼스 밖 위치는 쓰지 않는다", async ({ page }) => {
-    await installMockBackend(page, {
-      authenticated: true,
-      currentLocation: { latitude: 37.5, longitude: 127.0 },
-    });
-    await page.goto("/admin/slopes/new");
-    await expect(page.locator(".leaflet-container")).toBeVisible();
-    await expect(blueDot(page)).toHaveCount(0);
+test("캠퍼스 밖 위치는 쓰지 않는다", async ({ page }) => {
+  await installMockBackend(page, {
+    authenticated: true,
+    currentLocation: { latitude: 37.5, longitude: 127.0 },
   });
+  await page.goto("/admin/slopes/new");
+  await expect(page.locator(".leaflet-container")).toBeVisible();
+  await expect(blueDot(page)).toHaveCount(0);
+});
 
-  test("위치 응답 전에 지도를 끌면 화면을 옮기지 않는다", async ({ page }) => {
-    // 지연이 짧으면 드래그가 응답보다 늦게 끝나도 통과해 버려 결함을 못 잡는다.
-    // 3초면 드래그가 먼저 끝나고, 응답은 expect 기본 대기(5초) 안에 온다.
-    await installMockBackend(page, {
-      authenticated: true,
-      currentLocation: NEAR_CENTER,
-      geolocationDelayMs: 3000,
-    });
-    await page.goto("/admin/slopes/new");
-
-    const box = (await page.locator(".leaflet-container").boundingBox())!;
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, {
-      steps: 5,
-    });
-    await page.mouse.up();
-
-    await expect(blueDot(page)).toHaveCount(1);
-    const offset = await dotOffsetFromCenter(page);
-    expect(Math.abs(offset.x)).toBeGreaterThan(30);
+test("위치 응답 전에 지도를 끌면 화면을 옮기지 않는다", async ({ page }) => {
+  // 지연이 짧으면 드래그가 응답보다 늦게 끝나도 통과해 버려 결함을 못 잡는다.
+  // 3초면 드래그가 먼저 끝나고, 응답은 expect 기본 대기(5초) 안에 온다.
+  await installMockBackend(page, {
+    authenticated: true,
+    currentLocation: NEAR_CENTER,
+    geolocationDelayMs: 3000,
   });
+  await page.goto("/admin/slopes/new");
 
-  test("기존 경로 수정은 위치가 아니라 선에 맞춰 연다", async ({ page }) => {
-    await installMockBackend(page, {
-      authenticated: true,
-      currentLocation: NEAR_CENTER,
-    });
-    await page.goto("/admin/slopes/2");
-    await expect(
-      page.locator(".leaflet-pane.slope-preview-pane path").first(),
-    ).toBeVisible();
-    await expect(blueDot(page)).toHaveCount(0);
+  const box = (await page.locator(".leaflet-container").boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, {
+    steps: 5,
   });
+  await page.mouse.up();
+
+  await expect(blueDot(page)).toHaveCount(1);
+  const offset = await dotOffsetFromCenter(page);
+  expect(Math.abs(offset.x)).toBeGreaterThan(30);
+});
+
+test("기존 경로 수정은 위치가 아니라 선에 맞춰 연다", async ({ page }) => {
+  await installMockBackend(page, {
+    authenticated: true,
+    currentLocation: NEAR_CENTER,
+  });
+  await page.goto("/admin/slopes/2");
+  await expect(
+    page.locator(".leaflet-pane.slope-preview-pane path").first(),
+  ).toBeVisible();
+  await expect(blueDot(page)).toHaveCount(0);
+});
 ```
 
 Run: `npx playwright test e2e/admin-buildings-slopes.spec.ts -g "위치|선에 맞춰"`
@@ -1991,42 +1999,42 @@ Expected: "받은 위치를 가운데" FAIL(점 없음). 나머지는 점이 없
   3. `map.on("pm:create", …)` 블록 뒤, `return () => {` 앞에 넣는다.
 
 ```ts
-    if (!initial?.length && "geolocation" in navigator) {
-      // 응답은 최대 10초 뒤에 온다. 그 사이 사용자가 지도를 움직였거나 그리기를
-      // 시작했으면 화면을 옮기지 않는다 — 그리던 선이 화면 밖으로 사라진다(설계 5.4).
-      let followLocation = true;
-      const stopFollowing = () => {
-        followLocation = false;
-      };
-      map.once("dragstart", stopFollowing);
-      map.once("zoomstart", stopFollowing);
-      map.once("pm:drawstart", stopFollowing);
+if (!initial?.length && "geolocation" in navigator) {
+  // 응답은 최대 10초 뒤에 온다. 그 사이 사용자가 지도를 움직였거나 그리기를
+  // 시작했으면 화면을 옮기지 않는다 — 그리던 선이 화면 밖으로 사라진다(설계 5.4).
+  let followLocation = true;
+  const stopFollowing = () => {
+    followLocation = false;
+  };
+  map.once("dragstart", stopFollowing);
+  map.once("zoomstart", stopFollowing);
+  map.once("pm:drawstart", stopFollowing);
 
-      navigator.geolocation.getCurrentPosition(
-        ({ coords }) => {
-          if (disposed) return;
-          const { latitude, longitude } = coords;
-          if (!containsPoint(KU_BOUNDS, latitude, longitude)) return;
-          L.circleMarker([latitude, longitude], {
-            radius: 7,
-            color: "#fff",
-            weight: 2,
-            fillColor: "#2563EB",
-            fillOpacity: 1,
-            interactive: false,
-            pmIgnore: true,
-          }).addTo(map);
-          if (followLocation) map.setView([latitude, longitude], 18);
-        },
-        () => {
-          // 거부·실패면 KU_CENTER에 그대로 둔다.
-        },
-        { enableHighAccuracy: true, timeout: 10_000 },
-      );
-    }
+  navigator.geolocation.getCurrentPosition(
+    ({ coords }) => {
+      if (disposed) return;
+      const { latitude, longitude } = coords;
+      if (!containsPoint(KU_BOUNDS, latitude, longitude)) return;
+      L.circleMarker([latitude, longitude], {
+        radius: 7,
+        color: "#fff",
+        weight: 2,
+        fillColor: "#2563EB",
+        fillOpacity: 1,
+        interactive: false,
+        pmIgnore: true,
+      }).addTo(map);
+      if (followLocation) map.setView([latitude, longitude], 18);
+    },
+    () => {
+      // 거부·실패면 KU_CENTER에 그대로 둔다.
+    },
+    { enableHighAccuracy: true, timeout: 10_000 },
+  );
+}
 ```
 
-  4. cleanup 첫 줄에 `disposed = true;`
+4. cleanup 첫 줄에 `disposed = true;`
 
 - [ ] **Step 7: 통과 확인**
 
@@ -2049,55 +2057,57 @@ git commit -m "feat(slope): 새 경로는 현재 위치에서 열고 파란 점�
 ### Task 7: 주변 건물과 스냅 토글 (설계 5.5)
 
 **Files:**
+
 - Modify: `src/lib/neighborLayer.ts`
 - Modify: `src/components/slope/SlopeRouteMap.tsx`
 - Modify: `src/components/SlopeRouteEditor.tsx`
 - Test: `e2e/admin-buildings-slopes.spec.ts`
 
 **Interfaces:**
+
 - Produces: `addNeighborLayer(map, features, excludeId, layerOptions?: NeighborLayerOptions)` — `NeighborLayerOptions = { pane?: string; pmIgnore?: boolean; snapIgnore?: boolean }`. `SlopeRouteMap` prop `snapToBuildings: boolean`. 체크박스 접근 이름 `건물 외곽선에 붙이기`
 
 - [ ] **Step 1: 실패하는 E2E 작성**
 
 ```ts
-  test("편집기에 주변 건물을 깔고 스냅은 끈 채 시작한다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/new");
+test("편집기에 주변 건물을 깔고 스냅은 끈 채 시작한다", async ({ page }) => {
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/slopes/new");
 
-    await expect(
-      page.locator(".leaflet-tooltip.bldg-label", { hasText: "중앙도서관" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("checkbox", { name: "건물 외곽선에 붙이기" }),
-    ).not.toBeChecked();
-  });
+  await expect(
+    page.locator(".leaflet-tooltip.bldg-label", { hasText: "중앙도서관" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("checkbox", { name: "건물 외곽선에 붙이기" }),
+  ).not.toBeChecked();
+});
 
-  test("주변 건물이 있어도 찍은 자리에 꼭짓점이 놓인다", async ({ page }) => {
-    // 스냅이 꺼져 있으면 건물 외곽선 근처를 찍어도 그 픽셀에 꼭짓점이 놓여야 한다.
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/new");
-    await expect(
-      page.locator(".leaflet-tooltip.bldg-label").first(),
-    ).toBeVisible();
+test("주변 건물이 있어도 찍은 자리에 꼭짓점이 놓인다", async ({ page }) => {
+  // 스냅이 꺼져 있으면 건물 외곽선 근처를 찍어도 그 픽셀에 꼭짓점이 놓여야 한다.
+  await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/slopes/new");
+  await expect(
+    page.locator(".leaflet-tooltip.bldg-label").first(),
+  ).toBeVisible();
 
-    const map = page.locator(".leaflet-container");
-    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
-    const points = [
-      { x: 300, y: 120 },
-      { x: 420, y: 180 },
-    ];
-    for (const position of points) await map.click({ position });
-    await map.click({ position: points[1] });
+  const map = page.locator(".leaflet-container");
+  await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+  const points = [
+    { x: 300, y: 120 },
+    { x: 420, y: 180 },
+  ];
+  for (const position of points) await map.click({ position });
+  await map.click({ position: points[1] });
 
-    const mapBox = (await map.boundingBox())!;
-    const vertex = (await page.locator(".marker-icon").first().boundingBox())!;
-    expect(
-      Math.abs(vertex.x + vertex.width / 2 - (mapBox.x + points[0].x)),
-    ).toBeLessThan(3);
-    expect(
-      Math.abs(vertex.y + vertex.height / 2 - (mapBox.y + points[0].y)),
-    ).toBeLessThan(3);
-  });
+  const mapBox = (await map.boundingBox())!;
+  const vertex = (await page.locator(".marker-icon").first().boundingBox())!;
+  expect(
+    Math.abs(vertex.x + vertex.width / 2 - (mapBox.x + points[0].x)),
+  ).toBeLessThan(3);
+  expect(
+    Math.abs(vertex.y + vertex.height / 2 - (mapBox.y + points[0].y)),
+  ).toBeLessThan(3);
+});
 ```
 
 Run: `npx playwright test e2e/admin-buildings-slopes.spec.ts -g "주변 건물"` → 첫 테스트 FAIL
@@ -2146,29 +2156,29 @@ export function addNeighborLayer(
   3. `slopePreview` pane 생성 바로 앞에 넣는다. 건물을 선보다 아래 pane에 두는 이유: 늦게 도착해 같은 pane에 붙으면 반투명 회색이 그린 선을 덮는다.
 
 ```ts
-    const buildingPane = map.createPane("slopeBuildings");
-    buildingPane.style.zIndex = "300";
-    void fetchNeighborBuildings()
-      .then((features) => {
-        if (disposed) return;
-        // 드래그·편집 대상에서는 빼고 스냅 목록에는 남긴다. 스냅은 토글이 켜고 끈다.
-        addNeighborLayer(map, features, null, {
-          pane: "slopeBuildings",
-          pmIgnore: true,
-          snapIgnore: false,
-        });
-      })
-      .catch(() => {
-        // 배경 건물은 보조 정보다. 실패해도 경로는 그릴 수 있다.
-      });
+const buildingPane = map.createPane("slopeBuildings");
+buildingPane.style.zIndex = "300";
+void fetchNeighborBuildings()
+  .then((features) => {
+    if (disposed) return;
+    // 드래그·편집 대상에서는 빼고 스냅 목록에는 남긴다. 스냅은 토글이 켜고 끈다.
+    addNeighborLayer(map, features, null, {
+      pane: "slopeBuildings",
+      pmIgnore: true,
+      snapIgnore: false,
+    });
+  })
+  .catch(() => {
+    // 배경 건물은 보조 정보다. 실패해도 경로는 그릴 수 있다.
+  });
 ```
 
-  4. 초기화 effect 뒤에 effect를 더한다. `setGlobalOptions`는 그리는 도중에도 바로 반영된다(설계 10장).
+4. 초기화 effect 뒤에 effect를 더한다. `setGlobalOptions`는 그리는 도중에도 바로 반영된다(설계 10장).
 
 ```ts
-  useEffect(() => {
-    mapRef.current?.pm.setGlobalOptions({ snappable: snapToBuildings });
-  }, [snapToBuildings]);
+useEffect(() => {
+  mapRef.current?.pm.setGlobalOptions({ snappable: snapToBuildings });
+}, [snapToBuildings]);
 ```
 
 - [ ] **Step 4: 토글** — `SlopeRouteEditor.tsx`
@@ -2177,22 +2187,22 @@ export function addNeighborLayer(
   3. 단위 `<fieldset>` 바로 앞에 넣는다.
 
 ```tsx
-        <label
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            fontSize: 13,
-            cursor: "pointer",
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={snapToBuildings}
-            onChange={(event) => setSnapToBuildings(event.target.checked)}
-          />
-          건물 외곽선에 붙이기
-        </label>
+<label
+  style={{
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    fontSize: 13,
+    cursor: "pointer",
+  }}
+>
+  <input
+    type="checkbox"
+    checked={snapToBuildings}
+    onChange={(event) => setSnapToBuildings(event.target.checked)}
+  />
+  건물 외곽선에 붙이기
+</label>
 ```
 
 - [ ] **Step 5: 통과 확인**
@@ -2218,43 +2228,45 @@ git commit -m "feat(slope): 편집기에 주변 건물을 깔고 외곽선 스�
 ### Task 8: 건물 안 시설 수정 (설계 부록 A)
 
 **Files:**
+
 - Modify: `src/components/admin/FacilityDetailModal.tsx`
 - Modify: `src/app/admin/buildings/[id]/page.tsx`
 - Modify: `docs/specs/2026-08-04-facility-detail-modal-and-building-video-design.md`
 - Test: `e2e/admin-p0.spec.ts`
 
 **Interfaces:**
+
 - Produces: `FacilityDetailModal` prop `onRequestEdit: () => void`, 버튼 이름 `수정`
 
 - [ ] **Step 1: 실패하는 E2E 작성** — `e2e/admin-p0.spec.ts` 마지막 `});` 앞에 추가한다. `f-building-video`는 건물 1에 속하고 동영상이 있는 픽스처다.
 
 ```ts
-  test("건물 안 시설을 수정해도 동영상이 남는다", async ({ page }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/buildings/1");
+test("건물 안 시설을 수정해도 동영상이 남는다", async ({ page }) => {
+  const state = await installMockBackend(page, { authenticated: true });
+  await page.goto("/admin/buildings/1");
 
-    await page.getByRole("button", { name: /지하 주차장 진입로/ }).click();
-    const detail = page.getByRole("dialog", { name: "지하 주차장 진입로" });
-    await detail.getByRole("button", { name: "수정" }).click();
+  await page.getByRole("button", { name: /지하 주차장 진입로/ }).click();
+  const detail = page.getByRole("dialog", { name: "지하 주차장 진입로" });
+  await detail.getByRole("button", { name: "수정" }).click();
 
-    const form = page.getByRole("dialog", { name: "시설 수정" });
-    await expect(form.getByLabel("시설 이름 (선택)")).toHaveValue(
-      "지하 주차장 진입로",
-    );
-    await form.getByLabel("시설 이름 (선택)").fill("지하 주차장 진입 경사로");
-    await form.getByRole("button", { name: "저장", exact: true }).click();
+  const form = page.getByRole("dialog", { name: "시설 수정" });
+  await expect(form.getByLabel("시설 이름 (선택)")).toHaveValue(
+    "지하 주차장 진입로",
+  );
+  await form.getByLabel("시설 이름 (선택)").fill("지하 주차장 진입 경사로");
+  await form.getByRole("button", { name: "저장", exact: true }).click();
 
-    await expect(
-      page.getByRole("button", { name: /지하 주차장 진입 경사로/ }),
-    ).toBeVisible();
-    const saved = state.facilities.find(
-      (facility) => facility.id === "f-building-video",
-    )!;
-    expect(saved.name).toBe("지하 주차장 진입 경사로");
-    expect(saved.video_url).toBe(
-      "https://cdn.example.com/facility-videos/f-building-video/1.mp4",
-    );
-  });
+  await expect(
+    page.getByRole("button", { name: /지하 주차장 진입 경사로/ }),
+  ).toBeVisible();
+  const saved = state.facilities.find(
+    (facility) => facility.id === "f-building-video",
+  )!;
+  expect(saved.name).toBe("지하 주차장 진입 경사로");
+  expect(saved.video_url).toBe(
+    "https://cdn.example.com/facility-videos/f-building-video/1.mp4",
+  );
+});
 ```
 
 Run: `npx playwright test e2e/admin-p0.spec.ts -g "동영상이 남는다"` → FAIL (`수정` 버튼 없음)
@@ -2264,23 +2276,23 @@ Run: `npx playwright test e2e/admin-p0.spec.ts -g "동영상이 남는다"` → 
   2. 액션 영역의 `닫기` 버튼과 `삭제` 버튼 사이에 넣는다.
 
 ```tsx
-          <button
-            type="button"
-            onClick={onRequestEdit}
-            className="ku-admin-row-action"
-            style={{
-              flex: 1,
-              padding: "10px",
-              background: "none",
-              border: "1px solid var(--ku-primary-text)",
-              borderRadius: 8,
-              fontSize: 13,
-              color: "var(--ku-primary-text)",
-              cursor: "pointer",
-            }}
-          >
-            수정
-          </button>
+<button
+  type="button"
+  onClick={onRequestEdit}
+  className="ku-admin-row-action"
+  style={{
+    flex: 1,
+    padding: "10px",
+    background: "none",
+    border: "1px solid var(--ku-primary-text)",
+    borderRadius: 8,
+    fontSize: 13,
+    color: "var(--ku-primary-text)",
+    cursor: "pointer",
+  }}
+>
+  수정
+</button>
 ```
 
 - [ ] **Step 3: 건물 상세에서 폼 열기** — `src/app/admin/buildings/[id]/page.tsx`
@@ -2288,14 +2300,12 @@ Run: `npx playwright test e2e/admin-p0.spec.ts -g "동영상이 남는다"` → 
   2. `selectedFacilityId` 상태 옆에 추가한다. 객체가 아니라 id로 든다 — 바로 아래 기존 주석과 같은 이유다.
 
 ```ts
-  const [editingFacilityId, setEditingFacilityId] = useState<string | null>(
-    null,
-  );
-  const editingFacility =
-    facilities.find((f) => f.id === editingFacilityId) ?? null;
+const [editingFacilityId, setEditingFacilityId] = useState<string | null>(null);
+const editingFacility =
+  facilities.find((f) => f.id === editingFacilityId) ?? null;
 ```
 
-  3. `<FacilityDetailModal …>`에 prop을 더한다.
+3. `<FacilityDetailModal …>`에 prop을 더한다.
 
 ```tsx
           onRequestEdit={() => {
@@ -2304,27 +2314,29 @@ Run: `npx playwright test e2e/admin-p0.spec.ts -g "동영상이 남는다"` → 
           }}
 ```
 
-  4. `FacilityDetailModal` 렌더 블록 뒤에 넣는다.
+4. `FacilityDetailModal` 렌더 블록 뒤에 넣는다.
 
 ```tsx
-      {editingFacility && (
-        <FacilityFormModal
-          buildingId={id}
-          center={
-            editingFacility.lat != null && editingFacility.lng != null
-              ? [editingFacility.lat, editingFacility.lng]
-              : buildingCenter
-          }
-          facilityTypes={facilityTypes}
-          facility={editingFacility}
-          onClose={() => setEditingFacilityId(null)}
-          onSaved={() => {
-            setEditingFacilityId(null);
-            void fetchData();
-          }}
-          showToast={showToast}
-        />
-      )}
+{
+  editingFacility && (
+    <FacilityFormModal
+      buildingId={id}
+      center={
+        editingFacility.lat != null && editingFacility.lng != null
+          ? [editingFacility.lat, editingFacility.lng]
+          : buildingCenter
+      }
+      facilityTypes={facilityTypes}
+      facility={editingFacility}
+      onClose={() => setEditingFacilityId(null)}
+      onSaved={() => {
+        setEditingFacilityId(null);
+        void fetchData();
+      }}
+      showToast={showToast}
+    />
+  );
+}
 ```
 
 - [ ] **Step 4: 통과 확인**
@@ -2358,6 +2370,7 @@ git commit -m "feat(admin): 건물 안 시설을 상세 모달에서 수정한�
 ### Task 9: 사진 라이트박스와 다운로드 (설계 부록 B)
 
 **Files:**
+
 - Create: `src/lib/photoDownload.ts`
 - Test: `src/lib/photoDownload.test.ts`
 - Create: `src/components/sidepanel/PhotoLightbox.tsx`
@@ -2369,6 +2382,7 @@ git commit -m "feat(admin): 건물 안 시설을 상세 모달에서 수정한�
 - Test: `e2e/public-map.spec.ts`
 
 **Interfaces:**
+
 - Produces: `photoDownloadUrl(photoUrl: string, fileName: string): string`, `photoFileName(buildingName: string, index: number): string`. `PhotoCarousel` prop `buildingName: string`. 번역 키 `photoEnlarge`·`photoPrev`·`photoNext`·`photoDownload`
 
 - [ ] **Step 1: 실패하는 단위 테스트** — `src/lib/photoDownload.test.ts`
@@ -2502,7 +2516,7 @@ Run: `npx playwright test e2e/public-map.spec.ts -g "크게 보고"` → FAIL
     photoDownload: "下载照片",
 ```
 
-  (주석 `// ko` 등은 붙이지 않는다 — 어느 블록에 넣는지 표시한 것이다.)
+(주석 `// ko` 등은 붙이지 않는다 — 어느 블록에 넣는지 표시한 것이다.)
 
 - [ ] **Step 5: 라이트박스** — `src/components/sidepanel/PhotoLightbox.tsx`
 
@@ -2558,9 +2572,7 @@ export default function PhotoLightbox({
 
   if (!photo) return null;
   const caption =
-    lang === "ko"
-      ? photo.caption
-      : (photo[`caption_${lang}`] ?? photo.caption);
+    lang === "ko" ? photo.caption : (photo[`caption_${lang}`] ?? photo.caption);
 
   // 사이드패널이 쌓임 맥락을 만들어 모달을 그 안에 가둔다. body로 뺀다(FeedbackButton과 같다).
   return createPortal(
@@ -2587,7 +2599,10 @@ export default function PhotoLightbox({
           </span>
           <a
             className="ku-photo-lightbox-action"
-            href={photoDownloadUrl(photo.url, photoFileName(buildingName, index))}
+            href={photoDownloadUrl(
+              photo.url,
+              photoFileName(buildingName, index),
+            )}
             aria-label={t("photoDownload")}
           >
             <Download size={18} aria-hidden="true" />
@@ -2646,50 +2661,52 @@ export default function PhotoLightbox({
   4. `<Image … />`를 버튼으로 감싼다. 이전·다음·점 버튼은 뒤에 오므로 그대로 위에 쌓인다.
 
 ```tsx
-          <button
-            type="button"
-            onClick={() => setLightboxOpen(true)}
-            aria-label={t("photoEnlarge")}
-            style={{
-              position: "absolute",
-              inset: 0,
-              padding: 0,
-              border: 0,
-              background: "none",
-              cursor: "zoom-in",
-            }}
-          >
-            <Image
-              src={photos[photoIndex]?.url}
-              alt={displayName}
-              fill
-              sizes="(max-width: 767px) calc(100vw - 40px), 380px"
-              unoptimized
-              style={{
-                objectFit: "cover",
-              }}
-            />
-          </button>
+<button
+  type="button"
+  onClick={() => setLightboxOpen(true)}
+  aria-label={t("photoEnlarge")}
+  style={{
+    position: "absolute",
+    inset: 0,
+    padding: 0,
+    border: 0,
+    background: "none",
+    cursor: "zoom-in",
+  }}
+>
+  <Image
+    src={photos[photoIndex]?.url}
+    alt={displayName}
+    fill
+    sizes="(max-width: 767px) calc(100vw - 40px), 380px"
+    unoptimized
+    style={{
+      objectFit: "cover",
+    }}
+  />
+</button>
 ```
 
-  5. 최상위 fragment의 마지막(캡션 블록 뒤)에 넣는다.
+5. 최상위 fragment의 마지막(캡션 블록 뒤)에 넣는다.
 
 ```tsx
-      {lightboxOpen && photos.length > 0 && (
-        <PhotoLightbox
-          photos={photos}
-          index={photoIndex}
-          onIndexChange={setPhotoIndex}
-          onClose={() => setLightboxOpen(false)}
-          buildingName={buildingName}
-          displayName={displayName}
-          lang={lang}
-          t={t}
-        />
-      )}
+{
+  lightboxOpen && photos.length > 0 && (
+    <PhotoLightbox
+      photos={photos}
+      index={photoIndex}
+      onIndexChange={setPhotoIndex}
+      onClose={() => setLightboxOpen(false)}
+      buildingName={buildingName}
+      displayName={displayName}
+      lang={lang}
+      t={t}
+    />
+  );
+}
 ```
 
-  6. `PhotoCarousel`의 지역 `PhotoRow` 타입을 지우고 `import type { SidePanelPhoto } from "@/components/SidePanel";`로 바꾼다(같은 Pick이다).
+6. `PhotoCarousel`의 지역 `PhotoRow` 타입을 지우고 `import type { SidePanelPhoto } from "@/components/SidePanel";`로 바꾼다(같은 Pick이다).
 
 - [ ] **Step 7: 사이드패널** — `SidePanel.tsx`의 `<PhotoCarousel …>`에 `buildingName={buildingName}`를 더한다.
 
@@ -2790,6 +2807,7 @@ git commit -m "feat(map): 건물 사진을 라이트박스로 크게 보고 내�
 ### Task 10: 문서 정리와 최종 검증 (설계 7장)
 
 **Files:**
+
 - Modify: `docs/specs/2026-08-30-manual-slope-route-design.md`
 - Modify: `docs/specs/2026-08-14-strict-types-and-logging.md`
 - Modify: `docs/future-development/accessible-routing.md`
@@ -2801,17 +2819,17 @@ git commit -m "feat(map): 건물 사진을 라이트박스로 크게 보고 내�
 ```markdown
 > **2026-10-06 — 일부 대체.** 아래 절은 [`2026-10-06-slope-units-and-editor-design.md`](./2026-10-06-slope-units-and-editor-design.md)가 대체한다. 본문은 당시 기록으로 둔다.
 >
-> | 이 문서 | 당시 | 현재 |
-> | ------- | ---- | ---- |
-> | 2.4 색상 기준 | `slope`를 %로 읽고 1/12를 "건축법"으로 표기 | `slope`는 도. 1/18·1/12·1/8 기준선(편의증진법·교통약자법 시행규칙) — 새 문서 4장 |
-> | 4.2 저장 포맷 | 포인트에 `ele`, `slope`(%) | `{lat,lng}` 다음 `{lat,lng,slope(도),distance}`. `ele` 없음 — 새 문서 2장 |
-> | 5.5 검증 | 0~100%, 30% 경고 | 범위는 0~45°로 도에서 직접, 경고는 % — 새 문서 3.2 |
-> | 7장 2단계 폐기 | 계획 | GPX 행 삭제 완료, 코드 정리 실행. 목록의 리다이렉트 Toast effect는 `missing`에 쓰여 남김 — 새 문서 6장 |
+> | 이 문서        | 당시                                        | 현재                                                                                                   |
+> | -------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+> | 2.4 색상 기준  | `slope`를 %로 읽고 1/12를 "건축법"으로 표기 | `slope`는 도. 1/18·1/12·1/8 기준선(편의증진법·교통약자법 시행규칙) — 새 문서 4장                       |
+> | 4.2 저장 포맷  | 포인트에 `ele`, `slope`(%)                  | `{lat,lng}` 다음 `{lat,lng,slope(도),distance}`. `ele` 없음 — 새 문서 2장                              |
+> | 5.5 검증       | 0~100%, 30% 경고                            | 범위는 0~45°로 도에서 직접, 경고는 % — 새 문서 3.2                                                     |
+> | 7장 2단계 폐기 | 계획                                        | GPX 행 삭제 완료, 코드 정리 실행. 목록의 리다이렉트 Toast effect는 `missing`에 쓰여 남김 — 새 문서 6장 |
 ```
 
-  2. `### 2.4`, `### 4.2`, `### 5.5`, `## 7.` 제목 바로 아래 줄에 각각 `> 2026-10-06 대체 — 이 문서 머리의 표.`
+2. `### 2.4`, `### 4.2`, `### 5.5`, `## 7.` 제목 바로 아래 줄에 각각 `> 2026-10-06 대체 — 이 문서 머리의 표.`
 
-- [ ] **Step 2: 2026-08-14 문서** — 머리 40줄을 읽고, `**`SlopePoint.ele`는 `number | null`.**` 항목 끝에 덧붙인다: ` (2026-10-06 — GPX 코드 정리로 `ele`를 없앴다. `ele`는 DB 컬럼이 아니라 `segments` jsonb 안 GPX 필드였다. `2026-10-06-slope-units-and-editor-design.md` 6장.)`
+- [ ] **Step 2: 2026-08-14 문서** — 머리 40줄을 읽고, `**`SlopePoint.ele`는 `number | null`.**` 항목 끝에 덧붙인다: `(2026-10-06 — GPX 코드 정리로`ele`를 없앴다. `ele`는 DB 컬럼이 아니라 `segments`jsonb 안 GPX 필드였다.`2026-10-06-slope-units-and-editor-design.md` 6장.)`
 
 - [ ] **Step 3: 경로 탐색 후속 문서** — `docs/future-development/accessible-routing.md`
   1. `## 현재 경사도 데이터의 한계`의 첫 문단을 바꾼다.
@@ -2822,33 +2840,33 @@ git commit -m "feat(map): 건물 사진을 라이트박스로 크게 보고 내�
 이전에는 GPX의 위도·경도·고도 좌표였다.
 ```
 
-  2. 같은 절의 목록 중 GPS·GPX에 관한 세 항목("GPS 오차로…", "동일한 길을 다시 측정하면…", "GPX 기록을 실제 길의 기준 형상으로…")을 아래 두 항목으로 바꾼다. 나머지 두 항목은 둔다.
+2. 같은 절의 목록 중 GPS·GPX에 관한 세 항목("GPS 오차로…", "동일한 길을 다시 측정하면…", "GPX 기록을 실제 길의 기준 형상으로…")을 아래 두 항목으로 바꾼다. 나머지 두 항목은 둔다.
 
 ```markdown
 - 선은 관리자가 손으로 그린 근사 형상이라 실제 보행로 중심선과 다를 수 있다.
 - 같은 길을 다른 사람이 그리면 서로 다른 모양이 된다.
 ```
 
-  3. 그 절의 결론 "따라서 GPX는 길 자체가 아니라 **경사도를 측정한 원본 자료**로 취급해야 한다." → "따라서 경사도 경로는 길 자체가 아니라 **경사도를 측정한 위치 기록**으로 취급해야 한다."
-  4. "기존 `slope_segments`는 즉시 삭제하지 않고 GPX 원본 및 마이그레이션 출처로 보존한다." → "기존 `slope_segments`는 즉시 삭제하지 않고 경사도 실측 기록 및 마이그레이션 출처로 보존한다."
+3. 그 절의 결론 "따라서 GPX는 길 자체가 아니라 **경사도를 측정한 원본 자료**로 취급해야 한다." → "따라서 경사도 경로는 길 자체가 아니라 **경사도를 측정한 위치 기록**으로 취급해야 한다."
+4. "기존 `slope_segments`는 즉시 삭제하지 않고 GPX 원본 및 마이그레이션 출처로 보존한다." → "기존 `slope_segments`는 즉시 삭제하지 않고 경사도 실측 기록 및 마이그레이션 출처로 보존한다."
 
 - [ ] **Step 4: README** — 아래 줄을 바꾸거나 더한다. 줄 번호는 작성 시점 기준이니 문구로 찾는다.
 
-| 찾을 문구 | 바꿀 내용 |
-| --------- | --------- |
-| `+ 범례 (법적 기준 1/12 구분선)` | `+ 범례 (보도 기준 1/18 · 완화 한도 1/12 · 경사로 특례 1/8 기준선, %와 도 병기)` |
-| `입력값에 따라 선 색을 미리 보여주고 법적 기준(1/12)·급경사 경고를 표시하되 저장은 막지 않습니다. GPX 업로드는 종료했고, 기존 GPX 행은 측정 원본이라 다운로드·삭제만 가능합니다` | `도(°)나 %로 입력하고 도로 저장합니다. 입력값에 따라 선 색을 미리 보여주고 1/12 완화 한도·급경사 경고를 표시하되 저장은 막지 않습니다. 편집기는 현재 위치에서 열리고 주변 건물을 깔며, 건물 외곽선 스냅을 켜고 끌 수 있습니다` |
-| `# 경사도 경로 목록 — 수기/GPX 구분, GPX 다운로드·삭제` | `# 경사도 경로 목록 — 수정·삭제` |
-| `# 경사도 경로 수정 (수기 경로만, 낙관적 잠금)` | `# 경사도 경로 수정 (저장 포맷 검증, 낙관적 잠금)` |
-| `SidePanelHeader.tsx / PhotoCarousel.tsx / FacilityList.tsx` | `SidePanelHeader.tsx / PhotoCarousel.tsx / PhotoLightbox.tsx / FacilityList.tsx` |
-| `theme.ts                         # 디자인 토큰 · 캠퍼스/시설/경사 색상` | `theme.ts                         # 디자인 토큰 · 캠퍼스/시설 색상` |
-| `slopeRoute.ts` 트리 줄 다음 | 세 줄 추가: `    slopeScale.ts                    # 경사 단위(도·%) 변환 · 색 칸 · 기준선 판정 (순수 함수)` / `    mapBounds.ts                     # 캠퍼스 지도 표시 범위 (Leaflet 비의존)` / `    photoDownload.ts                 # 사진 다운로드 URL·파일명` |
-| `-- SlopePoint[] = { lat, lng, ele, slope?, distance? }` | `-- [{ lat, lng }, ...{ lat, lng, slope(도), distance(m) }]` |
-| `-- 수기 경로는 ele=null이고 2번째 포인트부터 slope·distance를 담는다` | `-- 이 변경 전에 저장한 행에는 ele: null 키가 남아 있다(읽지 않음)` |
-| `-- NULL이면 수기 경로, 값이 있으면 GPX 측정 원본` | `-- GPX 시절 컬럼. 2026-10-06 정리 이후 항상 NULL` |
-| `열어둔 사이 바뀐 행·GPX 행 보호` | `열어둔 사이 바뀐 행 보호, 깨진 저장 포맷 거부, 도·% 입력, 현재 위치·구간 번호` |
-| `- [ ] GPX 경사 경로 폐기 — 실측 데이터로 다시 채운 뒤 \`gpx_file\` 컬럼과 관련 분기 제거 (설계 문서의 2단계)` | `- [ ] \`slope_segments.gpx_file\` 컬럼 삭제 — GPX 행 삭제와 코드 분기 정리는 끝났다(2026-10-06)` |
-| `경사 경로 판단 로직은 전부 \`src/lib/slopeRoute.ts\`의 순수 함수로 빼 두었습니다.` | `경사 경로 판단 로직은 \`src/lib/slopeRoute.ts\`(경로·저장 포맷)와 \`src/lib/slopeScale.ts\`(단위·색·기준선)의 순수 함수로 빼 두었습니다.` |
+| 찾을 문구                                                                                                                                                                        | 바꿀 내용                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `+ 범례 (법적 기준 1/12 구분선)`                                                                                                                                                 | `+ 범례 (보도 기준 1/18 · 완화 한도 1/12 · 경사로 특례 1/8 기준선, %와 도 병기)`                                                                                                                                                                                  |
+| `입력값에 따라 선 색을 미리 보여주고 법적 기준(1/12)·급경사 경고를 표시하되 저장은 막지 않습니다. GPX 업로드는 종료했고, 기존 GPX 행은 측정 원본이라 다운로드·삭제만 가능합니다` | `도(°)나 %로 입력하고 도로 저장합니다. 입력값에 따라 선 색을 미리 보여주고 1/12 완화 한도·급경사 경고를 표시하되 저장은 막지 않습니다. 편집기는 현재 위치에서 열리고 주변 건물을 깔며, 건물 외곽선 스냅을 켜고 끌 수 있습니다`                                    |
+| `# 경사도 경로 목록 — 수기/GPX 구분, GPX 다운로드·삭제`                                                                                                                          | `# 경사도 경로 목록 — 수정·삭제`                                                                                                                                                                                                                                  |
+| `# 경사도 경로 수정 (수기 경로만, 낙관적 잠금)`                                                                                                                                  | `# 경사도 경로 수정 (저장 포맷 검증, 낙관적 잠금)`                                                                                                                                                                                                                |
+| `SidePanelHeader.tsx / PhotoCarousel.tsx / FacilityList.tsx`                                                                                                                     | `SidePanelHeader.tsx / PhotoCarousel.tsx / PhotoLightbox.tsx / FacilityList.tsx`                                                                                                                                                                                  |
+| `theme.ts                         # 디자인 토큰 · 캠퍼스/시설/경사 색상`                                                                                                         | `theme.ts                         # 디자인 토큰 · 캠퍼스/시설 색상`                                                                                                                                                                                               |
+| `slopeRoute.ts` 트리 줄 다음                                                                                                                                                     | 세 줄 추가: `    slopeScale.ts                    # 경사 단위(도·%) 변환 · 색 칸 · 기준선 판정 (순수 함수)` / `    mapBounds.ts                     # 캠퍼스 지도 표시 범위 (Leaflet 비의존)` / `    photoDownload.ts                 # 사진 다운로드 URL·파일명` |
+| `-- SlopePoint[] = { lat, lng, ele, slope?, distance? }`                                                                                                                         | `-- [{ lat, lng }, ...{ lat, lng, slope(도), distance(m) }]`                                                                                                                                                                                                      |
+| `-- 수기 경로는 ele=null이고 2번째 포인트부터 slope·distance를 담는다`                                                                                                           | `-- 이 변경 전에 저장한 행에는 ele: null 키가 남아 있다(읽지 않음)`                                                                                                                                                                                               |
+| `-- NULL이면 수기 경로, 값이 있으면 GPX 측정 원본`                                                                                                                               | `-- GPX 시절 컬럼. 2026-10-06 정리 이후 항상 NULL`                                                                                                                                                                                                                |
+| `열어둔 사이 바뀐 행·GPX 행 보호`                                                                                                                                                | `열어둔 사이 바뀐 행 보호, 깨진 저장 포맷 거부, 도·% 입력, 현재 위치·구간 번호`                                                                                                                                                                                   |
+| `- [ ] GPX 경사 경로 폐기 — 실측 데이터로 다시 채운 뒤 \`gpx_file\` 컬럼과 관련 분기 제거 (설계 문서의 2단계)`                                                                   | `- [ ] \`slope_segments.gpx_file\` 컬럼 삭제 — GPX 행 삭제와 코드 분기 정리는 끝났다(2026-10-06)`                                                                                                                                                                 |
+| `경사 경로 판단 로직은 전부 \`src/lib/slopeRoute.ts\`의 순수 함수로 빼 두었습니다.`                                                                                              | `경사 경로 판단 로직은 \`src/lib/slopeRoute.ts\`(경로·저장 포맷)와 \`src/lib/slopeScale.ts\`(단위·색·기준선)의 순수 함수로 빼 두었습니다.`                                                                                                                        |
 
 - [ ] **Step 5: 역추적** — 지운 이름·바꾼 주장이 남은 곳을 기계적으로 찾고, 명령과 출력을 PR 본문에 붙인다.
 

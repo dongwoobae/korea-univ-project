@@ -29,7 +29,7 @@
 - **현장 실측 기반 경사도 입력** — 배포된 경로를 감사해 표시 구간 137개 중 31개(23%)가 GPS 고도 노이즈 탓에 0.0% 평지로 그려지는 것을 확인하고, 관리자가 지도에 경로를 그린 뒤 구간별 실측값을 직접 넣는 방식으로 전환
 - **접근성 전수 감사 기반 개선** — UX 감사 문서(`docs/audits/`)로 P0~P3 항목을 분류하고, 모달 초점 트랩·라이브 리전·터치 타겟·폼 라벨을 순차 구현하며 E2E로 회귀를 고정
 - **JavaScript → TypeScript 전면 이관** — 설계 문서를 먼저 작성한 뒤 `src/` 전체(138개 파일)를 `strict` 모드로 이관하고, 우회로 남아 있던 암묵적 `any` 162건까지 걷어 `no-explicit-any`를 error로 유지
-- **결정론적 E2E 환경 구축** — 980줄 목 백엔드(PostgREST·Next 라우트·Auth·브라우저 API 스텁)로 외부 의존 없이 15개 spec·139개 시나리오를 실행
+- **결정론적 E2E 환경 구축** — 996줄 목 백엔드(PostgREST·Next 라우트·Auth·브라우저 API 스텁)로 외부 의존 없이 15개 spec·141개 시나리오를 실행
 - **마이그레이션 안전장치** — 적용된 마이그레이션의 수정·삭제를 CI에서 차단하고, 적용 후 로컬↔원격 이력 일치를 별도 잡에서 검증
 - **다국어 자동화** — Papago NMT 연동으로 시설·명소 정보를 자동 번역하고, 번역 실패를 관리자 화면에 드러내 개별·일괄 재번역 가능
 
@@ -69,7 +69,7 @@
 - 🧩 **독립 시설 관리** — 건물에 속하지 않는 시설 CRUD, 검색·유형·설치여부 필터·정렬
 - 🌍 **번역 실패 표시** — 자동 번역 실패를 "번역 필요" 배지로 드러내고 **개별·일괄 재번역** 제공 (저장 성공과 번역 실패를 분리)
 - 🏞️ **명소 관리** — 캠퍼스 명소 CRUD, 이모지 지정, 사진 유무 필터, 사진 포함 단일 저장
-- 📐 **경사도 경로 관리** — 지도에 경로를 그리고 **구간별 실측 경사도를 직접 입력·수정**. 도(°)나 %로 입력하고 도로 저장합니다. 입력값에 따라 선 색을 미리 보여주고 1/12 완화 한도·급경사 경고를 표시하되 저장은 막지 않습니다. 편집기는 현재 위치에서 열리고 주변 건물을 깔며, 건물 외곽선 스냅을 켜고 끌 수 있습니다
+- 📐 **경사도 경로 관리** — 지도에 경로를 그리고 **구간별 실측 경사도를 직접 입력·수정**. 도(°)나 %로 입력하고 도로 저장합니다. 입력값에 따라 선 색을 미리 보여주고 1/12 완화 한도·급경사 경고를 표시하되 저장은 막지 않습니다. 새 경로는 현재 위치에서 열리고 주변 건물을 깔며, 건물 외곽선 스냅을 켜고 끌 수 있습니다
 - 📄 **서버 페이지네이션** — 모든 목록에 번호 페이지네이션(`aria-current="page"` + 라이브 안내) 적용
 - 🔄 **Overpass API 동기화** — 3개 서버 순차 시도 방어 로직
 - ⚙️ **앱 설정 관리** — 피드백 수신 이메일 등 동적 설정
@@ -458,11 +458,11 @@ npm run test:e2e:ui   # Playwright UI 모드
 
 ### 테스트 범위
 
-**Vitest 단위 테스트 (27개 파일, 201개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, 피드백 입력 검증, 피드백·명소 삭제 API 라우트.
+**Vitest 단위 테스트 (27개 파일, 203개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, 피드백 입력 검증, 피드백·명소 삭제 API 라우트.
 
 경사 경로 판단 로직은 `src/lib/slopeRoute.ts`(경로·저장 포맷)와 `src/lib/slopeScale.ts`(단위·색·기준선)의 순수 함수로 빼 두었습니다. Vitest가 `environment: "node"`로 돌기 때문에, Leaflet에 묶인 채로는 단위 테스트가 닿지 않습니다.
 
-**Playwright E2E (15개 spec, 139개 시나리오)**
+**Playwright E2E (15개 spec, 141개 시나리오)**
 
 | 파일                                    | 검증 대상                                                                                                                                                                                                                                                                                                   |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -482,7 +482,7 @@ npm run test:e2e:ui   # Playwright UI 모드
 | `admin-dark.spec.ts`                    | 다크 모드 대비 회귀 가드 — 하드코딩 밝은 색·근검정 텍스트 0건 단언                                                                                                                                                                                                                                          |
 | `admin-campus-boundaries.spec.ts`       | 캠퍼스 밖 시설 경고하되 저장 허용                                                                                                                                                                                                                                                                           |
 
-E2E는 `e2e/support/mockBackend.ts`(980줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다. 쓰기 요청의 `id` 외 필터(`is.null`, `eq.`)도 실제 PostgREST처럼 적용하므로, 저장 조건에 건 잠금이 목 위에서만 통과하는 일이 없습니다.
+E2E는 `e2e/support/mockBackend.ts`(996줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다. 쓰기 요청의 `id` 외 필터(`is.null`, `eq.`)도 실제 PostgREST처럼 적용하므로, 저장 조건에 건 잠금이 목 위에서만 통과하는 일이 없습니다.
 
 ---
 
@@ -542,7 +542,7 @@ E2E는 `e2e/support/mockBackend.ts`(980줄)가 PostgREST·Next 라우트·Auth�
 
 ## 🌐 다국어 지원
 
-UI 고정 문자열은 `src/lib/translations.ts`(언어당 키 68개)에서 관리합니다. 선택한 언어는 localStorage `ku_map_lang`에 유지됩니다.
+UI 고정 문자열은 `src/lib/translations.ts`(언어당 키 72개)에서 관리합니다. 선택한 언어는 localStorage `ku_map_lang`에 유지됩니다.
 
 콘텐츠 다국어는 DB 컬럼으로 지원합니다 — `facility_types.label_en/zh`, `building_facilities`와 `landmarks`의 `name/description/floor_info`별 `_en`·`_zh`, `building_photos.caption_en/zh`. 시설·명소 저장 시 Papago NMT로 자동 번역하며, 실패하면 `translation_status`를 통해 관리자 화면에 "번역 필요"로 노출됩니다.
 
