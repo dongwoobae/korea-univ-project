@@ -84,8 +84,23 @@ test.describe("관리자 P0 개선 (모바일 메뉴·상태변경 오류)", () 
       "지하 주차장 진입로",
     );
     await form.getByLabel("시설 이름 (선택)").fill("지하 주차장 진입 경사로");
+    const updateRequest = page.waitForRequest(
+      (request) =>
+        request.method() === "PATCH" &&
+        request.url().includes("/rest/v1/building_facilities") &&
+        "facility_code" in (request.postDataJSON() ?? {}),
+    );
     await form.getByRole("button", { name: "저장", exact: true }).click();
 
+    const payload = (await updateRequest).postDataJSON() as Record<
+      string,
+      unknown
+    >;
+    expect(payload).not.toHaveProperty("video_url");
+    expect(payload.name).toBe("지하 주차장 진입 경사로");
+    await expect(page.getByRole("dialog", { name: "시설 수정" })).toHaveCount(
+      0,
+    );
     await expect(
       page.locator(".ku-facility-row", { hasText: "지하 주차장 진입 경사로" }),
     ).toBeVisible();
