@@ -578,10 +578,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(
       page.getByText("경로를 찾을 수 없어요. 이미 삭제됐을 수 있어요"),
     ).toBeVisible();
-    // 안내가 뜬 뒤 목록이 ?redirected를 지우는 router.replace는 부하에 따라 늦다.
-    await expect(page).toHaveURL(
-      /\/admin\/dashboard\/slopes(\?redirected=\w+)?$/,
-    );
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
   });
 
   test("저장 형식이 깨진 경로는 열지 않고 목록에서 알린다", async ({
@@ -598,10 +595,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(
       page.getByText("저장 형식이 깨진 경로라 열 수 없어요"),
     ).toBeVisible();
-    // 안내가 뜬 뒤 목록이 ?redirected를 지우는 router.replace는 부하에 따라 늦다.
-    await expect(page).toHaveURL(
-      /\/admin\/dashboard\/slopes(\?redirected=\w+)?$/,
-    );
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
   });
 
   test("수정 화면에서 값을 고친 채 벗어나려 하면 경고한다", async ({
