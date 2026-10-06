@@ -50,7 +50,8 @@ export default function SlopeSegmentList({
           value !== null && value !== undefined && isSlopeDegInRange(value)
             ? value
             : null;
-        const warning = measured === null ? null : slopeWarningFromDeg(measured);
+        const warning =
+          measured === null ? null : slopeWarningFromDeg(measured);
         const converted =
           measured === null
             ? null

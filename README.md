@@ -49,7 +49,7 @@
 - 🏢 **건물 사이드패널** — 사진 캐러셀, 시설별 설치 상태, 즐겨찾기, **TTS 음성 안내**, 모바일 스와이프 닫기
 - 📌 **시설·명소 마커** — 시설은 유형별 lucide 아이콘, 명소는 관리자가 지정한 이모지. 픽셀 격자 군집(zoom < 18)으로 저줌 가독성 확보, 확대 시 펼침
 - 🏫 **필터** — 캠퍼스 영역(인문사회계/자연계/녹지캠퍼스/의료원), 시설 유형(DB 동적), 경사도, 명소. 모바일 활성 필터 개수 배지
-- 📐 **경사도 오버레이** — 구간별 경사도 색상 시각화 + 범례 (법적 기준 1/12 구분선). 좌표나 경사값이 깨진 행은 그리기 전에 통째로 걸러 냄
+- 📐 **경사도 오버레이** — 구간별 경사도 색상 시각화 + 범례 (보도 기준 1/18 · 완화 한도 1/12 · 경사로 특례 1/8 기준선, %와 도 병기). 좌표나 경사값이 깨진 행은 그리기 전에 통째로 걸러 냄
 - ⭐ **즐겨찾기** — localStorage 저장, 커스텀 이벤트로 지도 스타일 동기화
 - 🌐 **다국어 지원** — 한국어 / English / 中文, 건물·시설·명소 정보까지 다국어 폴백
 - 🚇 **지하철역 마커** — 고려대·안암·보문역
@@ -69,7 +69,7 @@
 - 🧩 **독립 시설 관리** — 건물에 속하지 않는 시설 CRUD, 검색·유형·설치여부 필터·정렬
 - 🌍 **번역 실패 표시** — 자동 번역 실패를 "번역 필요" 배지로 드러내고 **개별·일괄 재번역** 제공 (저장 성공과 번역 실패를 분리)
 - 🏞️ **명소 관리** — 캠퍼스 명소 CRUD, 이모지 지정, 사진 유무 필터, 사진 포함 단일 저장
-- 📐 **경사도 경로 관리** — 지도에 경로를 그리고 **구간별 실측 경사도를 직접 입력·수정**. 입력값에 따라 선 색을 미리 보여주고 법적 기준(1/12)·급경사 경고를 표시하되 저장은 막지 않습니다. GPX 업로드는 종료했고, 기존 GPX 행은 측정 원본이라 다운로드·삭제만 가능합니다
+- 📐 **경사도 경로 관리** — 지도에 경로를 그리고 **구간별 실측 경사도를 직접 입력·수정**. 도(°)나 %로 입력하고 도로 저장합니다. 입력값에 따라 선 색을 미리 보여주고 1/12 완화 한도·급경사 경고를 표시하되 저장은 막지 않습니다. 편집기는 현재 위치에서 열리고 주변 건물을 깔며, 건물 외곽선 스냅을 켜고 끌 수 있습니다
 - 📄 **서버 페이지네이션** — 모든 목록에 번호 페이지네이션(`aria-current="page"` + 라이브 안내) 적용
 - 🔄 **Overpass API 동기화** — 3개 서버 순차 시도 방어 로직
 - ⚙️ **앱 설정 관리** — 피드백 수신 이메일 등 동적 설정
@@ -128,7 +128,7 @@ src/
         buildings/page.tsx           # 건물 목록 — 보완 현황 카드 + 플래그 필터 + 검색 + 서버 페이지네이션
         facilities/page.tsx          # 독립(건물 미소속) 시설 관리
         landmarks/page.tsx           # 캠퍼스 명소 관리
-        slopes/page.tsx              # 경사도 경로 목록 — 수기/GPX 구분, GPX 다운로드·삭제
+        slopes/page.tsx              # 경사도 경로 목록 — 수정·삭제
       buildings/
         new/page.tsx                 # 신규 건물 추가 (폴리곤 그리기 + 캠퍼스 자동 판정)
         [id]/page.tsx                # 건물 상세 — 카드 조합 + 저장·삭제·복구 오케스트레이션
@@ -181,7 +181,7 @@ src/
       iconography.tsx                # JSX용 lucide 아이콘 · 명소 이모지 컴포넌트
       facilityColors.ts / subwayStations.ts
     sidepanel/
-      SidePanelHeader.tsx / PhotoCarousel.tsx / FacilityList.tsx
+      SidePanelHeader.tsx / PhotoCarousel.tsx / PhotoLightbox.tsx / FacilityList.tsx
     slope/
       SlopeRouteMap.tsx              # Leaflet·geoman 격리 — 경로 그리기 + 색상 미리보기
       SlopeSegmentList.tsx           # 구간별 경사도 입력 + 기준 초과 경고
@@ -205,7 +205,7 @@ src/
     authedFetch.ts                   # 인증 fetch 헬퍼
     LanguageContext.tsx              # 다국어 Context (KO/EN/ZH)
     translations.ts                  # UI 문자열 번역 딕셔너리
-    theme.ts                         # 디자인 토큰 · 캠퍼스/시설/경사 색상
+    theme.ts                         # 디자인 토큰 · 캠퍼스/시설 색상
     mapIcons.ts                      # 아이콘 키 매핑 · lucide-static SVG · 명소 이모지 폴백
     mapTiles.ts                      # 라이트/다크 타일 URL 결정
     usePrefersDarkMode.ts            # prefers-color-scheme 구독
@@ -216,6 +216,9 @@ src/
     neighborBuildings.ts             # 주변 건물 조회 + 모듈 캐시
     neighborLayer.ts                 # 주변 건물 회색 레이어 렌더
     slopeRoute.ts                    # 경사 경로 계산·검증·저장 포맷 변환 (순수 함수)
+    slopeScale.ts                    # 경사 단위(도·%) 변환 · 색 칸 · 기준선 판정 (순수 함수)
+    mapBounds.ts                     # 캠퍼스 지도 표시 범위 (Leaflet 비의존)
+    photoDownload.ts                 # 사진 다운로드 URL·파일명
     adminBuildingSummary.ts          # 보완 현황 집계 판정 + 플래그 필터
     adminList.ts                     # 목록 검색·정렬·페이지 범위 계산
     facilityBadges.ts                # 시설 행 배지 판정
@@ -323,9 +326,9 @@ landmarks
 slope_segments
   id         uuid primary key
   name       text                    -- 구간 식별명
-  segments   jsonb                   -- SlopePoint[] = { lat, lng, ele, slope?, distance? }
-                                     -- 수기 경로는 ele=null이고 2번째 포인트부터 slope·distance를 담는다
-  gpx_file   text                    -- NULL이면 수기 경로, 값이 있으면 GPX 측정 원본
+  segments   jsonb                   -- [{ lat, lng }, ...{ lat, lng, slope(도), distance(m) }]
+                                     -- 이 변경 전에 저장한 행에는 ele: null 키가 남아 있다(읽지 않음)
+  gpx_file   text                    -- GPX 시절 컬럼. 2026-10-06 정리 이후 항상 NULL
   created_at timestamptz
   updated_at timestamptz not null    -- 수정 화면의 낙관적 잠금 조건
 
@@ -457,27 +460,27 @@ npm run test:e2e:ui   # Playwright UI 모드
 
 **Vitest 단위 테스트 (23개 파일, 146개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, 피드백 입력 검증, 피드백·명소 삭제 API 라우트.
 
-경사 경로 판단 로직은 전부 `src/lib/slopeRoute.ts`의 순수 함수로 빼 두었습니다. Vitest가 `environment: "node"`로 돌기 때문에, Leaflet에 묶인 채로는 단위 테스트가 닿지 않습니다.
+경사 경로 판단 로직은 `src/lib/slopeRoute.ts`(경로·저장 포맷)와 `src/lib/slopeScale.ts`(단위·색·기준선)의 순수 함수로 빼 두었습니다. Vitest가 `environment: "node"`로 돌기 때문에, Leaflet에 묶인 채로는 단위 테스트가 닿지 않습니다.
 
 **Playwright E2E (15개 spec, 124개 시나리오)**
 
-| 파일                                    | 검증 대상                                                                                                                                                                                                                                                     |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `public-map.spec.ts`                    | 지도 로드, 건물·명소 라벨 줌·언어 반영, 패널 z-order, 검색→상세→즐겨찾기 영속, 필터, 마커 군집, 둘러보기 목록, 다국어 팝업, **시스템 색상 모드별 타일 교체**, 피드백 성공/실패, TTS·음성검색 미지원 안내                                                      |
-| `public-map-p0.spec.ts`                 | 모바일 언어 드롭다운·상단 컨트롤 간격·목록 패널 겹침, 모바일 즐겨찾기, **API 실패 → 오류 배너 → 재시도 복구**, 조회 실패와 빈 상태 구분                                                                                                                       |
-| `public-map-p1.spec.ts`                 | 현재위치 성공/권한거부, 모바일 필터 배지, 캠퍼스 필터                                                                                                                                                                                                         |
-| `public-map-p1-remainder.spec.ts`       | 시설 영상 접근 이름·자막, 상세 패널 스와이프 닫기, 음성인식 실패 구분                                                                                                                                                                                         |
-| `public-map-search.spec.ts`             | 영문 부분일치, 키보드 이동·Enter 선택, Escape 동작, 결과 없음, 라벨 언어 추종, 총 개수 안내                                                                                                                                                                   |
-| `admin-auth.spec.ts`                    | 비로그인 리다이렉트, 로그인/로그아웃, 피드백 이메일 변경                                                                                                                                                                                                      |
-| `admin-buildings-slopes.spec.ts`        | **보완 현황 서버 집계 표시**, 서버 페이지네이션, 건물 생성 검증·폴리곤 저장, 소프트 삭제/복원, **사진 파일별 성공/실패 + 실패만 재시도**, **경로 그리기·구간 입력·저장 포맷**, 열어둔 사이 바뀐 행·GPX 행 보호, **저장한 경로가 공개 지도에 그려지는지 확인** |
-| `admin-buildings-flag-filter.spec.ts`   | 경고 카드 클릭 시 목록 개수가 카드 숫자와 일치, 필터·검색어 AND 결합, 0건 카드의 빈 목록 처리                                                                                                                                                                 |
-| `admin-building-facility-modal.spec.ts` | 시설 행 → 상세 모달, 유형별 아이콘, 배지가 붙는 조건, 상태 토글의 목록 반영, 초점 복귀(닫기·ESC·삭제), 일괄 재번역 성공/실패                                                                                                                                  |
-| `admin-building-video.spec.ts`          | 건물 동영상 섹션 목록, 업로드 모달, 교체 경고, 미설치 시설의 공개 안 됨 표시, 시설 없는 건물 비활성                                                                                                                                                           |
-| `admin-content.spec.ts`                 | 독립 시설 검색·필터·정렬, 시설 CRUD, **저장 성공과 번역 실패 분리 + 재번역**, 영상 업로드→자막→삭제, 명소 CRUD·필터·페이지네이션                                                                                                                              |
-| `accessibility-dialog-toast.spec.ts`    | 모달 초점 트랩·복귀, **중첩 모달 초점 복원**, 실행 버튼 소멸 시 대체 복귀, **오류=alert / 성공=status**, 폼 라벨 연결, **모바일 44px 터치 영역**                                                                                                              |
-| `admin-p0.spec.ts`                      | 모바일 계정 메뉴, 상태 변경 실패 시 성공 메시지 미표시                                                                                                                                                                                                        |
-| `admin-dark.spec.ts`                    | 다크 모드 대비 회귀 가드 — 하드코딩 밝은 색·근검정 텍스트 0건 단언                                                                                                                                                                                            |
-| `admin-campus-boundaries.spec.ts`       | 캠퍼스 밖 시설 경고하되 저장 허용                                                                                                                                                                                                                             |
+| 파일                                    | 검증 대상                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `public-map.spec.ts`                    | 지도 로드, 건물·명소 라벨 줌·언어 반영, 패널 z-order, 검색→상세→즐겨찾기 영속, 필터, 마커 군집, 둘러보기 목록, 다국어 팝업, **시스템 색상 모드별 타일 교체**, 피드백 성공/실패, TTS·음성검색 미지원 안내                                                                                                    |
+| `public-map-p0.spec.ts`                 | 모바일 언어 드롭다운·상단 컨트롤 간격·목록 패널 겹침, 모바일 즐겨찾기, **API 실패 → 오류 배너 → 재시도 복구**, 조회 실패와 빈 상태 구분                                                                                                                                                                     |
+| `public-map-p1.spec.ts`                 | 현재위치 성공/권한거부, 모바일 필터 배지, 캠퍼스 필터                                                                                                                                                                                                                                                       |
+| `public-map-p1-remainder.spec.ts`       | 시설 영상 접근 이름·자막, 상세 패널 스와이프 닫기, 음성인식 실패 구분                                                                                                                                                                                                                                       |
+| `public-map-search.spec.ts`             | 영문 부분일치, 키보드 이동·Enter 선택, Escape 동작, 결과 없음, 라벨 언어 추종, 총 개수 안내                                                                                                                                                                                                                 |
+| `admin-auth.spec.ts`                    | 비로그인 리다이렉트, 로그인/로그아웃, 피드백 이메일 변경                                                                                                                                                                                                                                                    |
+| `admin-buildings-slopes.spec.ts`        | **보완 현황 서버 집계 표시**, 서버 페이지네이션, 건물 생성 검증·폴리곤 저장, 소프트 삭제/복원, **사진 파일별 성공/실패 + 실패만 재시도**, **경로 그리기·구간 입력·저장 포맷**, 열어둔 사이 바뀐 행 보호, 깨진 저장 포맷 거부, 도·% 입력, 현재 위치·구간 번호, **저장한 경로가 공개 지도에 그려지는지 확인** |
+| `admin-buildings-flag-filter.spec.ts`   | 경고 카드 클릭 시 목록 개수가 카드 숫자와 일치, 필터·검색어 AND 결합, 0건 카드의 빈 목록 처리                                                                                                                                                                                                               |
+| `admin-building-facility-modal.spec.ts` | 시설 행 → 상세 모달, 유형별 아이콘, 배지가 붙는 조건, 상태 토글의 목록 반영, 초점 복귀(닫기·ESC·삭제), 일괄 재번역 성공/실패                                                                                                                                                                                |
+| `admin-building-video.spec.ts`          | 건물 동영상 섹션 목록, 업로드 모달, 교체 경고, 미설치 시설의 공개 안 됨 표시, 시설 없는 건물 비활성                                                                                                                                                                                                         |
+| `admin-content.spec.ts`                 | 독립 시설 검색·필터·정렬, 시설 CRUD, **저장 성공과 번역 실패 분리 + 재번역**, 영상 업로드→자막→삭제, 명소 CRUD·필터·페이지네이션                                                                                                                                                                            |
+| `accessibility-dialog-toast.spec.ts`    | 모달 초점 트랩·복귀, **중첩 모달 초점 복원**, 실행 버튼 소멸 시 대체 복귀, **오류=alert / 성공=status**, 폼 라벨 연결, **모바일 44px 터치 영역**                                                                                                                                                            |
+| `admin-p0.spec.ts`                      | 모바일 계정 메뉴, 상태 변경 실패 시 성공 메시지 미표시                                                                                                                                                                                                                                                      |
+| `admin-dark.spec.ts`                    | 다크 모드 대비 회귀 가드 — 하드코딩 밝은 색·근검정 텍스트 0건 단언                                                                                                                                                                                                                                          |
+| `admin-campus-boundaries.spec.ts`       | 캠퍼스 밖 시설 경고하되 저장 허용                                                                                                                                                                                                                                                                           |
 
 E2E는 `e2e/support/mockBackend.ts`(980줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다. 쓰기 요청의 `id` 외 필터(`is.null`, `eq.`)도 실제 PostgREST처럼 적용하므로, 저장 조건에 건 잠금이 목 위에서만 통과하는 일이 없습니다.
 
@@ -586,7 +589,7 @@ UI 고정 문자열은 `src/lib/translations.ts`(언어당 키 68개)에서 관�
 ### 🚧 남은 작업
 
 - [ ] **현장 조사 + 시설·경사도 데이터 입력** ← 최우선
-- [ ] GPX 경사 경로 폐기 — 실측 데이터로 다시 채운 뒤 `gpx_file` 컬럼과 관련 분기 제거 (설계 문서의 2단계)
+- [ ] `slope_segments.gpx_file` 컬럼 삭제 — GPX 행 삭제와 코드 분기 정리는 끝났다(2026-10-06)
 - [ ] [관리자 역할 검사](docs/TODO_list/auth/require-admin-role-check.md) — 로그인 세션이면 누구나 쓸 수 있는 테이블을 좁힌다
 - [ ] [배리어프리 경로 안내](docs/future-development/accessible-routing.md) — 보행로 네트워크 확보 후
 - [ ] [관리자 피드백함](docs/future-development/admin-feedback-inbox.md) — 접수된 피드백 목록·상태 관리

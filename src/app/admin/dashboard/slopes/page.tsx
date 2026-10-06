@@ -228,8 +228,8 @@ export default function SlopesPage() {
                       marginTop: 2,
                     }}
                   >
-                    {Array.isArray(s.segments) ? s.segments.length : 0}개 포인트 ·{" "}
-                    {formatAdminUpdatedAt(s.updated_at)}
+                    {Array.isArray(s.segments) ? s.segments.length : 0}개 포인트
+                    · {formatAdminUpdatedAt(s.updated_at)}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 8 }}>

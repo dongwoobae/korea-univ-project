@@ -76,9 +76,7 @@ describe("toStoredSegments", () => {
   it("경사도를 반올림하지 않는다", () => {
     expect(toStoredSegments([A, B], [7.26])[1].slope).toBe(7.26);
     const fromPercent = percentToDeg(12.5);
-    expect(toStoredSegments([A, B], [fromPercent])[1].slope).toBe(
-      fromPercent,
-    );
+    expect(toStoredSegments([A, B], [fromPercent])[1].slope).toBe(fromPercent);
   });
 
   it("경사도 0도 값으로 저장한다", () => {
@@ -194,10 +192,17 @@ describe("readRoutePoints", () => {
   });
 
   it("좌표가 유한한 수가 아니면 경로 전체를 거른다", () => {
-    expect(readRoutePoints([{ lat: null, lng: 127.032 }, stored[1]])).toBeNull();
-    expect(readRoutePoints([{ lat: "37", lng: 127.032 }, stored[1]])).toBeNull();
     expect(
-      readRoutePoints([stored[0], { lat: 37.59, lng: NaN, slope: 1, distance: 1 }]),
+      readRoutePoints([{ lat: null, lng: 127.032 }, stored[1]]),
+    ).toBeNull();
+    expect(
+      readRoutePoints([{ lat: "37", lng: 127.032 }, stored[1]]),
+    ).toBeNull();
+    expect(
+      readRoutePoints([
+        stored[0],
+        { lat: 37.59, lng: NaN, slope: 1, distance: 1 },
+      ]),
     ).toBeNull();
   });
 
