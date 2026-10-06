@@ -638,9 +638,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     expect((row.segments as Array<Record<string, unknown>>)[1].slope).toBe(7.2);
   });
 
-  test("구간 값을 넣어 저장하면 저장 포맷으로 들어간다", async ({
-    page,
-  }) => {
+  test("구간 값을 넣어 저장하면 저장 포맷으로 들어간다", async ({ page }) => {
     const state = await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/slopes/new");
 
@@ -953,7 +951,9 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(finish).toHaveText("끝내기");
     await expect(finish).toBeVisible();
     await expect(
-      page.locator(".leaflet-pm-actions-container").getByText("마지막 꼭지점 제거"),
+      page
+        .locator(".leaflet-pm-actions-container")
+        .getByText("마지막 꼭지점 제거"),
     ).toBeVisible();
   });
 
@@ -1109,5 +1109,44 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       page.locator(".leaflet-pane.slope-preview-pane path").first(),
     ).toBeVisible();
     await expect(blueDot(page)).toHaveCount(0);
+  });
+
+  test("편집기에 주변 건물을 깔고 스냅은 끈 채 시작한다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    await expect(
+      page.locator(".leaflet-tooltip.bldg-label", { hasText: "중앙도서관" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("checkbox", { name: "건물 외곽선에 붙이기" }),
+    ).not.toBeChecked();
+  });
+
+  test("주변 건물이 있어도 찍은 자리에 꼭짓점이 놓인다", async ({ page }) => {
+    // 스냅이 꺼져 있으면 건물 외곽선 근처를 찍어도 그 픽셀에 꼭짓점이 놓여야 한다.
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+    await expect(
+      page.locator(".leaflet-tooltip.bldg-label").first(),
+    ).toBeVisible();
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    const mapBox = (await map.boundingBox())!;
+    const vertex = (await page.locator(".marker-icon").first().boundingBox())!;
+    expect(
+      Math.abs(vertex.x + vertex.width / 2 - (mapBox.x + points[0].x)),
+    ).toBeLessThan(3);
+    expect(
+      Math.abs(vertex.y + vertex.height / 2 - (mapBox.y + points[0].y)),
+    ).toBeLessThan(3);
   });
 });

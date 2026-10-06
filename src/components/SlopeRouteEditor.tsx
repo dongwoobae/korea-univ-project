@@ -75,6 +75,7 @@ export default function SlopeRouteEditor({
   const [name, setName] = useState(initialName);
   const [vertices, setVertices] = useState<Vertex[]>(initialVertices ?? []);
   const [slopes, setSlopes] = useState<(number | null)[]>(initialSlopes);
+  const [snapToBuildings, setSnapToBuildings] = useState(false);
   const [unit, setUnit] = useState<SlopeUnit>(readUnitPreference);
   const [drafts, setDrafts] = useState<string[]>(() =>
     initialSlopes.map((slope) =>
@@ -177,10 +178,27 @@ export default function SlopeRouteEditor({
           initialVertices={initialVertices}
           onVerticesChange={handleVerticesChange}
           slopes={slopes}
+          snapToBuildings={snapToBuildings}
           onResetReady={(reset) => {
             resetMapRef.current = reset;
           }}
         />
+        <label
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 13,
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={snapToBuildings}
+            onChange={(event) => setSnapToBuildings(event.target.checked)}
+          />
+          건물 외곽선에 붙이기
+        </label>
         <fieldset
           style={{
             border: 0,

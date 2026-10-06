@@ -10,6 +10,8 @@ import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import { KU_BOUNDS, containsPoint } from "@/lib/mapBounds";
 import { slopeColorFromDeg } from "@/lib/slopeScale";
 import type { Vertex } from "@/lib/slopeRoute";
+import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
+import { addNeighborLayer } from "@/lib/neighborLayer";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
@@ -17,6 +19,7 @@ interface SlopeRouteMapProps {
   initialVertices: Vertex[] | null;
   onVerticesChange: (vertices: Vertex[]) => void;
   slopes: (number | null)[];
+  snapToBuildings: boolean;
   // next/dynamic(ssr:false)로 불러온 컴포넌트는 ref를 가로채 로더 자신의
   // 핸들({ retry })로 덮어써서 부모까지 전달하지 않는다. 그래서 명령형
   // reset은 ref 대신 이 콜백으로 등록해 노출한다.
@@ -27,6 +30,7 @@ export default function SlopeRouteMap({
   initialVertices,
   onVerticesChange,
   slopes,
+  snapToBuildings,
   onResetReady,
 }: SlopeRouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,6 +75,22 @@ export default function SlopeRouteMap({
       subdomains: "abcd",
       maxZoom: 19,
     }).addTo(map);
+
+    const buildingPane = map.createPane("slopeBuildings");
+    buildingPane.style.zIndex = "300";
+    void fetchNeighborBuildings()
+      .then((features) => {
+        if (disposed) return;
+        // 드래그·편집 대상에서는 빼고 스냅 목록에는 남긴다. 스냅은 토글이 켜고 끈다.
+        addNeighborLayer(map, features, null, {
+          pane: "slopeBuildings",
+          pmIgnore: true,
+          snapIgnore: false,
+        });
+      })
+      .catch(() => {
+        // 배경 건물은 보조 정보다. 실패해도 경로는 그릴 수 있다.
+      });
 
     // 편집선(overlayPane, z-index 400)보다 아래에 둔다. "아래에 그린다"를 말로만
     // 두면 실제 순서가 보장되지 않는다.
@@ -197,7 +217,8 @@ export default function SlopeRouteMap({
             interactive: false,
             pmIgnore: true,
           }).addTo(map);
-          if (followLocation) map.setView([latitude, longitude], 18, { animate: false });
+          if (followLocation)
+            map.setView([latitude, longitude], 18, { animate: false });
         },
         () => {
           // 거부·실패면 KU_CENTER에 그대로 둔다.
@@ -216,6 +237,10 @@ export default function SlopeRouteMap({
       labelsRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    mapRef.current?.pm.setGlobalOptions({ snappable: snapToBuildings });
+  }, [snapToBuildings]);
 
   useEffect(() => {
     tileLayerRef.current?.setUrl(getCartoTileUrl(prefersDarkMode));
