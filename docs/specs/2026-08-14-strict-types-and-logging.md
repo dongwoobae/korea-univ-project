@@ -40,7 +40,7 @@
 
 - **`Toast`의 `type`은 `string`.** 호출부가 `STYLES`에 없는 `"info"`를 넘긴다(위치 안내·즐겨찾기 저장 안내). `STYLES[type] ?? STYLES.success` 폴백이 load-bearing이라 좁은 유니온으로 조이면 그 호출부가 깨진다. 그 결과 `"info"` 토스트는 초록 success 스타일로 그려진다 — 의도 여부 미확인.
 - **`LanguageContext.t`의 키는 `string`.** `LanguageContextValue.t: (key: string) => string`이 선언된 계약이다. 조회 지점에서 사전을 `Record<string, string | undefined>`로 본다.
-- **`SlopePoint.ele`는 `number | null`.** DB 컬럼이 nullable이다. 계산 지점에서 `?? 0`으로 떨어뜨리며, 이는 기존 JS 동작(`null - 5 === -5`)과 같다.
+- **`SlopePoint.ele`는 `number | null`.** DB 컬럼이 nullable이다. 계산 지점에서 `?? 0`으로 떨어뜨리며, 이는 기존 JS 동작(`null - 5 === -5`)과 같다. (2026-10-06 — GPX 코드 정리로 `ele`를 없앴다. `ele`는 DB 컬럼이 아니라 `segments` jsonb 안 GPX 필드였다. `2026-10-06-slope-units-and-editor-design.md` 6장.)
 
 ## 관리자 건물 상세 페이지 분해
 

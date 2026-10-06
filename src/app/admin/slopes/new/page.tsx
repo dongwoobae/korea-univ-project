@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import SlopeRouteEditor from "@/components/SlopeRouteEditor";
 import Toast from "@/components/Toast";
-import type { SlopePoint } from "@/types/domain";
+import type { SlopeRoutePoints } from "@/types/domain";
 import type { Json } from "@supabase-types";
 import "../../admin-ui.css";
 
@@ -27,7 +27,7 @@ export default function NewSlopeRoutePage() {
     });
   }, [router]);
 
-  async function handleSave(name: string, segments: SlopePoint[]) {
+  async function handleSave(name: string, segments: SlopeRoutePoints) {
     setSaving(true);
     const { error } = await supabase.from("slope_segments").insert({
       name,

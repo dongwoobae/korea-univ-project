@@ -97,6 +97,7 @@ export default function PolygonEditor({
       });
     }
 
+    map.pm.setLang("ko");
     map.pm.addControls({
       position: "topleft",
       drawPolygon: true,

@@ -8,7 +8,7 @@
  *      - 건물 1: 중앙도서관(id 1, 인문사회계)
  *      - 시설: `f-installed`(설치 경사로·건물 미소속) · `f-building`(건물 1 소속 엘리베이터)
  *              · `f-uninstalled`(미설치 주차)
- *      - 명소 1(다람쥐길) · 경사 2(GPX 1 · 수기 1) · 사진 1
+ *      - 명소 1(다람쥐길) · 경사 2(수기) · 사진 1
  *
  * 2) 라우팅: `installMockBackend()`가 전역 `page.route`로 모든 요청을 가로챈다.
  *      - `/rest/v1/<table>` → `handleRest()`: PostgREST 흉내.
@@ -275,10 +275,10 @@ function createState(authenticated: boolean): MockState {
       {
         id: 1,
         name: "정문-중앙광장",
-        gpx_file: "정문-중앙광장.gpx",
+        gpx_file: null,
         segments: [
-          { lat: 37.589, lng: 127.032, ele: 20 },
-          { lat: 37.5892, lng: 127.0322, ele: 22 },
+          { lat: 37.589, lng: 127.032 },
+          { lat: 37.5892, lng: 127.0322, slope: 3, distance: 28.4 },
         ],
         created_at: "2026-07-21T00:00:00Z",
         updated_at: "2026-07-22T00:00:00Z",
@@ -305,7 +305,7 @@ function createState(authenticated: boolean): MockState {
       {
         id: 1,
         building_id: 1,
-        url: "https://cdn.test/library.webp",
+        url: "https://cdn.test/library.webp?t=1700000000000",
         caption: "정문",
         caption_en: "Main entrance",
         caption_zh: "正门",
@@ -336,9 +336,9 @@ const filterId = (url: URL) => {
   return value?.startsWith("eq.") ? value.slice(3) : null;
 };
 
-// 쓰기 요청에 붙은 id 외 필터(`?gpx_file=is.null`, `?updated_at=eq.<v>`)를
+// 쓰기 요청에 붙은 id 외 필터(`?updated_at=eq.<v>`)를
 // 행에 대조한다. 실제 PostgREST는 이 조건을 쓰기에도 적용하므로, 여기서
-// 무시하면 낙관적 잠금과 GPX 보호가 목 위에서만 통과한다.
+// 무시하면 낙관적 잠금이 목 위에서만 통과한다.
 const matchesWriteFilters = (row: Row, url: URL) => {
   for (const [key, value] of url.searchParams) {
     if (key === "id" || key === "select" || key === "columns") continue;
@@ -828,14 +828,17 @@ async function handleApi(route: Route, state: MockState, url: URL) {
 // 테스트 beforeEach에서 호출. 브라우저 API 스텁(addInitScript)을 심고, 이후
 // 모든 네트워크 요청을 위 핸들러들로 라우팅한다. 생성된 state를 반환하므로
 // 테스트에서 초기 데이터를 참조할 수 있다.
-// options.authenticated: 관리자 세션으로 시작할지 / options.currentLocation: geolocation 좌표.
+// options.authenticated: 관리자 세션으로 시작할지 / options.currentLocation: geolocation 좌표(null이면 거부) / options.geolocationDelayMs: 응답 지연.
 export async function installMockBackend(
   page: Page,
   options: {
     authenticated?: boolean;
     failBuildingPhotoUploads?: number;
     failTranslations?: number;
-    currentLocation?: { latitude: number; longitude: number };
+    /** null이면 위치 권한 거부로 응답한다 */
+    currentLocation?: { latitude: number; longitude: number } | null;
+    /** 위치 응답을 늦춘다(ms) */
+    geolocationDelayMs?: number;
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
@@ -843,7 +846,7 @@ export async function installMockBackend(
   state.translationFailuresRemaining = options.failTranslations ?? 0;
   // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(
-    ({ authenticated, currentLocation }) => {
+    ({ authenticated, currentLocation, geolocationDelayMs }) => {
       if (authenticated) {
         localStorage.setItem(
           "sb-127-auth-token",
@@ -895,20 +898,33 @@ export async function installMockBackend(
       Object.defineProperty(navigator, "geolocation", {
         configurable: true,
         value: {
-          getCurrentPosition(success: PositionCallback) {
-            success({
-              coords: currentLocation,
-            } as GeolocationPosition);
+          getCurrentPosition(
+            success: PositionCallback,
+            error?: PositionErrorCallback | null,
+          ) {
+            const respond = () => {
+              if (currentLocation) {
+                success({ coords: currentLocation } as GeolocationPosition);
+              } else {
+                error?.({
+                  code: 1,
+                  message: "User denied Geolocation",
+                } as GeolocationPositionError);
+              }
+            };
+            if (geolocationDelayMs > 0) setTimeout(respond, geolocationDelayMs);
+            else respond();
           },
         },
       });
     },
     {
       authenticated: state.authenticated,
-      currentLocation: options.currentLocation ?? {
-        latitude: 37.5893,
-        longitude: 127.0327,
-      },
+      currentLocation:
+        options.currentLocation === undefined
+          ? { latitude: 37.5893, longitude: 127.0327 }
+          : options.currentLocation,
+      geolocationDelayMs: options.geolocationDelayMs ?? 0,
     },
   );
 

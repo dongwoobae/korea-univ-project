@@ -1,19 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
+import PhotoLightbox from "@/components/sidepanel/PhotoLightbox";
+import type { SidePanelPhoto } from "@/components/SidePanel";
 import type { LangCode } from "@/lib/translations";
-import type { BuildingPhoto } from "@/types/domain";
-
-type PhotoRow = Pick<
-  BuildingPhoto,
-  "id" | "url" | "caption" | "caption_en" | "caption_zh"
->;
 
 interface PhotoCarouselProps {
-  photos: PhotoRow[];
+  photos: SidePanelPhoto[];
   photoIndex: number;
   setPhotoIndex: (updater: number | ((i: number) => number)) => void;
+  buildingName: string;
   displayName: string;
   lang: LangCode;
   t: (key: string) => string;
@@ -23,10 +21,12 @@ export default function PhotoCarousel({
   photos,
   photoIndex,
   setPhotoIndex,
+  buildingName,
   displayName,
   lang,
   t,
 }: PhotoCarouselProps) {
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   return (
     <>
       {photos.length > 0 ? (
@@ -41,20 +41,34 @@ export default function PhotoCarousel({
             overflow: "hidden",
           }}
         >
-          <Image
-            src={photos[photoIndex]?.url}
-            alt={displayName}
-            fill
-            sizes="(max-width: 767px) calc(100vw - 40px), 380px"
-            unoptimized
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(true)}
+            aria-label={t("photoEnlarge")}
             style={{
-              objectFit: "cover",
+              position: "absolute",
+              inset: 0,
+              padding: 0,
+              border: 0,
+              background: "none",
+              cursor: "zoom-in",
             }}
-          />
+          >
+            <Image
+              src={photos[photoIndex]?.url}
+              alt={displayName}
+              fill
+              sizes="(max-width: 767px) calc(100vw - 40px), 380px"
+              unoptimized
+              style={{
+                objectFit: "cover",
+              }}
+            />
+          </button>
           {photos.length > 1 && (
             <>
               <button
-                aria-label="이전 사진"
+                aria-label={t("photoPrev")}
                 onClick={() =>
                   setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)
                 }
@@ -79,7 +93,7 @@ export default function PhotoCarousel({
                 <ChevronLeft size={18} aria-hidden="true" />
               </button>
               <button
-                aria-label="다음 사진"
+                aria-label={t("photoNext")}
                 onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)}
                 style={{
                   position: "absolute",
@@ -167,6 +181,18 @@ export default function PhotoCarousel({
             : (photos[photoIndex][`caption_${lang}`] ??
               photos[photoIndex].caption)}
         </div>
+      )}
+      {lightboxOpen && photos.length > 0 && (
+        <PhotoLightbox
+          photos={photos}
+          index={photoIndex}
+          onIndexChange={setPhotoIndex}
+          onClose={() => setLightboxOpen(false)}
+          buildingName={buildingName}
+          displayName={displayName}
+          lang={lang}
+          t={t}
+        />
       )}
     </>
   );

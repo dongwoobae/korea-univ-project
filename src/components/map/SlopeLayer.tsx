@@ -1,76 +1,13 @@
 "use client";
 import { Polyline, Popup } from "react-leaflet";
-import { slopeColor } from "@/lib/theme";
+import {
+  degToPercent,
+  formatDeg,
+  formatPercent,
+  slopeColorFromDeg,
+} from "@/lib/slopeScale";
 import { readRoutePoints } from "@/lib/slopeRoute";
-import type { SlopePoint, SlopeSegment } from "@/types/domain";
-
-/**
- * 수기 입력 행은 구간 값을 포인트에 실어 저장하고, GPX 측정 행은 원시 좌표와
- * 고도만 담는다. 어느 쪽이 왔는지는 아래 SlopeLayer가 slope 유무로 가른다.
- */
-type MetricPoint = SlopePoint & { slope: number; distance: number };
-
-function haversine(lat1: number, lng1: number, lat2: number, lng2: number) {
-  const R = 6371000;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function medianFilter(points: SlopePoint[], half = 2): SlopePoint[] {
-  return points.map((p, i) => {
-    const start = Math.max(0, i - half);
-    const end = Math.min(points.length - 1, i + half);
-    const eles = points
-      .slice(start, end + 1)
-      .map((pt) => pt.ele ?? 0)
-      .sort((a, b) => a - b);
-    return { ...p, ele: eles[Math.floor(eles.length / 2)] };
-  });
-}
-
-function processRawPoints(points: SlopePoint[]): MetricPoint[] {
-  if (points.length < 2)
-    return points.map((p) => ({ ...p, slope: 0, distance: 0 }));
-  const smoothed = medianFilter(points);
-  const result: MetricPoint[] = [{ ...smoothed[0], slope: 0, distance: 0 }];
-  let accumDist = 0;
-  let segStartIdx = 0;
-  for (let i = 1; i < smoothed.length; i++) {
-    accumDist += haversine(
-      smoothed[i - 1].lat,
-      smoothed[i - 1].lng,
-      smoothed[i].lat,
-      smoothed[i].lng,
-    );
-    const isLast = i === smoothed.length - 1;
-    if (accumDist >= 10 || (isLast && accumDist >= 5)) {
-      const eleDiff = (smoothed[i].ele ?? 0) - (smoothed[segStartIdx].ele ?? 0);
-      const rawSlope = accumDist > 0 ? (eleDiff / accumDist) * 100 : 0;
-      const slope = Math.abs(rawSlope) > 30 ? 0 : rawSlope;
-      result.push({
-        lat: smoothed[i].lat,
-        lng: smoothed[i].lng,
-        ele: smoothed[i].ele,
-        slope: Math.round(slope * 10) / 10,
-        distance: Math.round(accumDist * 10) / 10,
-      });
-      segStartIdx = i;
-      accumDist = 0;
-    } else if (isLast && result.length > 1) {
-      const last = result[result.length - 1];
-      last.lat = smoothed[i].lat;
-      last.lng = smoothed[i].lng;
-      last.ele = smoothed[i].ele;
-    }
-  }
-  return result;
-}
+import type { SlopeSegment } from "@/types/domain";
 
 // /api/slopes는 id·name·segments만 select한다. Row 전체를 받는 것처럼 쓰면
 // 런타임에 없는 필드를 있는 것으로 보증하게 된다.
@@ -78,27 +15,21 @@ type SlopeRoute = Pick<SlopeSegment, "id" | "name" | "segments">;
 
 export default function SlopeLayer({ slopes }: { slopes: SlopeRoute[] }) {
   return slopes.flatMap((route) => {
-    const raw = readRoutePoints(route.segments);
-    if (!raw) return [];
+    const points = readRoutePoints(route.segments);
+    if (!points) return [];
+    const [, ...measured] = points;
 
-    // 수기 입력(slope 필드 있음) / GPX 측정(원시 좌표) 자동 감지
-    const segs: MetricPoint[] =
-      raw[1].slope !== undefined
-        ? (raw as MetricPoint[])
-        : processRawPoints(raw);
-
-    return segs.slice(1).map((seg, i) => {
-      const prev = segs[i];
-      const absoluteSlope = Math.abs(seg.slope);
+    return measured.map((point, i) => {
+      const prev = points[i];
       return (
         <Polyline
           key={`${route.id}-${i}`}
           positions={[
             [prev.lat, prev.lng],
-            [seg.lat, seg.lng],
+            [point.lat, point.lng],
           ]}
           pathOptions={{
-            color: slopeColor(absoluteSlope),
+            color: slopeColorFromDeg(point.slope),
             weight: 5,
             opacity: 0.85,
           }}
@@ -109,10 +40,11 @@ export default function SlopeLayer({ slopes }: { slopes: SlopeRoute[] }) {
                 {route.name}
               </div>
               <div>
-                경사 <strong>{absoluteSlope}%</strong>
+                경사 <strong>{formatPercent(degToPercent(point.slope))}</strong>{" "}
+                ({formatDeg(point.slope)})
               </div>
               <div style={{ color: "#888", fontSize: 11 }}>
-                구간 거리 {seg.distance}m
+                구간 거리 {point.distance}m
               </div>
             </div>
           </Popup>

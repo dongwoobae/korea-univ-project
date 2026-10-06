@@ -40,16 +40,6 @@ export const facilityColor = {
   braille: "#8A6A00",
 } as const;
 
-export function slopeColor(absSlopePct: number) {
-  const slope = Math.abs(absSlopePct);
-  if (slope <= 1) return "#B5AFA8";
-  if (slope <= 2) return "#DDC26A";
-  if (slope <= 5) return "#D89A3A";
-  if (slope <= 8.33) return "#C96C24";
-  if (slope <= 12) return "#AE3B1E";
-  return "#7A1414";
-}
-
 export const radius = { sm: 8, md: 12, lg: 16, full: 999 } as const;
 
 export const shadow = {

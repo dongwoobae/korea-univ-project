@@ -1173,3 +1173,29 @@ button.ku-admin-overview-item {
     min-height: 44px;
   }
 }
+
+/* 경사도 편집기 — 설계 2026-10-06 5.2·5.6 */
+.ku-slope-route-map .ku-slope-segment-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 2px solid var(--ku-text-1);
+  border-radius: 50%;
+  background: var(--ku-surface);
+  color: var(--ku-text-1);
+  font-size: 12px;
+  font-weight: 700;
+}
+.ku-slope-route-map .button-container.active .leaflet-pm-actions-container {
+  display: flex;
+  flex-direction: column;
+}
+.ku-slope-route-map
+  .button-container
+  .leaflet-pm-actions-container
+  .leaflet-pm-action {
+  border-right: 0;
+  border-bottom: 1px solid #eee;
+  border-radius: 0;
+}

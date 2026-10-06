@@ -14,11 +14,20 @@ import { NEIGHBOR_STYLE } from "@/lib/neighborBuildings";
  * 주변 건물 "조회"는 `src/lib/neighborBuildings.ts`가 맡고 있으며, 그 모듈은
  * 서버 렌더링되는 페이지에서도 정적으로 import되므로 Leaflet을 끌어들이면 안
  * 된다 — 이 파일을 분리해 둔 이유다.
+ *
+ * 편집기마다 geoman이 이 레이어를 다뤄야 하는 방식이 달라 레이어 옵션을 받는다(경사도 편집기: 설계 2026-10-06 5.5).
  */
+export interface NeighborLayerOptions {
+  pane?: string;
+  pmIgnore?: boolean;
+  snapIgnore?: boolean;
+}
+
 export function addNeighborLayer(
   map: L.Map,
   features: Feature[],
   excludeId: number | null,
+  layerOptions: NeighborLayerOptions = {},
 ): void {
   const filtered = features.filter(
     (feature) => String(feature.properties?.bid) !== String(excludeId ?? ""),
@@ -26,6 +35,7 @@ export function addNeighborLayer(
   L.geoJSON(
     { type: "FeatureCollection", features: filtered } as FeatureCollection,
     {
+      ...layerOptions,
       style: NEIGHBOR_STYLE,
       interactive: false,
       onEachFeature: (f, layer) => {

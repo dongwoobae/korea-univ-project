@@ -356,17 +356,11 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     ).toBeVisible();
   });
 
-  test("GPX 경로를 다운로드하고 삭제한다", async ({ page }) => {
+  test("경로를 삭제한다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
 
     const row = page.getByText("정문-중앙광장").locator("xpath=../..");
-    const downloadPromise = page.waitForEvent("download");
-    await row.getByRole("button", { name: "다운로드" }).click();
-    expect((await downloadPromise).suggestedFilename()).toBe(
-      "정문-중앙광장.gpx",
-    );
-
     await row.getByRole("button", { name: "삭제" }).click();
     const deleteConfirm = page
       .getByText('"정문-중앙광장" 경로를 삭제할까요?')
@@ -384,22 +378,16 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     );
   });
 
-  test("수기 경로와 GPX 경로의 행 동작을 구분한다", async ({ page }) => {
+  test("목록에 GPX 안내·다운로드가 남지 않는다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
 
-    const manual = page
-      .getByText("안암병원 정문 경사로")
-      .locator("xpath=../..");
-    await expect(manual.getByText("직접 입력")).toBeVisible();
-    await expect(manual.getByRole("button", { name: "수정" })).toBeVisible();
-    await expect(manual.getByRole("button", { name: "다운로드" })).toHaveCount(
-      0,
-    );
-
-    const gpx = page.getByText("정문-중앙광장").locator("xpath=../..");
-    await expect(gpx.getByRole("button", { name: "다운로드" })).toBeVisible();
-    await expect(gpx.getByRole("button", { name: "수정" })).toHaveCount(0);
+    await expect(page.getByText("안암병원 정문 경사로")).toBeVisible();
+    await expect(page.getByText(/GPX/)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "다운로드" })).toHaveCount(0);
+    await expect(
+      page.getByRole("searchbox", { name: "경사도 경로 검색" }),
+    ).toHaveAttribute("placeholder", "경로명 검색");
   });
 
   test("수기 경로를 열어 값을 고쳐 저장한다", async ({ page }) => {
@@ -424,27 +412,13 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     expect(segments[1].slope).toBe(9.4);
   });
 
-  test("GPX 경로 id로 수정 화면에 가면 목록으로 돌려보낸다", async ({
+  test("사유 없이 목록에 들어가면 리다이렉트 안내가 뜨지 않는다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/1");
-    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
-    await expect(
-      page.getByText(
-        "GPX 경로는 측정 원본이라 수정할 수 없어요. 목록에서 다운로드만 가능해요",
-      ),
-    ).toBeVisible();
-  });
-
-  test("사유 없이 목록에 들어가면 GPX 안내가 뜨지 않는다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
-    await expect(
-      page.getByText(
-        "GPX 경로는 측정 원본이라 수정할 수 없어요. 목록에서 다운로드만 가능해요",
-      ),
-    ).toHaveCount(0);
+    await expect(page.getByText("저장 형식이 깨진 경로라")).toHaveCount(0);
+    await expect(page.getByText("경로를 찾을 수 없어요")).toHaveCount(0);
   });
 
   test("비로그인 상태로 수정 화면에 가면 로그인 화면으로 보낸다", async ({
@@ -464,7 +438,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     const preview = page
       .locator(".leaflet-pane.slope-preview-pane path")
       .first();
-    await expect(preview).toHaveAttribute("stroke", "#C96C24");
+    await expect(preview).toHaveAttribute("stroke", "#D75A07");
   });
 
   test("수정 화면에서 지우고 다시 그리기를 누르면 선과 입력값이 함께 비워지고 다시 그릴 수 있다", async ({
@@ -503,15 +477,6 @@ test.describe("건물과 경사도 관리자 흐름", () => {
 
     await expect(page.getByText("구간 1")).toBeVisible();
     await expect(page.getByLabel("구간 1 경사도")).toHaveValue("");
-  });
-
-  test("GPX 업로드를 닫고 종료 안내를 보여준다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-    await expect(page.locator("#gpx-input")).toHaveCount(0);
-    await expect(
-      page.getByText("GPX 등록은 종료됐어요. 경로는 직접 그려서 등록해주세요"),
-    ).toBeVisible();
   });
 
   test("목록에서 경로 직접 그리기로 편집기에 들어간다", async ({ page }) => {
@@ -610,10 +575,27 @@ test.describe("건물과 경사도 관리자 흐름", () => {
   }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/slopes/999");
-    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
     await expect(
       page.getByText("경로를 찾을 수 없어요. 이미 삭제됐을 수 있어요"),
     ).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+  });
+
+  test("저장 형식이 깨진 경로는 열지 않고 목록에서 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    const row = state.slopes.find((slope) => slope.id === 2)!;
+    row.segments = [
+      { lat: 37.5861, lng: 127.0268 },
+      { lat: 37.5862, lng: 127.0269, distance: 12.4 },
+    ];
+
+    await page.goto("/admin/slopes/2");
+    await expect(
+      page.getByText("저장 형식이 깨진 경로라 열 수 없어요"),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
   });
 
   test("수정 화면에서 값을 고친 채 벗어나려 하면 경고한다", async ({
@@ -656,28 +638,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     expect((row.segments as Array<Record<string, unknown>>)[1].slope).toBe(7.2);
   });
 
-  test("열어둔 사이 GPX 행이 되면 측정 원본을 덮지 않는다", async ({
-    page,
-  }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/2");
-    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
-
-    const row = state.slopes.find((slope) => slope.id === 2)!;
-    row.gpx_file = "restored.gpx";
-
-    await page.getByLabel("구간 1 경사도").fill("9.4");
-    await page.getByRole("button", { name: "경로 저장" }).click();
-
-    await expect(
-      page.getByText("다른 곳에서 바뀌었거나 삭제된 경로예요"),
-    ).toBeVisible();
-    expect((row.segments as Array<Record<string, unknown>>)[1].slope).toBe(7.2);
-  });
-
-  test("구간 값을 넣어 저장하면 수기 경로 포맷으로 들어간다", async ({
-    page,
-  }) => {
+  test("구간 값을 넣어 저장하면 저장 포맷으로 들어간다", async ({ page }) => {
     const state = await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/slopes/new");
 
@@ -710,14 +671,16 @@ test.describe("건물과 경사도 관리자 흐름", () => {
 
     const segments = saved.segments as Array<Record<string, unknown>>;
     expect(segments).toHaveLength(2);
-    expect(segments[0].slope).toBeUndefined();
-    expect(segments[0].ele).toBeNull();
+    expect(segments[0]).toEqual({
+      lat: expect.any(Number),
+      lng: expect.any(Number),
+    });
     expect(segments[1].slope).toBe(7.2);
     expect(typeof segments[1].distance).toBe("number");
     expect(segments[1].distance).toBeGreaterThan(0);
   });
 
-  test("법적 기준과 급경사 경고를 표시하되 저장은 막지 않는다", async ({
+  test("완화 한도와 급경사 경고를 표시하되 저장은 막지 않는다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
@@ -735,16 +698,24 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.getByLabel("경로 이름").fill("급경사 시험");
 
     await page.getByLabel("구간 1 경사도").fill("10");
-    await expect(page.getByText("법적 기준(1/12) 초과")).toBeVisible();
+    await expect(page.getByText("1/12 완화 한도 초과")).toBeVisible();
     await expect(page.getByRole("button", { name: "경로 저장" })).toBeEnabled();
 
     await page.getByLabel("구간 1 경사도").fill("45");
     await expect(
-      page.getByText("이 값이 맞나요? 30%를 넘는 보행 경사로는 매우 드뭅니다"),
+      page.getByText(
+        "이 값이 맞나요? 30%(약 16.7°)를 넘는 보행 경사로는 매우 드뭅니다",
+      ),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "경로 저장" })).toBeEnabled();
 
     await page.getByLabel("구간 1 경사도").fill("120");
+    await expect(
+      page.getByRole("button", { name: "경로 저장" }),
+    ).toBeDisabled();
+
+    // tan(181°)는 1.75%다. % 기준 범위 검사라면 통과해 버린다(설계 3.2).
+    await page.getByLabel("구간 1 경사도").fill("181");
     await expect(
       page.getByRole("button", { name: "경로 저장" }),
     ).toBeDisabled();
@@ -768,10 +739,10 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       .first();
 
     await page.getByLabel("구간 1 경사도").fill("1");
-    await expect(preview).toHaveAttribute("stroke", "#B5AFA8");
+    await expect(preview).toHaveAttribute("stroke", "#91D4C6");
 
     await page.getByLabel("구간 1 경사도").fill("10");
-    await expect(preview).toHaveAttribute("stroke", "#AE3B1E");
+    await expect(preview).toHaveAttribute("stroke", "#9A023C");
   });
 
   test("꼭짓점을 드래그하면 미리보기 선도 새 좌표를 따라간다", async ({
@@ -927,14 +898,294 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.goto("/");
     await page.getByRole("checkbox", { name: "경사도" }).check();
 
-    // slopeColor(10)은 8.33 초과 12 이하라 #AE3B1E다(src/lib/theme.ts).
-    // 픽스처의 두 행은 이 색이 아니라 방금 저장한 경로만 잡힌다.
-    const saved = page.locator('path[stroke="#AE3B1E"]').first();
+    // 10°는 17.63%라 15% 초과 칸 #9A023C다(src/lib/slopeScale.ts).
+    // 픽스처의 두 행(3° #36A980, 7.2° #D75A07)은 이 색이 아니라 방금 저장한 경로만 잡힌다.
+    const saved = page.locator('path[stroke="#9A023C"]').first();
     await expect(saved).toBeVisible();
 
     await saved.dispatchEvent("click");
     const popup = page.locator(".leaflet-popup");
     await expect(popup).toContainText("끝단 시험 경사로");
-    await expect(popup).toContainText("10%");
+    await expect(popup).toContainText("17.6%");
+    await expect(popup).toContainText("10.0°");
+  });
+
+  test("편집기 지도는 19까지 확대된다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const zoomIn = page.locator(".leaflet-control-zoom-in");
+    await expect(zoomIn).not.toHaveClass(/leaflet-disabled/);
+    await zoomIn.click();
+    await expect(zoomIn).toHaveClass(/leaflet-disabled/);
+  });
+
+  test("선을 끝내면 구간마다 번호표가 뜬다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+      { x: 520, y: 260 },
+    ];
+    for (const position of points) await map.click({ position });
+    await expect(page.locator(".ku-slope-segment-label")).toHaveCount(0);
+    await map.click({ position: points[2] });
+
+    const labels = page.locator(".ku-slope-segment-label");
+    await expect(labels).toHaveCount(2);
+    await expect(labels.nth(0)).toHaveText("1");
+    await expect(labels.nth(1)).toHaveText("2");
+  });
+
+  test("그리기 도구 문구가 한국어다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    // 끝내기 문구는 그리기·이동 모드 두 컨테이너에 있어 그리기 쪽 액션으로 좁힌다.
+    const finish = page.locator(".leaflet-pm-action.action-finish");
+    await expect(finish).toHaveText("끝내기");
+    await expect(finish).toBeVisible();
+    await expect(
+      page
+        .locator(".leaflet-pm-actions-container")
+        .getByText("마지막 꼭지점 제거"),
+    ).toBeVisible();
+  });
+
+  test("모바일 폭에서도 지도가 화면 폭을 쓴다", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    // 페이지 좌우 패딩 24px을 빼면 327px다. 2열 그리드일 때는 47px이었다.
+    const box = await page.locator(".leaflet-container").boundingBox();
+    expect(box!.width).toBeGreaterThanOrEqual(320);
+  });
+
+  test("퍼센트로 입력하면 도로 바꿔 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    await page.getByLabel("경로 이름").fill("퍼센트 입력 시험");
+    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+    await page.getByLabel("구간 1 경사도").fill("12.5");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+
+    const saved = state.slopes[state.slopes.length - 1];
+    const segments = saved.segments as Array<Record<string, unknown>>;
+    // atan(0.125) = 7.12501634890…°. 반올림 없이 저장한다(설계 2.2).
+    expect(segments[1].slope as number).toBeCloseTo(7.1250163489, 9);
+  });
+
+  test("다른 단위 환산값을 보여주고 단위를 바꿔도 값이 유지된다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    const input = page.getByLabel("구간 1 경사도");
+    await input.fill("10");
+    await expect(page.getByText("= 17.6%")).toBeVisible();
+
+    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+    await expect(input).toHaveValue("17.63");
+    await expect(page.getByText("= 10.0°")).toBeVisible();
+
+    await page.getByRole("radio", { name: "도(°)" }).check();
+    await expect(input).toHaveValue("10");
+  });
+
+  test("고른 입력 단위를 기억한다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+
+    await page.reload();
+    await expect(page.getByRole("radio", { name: "퍼센트(%)" })).toBeChecked();
+  });
+
+  const NEAR_CENTER = { latitude: 37.5893, longitude: 127.034 };
+  const blueDot = (page: import("@playwright/test").Page) =>
+    page.locator('.leaflet-container path[fill="#2563EB"]');
+
+  async function dotOffsetFromCenter(page: import("@playwright/test").Page) {
+    const mapBox = (await page.locator(".leaflet-container").boundingBox())!;
+    const dotBox = (await blueDot(page).boundingBox())!;
+    return {
+      x: dotBox.x + dotBox.width / 2 - (mapBox.x + mapBox.width / 2),
+      y: dotBox.y + dotBox.height / 2 - (mapBox.y + mapBox.height / 2),
+    };
+  }
+
+  test("새 경로는 받은 위치를 가운데 두고 파란 점을 찍는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: NEAR_CENTER,
+    });
+    await page.goto("/admin/slopes/new");
+
+    await expect(blueDot(page)).toHaveCount(1);
+    const offset = await dotOffsetFromCenter(page);
+    expect(Math.abs(offset.x)).toBeLessThan(3);
+    expect(Math.abs(offset.y)).toBeLessThan(3);
+  });
+
+  test("위치 권한이 없으면 점 없이 기본 위치로 연다", async ({ page }) => {
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: null,
+    });
+    await page.goto("/admin/slopes/new");
+    await expect(page.locator(".leaflet-container")).toBeVisible();
+    await expect(blueDot(page)).toHaveCount(0);
+  });
+
+  test("캠퍼스 밖 위치는 쓰지 않는다", async ({ page }) => {
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: { latitude: 37.5, longitude: 127.0 },
+    });
+    await page.goto("/admin/slopes/new");
+    await expect(page.locator(".leaflet-container")).toBeVisible();
+    await expect(blueDot(page)).toHaveCount(0);
+  });
+
+  test("위치 응답 전에 지도를 끌면 화면을 옮기지 않는다", async ({ page }) => {
+    // 지연이 짧으면 드래그가 응답보다 늦게 끝나도 통과해 버려 결함을 못 잡는다.
+    // 3초면 드래그가 먼저 끝나고, 응답은 expect 기본 대기(5초) 안에 온다.
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: NEAR_CENTER,
+      geolocationDelayMs: 3000,
+    });
+    await page.goto("/admin/slopes/new");
+
+    const box = (await page.locator(".leaflet-container").boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, {
+      steps: 5,
+    });
+    await page.mouse.up();
+
+    await expect(blueDot(page)).toHaveCount(1);
+    const offset = await dotOffsetFromCenter(page);
+    expect(Math.abs(offset.x)).toBeGreaterThan(30);
+  });
+
+  test("기존 경로 수정은 위치가 아니라 선에 맞춰 연다", async ({ page }) => {
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: NEAR_CENTER,
+    });
+    await page.goto("/admin/slopes/2");
+    await expect(
+      page.locator(".leaflet-pane.slope-preview-pane path").first(),
+    ).toBeVisible();
+    await expect(blueDot(page)).toHaveCount(0);
+  });
+
+  test("편집기에 주변 건물을 깔고 스냅은 끈 채 시작한다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    await expect(
+      page.locator(".leaflet-tooltip.bldg-label", { hasText: "중앙도서관" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("checkbox", { name: "건물 외곽선에 붙이기" }),
+    ).not.toBeChecked();
+  });
+
+  for (const snapOn of [false, true]) {
+    test(`스냅이 ${snapOn ? "켜" : "꺼"}져 있으면 건물 외곽선 근처에서 꼭짓점이 ${snapOn ? "외곽선에 붙는다" : "찍은 자리에 놓인다"}`, async ({
+      page,
+    }) => {
+      await installMockBackend(page, { authenticated: true });
+      await page.goto("/admin/slopes/new");
+      const building = page
+        .locator(".leaflet-slopeBuildings-pane path")
+        .first();
+      await expect(building).toBeVisible();
+      if (snapOn) {
+        await page
+          .getByRole("checkbox", { name: "건물 외곽선에 붙이기" })
+          .check();
+      }
+
+      const box = (await building.boundingBox())!;
+      const target = { x: box.x - 8, y: box.y + box.height / 2 };
+      const map = page.locator(".leaflet-container");
+      const mapBox = (await map.boundingBox())!;
+      await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+      await page.mouse.move(target.x - 30, target.y);
+      await page.mouse.move(target.x, target.y, { steps: 5 });
+      await page.mouse.click(target.x, target.y);
+      const second = { x: mapBox.x + 200, y: mapBox.y + 80 };
+      await page.mouse.move(second.x, second.y, { steps: 5 });
+      await page.mouse.click(second.x, second.y);
+      await page.mouse.click(second.x, second.y);
+
+      const vertex = (await page
+        .locator(".marker-icon")
+        .first()
+        .boundingBox())!;
+      const centerX = vertex.x + vertex.width / 2;
+      expect(Math.abs(centerX - (snapOn ? box.x : target.x))).toBeLessThan(3);
+    });
+  }
+
+  test("범위 밖 각도는 미리보기에 그리지 않고 단위를 바꿔도 입력을 그대로 둔다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    const input = page.getByLabel("구간 1 경사도");
+    await input.fill("181");
+    await expect(
+      page.locator(".leaflet-pane.slope-preview-pane path"),
+    ).toHaveCount(0);
+
+    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+    await expect(input).toHaveValue("181");
+    await expect(
+      page.getByRole("button", { name: "경로 저장" }),
+    ).toBeDisabled();
   });
 });

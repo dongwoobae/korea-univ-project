@@ -7,8 +7,11 @@ import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
-import { slopeColor } from "@/lib/theme";
+import { KU_BOUNDS, containsPoint } from "@/lib/mapBounds";
+import { isSlopeDegInRange, slopeColorFromDeg } from "@/lib/slopeScale";
 import type { Vertex } from "@/lib/slopeRoute";
+import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
+import { addNeighborLayer } from "@/lib/neighborLayer";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
@@ -16,6 +19,7 @@ interface SlopeRouteMapProps {
   initialVertices: Vertex[] | null;
   onVerticesChange: (vertices: Vertex[]) => void;
   slopes: (number | null)[];
+  snapToBuildings: boolean;
   // next/dynamic(ssr:false)로 불러온 컴포넌트는 ref를 가로채 로더 자신의
   // 핸들({ retry })로 덮어써서 부모까지 전달하지 않는다. 그래서 명령형
   // reset은 ref 대신 이 콜백으로 등록해 노출한다.
@@ -26,6 +30,7 @@ export default function SlopeRouteMap({
   initialVertices,
   onVerticesChange,
   slopes,
+  snapToBuildings,
   onResetReady,
 }: SlopeRouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,6 +41,7 @@ export default function SlopeRouteMap({
   const onResetReadyRef = useRef(onResetReady);
   const initialRef = useRef(initialVertices);
   const previewRef = useRef<L.LayerGroup | null>(null);
+  const labelsRef = useRef<L.LayerGroup | null>(null);
   const verticesRef = useRef<Vertex[]>([]);
   const prefersDarkMode = usePrefersDarkMode();
   // slopes prop이 참조 동일성을 유지한 채로 좌표만 바뀔 수 있어(꼭짓점 드래그),
@@ -53,20 +59,38 @@ export default function SlopeRouteMap({
   useEffect(() => {
     if (mapRef.current) return;
     const initial = initialRef.current;
+    let disposed = false;
 
     const center: [number, number] = initial?.length
       ? [initial[0].lat, initial[0].lng]
       : KU_CENTER;
-    const map = L.map(containerRef.current!, { scrollWheelZoom: true }).setView(
-      center,
-      19,
-    );
+    const map = L.map(containerRef.current!, {
+      scrollWheelZoom: true,
+      maxZoom: 19,
+    }).setView(center, 18);
     mapRef.current = map;
 
     tileLayerRef.current = L.tileLayer(getCartoTileUrl(false), {
       attribution: CARTO_ATTRIBUTION,
       subdomains: "abcd",
+      maxZoom: 19,
     }).addTo(map);
+
+    const buildingPane = map.createPane("slopeBuildings");
+    buildingPane.style.zIndex = "300";
+    void fetchNeighborBuildings()
+      .then((features) => {
+        if (disposed) return;
+        // 드래그·편집 대상에서는 빼고 스냅 목록에는 남긴다. 스냅은 토글이 켜고 끈다.
+        addNeighborLayer(map, features, null, {
+          pane: "slopeBuildings",
+          pmIgnore: true,
+          snapIgnore: false,
+        });
+      })
+      .catch(() => {
+        // 배경 건물은 보조 정보다. 실패해도 경로는 그릴 수 있다.
+      });
 
     // 편집선(overlayPane, z-index 400)보다 아래에 둔다. "아래에 그린다"를 말로만
     // 두면 실제 순서가 보장되지 않는다.
@@ -74,6 +98,7 @@ export default function SlopeRouteMap({
     pane.style.zIndex = "350";
     pane.classList.add("slope-preview-pane");
     previewRef.current = L.layerGroup([], { pane: "slopePreview" }).addTo(map);
+    labelsRef.current = L.layerGroup().addTo(map);
 
     // 이벤트는 "뭔가 바뀌었다"는 신호로만 쓴다. 무슨 편집이었는지 추론하지
     // 않고 좌표를 레이어에서 다시 읽는다. 멱등이라 중복 호출이 안전하다.
@@ -132,6 +157,7 @@ export default function SlopeRouteMap({
       line.on("pm:dragend", syncVertices);
     }
 
+    map.pm.setLang("ko");
     map.pm.addControls({
       position: "topleft",
       drawPolyline: true,
@@ -166,14 +192,55 @@ export default function SlopeRouteMap({
       syncVertices();
     });
 
+    if (!initial?.length && "geolocation" in navigator) {
+      // 응답은 최대 10초 뒤에 온다. 그 사이 사용자가 지도를 움직였거나 그리기를
+      // 시작했으면 화면을 옮기지 않는다 — 그리던 선이 화면 밖으로 사라진다(설계 5.4).
+      let followLocation = true;
+      const stopFollowing = () => {
+        followLocation = false;
+      };
+      map.once("dragstart", stopFollowing);
+      map.once("zoomstart", stopFollowing);
+      map.once("pm:drawstart", stopFollowing);
+
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          if (disposed) return;
+          const { latitude, longitude } = coords;
+          if (!containsPoint(KU_BOUNDS, latitude, longitude)) return;
+          L.circleMarker([latitude, longitude], {
+            radius: 7,
+            color: "#fff",
+            weight: 2,
+            fillColor: "#2563EB",
+            fillOpacity: 1,
+            interactive: false,
+            pmIgnore: true,
+          }).addTo(map);
+          if (followLocation)
+            map.setView([latitude, longitude], 18, { animate: false });
+        },
+        () => {
+          // 거부·실패면 KU_CENTER에 그대로 둔다.
+        },
+        { enableHighAccuracy: true, timeout: 10_000 },
+      );
+    }
+
     return () => {
+      disposed = true;
       map.remove();
       mapRef.current = null;
       tileLayerRef.current = null;
       lineRef.current = null;
       previewRef.current = null;
+      labelsRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    mapRef.current?.pm.setGlobalOptions({ snappable: snapToBuildings });
+  }, [snapToBuildings]);
 
   useEffect(() => {
     tileLayerRef.current?.setUrl(getCartoTileUrl(prefersDarkMode));
@@ -181,20 +248,41 @@ export default function SlopeRouteMap({
 
   useEffect(() => {
     const group = previewRef.current;
-    if (!group) return;
+    const labels = labelsRef.current;
+    if (!group || !labels) return;
     group.clearLayers();
+    labels.clearLayers();
     const vertices = verticesRef.current;
     for (let i = 0; i < vertices.length - 1; i++) {
+      const from = vertices[i];
+      const to = vertices[i + 1];
+      L.marker([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], {
+        icon: L.divIcon({
+          className: "ku-slope-segment-label",
+          html: String(i + 1),
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        }),
+        interactive: false,
+        keyboard: false,
+        pmIgnore: true,
+      }).addTo(labels);
+
       const slope = slopes[i];
-      if (slope === null || slope === undefined || !Number.isFinite(slope))
+      if (
+        slope === null ||
+        slope === undefined ||
+        !Number.isFinite(slope) ||
+        !isSlopeDegInRange(slope)
+      )
         continue;
       L.polyline(
         [
-          [vertices[i].lat, vertices[i].lng],
-          [vertices[i + 1].lat, vertices[i + 1].lng],
+          [from.lat, from.lng],
+          [to.lat, to.lng],
         ],
         {
-          color: slopeColor(Math.abs(slope)),
+          color: slopeColorFromDeg(slope),
           weight: 8,
           opacity: 0.85,
           // geoman이 편집 대상으로 잡지 않게 한다. 없으면 색칠용 선에
@@ -211,6 +299,7 @@ export default function SlopeRouteMap({
   return (
     <div
       ref={containerRef}
+      className="ku-slope-route-map"
       style={{
         width: "100%",
         height: 420,

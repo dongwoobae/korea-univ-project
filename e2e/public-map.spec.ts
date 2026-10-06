@@ -240,6 +240,26 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByRole("checkbox", { name: /경사도/ })).toBeChecked();
   });
 
+  test("경사도 범례는 계단식 막대와 경계 눈금(%·°)을 보여준다", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+
+    await expect(page.locator(".ku-slope-scale-step")).toHaveCount(6);
+    const ticks = page.locator(".ku-slope-scale-tick");
+    for (const label of ["5.56%", "8.33%", "12.5%", "4.76°"]) {
+      await expect(ticks.getByText(label, { exact: true })).toBeVisible();
+    }
+
+    await page.setViewportSize({ width: 375, height: 800 });
+    await page.goto("/");
+    await page.getByRole("button", { name: /시설 필터/ }).click();
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await expect(page.locator(".ku-slope-scale-bar")).toBeVisible();
+    await expect(ticks.getByText("12.5%", { exact: true })).toBeVisible();
+  });
+
   test("낮은 줌에서 라벨과 가까운 마커를 정리하고 확대하면 펼친다", async ({
     page,
   }) => {
@@ -555,4 +575,43 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       page.getByText("이 브라우저는 음성 인식을 지원하지 않습니다"),
     ).toBeVisible();
   });
+});
+
+test("건물 사진을 크게 보고 내려받는다", async ({ page }) => {
+  const state = await installMockBackend(page);
+  state.photos.push({
+    id: 2,
+    building_id: 1,
+    url: "https://cdn.test/library-2.webp?t=1700000000001",
+    caption: "열람실",
+    caption_en: "Reading room",
+    caption_zh: "阅览室",
+  });
+  await page.goto("/");
+  await page.getByPlaceholder("건물 검색...").fill("중앙도서관");
+  await page.getByText("중앙도서관", { exact: true }).last().click();
+
+  const open = page.getByRole("button", { name: "사진 크게 보기" });
+  await open.click();
+  const dialog = page.getByRole("dialog", { name: "중앙도서관", exact: true });
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText("1 / 2");
+  await expect(dialog).toContainText("정문");
+
+  const href = await dialog
+    .getByRole("link", { name: "사진 다운로드" })
+    .getAttribute("href");
+  const url = new URL(href!);
+  expect(url.searchParams.get("t")).toBe("1700000000000");
+  expect(url.searchParams.get("download")).toBe("중앙도서관-1.webp");
+
+  await page.keyboard.press("ArrowRight");
+  await expect(dialog).toContainText("2 / 2");
+  await expect(dialog).toContainText("열람실");
+  await dialog.getByRole("button", { name: "이전 사진" }).click();
+  await expect(dialog).toContainText("1 / 2");
+
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(open).toBeFocused();
 });
