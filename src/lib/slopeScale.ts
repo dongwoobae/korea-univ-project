@@ -59,7 +59,7 @@ export const SLOPE_REFERENCE_LINES: readonly SlopeReferenceLine[] = [
 function bandForPercent(percent: number): SlopeBand {
   return (
     SLOPE_BANDS.find(
-      (band) => percent <= band.maxPercent,
+      (band) => percent <= band.maxPercent + BOUNDARY_TOLERANCE,
     ) ?? SLOPE_BANDS[SLOPE_BANDS.length - 1]
   );
 }

@@ -96,18 +96,28 @@ describe("slopeColorFromDeg", () => {
     expect(slopeColorFromDeg(7.2)).toBe("#AE3B1E");
     expect(slopeColorFromDeg(10)).toBe("#7A1414");
   });
+
+  it("부동소수 오차로 경계를 살짝 넘어도 그 칸에 남는다", () => {
+    expect(slopeColorFromDeg(percentToDeg(100 / 12 + 1e-12))).toBe("#D89A3A");
+  });
 });
 
 // 설계 2.2 — 자릿수 반올림은 어떤 경계값을 반드시 위 칸으로 민다. 저장은 반올림 없이.
 describe("% 입력이 도 저장을 거쳐도 같은 칸에 남는다", () => {
-  it.each([100 / 18, 100 / 12, 100 / 8, 2, 5.56, 8.33, 12.5, 15])(
-    "%s%%",
-    (percent) => {
-      expect(slopeColorFromDeg(percentToDeg(percent))).toBe(
-        colorOfExactPercent(percent),
-      );
-    },
-  );
+  it.each([
+    WALKWAY_RATIO * 100,
+    RELAXED_RATIO * 100,
+    RAMP_EXCEPTION_RATIO * 100,
+    2,
+    5.56,
+    8.33,
+    12.5,
+    15,
+  ])("%s%%", (percent) => {
+    expect(slopeColorFromDeg(percentToDeg(percent))).toBe(
+      colorOfExactPercent(percent),
+    );
+  });
 });
 
 describe("slopeWarningFromDeg", () => {
