@@ -29,7 +29,7 @@
 - **현장 실측 기반 경사도 입력** — 배포된 경로를 감사해 표시 구간 137개 중 31개(23%)가 GPS 고도 노이즈 탓에 0.0% 평지로 그려지는 것을 확인하고, 관리자가 지도에 경로를 그린 뒤 구간별 실측값을 직접 넣는 방식으로 전환
 - **접근성 전수 감사 기반 개선** — UX 감사 문서(`docs/audits/`)로 P0~P3 항목을 분류하고, 모달 초점 트랩·라이브 리전·터치 타겟·폼 라벨을 순차 구현하며 E2E로 회귀를 고정
 - **JavaScript → TypeScript 전면 이관** — 설계 문서를 먼저 작성한 뒤 `src/` 전체(138개 파일)를 `strict` 모드로 이관하고, 우회로 남아 있던 암묵적 `any` 162건까지 걷어 `no-explicit-any`를 error로 유지
-- **결정론적 E2E 환경 구축** — 980줄 목 백엔드(PostgREST·Next 라우트·Auth·브라우저 API 스텁)로 외부 의존 없이 15개 spec·124개 시나리오를 실행
+- **결정론적 E2E 환경 구축** — 980줄 목 백엔드(PostgREST·Next 라우트·Auth·브라우저 API 스텁)로 외부 의존 없이 15개 spec·139개 시나리오를 실행
 - **마이그레이션 안전장치** — 적용된 마이그레이션의 수정·삭제를 CI에서 차단하고, 적용 후 로컬↔원격 이력 일치를 별도 잡에서 검증
 - **다국어 자동화** — Papago NMT 연동으로 시설·명소 정보를 자동 번역하고, 번역 실패를 관리자 화면에 드러내 개별·일괄 재번역 가능
 
@@ -134,7 +134,7 @@ src/
         [id]/page.tsx                # 건물 상세 — 카드 조합 + 저장·삭제·복구 오케스트레이션
       slopes/
         new/page.tsx                 # 경사도 경로 그리기
-        [id]/page.tsx                # 경사도 경로 수정 (수기 경로만, 낙관적 잠금)
+        [id]/page.tsx                # 경사도 경로 수정 (저장 포맷 검증, 낙관적 잠금)
     api/
       buildings/route.ts             # 건물 GeoJSON + ?sync=true Overpass 동기화(3서버 폴백)
       facilities/route.ts            # 시설 마커 데이터
@@ -458,11 +458,11 @@ npm run test:e2e:ui   # Playwright UI 모드
 
 ### 테스트 범위
 
-**Vitest 단위 테스트 (23개 파일, 146개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, 피드백 입력 검증, 피드백·명소 삭제 API 라우트.
+**Vitest 단위 테스트 (27개 파일, 201개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, 피드백 입력 검증, 피드백·명소 삭제 API 라우트.
 
 경사 경로 판단 로직은 `src/lib/slopeRoute.ts`(경로·저장 포맷)와 `src/lib/slopeScale.ts`(단위·색·기준선)의 순수 함수로 빼 두었습니다. Vitest가 `environment: "node"`로 돌기 때문에, Leaflet에 묶인 채로는 단위 테스트가 닿지 않습니다.
 
-**Playwright E2E (15개 spec, 124개 시나리오)**
+**Playwright E2E (15개 spec, 139개 시나리오)**
 
 | 파일                                    | 검증 대상                                                                                                                                                                                                                                                                                                   |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -582,7 +582,7 @@ UI 고정 문자열은 `src/lib/translations.ts`(언어당 키 68개)에서 관�
 
 - TypeScript 전면 이관(`strict`), 암묵적 `any` 제거, `no-console` 규칙
 - 모달 초점 관리(중첩 스택), 토스트 라이브 리전, 44px 터치 타겟, 폼 라벨 연결
-- Vitest 단위 23파일 + Playwright E2E 15 spec
+- Vitest 단위 27파일 + Playwright E2E 15 spec
 - CI 8잡 게이트 + 마이그레이션 안전 검사·이력 대조
 - Supabase keep-alive 크론
 
