@@ -966,4 +966,65 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     const box = await page.locator(".leaflet-container").boundingBox();
     expect(box!.width).toBeGreaterThanOrEqual(320);
   });
+
+  test("퍼센트로 입력하면 도로 바꿔 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    await page.getByLabel("경로 이름").fill("퍼센트 입력 시험");
+    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+    await page.getByLabel("구간 1 경사도").fill("12.5");
+    await page.getByRole("button", { name: "경로 저장" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+
+    const saved = state.slopes[state.slopes.length - 1];
+    const segments = saved.segments as Array<Record<string, unknown>>;
+    // atan(0.125) = 7.12501634890…°. 반올림 없이 저장한다(설계 2.2).
+    expect(segments[1].slope as number).toBeCloseTo(7.1250163489, 9);
+  });
+
+  test("다른 단위 환산값을 보여주고 단위를 바꿔도 값이 유지된다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[1] });
+
+    const input = page.getByLabel("구간 1 경사도");
+    await input.fill("10");
+    await expect(page.getByText("= 17.6%")).toBeVisible();
+
+    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+    await expect(input).toHaveValue("17.63");
+    await expect(page.getByText("= 10.0°")).toBeVisible();
+
+    await page.getByRole("radio", { name: "도(°)" }).check();
+    await expect(input).toHaveValue("10");
+  });
+
+  test("고른 입력 단위를 기억한다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+    await page.getByRole("radio", { name: "퍼센트(%)" }).check();
+
+    await page.reload();
+    await expect(page.getByRole("radio", { name: "퍼센트(%)" })).toBeChecked();
+  });
 });

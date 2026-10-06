@@ -1,12 +1,23 @@
 "use client";
 
 import type { RouteSegment } from "@/lib/slopeRoute";
-import { slopeWarningFromDeg } from "@/lib/slopeScale";
+import {
+  degToPercent,
+  formatDeg,
+  formatPercent,
+  isSlopeDegInRange,
+  slopeWarningFromDeg,
+  type SlopeUnit,
+} from "@/lib/slopeScale";
 
 interface SlopeSegmentListProps {
   segments: RouteSegment[];
+  /** 입력란 문자열. 고른 단위 그대로다 */
+  drafts: string[];
+  /** 저장될 값(도). 경고와 환산값은 이것으로 계산한다 */
   slopes: (number | null)[];
-  onSlopeChange: (index: number, value: number | null) => void;
+  unit: SlopeUnit;
+  onDraftChange: (index: number, raw: string) => void;
 }
 
 const WARNING_TEXT = {
@@ -14,10 +25,14 @@ const WARNING_TEXT = {
   extreme: "이 값이 맞나요? 30%(약 16.7°)를 넘는 보행 경사로는 매우 드뭅니다",
 } as const;
 
+const UNIT_SYMBOL: Record<SlopeUnit, string> = { deg: "°", percent: "%" };
+
 export default function SlopeSegmentList({
   segments,
+  drafts,
   slopes,
-  onSlopeChange,
+  unit,
+  onDraftChange,
 }: SlopeSegmentListProps) {
   if (segments.length === 0) {
     return (
@@ -31,10 +46,17 @@ export default function SlopeSegmentList({
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {segments.map((segment) => {
         const value = slopes[segment.index];
-        const warning =
-          value !== null && value !== undefined && Number.isFinite(value)
-            ? slopeWarningFromDeg(value)
+        const measured =
+          value !== null && value !== undefined && isSlopeDegInRange(value)
+            ? value
             : null;
+        const warning = measured === null ? null : slopeWarningFromDeg(measured);
+        const converted =
+          measured === null
+            ? null
+            : unit === "deg"
+              ? formatPercent(degToPercent(measured))
+              : formatDeg(measured);
         return (
           <div
             key={segment.index}
@@ -73,11 +95,10 @@ export default function SlopeSegmentList({
                 type="number"
                 step="0.1"
                 inputMode="decimal"
-                value={value ?? ""}
-                onChange={(event) => {
-                  const raw = event.target.value;
-                  onSlopeChange(segment.index, raw === "" ? null : Number(raw));
-                }}
+                value={drafts[segment.index] ?? ""}
+                onChange={(event) =>
+                  onDraftChange(segment.index, event.target.value)
+                }
                 style={{
                   width: 110,
                   padding: "8px 10px",
@@ -86,7 +107,15 @@ export default function SlopeSegmentList({
                   fontSize: 14,
                 }}
               />
-              <span style={{ fontSize: 13 }}>°</span>
+              <span style={{ fontSize: 13 }}>{UNIT_SYMBOL[unit]}</span>
+              {converted && (
+                <span
+                  className="ku-slope-converted"
+                  style={{ fontSize: 12, color: "var(--ku-text-3)" }}
+                >
+                  = {converted}
+                </span>
+              )}
             </div>
             {warning && (
               <div

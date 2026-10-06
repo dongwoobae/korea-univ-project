@@ -10,12 +10,35 @@ import {
   validateRoute,
   type Vertex,
 } from "@/lib/slopeRoute";
+import { formatSlopeInput, toDegrees, type SlopeUnit } from "@/lib/slopeScale";
 import type { SlopeRoutePoints } from "@/types/domain";
 
 const SlopeRouteMap = dynamic(
   () => import("@/components/slope/SlopeRouteMap"),
   { ssr: false },
 );
+
+const UNIT_STORAGE_KEY = "ku_slope_input_unit";
+
+// 편집기는 부모 페이지가 인증을 확인한 뒤에만 그려 서버 렌더링을 거치지 않는다.
+// 그래서 첫 렌더에서 localStorage를 읽어도 hydration이 어긋나지 않는다.
+function readUnitPreference(): SlopeUnit {
+  try {
+    return localStorage.getItem(UNIT_STORAGE_KEY) === "percent"
+      ? "percent"
+      : "deg";
+  } catch {
+    return "deg";
+  }
+}
+
+function writeUnitPreference(unit: SlopeUnit) {
+  try {
+    localStorage.setItem(UNIT_STORAGE_KEY, unit);
+  } catch {
+    // 기억하지 못해도 입력은 된다.
+  }
+}
 
 // 지도가 좌표를 다시 읽어 배열을 새로 만들어도(편집 없이 마운트만 해도)
 // 참조가 아니라 값이 같으면 dirty가 아니어야 한다.
@@ -52,21 +75,44 @@ export default function SlopeRouteEditor({
   const [name, setName] = useState(initialName);
   const [vertices, setVertices] = useState<Vertex[]>(initialVertices ?? []);
   const [slopes, setSlopes] = useState<(number | null)[]>(initialSlopes);
+  const [unit, setUnit] = useState<SlopeUnit>(readUnitPreference);
+  const [drafts, setDrafts] = useState<string[]>(() =>
+    initialSlopes.map((slope) =>
+      slope === null ? "" : formatSlopeInput(slope, unit),
+    ),
+  );
   const resetMapRef = useRef<() => void>(() => {});
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
   const handleVerticesChange = useCallback((next: Vertex[]) => {
     setVertices(next);
-    setSlopes((prev) => {
-      const count = Math.max(0, next.length - 1);
-      if (prev.length === count) return prev;
-      return Array.from({ length: count }, () => null);
-    });
+    const count = Math.max(0, next.length - 1);
+    setSlopes((prev) =>
+      prev.length === count ? prev : Array.from({ length: count }, () => null),
+    );
+    setDrafts((prev) =>
+      prev.length === count ? prev : Array.from({ length: count }, () => ""),
+    );
   }, []);
 
-  function handleSlopeChange(index: number, value: number | null) {
+  function handleDraftChange(index: number, raw: string) {
+    setDrafts((prev) => prev.map((draft, i) => (i === index ? raw : draft)));
+    const value = raw === "" ? null : toDegrees(Number(raw), unit);
     setSlopes((prev) => prev.map((slope, i) => (i === index ? value : slope)));
+  }
+
+  function handleUnitChange(next: SlopeUnit) {
+    setUnit(next);
+    writeUnitPreference(next);
+    // 저장될 도 값은 그대로 두고 입력란 문자열만 새 단위로 다시 쓴다(설계 3.3).
+    setDrafts((prev) =>
+      slopes.map((slope, index) =>
+        slope === null || !Number.isFinite(slope)
+          ? (prev[index] ?? "")
+          : formatSlopeInput(slope, next),
+      ),
+    );
   }
 
   function handleReset() {
@@ -135,10 +181,48 @@ export default function SlopeRouteEditor({
             resetMapRef.current = reset;
           }}
         />
+        <fieldset
+          style={{
+            border: 0,
+            padding: 0,
+            margin: 0,
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            gap: 16,
+            fontSize: 13,
+          }}
+        >
+          <legend style={{ padding: 0, fontWeight: 600, marginBottom: 6 }}>
+            경사 단위
+          </legend>
+          {(["deg", "percent"] as const).map((option) => (
+            <label
+              key={option}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="radio"
+                name="slope-unit"
+                value={option}
+                checked={unit === option}
+                onChange={() => handleUnitChange(option)}
+              />
+              {option === "deg" ? "도(°)" : "퍼센트(%)"}
+            </label>
+          ))}
+        </fieldset>
         <SlopeSegmentList
           segments={segments}
+          drafts={drafts}
           slopes={slopes}
-          onSlopeChange={handleSlopeChange}
+          unit={unit}
+          onDraftChange={handleDraftChange}
         />
       </div>
 
