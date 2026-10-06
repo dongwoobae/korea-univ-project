@@ -36,6 +36,7 @@ export default function SlopeRouteMap({
   const onResetReadyRef = useRef(onResetReady);
   const initialRef = useRef(initialVertices);
   const previewRef = useRef<L.LayerGroup | null>(null);
+  const labelsRef = useRef<L.LayerGroup | null>(null);
   const verticesRef = useRef<Vertex[]>([]);
   const prefersDarkMode = usePrefersDarkMode();
   // slopes prop이 참조 동일성을 유지한 채로 좌표만 바뀔 수 있어(꼭짓점 드래그),
@@ -57,15 +58,16 @@ export default function SlopeRouteMap({
     const center: [number, number] = initial?.length
       ? [initial[0].lat, initial[0].lng]
       : KU_CENTER;
-    const map = L.map(containerRef.current!, { scrollWheelZoom: true }).setView(
-      center,
-      19,
-    );
+    const map = L.map(containerRef.current!, {
+      scrollWheelZoom: true,
+      maxZoom: 19,
+    }).setView(center, 18);
     mapRef.current = map;
 
     tileLayerRef.current = L.tileLayer(getCartoTileUrl(false), {
       attribution: CARTO_ATTRIBUTION,
       subdomains: "abcd",
+      maxZoom: 19,
     }).addTo(map);
 
     // 편집선(overlayPane, z-index 400)보다 아래에 둔다. "아래에 그린다"를 말로만
@@ -74,6 +76,7 @@ export default function SlopeRouteMap({
     pane.style.zIndex = "350";
     pane.classList.add("slope-preview-pane");
     previewRef.current = L.layerGroup([], { pane: "slopePreview" }).addTo(map);
+    labelsRef.current = L.layerGroup().addTo(map);
 
     // 이벤트는 "뭔가 바뀌었다"는 신호로만 쓴다. 무슨 편집이었는지 추론하지
     // 않고 좌표를 레이어에서 다시 읽는다. 멱등이라 중복 호출이 안전하다.
@@ -132,6 +135,7 @@ export default function SlopeRouteMap({
       line.on("pm:dragend", syncVertices);
     }
 
+    map.pm.setLang("ko");
     map.pm.addControls({
       position: "topleft",
       drawPolyline: true,
@@ -172,6 +176,7 @@ export default function SlopeRouteMap({
       tileLayerRef.current = null;
       lineRef.current = null;
       previewRef.current = null;
+      labelsRef.current = null;
     };
   }, []);
 
@@ -181,17 +186,33 @@ export default function SlopeRouteMap({
 
   useEffect(() => {
     const group = previewRef.current;
-    if (!group) return;
+    const labels = labelsRef.current;
+    if (!group || !labels) return;
     group.clearLayers();
+    labels.clearLayers();
     const vertices = verticesRef.current;
     for (let i = 0; i < vertices.length - 1; i++) {
+      const from = vertices[i];
+      const to = vertices[i + 1];
+      L.marker([(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], {
+        icon: L.divIcon({
+          className: "ku-slope-segment-label",
+          html: String(i + 1),
+          iconSize: [22, 22],
+          iconAnchor: [11, 11],
+        }),
+        interactive: false,
+        keyboard: false,
+        pmIgnore: true,
+      }).addTo(labels);
+
       const slope = slopes[i];
       if (slope === null || slope === undefined || !Number.isFinite(slope))
         continue;
       L.polyline(
         [
-          [vertices[i].lat, vertices[i].lng],
-          [vertices[i + 1].lat, vertices[i + 1].lng],
+          [from.lat, from.lng],
+          [to.lat, to.lng],
         ],
         {
           color: slopeColorFromDeg(slope),
@@ -211,6 +232,7 @@ export default function SlopeRouteMap({
   return (
     <div
       ref={containerRef}
+      className="ku-slope-route-map"
       style={{
         width: "100%",
         height: 420,

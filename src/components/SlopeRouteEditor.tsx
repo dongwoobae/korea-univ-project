@@ -126,14 +126,7 @@ export default function SlopeRouteEditor({
         />
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 2fr) minmax(260px, 1fr)",
-          gap: 20,
-          alignItems: "start",
-        }}
-      >
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <SlopeRouteMap
           initialVertices={initialVertices}
           onVerticesChange={handleVerticesChange}

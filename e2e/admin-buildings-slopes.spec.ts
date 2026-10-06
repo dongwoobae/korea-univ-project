@@ -911,4 +911,59 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(popup).toContainText("17.6%");
     await expect(popup).toContainText("10.0°");
   });
+
+  test("편집기 지도는 19까지 확대된다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const zoomIn = page.locator(".leaflet-control-zoom-in");
+    await expect(zoomIn).not.toHaveClass(/leaflet-disabled/);
+    await zoomIn.click();
+    await expect(zoomIn).toHaveClass(/leaflet-disabled/);
+  });
+
+  test("선을 끝내면 구간마다 번호표가 뜬다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    const points = [
+      { x: 300, y: 120 },
+      { x: 420, y: 180 },
+      { x: 520, y: 260 },
+    ];
+    for (const position of points) await map.click({ position });
+    await expect(page.locator(".ku-slope-segment-label")).toHaveCount(0);
+    await map.click({ position: points[2] });
+
+    const labels = page.locator(".ku-slope-segment-label");
+    await expect(labels).toHaveCount(2);
+    await expect(labels.nth(0)).toHaveText("1");
+    await expect(labels.nth(1)).toHaveText("2");
+  });
+
+  test("그리기 도구 문구가 한국어다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    // 끝내기 문구는 그리기·이동 모드 두 컨테이너에 있어 그리기 쪽 액션으로 좁힌다.
+    const finish = page.locator(".leaflet-pm-action.action-finish");
+    await expect(finish).toHaveText("끝내기");
+    await expect(finish).toBeVisible();
+    await expect(
+      page.locator(".leaflet-pm-actions-container").getByText("마지막 꼭지점 제거"),
+    ).toBeVisible();
+  });
+
+  test("모바일 폭에서도 지도가 화면 폭을 쓴다", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    // 페이지 좌우 패딩 24px을 빼면 327px다. 2열 그리드일 때는 47px이었다.
+    const box = await page.locator(".leaflet-container").boundingBox();
+    expect(box!.width).toBeGreaterThanOrEqual(320);
+  });
 });
