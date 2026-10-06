@@ -828,14 +828,17 @@ async function handleApi(route: Route, state: MockState, url: URL) {
 // 테스트 beforeEach에서 호출. 브라우저 API 스텁(addInitScript)을 심고, 이후
 // 모든 네트워크 요청을 위 핸들러들로 라우팅한다. 생성된 state를 반환하므로
 // 테스트에서 초기 데이터를 참조할 수 있다.
-// options.authenticated: 관리자 세션으로 시작할지 / options.currentLocation: geolocation 좌표.
+// options.authenticated: 관리자 세션으로 시작할지 / options.currentLocation: geolocation 좌표(null이면 거부) / options.geolocationDelayMs: 응답 지연.
 export async function installMockBackend(
   page: Page,
   options: {
     authenticated?: boolean;
     failBuildingPhotoUploads?: number;
     failTranslations?: number;
-    currentLocation?: { latitude: number; longitude: number };
+    /** null이면 위치 권한 거부로 응답한다 */
+    currentLocation?: { latitude: number; longitude: number } | null;
+    /** 위치 응답을 늦춘다(ms) */
+    geolocationDelayMs?: number;
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
@@ -843,7 +846,7 @@ export async function installMockBackend(
   state.translationFailuresRemaining = options.failTranslations ?? 0;
   // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(
-    ({ authenticated, currentLocation }) => {
+    ({ authenticated, currentLocation, geolocationDelayMs }) => {
       if (authenticated) {
         localStorage.setItem(
           "sb-127-auth-token",
@@ -895,20 +898,33 @@ export async function installMockBackend(
       Object.defineProperty(navigator, "geolocation", {
         configurable: true,
         value: {
-          getCurrentPosition(success: PositionCallback) {
-            success({
-              coords: currentLocation,
-            } as GeolocationPosition);
+          getCurrentPosition(
+            success: PositionCallback,
+            error?: PositionErrorCallback | null,
+          ) {
+            const respond = () => {
+              if (currentLocation) {
+                success({ coords: currentLocation } as GeolocationPosition);
+              } else {
+                error?.({
+                  code: 1,
+                  message: "User denied Geolocation",
+                } as GeolocationPositionError);
+              }
+            };
+            if (geolocationDelayMs > 0) setTimeout(respond, geolocationDelayMs);
+            else respond();
           },
         },
       });
     },
     {
       authenticated: state.authenticated,
-      currentLocation: options.currentLocation ?? {
-        latitude: 37.5893,
-        longitude: 127.0327,
-      },
+      currentLocation:
+        options.currentLocation === undefined
+          ? { latitude: 37.5893, longitude: 127.0327 }
+          : options.currentLocation,
+      geolocationDelayMs: options.geolocationDelayMs ?? 0,
     },
   );
 

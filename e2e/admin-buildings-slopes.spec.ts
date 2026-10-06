@@ -1027,4 +1027,87 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.reload();
     await expect(page.getByRole("radio", { name: "퍼센트(%)" })).toBeChecked();
   });
+
+  const NEAR_CENTER = { latitude: 37.5893, longitude: 127.034 };
+  const blueDot = (page: import("@playwright/test").Page) =>
+    page.locator('.leaflet-container path[fill="#2563EB"]');
+
+  async function dotOffsetFromCenter(page: import("@playwright/test").Page) {
+    const mapBox = (await page.locator(".leaflet-container").boundingBox())!;
+    const dotBox = (await blueDot(page).boundingBox())!;
+    return {
+      x: dotBox.x + dotBox.width / 2 - (mapBox.x + mapBox.width / 2),
+      y: dotBox.y + dotBox.height / 2 - (mapBox.y + mapBox.height / 2),
+    };
+  }
+
+  test("새 경로는 받은 위치를 가운데 두고 파란 점을 찍는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: NEAR_CENTER,
+    });
+    await page.goto("/admin/slopes/new");
+
+    await expect(blueDot(page)).toHaveCount(1);
+    const offset = await dotOffsetFromCenter(page);
+    expect(Math.abs(offset.x)).toBeLessThan(3);
+    expect(Math.abs(offset.y)).toBeLessThan(3);
+  });
+
+  test("위치 권한이 없으면 점 없이 기본 위치로 연다", async ({ page }) => {
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: null,
+    });
+    await page.goto("/admin/slopes/new");
+    await expect(page.locator(".leaflet-container")).toBeVisible();
+    await expect(blueDot(page)).toHaveCount(0);
+  });
+
+  test("캠퍼스 밖 위치는 쓰지 않는다", async ({ page }) => {
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: { latitude: 37.5, longitude: 127.0 },
+    });
+    await page.goto("/admin/slopes/new");
+    await expect(page.locator(".leaflet-container")).toBeVisible();
+    await expect(blueDot(page)).toHaveCount(0);
+  });
+
+  test("위치 응답 전에 지도를 끌면 화면을 옮기지 않는다", async ({ page }) => {
+    // 지연이 짧으면 드래그가 응답보다 늦게 끝나도 통과해 버려 결함을 못 잡는다.
+    // 3초면 드래그가 먼저 끝나고, 응답은 expect 기본 대기(5초) 안에 온다.
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: NEAR_CENTER,
+      geolocationDelayMs: 3000,
+    });
+    await page.goto("/admin/slopes/new");
+
+    const box = (await page.locator(".leaflet-container").boundingBox())!;
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, {
+      steps: 5,
+    });
+    await page.mouse.up();
+
+    await expect(blueDot(page)).toHaveCount(1);
+    const offset = await dotOffsetFromCenter(page);
+    expect(Math.abs(offset.x)).toBeGreaterThan(30);
+  });
+
+  test("기존 경로 수정은 위치가 아니라 선에 맞춰 연다", async ({ page }) => {
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: NEAR_CENTER,
+    });
+    await page.goto("/admin/slopes/2");
+    await expect(
+      page.locator(".leaflet-pane.slope-preview-pane path").first(),
+    ).toBeVisible();
+    await expect(blueDot(page)).toHaveCount(0);
+  });
 });

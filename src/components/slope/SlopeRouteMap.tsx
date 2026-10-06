@@ -7,6 +7,7 @@ import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
+import { KU_BOUNDS, containsPoint } from "@/lib/mapBounds";
 import { slopeColorFromDeg } from "@/lib/slopeScale";
 import type { Vertex } from "@/lib/slopeRoute";
 
@@ -54,6 +55,7 @@ export default function SlopeRouteMap({
   useEffect(() => {
     if (mapRef.current) return;
     const initial = initialRef.current;
+    let disposed = false;
 
     const center: [number, number] = initial?.length
       ? [initial[0].lat, initial[0].lng]
@@ -170,7 +172,42 @@ export default function SlopeRouteMap({
       syncVertices();
     });
 
+    if (!initial?.length && "geolocation" in navigator) {
+      // 응답은 최대 10초 뒤에 온다. 그 사이 사용자가 지도를 움직였거나 그리기를
+      // 시작했으면 화면을 옮기지 않는다 — 그리던 선이 화면 밖으로 사라진다(설계 5.4).
+      let followLocation = true;
+      const stopFollowing = () => {
+        followLocation = false;
+      };
+      map.once("dragstart", stopFollowing);
+      map.once("zoomstart", stopFollowing);
+      map.once("pm:drawstart", stopFollowing);
+
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          if (disposed) return;
+          const { latitude, longitude } = coords;
+          if (!containsPoint(KU_BOUNDS, latitude, longitude)) return;
+          L.circleMarker([latitude, longitude], {
+            radius: 7,
+            color: "#fff",
+            weight: 2,
+            fillColor: "#2563EB",
+            fillOpacity: 1,
+            interactive: false,
+            pmIgnore: true,
+          }).addTo(map);
+          if (followLocation) map.setView([latitude, longitude], 18, { animate: false });
+        },
+        () => {
+          // 거부·실패면 KU_CENTER에 그대로 둔다.
+        },
+        { enableHighAccuracy: true, timeout: 10_000 },
+      );
+    }
+
     return () => {
+      disposed = true;
       map.remove();
       mapRef.current = null;
       tileLayerRef.current = null;

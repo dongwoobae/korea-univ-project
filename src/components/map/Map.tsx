@@ -55,9 +55,13 @@ import MapViewportObserver, {
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import "./map-ui.css";
+import { KU_BOUNDS } from "@/lib/mapBounds";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
-const KU_BOUNDS = L.latLngBounds([37.578, 127.018], [37.6, 127.048]);
+const KU_LATLNG_BOUNDS = L.latLngBounds(
+  [KU_BOUNDS.south, KU_BOUNDS.west],
+  [KU_BOUNDS.north, KU_BOUNDS.east],
+);
 
 const userLocationIcon = L.divIcon({
   className: "ku-user-location",
@@ -82,7 +86,7 @@ const TILES = {
 function BoundsController() {
   const map = useMap();
   useEffect(() => {
-    map.setMaxBounds(KU_BOUNDS);
+    map.setMaxBounds(KU_LATLNG_BOUNDS);
     map.setMinZoom(15);
     map.setMaxZoom(19);
   }, [map]);
@@ -566,7 +570,7 @@ export default function Map() {
       ({ coords }) => {
         setLocating(false);
         const location: [number, number] = [coords.latitude, coords.longitude];
-        if (!KU_BOUNDS.contains(location)) {
+        if (!KU_LATLNG_BOUNDS.contains(location)) {
           setToast({ message: t("locateOutside"), type: "info" });
           return;
         }
@@ -613,7 +617,7 @@ export default function Map() {
         center={KU_CENTER}
         zoom={16}
         style={{ width: "100%", height: "100%" }}
-        maxBounds={KU_BOUNDS}
+        maxBounds={KU_LATLNG_BOUNDS}
         maxBoundsViscosity={0.7}
         ref={mapRef}
         zoomControl={false}
