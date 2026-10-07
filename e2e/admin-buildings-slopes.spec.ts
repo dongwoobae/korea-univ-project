@@ -337,6 +337,50 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     expect(state.photos).toHaveLength(3);
   });
 
+  test("Safari처럼 canvas가 WebP를 못 만들면 wasm으로 WebP를 만들어 올린다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.addInitScript(() => {
+      const original = HTMLCanvasElement.prototype.toBlob;
+      HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+        return original.call(
+          this,
+          callback,
+          type === "image/webp" ? "image/png" : type,
+          quality,
+        );
+      };
+    });
+    const bodies: Buffer[] = [];
+    await page.route("**/api/upload-building-photo", async (route) => {
+      bodies.push(route.request().postDataBuffer() ?? Buffer.alloc(0));
+      await route.fallback();
+    });
+    await page.goto("/admin/buildings/1");
+    const photoSection = page.locator("#building-photos");
+    const png = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9WlAAAAABJRU5ErkJggg==",
+      "base64",
+    );
+
+    await photoSection
+      .locator('input[type="file"]')
+      .setInputFiles([
+        { name: "정문.png", mimeType: "image/png", buffer: png },
+      ]);
+
+    const progress = photoSection.getByLabel("사진 업로드 진행 상황");
+    await expect(
+      progress.getByRole("status", { name: /성공 1개 · 실패 0개/ }),
+    ).toBeVisible();
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].includes(Buffer.from("WEBPVP8"))).toBe(true);
+    expect(bodies[0].includes(Buffer.from([0x89, 0x50, 0x4e, 0x47]))).toBe(
+      false,
+    );
+  });
+
   test("검색으로 목록을 좁히고 초기화한다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");

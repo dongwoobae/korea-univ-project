@@ -3,6 +3,33 @@ const MAX_EDGE = 1920;
 
 const WEBP_QUALITY = 0.75;
 
+type WasmWebPEncoder = (image: ImageData) => Promise<ArrayBuffer>;
+
+/**
+ * Safari의 canvas는 WebP를 인코딩하지 못하고 오류 없이 PNG를 돌려준다.
+ * 그때만 wasm 인코더를 불러와 같은 품질로 다시 인코딩한다(설계 2026-10-07 2.1).
+ */
+export async function encodeCanvasToWebP(
+  canvas: HTMLCanvasElement,
+  encodeWasm: WasmWebPEncoder = encodeWithWasm,
+): Promise<Blob> {
+  const native = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/webp", WEBP_QUALITY),
+  );
+  if (native?.type === "image/webp") return native;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("WebP 변환 실패");
+  const encoded = await encodeWasm(
+    context.getImageData(0, 0, canvas.width, canvas.height),
+  );
+  return new Blob([encoded], { type: "image/webp" });
+}
+
+async function encodeWithWasm(image: ImageData): Promise<ArrayBuffer> {
+  const { default: encode } = await import("@jsquash/webp/encode");
+  return encode(image, { quality: WEBP_QUALITY * 100 });
+}
+
 /**
  * 이미지를 긴 변 기준 MAX_EDGE 이내로 줄여 WebP Blob으로 바꾼다.
  *
@@ -29,13 +56,8 @@ export function convertToWebP(file: File): Promise<Blob> {
       canvas.width = w;
       canvas.height = h;
       canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("WebP 변환 실패"));
-        },
-        "image/webp",
-        WEBP_QUALITY,
+      encodeCanvasToWebP(canvas).then(resolve, () =>
+        reject(new Error("WebP 변환 실패")),
       );
     };
     img.onerror = () => {
