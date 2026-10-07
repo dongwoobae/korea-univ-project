@@ -193,7 +193,7 @@ TODO가 남긴 다른 선택은 이렇게 정했다.
 변환 결과(또는 대체로 올리는 원본)에서 한 프레임을 캡처한다.
 
 - 위치는 `min(1초, 길이/2)`다. 촬영 시작 프레임이 검은 경우를 피한다.
-- 긴 변 640px, JPEG 0.8. JPEG는 모든 브라우저의 canvas가 인코딩한다.
+- 긴 변 640px, JPEG 0.8. JPEG는 모든 브라우저의 canvas가 인코딩한다. 일괄 스크립트(네이티브 ffmpeg)는 `-q:v 4`를 쓴다.
 - 캡처에 실패해도 업로드는 진행한다(`video_poster_url = null`).
 - 포스터 PUT이 200으로 끝났을 때만 confirm에 `posterUrl`을 보낸다.
 
@@ -300,7 +300,8 @@ confirm이 새 컬럼에 쓰므로, 코드가 컬럼보다 먼저 뜨는 구간�
 - 사진 인코딩: 네이티브가 WebP를 주면 wasm을 부르지 않는다. PNG를 주면 wasm 경로로 간다.
   canvas와 인코더는 주입한다(`videoPlayback.test.ts`와 같은 방식).
 - `upload-building-photo`: PNG 내용과 잘린 WebP를 400으로 거절한다. WebP는 `image/webp`·1년 캐시로 저장한다.
-- 변환 인자: 가로 입력과 세로 입력 각각에 대해 **인자 배열 전체**를 고정한다. scale 식, libx264, CRF 28, `yuv420p`, AAC 128k, faststart, 주입한 preset이 모두 들어간다.
+- 변환 인자: **인자 배열 전체**를 고정한다. scale 식, libx264, CRF 28, `yuv420p`, AAC 128k, faststart, 주입한 preset이 모두 들어간다.
+  인자는 입력 방향과 무관하므로, 가로·세로·작은·홀수 크기 입력의 결과 해상도는 네이티브 ffmpeg의 `testsrc`로 확인한다.
 - `compressVideo`: `@ffmpeg/ffmpeg`를 모킹해, `load()` 도중 `terminateFFmpeg()`를 부르면 거절로 끝나는지 본다.
 - 포스터 키 짝 판정: 같은 ts의 `.jpg`만 짝이다. 다른 시설·다른 ts·다른 확장자는 아니다.
 - presign: `posterSize`가 없으면 포스터 두 필드가 `null`, 있으면 서명 URL을 준다. 1MB 초과는 400이다.
