@@ -82,3 +82,19 @@ export function isFacilityVideoKey(key: string, facilityId: string): boolean {
 export function isValidFileSize(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value) && value >= 0;
 }
+
+export const MAX_POSTER_BYTES = 1024 * 1024;
+
+/**
+ * 포스터는 영상 키의 확장자만 `.jpg`로 바꾼 키에 둔다.
+ * 둘이 한 쌍인지 키만 보고 검증하기 위해서다(설계 2026-10-07 4.5).
+ */
+export function facilityVideoPosterKey(videoKey: string): string {
+  return videoKey.replace(/\.[^./]+$/, ".jpg");
+}
+
+export function isPosterKeyFor(posterKey: string, videoKey: string): boolean {
+  return (
+    posterKey !== videoKey && posterKey === facilityVideoPosterKey(videoKey)
+  );
+}
