@@ -29,7 +29,7 @@
 - **현장 실측 기반 경사도 입력** — 배포된 경로를 감사해 표시 구간 137개 중 31개(23%)가 GPS 고도 노이즈 탓에 0.0% 평지로 그려지는 것을 확인하고, 관리자가 지도에 경로를 그린 뒤 구간별 실측값을 직접 넣는 방식으로 전환
 - **접근성 전수 감사 기반 개선** — UX 감사 문서(`docs/audits/`)로 P0~P3 항목을 분류하고, 모달 초점 트랩·라이브 리전·터치 타겟·폼 라벨을 순차 구현하며 E2E로 회귀를 고정
 - **JavaScript → TypeScript 전면 이관** — 설계 문서를 먼저 작성한 뒤 `src/` 전체(138개 파일)를 `strict` 모드로 이관하고, 우회로 남아 있던 암묵적 `any` 162건까지 걷어 `no-explicit-any`를 error로 유지
-- **결정론적 E2E 환경 구축** — 996줄 목 백엔드(PostgREST·Next 라우트·Auth·브라우저 API 스텁)로 외부 의존 없이 15개 spec·141개 시나리오를 실행
+- **결정론적 E2E 환경 구축** — 1011줄 목 백엔드(PostgREST·Next 라우트·Auth·브라우저 API 스텁)로 외부 의존 없이 15개 spec·146개 시나리오를 실행
 - **마이그레이션 안전장치** — 적용된 마이그레이션의 수정·삭제를 CI에서 차단하고, 적용 후 로컬↔원격 이력 일치를 별도 잡에서 검증
 - **다국어 자동화** — Papago NMT 연동으로 시설·명소 정보를 자동 번역하고, 번역 실패를 관리자 화면에 드러내 개별·일괄 재번역 가능
 
@@ -64,8 +64,8 @@
 - 🏗️ **건물 추가** — 지도에서 폴리곤 직접 그리기 + 폴리곤 기반 **캠퍼스 자동 판정**
 - ✏️ **건물 상세 관리** — 이름·단과대·시설·폴리곤을 카드 단위로 분리, 폴리곤은 편집 전에 미리 보고 편집으로 넘어갈 때 화면이 튀지 않음. **미저장 이탈 경고** 포함
 - 🧱 **시설 상세 모달** — 목록의 시설 행을 누르면 상세 모달이 열리고, 손봐야 할 행에만 배지(미설치·번역 필요 등)를 붙여 상태를 드러냄
-- 🖼️ **사진 업로드** — 브라우저에서 크기를 줄여 WebP로 변환한 뒤 올리고, 파일별 성공/실패를 개별 표시해 **실패한 항목만 재시도**
-- 🎞️ **건물 동영상 섹션** — 시설 영상을 건물 단위 섹션에서 관리. presigned URL로 R2 직접 업로드, 퍼센트 진행률, 자막 저장. 업로드 전 **브라우저 재생 가능 여부를 검사**해 디코드 불가한 코덱(아이폰 HEVC 등)만 H.264로 변환하고, 용량 상한은 서버·클라이언트·안내 문구가 한 모듈에서만 값을 가져감
+- 🖼️ **사진 업로드** — 브라우저에서 크기를 줄여 WebP로 변환(Safari는 wasm 인코더)한 뒤 올리고, 서버는 내용이 WebP인 것만 받으며, 파일별 성공/실패를 개별 표시해 **실패한 항목만 재시도**
+- 🎞️ **건물 동영상 섹션** — 시설 영상을 건물 단위 섹션에서 관리. presigned URL로 R2 직접 업로드, 퍼센트 진행률, 자막 저장. 업로드마다 **긴 변 1280·H.264·faststart로 용량을 줄이고**(실패하면 재생 가능한 원본), 포스터를 함께 저장하며, 용량 상한은 서버·클라이언트·안내 문구가 한 모듈에서만 값을 가져감
 - 🧩 **독립 시설 관리** — 건물에 속하지 않는 시설 CRUD, 검색·유형·설치여부 필터·정렬
 - 🌍 **번역 실패 표시** — 자동 번역 실패를 "번역 필요" 배지로 드러내고 **개별·일괄 재번역** 제공 (저장 성공과 번역 실패를 분리)
 - 🏞️ **명소 관리** — 캠퍼스 명소 CRUD, 이모지 지정, 사진 유무 필터, 사진 포함 단일 저장
@@ -99,7 +99,7 @@
 | DB / Auth        | Supabase (PostgreSQL, Auth, RLS)                                                                      |
 | Storage          | Supabase Storage(건물 사진) + Cloudflare R2(명소 사진·시설 영상)                                      |
 | 번역             | Papago NMT API                                                                                        |
-| 영상 처리        | ffmpeg.wasm (재생 불가 코덱만 H.264 변환)                                                             |
+| 영상 처리        | ffmpeg.wasm (모든 업로드를 720p H.264로 변환, 실패 시 원본)                                           |
 | 스타일           | CSS 파일 + CSS 변수 디자인 토큰(`--ku-*`), 라이트/다크 정의 (Tailwind 미사용)                         |
 | Font             | Pretendard                                                                                            |
 | Test             | Vitest(단위) + Playwright(E2E)                                                                        |
@@ -226,17 +226,25 @@ src/
     facilityTranslation.ts / facilityTranslationState.ts
     feedback.ts                      # 피드백 유형 정의·입력 검증
     settings.ts / useCampusBoundaries.ts / useDebouncedValue.ts
-    imageToWebP.ts                   # 업로드 전 이미지 축소 + WebP 변환
-    videoUpload.ts                   # 동영상 용량 상한과 표기의 단일 출처
+    imageToWebP.ts                   # 업로드 전 이미지 축소 + WebP 변환 (Safari는 wasm)
+    webpBytes.ts                     # 파일 앞 바이트로 WebP 판정 (라우트·스크립트 공용)
+    buildingPhotos.ts                # 건물 사진 버킷·경로·캐시 규칙
+    videoUpload.ts                   # 동영상 용량 상한·키·포스터 키의 단일 출처
     videoPlayback.ts                 # 업로드 전 비디오 트랙 디코드 가능 여부 판별
+    videoTranscode.ts                # 변환·포스터 ffmpeg 인자 (스크립트와 공유)
     compressVideo.ts                 # ffmpeg.wasm H.264 변환
+    videoPoster.ts                   # 업로드할 영상에서 포스터 캡처
+    facilityVideoUpload.ts           # 영상 업로드 순서·대체·취소 판단
   scripts/
     syncBuildings.ts                 # Overpass → Supabase 건물 동기화
+    convertBuildingPhotosToWebP.ts   # 이름만 webp인 기존 사진을 WebP로 일괄 변환
+    transcodeFacilityVideos.ts       # 기존 시설 영상을 720p로 바꾸고 포스터 생성
+    lib/                             # journal·영상 대상 분류
   types/
     domain.ts                        # database.types.ts 기반 도메인 타입
 e2e/                                 # Playwright E2E (15 spec) + support/mockBackend.ts
 supabase/
-  migrations/                        # SQL 마이그레이션 (15개)
+  migrations/                        # SQL 마이그레이션 (17개)
   database.types.ts                  # 생성된 DB 타입
 docs/
   specs/                             # 설계 문서
@@ -304,6 +312,7 @@ building_facilities
   lat                double precision
   lng                double precision
   video_url          text                     -- 시설 영상 (R2)
+  video_poster_url   text                     -- 영상 포스터 (R2, 영상 키의 짝 .jpg)
   video_caption      text / video_caption_en / video_caption_zh
   translation_status text not null            -- 'pending' | 'translated' | 'failed'
   created_at         timestamptz
@@ -458,31 +467,31 @@ npm run test:e2e:ui   # Playwright UI 모드
 
 ### 테스트 범위
 
-**Vitest 단위 테스트 (27개 파일, 203개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, 피드백 입력 검증, 피드백·명소 삭제 API 라우트.
+**Vitest 단위 테스트 (39개 파일, 273개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, WebP 바이트 판정·Safari 대체 인코딩, 영상 변환 인자·포스터 캡처·업로드 순서, 일괄 변환 대상 판정·journal, 피드백 입력 검증, 피드백·명소 삭제·사진 업로드·영상 presign/confirm/삭제 API 라우트.
 
 경사 경로 판단 로직은 `src/lib/slopeRoute.ts`(경로·저장 포맷)와 `src/lib/slopeScale.ts`(단위·색·기준선)의 순수 함수로 빼 두었습니다. Vitest가 `environment: "node"`로 돌기 때문에, Leaflet에 묶인 채로는 단위 테스트가 닿지 않습니다.
 
-**Playwright E2E (15개 spec, 141개 시나리오)**
+**Playwright E2E (15개 spec, 146개 시나리오)**
 
-| 파일                                    | 검증 대상                                                                                                                                                                                                                                                                                                   |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `public-map.spec.ts`                    | 지도 로드, 건물·명소 라벨 줌·언어 반영, 패널 z-order, 검색→상세→즐겨찾기 영속, 필터, 마커 군집, 둘러보기 목록, 다국어 팝업, **시스템 색상 모드별 타일 교체**, 피드백 성공/실패, TTS·음성검색 미지원 안내                                                                                                    |
-| `public-map-p0.spec.ts`                 | 모바일 언어 드롭다운·상단 컨트롤 간격·목록 패널 겹침, 모바일 즐겨찾기, **API 실패 → 오류 배너 → 재시도 복구**, 조회 실패와 빈 상태 구분                                                                                                                                                                     |
-| `public-map-p1.spec.ts`                 | 현재위치 성공/권한거부, 모바일 필터 배지, 캠퍼스 필터                                                                                                                                                                                                                                                       |
-| `public-map-p1-remainder.spec.ts`       | 시설 영상 접근 이름·자막, 상세 패널 스와이프 닫기, 음성인식 실패 구분                                                                                                                                                                                                                                       |
-| `public-map-search.spec.ts`             | 영문 부분일치, 키보드 이동·Enter 선택, Escape 동작, 결과 없음, 라벨 언어 추종, 총 개수 안내                                                                                                                                                                                                                 |
-| `admin-auth.spec.ts`                    | 비로그인 리다이렉트, 로그인/로그아웃, 피드백 이메일 변경                                                                                                                                                                                                                                                    |
-| `admin-buildings-slopes.spec.ts`        | **보완 현황 서버 집계 표시**, 서버 페이지네이션, 건물 생성 검증·폴리곤 저장, 소프트 삭제/복원, **사진 파일별 성공/실패 + 실패만 재시도**, **경로 그리기·구간 입력·저장 포맷**, 열어둔 사이 바뀐 행 보호, 깨진 저장 포맷 거부, 도·% 입력, 현재 위치·구간 번호, **저장한 경로가 공개 지도에 그려지는지 확인** |
-| `admin-buildings-flag-filter.spec.ts`   | 경고 카드 클릭 시 목록 개수가 카드 숫자와 일치, 필터·검색어 AND 결합, 0건 카드의 빈 목록 처리                                                                                                                                                                                                               |
-| `admin-building-facility-modal.spec.ts` | 시설 행 → 상세 모달, 유형별 아이콘, 배지가 붙는 조건, 상태 토글의 목록 반영, 초점 복귀(닫기·ESC·삭제), 일괄 재번역 성공/실패                                                                                                                                                                                |
-| `admin-building-video.spec.ts`          | 건물 동영상 섹션 목록, 업로드 모달, 교체 경고, 미설치 시설의 공개 안 됨 표시, 시설 없는 건물 비활성                                                                                                                                                                                                         |
-| `admin-content.spec.ts`                 | 독립 시설 검색·필터·정렬, 시설 CRUD, **저장 성공과 번역 실패 분리 + 재번역**, 영상 업로드→자막→삭제, 명소 CRUD·필터·페이지네이션                                                                                                                                                                            |
-| `accessibility-dialog-toast.spec.ts`    | 모달 초점 트랩·복귀, **중첩 모달 초점 복원**, 실행 버튼 소멸 시 대체 복귀, **오류=alert / 성공=status**, 폼 라벨 연결, **모바일 44px 터치 영역**                                                                                                                                                            |
-| `admin-p0.spec.ts`                      | 모바일 계정 메뉴, 상태 변경 실패 시 성공 메시지 미표시                                                                                                                                                                                                                                                      |
-| `admin-dark.spec.ts`                    | 다크 모드 대비 회귀 가드 — 하드코딩 밝은 색·근검정 텍스트 0건 단언                                                                                                                                                                                                                                          |
-| `admin-campus-boundaries.spec.ts`       | 캠퍼스 밖 시설 경고하되 저장 허용                                                                                                                                                                                                                                                                           |
+| 파일                                    | 검증 대상                                                                                                                                                                                                                                                                                                                                                         |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `public-map.spec.ts`                    | 지도 로드, 건물·명소 라벨 줌·언어 반영, 패널 z-order, 검색→상세→즐겨찾기 영속, 필터, 마커 군집, 둘러보기 목록, 다국어 팝업, **시스템 색상 모드별 타일 교체**, 피드백 성공/실패, TTS·음성검색 미지원 안내                                                                                                                                                          |
+| `public-map-p0.spec.ts`                 | 모바일 언어 드롭다운·상단 컨트롤 간격·목록 패널 겹침, 모바일 즐겨찾기, **API 실패 → 오류 배너 → 재시도 복구**, 조회 실패와 빈 상태 구분                                                                                                                                                                                                                           |
+| `public-map-p1.spec.ts`                 | 현재위치 성공/권한거부, 모바일 필터 배지, 캠퍼스 필터                                                                                                                                                                                                                                                                                                             |
+| `public-map-p1-remainder.spec.ts`       | 시설 영상 접근 이름·자막, **영상은 포스터만 받고 재생할 때 요청**, 상세 패널 스와이프 닫기, 음성인식 실패 구분                                                                                                                                                                                                                                                    |
+| `public-map-search.spec.ts`             | 영문 부분일치, 키보드 이동·Enter 선택, Escape 동작, 결과 없음, 라벨 언어 추종, 총 개수 안내                                                                                                                                                                                                                                                                       |
+| `admin-auth.spec.ts`                    | 비로그인 리다이렉트, 로그인/로그아웃, 피드백 이메일 변경                                                                                                                                                                                                                                                                                                          |
+| `admin-buildings-slopes.spec.ts`        | **보완 현황 서버 집계 표시**, 서버 페이지네이션, 건물 생성 검증·폴리곤 저장, 소프트 삭제/복원, **사진 파일별 성공/실패 + 실패만 재시도**, Safari처럼 canvas가 WebP를 못 만들면 wasm으로 인코딩, **경로 그리기·구간 입력·저장 포맷**, 열어둔 사이 바뀐 행 보호, 깨진 저장 포맷 거부, 도·% 입력, 현재 위치·구간 번호, **저장한 경로가 공개 지도에 그려지는지 확인** |
+| `admin-buildings-flag-filter.spec.ts`   | 경고 카드 클릭 시 목록 개수가 카드 숫자와 일치, 필터·검색어 AND 결합, 0건 카드의 빈 목록 처리                                                                                                                                                                                                                                                                     |
+| `admin-building-facility-modal.spec.ts` | 시설 행 → 상세 모달, 유형별 아이콘, 배지가 붙는 조건, 상태 토글의 목록 반영, 초점 복귀(닫기·ESC·삭제), 일괄 재번역 성공/실패                                                                                                                                                                                                                                      |
+| `admin-building-video.spec.ts`          | 건물 동영상 섹션 목록, 업로드 모달, 교체 경고, 미설치 시설의 공개 안 됨 표시, 시설 없는 건물 비활성                                                                                                                                                                                                                                                               |
+| `admin-content.spec.ts`                 | 독립 시설 검색·필터·정렬, 시설 CRUD, **저장 성공과 번역 실패 분리 + 재번역**, 영상 업로드(변환 실패 시 원본 대체)→자막→삭제, 변환 도구 불러오는 중 취소, 포스터 업로드 실패, 명소 CRUD·필터·페이지네이션                                                                                                                                                          |
+| `accessibility-dialog-toast.spec.ts`    | 모달 초점 트랩·복귀, **중첩 모달 초점 복원**, 실행 버튼 소멸 시 대체 복귀, **오류=alert / 성공=status**, 폼 라벨 연결, **모바일 44px 터치 영역**                                                                                                                                                                                                                  |
+| `admin-p0.spec.ts`                      | 모바일 계정 메뉴, 상태 변경 실패 시 성공 메시지 미표시                                                                                                                                                                                                                                                                                                            |
+| `admin-dark.spec.ts`                    | 다크 모드 대비 회귀 가드 — 하드코딩 밝은 색·근검정 텍스트 0건 단언                                                                                                                                                                                                                                                                                                |
+| `admin-campus-boundaries.spec.ts`       | 캠퍼스 밖 시설 경고하되 저장 허용                                                                                                                                                                                                                                                                                                                                 |
 
-E2E는 `e2e/support/mockBackend.ts`(996줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다. 쓰기 요청의 `id` 외 필터(`is.null`, `eq.`)도 실제 PostgREST처럼 적용하므로, 저장 조건에 건 잠금이 목 위에서만 통과하는 일이 없습니다.
+E2E는 `e2e/support/mockBackend.ts`(1011줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다. 쓰기 요청의 `id` 외 필터(`is.null`, `eq.`)도 실제 PostgREST처럼 적용하므로, 저장 조건에 건 잠금이 목 위에서만 통과하는 일이 없습니다.
 
 ---
 
@@ -530,13 +539,13 @@ E2E는 `e2e/support/mockBackend.ts`(996줄)가 PostgREST·Next 라우트·Auth�
 
 ## 📦 스토리지
 
-| 자산      | 위치                                        | 경로                                                    |
-| --------- | ------------------------------------------- | ------------------------------------------------------- |
-| 건물 사진 | Supabase Storage `building-photos` (public) | `{buildingId}/{timestamp}-{rand}.webp`                  |
-| 명소 사진 | Cloudflare R2                               | presigned 업로드, 삭제 시 R2 객체 선정리 후 DB row 삭제 |
-| 시설 영상 | Cloudflare R2                               | 재생 가능 검사 → (필요 시 변환) → presigned PUT → 확인  |
+| 자산      | 위치                                        | 경로                                                                   |
+| --------- | ------------------------------------------- | ---------------------------------------------------------------------- |
+| 건물 사진 | Supabase Storage `building-photos` (public) | `{buildingId}/{timestamp}-{rand}.webp`                                 |
+| 명소 사진 | Cloudflare R2                               | presigned 업로드, 삭제 시 R2 객체 선정리 후 DB row 삭제                |
+| 시설 영상 | Cloudflare R2                               | 변환(실패 시 재생 가능한 원본) → 포스터 캡처 → presigned PUT ×2 → 확인 |
 
-건물 사진은 브라우저에서 긴 변 기준으로 줄인 뒤 webp로 변환해 올립니다. 영상은 `isVideoPlayable()`로 브라우저가 비디오 트랙을 디코드할 수 있는지 먼저 확인하고, **재생 불가한 경우에만** ffmpeg.wasm으로 H.264(+faststart)로 변환해 업로드합니다. MIME만으로는 걸러지지 않는 HEVC(hvc1) 영상이 "소리만 나고 화면은 검은" 상태로 배포되는 것을 막기 위한 장치입니다. 용량 상한은 presign 라우트가 R2에 직접 강제하므로 클라이언트 검사를 우회해도 통과하지 않습니다.
+건물 사진은 브라우저에서 긴 변 1920px 이내로 줄인 뒤 WebP로 인코딩해 올립니다. Safari처럼 canvas가 WebP를 만들지 못하면 wasm 인코더(`@jsquash/webp`)로 대신 인코딩하고, 서버는 파일 앞 바이트로 WebP인지 확인한 것만 저장합니다. 영상은 업로드마다 ffmpeg.wasm으로 긴 변 1280px·H.264·faststart 변환을 시도하고, 실패하면 재생 가능한 원본만 경고와 함께 올립니다. 업로드할 영상에서 포스터(긴 변 640px JPEG)를 캡처해 영상 키의 짝 `.jpg`로 함께 저장하므로, 공개 패널은 포스터만 받고 영상은 재생할 때 받습니다. 용량 상한은 presign 라우트가 R2에 직접 강제하므로 클라이언트 검사를 우회해도 통과하지 않습니다. 기준과 근거는 `docs/specs/2026-10-07-sidepanel-media-loading-design.md`에 있습니다.
 
 ---
 
@@ -572,7 +581,7 @@ UI 고정 문자열은 `src/lib/translations.ts`(언어당 키 72개)에서 관�
 - 로그인 + 세션 유지, 모바일 계정 메뉴
 - 건물 보완 현황 요약(뷰 기반 RPC 집계) + 카드 클릭 목록 필터
 - 건물 추가(폴리곤 그리기 + 캠퍼스 자동 판정), 카드 단위 상세 관리, 폴리곤 미리보기, 소프트 삭제/복구
-- 사진 업로드(브라우저 WebP 변환·파일별 성공/실패·실패만 재시도), 건물 동영상 섹션(진행률·용량 상한 서버 강제)
+- 사진 업로드(브라우저 WebP 변환, Safari는 wasm·서버 WebP 판정·파일별 성공/실패·실패만 재시도), 건물 동영상 섹션(720p 변환·포스터·진행률·용량 상한 서버 강제)
 - 시설 상세 모달 + 상태 배지, 독립 시설 관리, 번역 실패 표시 + 개별·일괄 재번역
 - 명소 관리(이모지 지정), 경사도 경로 수기 입력·수정
 - 전 목록 서버 페이지네이션 + 검색·필터·정렬
@@ -582,7 +591,7 @@ UI 고정 문자열은 `src/lib/translations.ts`(언어당 키 72개)에서 관�
 
 - TypeScript 전면 이관(`strict`), 암묵적 `any` 제거, `no-console` 규칙
 - 모달 초점 관리(중첩 스택), 토스트 라이브 리전, 44px 터치 타겟, 폼 라벨 연결
-- Vitest 단위 27파일 + Playwright E2E 15 spec
+- Vitest 단위 39파일 + Playwright E2E 15 spec
 - CI 8잡 게이트 + 마이그레이션 안전 검사·이력 대조
 - Supabase keep-alive 크론
 
