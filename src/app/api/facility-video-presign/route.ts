@@ -4,9 +4,11 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { r2Presign, R2_BUCKET, getPublicR2Url } from "@/lib/r2";
 import {
+  MAX_POSTER_BYTES,
   MAX_VIDEO_LABEL,
   exceedsVideoLimit,
   facilityVideoKey,
+  facilityVideoPosterKey,
   isValidFileSize,
 } from "@/lib/videoUpload";
 
@@ -19,7 +21,8 @@ export async function POST(request: Request) {
   if (auth.response) return auth.response;
 
   try {
-    const { facilityId, contentType, fileSize } = await request.json();
+    const { facilityId, contentType, fileSize, posterSize } =
+      await request.json();
 
     if (!facilityId || !contentType) {
       return NextResponse.json(
@@ -54,6 +57,15 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    if (
+      posterSize !== undefined &&
+      (!isValidFileSize(posterSize) || posterSize > MAX_POSTER_BYTES)
+    ) {
+      return NextResponse.json(
+        { error: "포스터 크기가 올바르지 않아요" },
+        { status: 400 },
+      );
+    }
 
     const ext =
       contentType === "video/webm"
@@ -80,9 +92,31 @@ export async function POST(request: Request) {
       },
     );
 
+    let posterPresignedUrl: string | null = null;
+    let posterPublicUrl: string | null = null;
+    if (posterSize !== undefined) {
+      const posterKey = facilityVideoPosterKey(key);
+      posterPresignedUrl = await getSignedUrl(
+        r2Presign,
+        new PutObjectCommand({
+          Bucket: R2_BUCKET,
+          Key: posterKey,
+          ContentType: "image/jpeg",
+          ContentLength: posterSize,
+        }),
+        {
+          expiresIn: 3600,
+          signableHeaders: new Set(["content-length"]),
+        },
+      );
+      posterPublicUrl = getPublicR2Url(posterKey);
+    }
+
     return NextResponse.json({
       presignedUrl,
       publicUrl: getPublicR2Url(key),
+      posterPresignedUrl,
+      posterPublicUrl,
     });
   } catch (err) {
     console.error("[facility-video-presign]", err);
