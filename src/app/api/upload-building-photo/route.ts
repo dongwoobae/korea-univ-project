@@ -1,6 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import {
+  BUILDING_PHOTO_BUCKET,
+  BUILDING_PHOTO_CACHE_CONTROL,
+  buildingPhotoPath,
+} from "@/lib/buildingPhotos";
 import { requireAdmin } from "@/lib/requireAdmin";
+import { isWebP } from "@/lib/webpBytes";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,11 +30,24 @@ export async function POST(request: Request) {
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const fileName = `${buildingId}/${Date.now()}-${Math.random().toString(36).slice(2)}.webp`;
+    if (!isWebP(buffer, buffer.length)) {
+      return NextResponse.json(
+        { error: "WebP 이미지만 올릴 수 있어요" },
+        { status: 400 },
+      );
+    }
+    const fileName = buildingPhotoPath(
+      String(buildingId),
+      Date.now(),
+      Math.random().toString(36).slice(2),
+    );
 
     const { error: uploadError } = await supabaseAdmin.storage
-      .from("building-photos")
-      .upload(fileName, buffer, { contentType: "image/webp" });
+      .from(BUILDING_PHOTO_BUCKET)
+      .upload(fileName, buffer, {
+        contentType: "image/webp",
+        cacheControl: BUILDING_PHOTO_CACHE_CONTROL,
+      });
 
     if (uploadError) {
       console.error("[upload-building-photo] storage error:", uploadError);
@@ -36,7 +55,7 @@ export async function POST(request: Request) {
     }
 
     const { data } = supabaseAdmin.storage
-      .from("building-photos")
+      .from(BUILDING_PHOTO_BUCKET)
       .getPublicUrl(fileName);
 
     const url = `${data.publicUrl}?t=${Date.now()}`;
