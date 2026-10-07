@@ -81,6 +81,7 @@ export type Database = {
           video_caption: string | null;
           video_caption_en: string | null;
           video_caption_zh: string | null;
+          video_poster_url: string | null;
           video_url: string | null;
           updated_at: string;
         };
@@ -105,6 +106,7 @@ export type Database = {
           video_caption?: string | null;
           video_caption_en?: string | null;
           video_caption_zh?: string | null;
+          video_poster_url?: string | null;
           video_url?: string | null;
           updated_at?: string;
         };
@@ -129,6 +131,7 @@ export type Database = {
           video_caption?: string | null;
           video_caption_en?: string | null;
           video_caption_zh?: string | null;
+          video_poster_url?: string | null;
           video_url?: string | null;
           updated_at?: string;
         };
