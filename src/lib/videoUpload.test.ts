@@ -4,9 +4,11 @@ import {
   MAX_VIDEO_LABEL,
   exceedsVideoLimit,
   facilityVideoKey,
+  facilityVideoPosterKey,
   formatExcessSize,
   formatFileSize,
   isFacilityVideoKey,
+  isPosterKeyFor,
   isValidFileSize,
 } from "./videoUpload";
 
@@ -130,5 +132,41 @@ describe("formatExcessSize", () => {
         MAX_VIDEO_LABEL,
       );
     }
+  });
+});
+
+describe("facilityVideoPosterKey / isPosterKeyFor", () => {
+  const facilityId = "efca8dfa-c6c2-47c8-b2b0-923cfb98fe5f";
+  const videoKey = `facility-videos/${facilityId}/1780848381078.mp4`;
+
+  it("영상 키의 확장자만 .jpg로 바꾼다", () => {
+    expect(facilityVideoPosterKey(videoKey)).toBe(
+      `facility-videos/${facilityId}/1780848381078.jpg`,
+    );
+  });
+
+  it("같은 ts의 .jpg만 짝으로 본다", () => {
+    expect(
+      isPosterKeyFor(
+        `facility-videos/${facilityId}/1780848381078.jpg`,
+        videoKey,
+      ),
+    ).toBe(true);
+    expect(
+      isPosterKeyFor(
+        `facility-videos/${facilityId}/1780848381079.jpg`,
+        videoKey,
+      ),
+    ).toBe(false);
+    expect(
+      isPosterKeyFor(`facility-videos/other/1780848381078.jpg`, videoKey),
+    ).toBe(false);
+    expect(
+      isPosterKeyFor(
+        `facility-videos/${facilityId}/1780848381078.png`,
+        videoKey,
+      ),
+    ).toBe(false);
+    expect(isPosterKeyFor(videoKey, videoKey)).toBe(false);
   });
 });

@@ -2,7 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { getR2KeyFromPublicUrl } from "@/lib/r2";
-import { isFacilityVideoKey } from "@/lib/videoUpload";
+import { isFacilityVideoKey, isPosterKeyFor } from "@/lib/videoUpload";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
   if (auth.response) return auth.response;
 
   try {
-    const { facilityId, videoUrl } = await request.json();
+    const { facilityId, videoUrl, posterUrl } = await request.json();
 
     if (!facilityId || !videoUrl) {
       return NextResponse.json(
@@ -35,9 +35,22 @@ export async function POST(request: Request) {
       );
     }
 
+    let posterValue: string | null = null;
+    if (posterUrl !== undefined && posterUrl !== null) {
+      const posterKey =
+        typeof posterUrl === "string" ? getR2KeyFromPublicUrl(posterUrl) : null;
+      if (!posterKey || !isPosterKeyFor(posterKey, key)) {
+        return NextResponse.json(
+          { error: "이 동영상의 포스터 주소가 아니에요" },
+          { status: 400 },
+        );
+      }
+      posterValue = posterUrl;
+    }
+
     const { error } = await supabaseAdmin
       .from("building_facilities")
-      .update({ video_url: videoUrl })
+      .update({ video_url: videoUrl, video_poster_url: posterValue })
       .eq("id", facilityId);
 
     if (error) {

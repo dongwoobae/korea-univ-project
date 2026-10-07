@@ -791,18 +791,30 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     return json(route, { ok: true });
   }
   if (path === "/api/facility-video-presign") {
+    const { posterSize } = route.request().postDataJSON() as {
+      posterSize?: number;
+    };
+    const withPoster = posterSize !== undefined;
     return json(route, {
       presignedUrl: "https://upload.test/video",
       publicUrl: "https://cdn.test/video.mp4",
+      posterPresignedUrl: withPoster ? "https://upload.test/poster" : null,
+      posterPublicUrl: withPoster ? "https://cdn.test/video.jpg" : null,
     });
   }
   if (path === "/api/facility-video-confirm") {
-    const { facilityId, videoUrl } = route.request().postDataJSON() as {
+    const { facilityId, videoUrl, posterUrl } = route
+      .request()
+      .postDataJSON() as {
       facilityId: string;
       videoUrl: string;
+      posterUrl?: string;
     };
     const facility = state.facilities.find((row) => row.id === facilityId);
-    if (facility) facility.video_url = videoUrl;
+    if (facility) {
+      facility.video_url = videoUrl;
+      facility.video_poster_url = posterUrl ?? null;
+    }
     return json(route, { ok: true });
   }
   if (path === "/api/delete-facility-video") {
@@ -810,7 +822,10 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       facilityId: string;
     };
     const facility = state.facilities.find((row) => row.id === facilityId);
-    if (facility) facility.video_url = null;
+    if (facility) {
+      facility.video_url = null;
+      facility.video_poster_url = null;
+    }
     return json(route, { ok: true });
   }
   if (path === "/api/settings/feedback-emails") {

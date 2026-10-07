@@ -49,3 +49,6 @@ next-env.d.ts
 
 # subagent-driven-development 작업 공간 (스크래치)
 .superpowers/
+
+# 일괄 변환 스크립트 journal (설계 2026-10-07 6.2)
+/.media-migration/

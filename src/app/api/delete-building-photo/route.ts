@@ -1,5 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import {
+  BUILDING_PHOTO_BUCKET,
+  buildingPhotoPathFromUrl,
+} from "@/lib/buildingPhotos";
 import { requireAdmin } from "@/lib/requireAdmin";
 
 const supabaseAdmin = createClient(
@@ -21,11 +25,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const storagePath = url.split("/building-photos/")[1]?.split("?")[0];
+    const storagePath = buildingPhotoPathFromUrl(url);
 
     if (storagePath) {
       const { error: removeError } = await supabaseAdmin.storage
-        .from("building-photos")
+        .from(BUILDING_PHOTO_BUCKET)
         .remove([storagePath]);
       if (removeError) {
         console.error("[delete-building-photo] storage error:", removeError);

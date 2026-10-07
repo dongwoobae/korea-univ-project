@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     // 조건으로만 써서 "그 사이 바뀌었는지"를 보는 용도로 남긴다.
     const { data: current, error: readError } = await supabaseAdmin
       .from("building_facilities")
-      .select("video_url")
+      .select("video_url, video_poster_url")
       .eq("id", facilityId)
       .maybeSingle();
 
@@ -59,9 +59,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "잘못된 동영상 URL" }, { status: 400 });
     }
 
+    // DB 값이 이 시설의 키가 아니면 객체는 건드리지 않고 컬럼만 비운다.
+    const posterKey = current.video_poster_url
+      ? getR2KeyFromPublicUrl(current.video_poster_url)
+      : null;
+    const deletablePosterKey =
+      posterKey && isFacilityVideoKey(posterKey, String(facilityId))
+        ? posterKey
+        : null;
+
     const { data: updated, error: dbError } = await supabaseAdmin
       .from("building_facilities")
-      .update({ video_url: null })
+      .update({ video_url: null, video_poster_url: null })
       .eq("id", facilityId)
       .eq("video_url", videoUrl)
       .select("id")
@@ -84,10 +93,30 @@ export async function POST(request: Request) {
     } catch (storageError) {
       await supabaseAdmin
         .from("building_facilities")
-        .update({ video_url: videoUrl })
+        .update({
+          video_url: videoUrl,
+          video_poster_url: current.video_poster_url,
+        })
         .eq("id", facilityId)
         .is("video_url", null);
       throw storageError;
+    }
+
+    // 영상이 이미 지워졌으므로 되돌리지 않는다. DB는 포스터를 참조하지 않아 고아 jpg만 남는다.
+    if (deletablePosterKey) {
+      try {
+        await r2.send(
+          new DeleteObjectCommand({
+            Bucket: R2_BUCKET,
+            Key: deletablePosterKey,
+          }),
+        );
+      } catch (posterError) {
+        console.error(
+          `[delete-facility-video] 포스터 삭제 실패 key=${deletablePosterKey}`,
+          posterError,
+        );
+      }
     }
 
     revalidatePath("/api/facilities");

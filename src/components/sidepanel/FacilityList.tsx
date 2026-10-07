@@ -118,6 +118,8 @@ export default function FacilityList({
                     <figure className="ku-facility-video">
                       <video
                         src={facility.video_url}
+                        poster={facility.video_poster_url ?? undefined}
+                        preload="none"
                         controls
                         playsInline
                         aria-label={`${name} ${t("videoLabelSuffix")}`}

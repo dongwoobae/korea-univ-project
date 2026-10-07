@@ -12,6 +12,14 @@ async function openLibraryPanel(page: import("@playwright/test").Page) {
 test.describe("공개 지도 P1 잔여 개선", () => {
   test("P1-06 시설 영상에 접근 이름과 자막 텍스트가 있다", async ({ page }) => {
     await installMockBackend(page);
+    const videoRequests: string[] = [];
+    const posterRequests: string[] = [];
+    page.on("request", (request) => {
+      if (request.url() === "https://cdn.test/video.mp4")
+        videoRequests.push(request.url());
+      if (request.url() === "https://cdn.test/video.jpg")
+        posterRequests.push(request.url());
+    });
     // 중앙도서관(건물 id 1) 시설 조회에 영상 URL과 자막을 주입한다.
     await page.route("**/rest/v1/building_facilities*", async (route) => {
       const url = new URL(route.request().url());
@@ -35,6 +43,7 @@ test.describe("공개 지도 P1 잔여 개선", () => {
             is_installed: true,
             floor_info: "1층",
             video_url: "https://cdn.test/video.mp4",
+            video_poster_url: "https://cdn.test/video.jpg",
             video_caption: "엘리베이터 이용 방법 자막 설명",
             facility_types: {
               code: "elevator",
@@ -52,6 +61,53 @@ test.describe("공개 지도 P1 잔여 개선", () => {
     await expect(
       page.getByText("엘리베이터 이용 방법 자막 설명"),
     ).toBeVisible();
+
+    await expect(video).toHaveAttribute("preload", "none");
+    await expect(video).toHaveAttribute("poster", "https://cdn.test/video.jpg");
+    await expect.poll(() => posterRequests.length).toBeGreaterThan(0);
+    expect(videoRequests).toHaveLength(0);
+
+    await video.evaluate((element: HTMLVideoElement) => {
+      element.muted = true;
+      void element.play().catch(() => {});
+    });
+    await expect.poll(() => videoRequests.length).toBeGreaterThan(0);
+  });
+
+  test("P1-06 포스터가 없으면 poster 속성을 두지 않는다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.route("**/rest/v1/building_facilities*", async (route) => {
+      const url = new URL(route.request().url());
+      if (
+        route.request().method() !== "GET" ||
+        url.searchParams.get("building_id") !== "eq.1"
+      ) {
+        return route.fallback();
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        headers: JSON_HEADERS,
+        body: JSON.stringify([
+          {
+            id: "f-building",
+            building_id: 1,
+            facility_code: "elevator",
+            name: "중앙 엘리베이터",
+            is_installed: true,
+            video_url: "https://cdn.test/video.mp4",
+            video_poster_url: null,
+            facility_types: { code: "elevator", label: "엘리베이터" },
+          },
+        ]),
+      });
+    });
+    await page.goto("/");
+    await openLibraryPanel(page);
+
+    const video = page.locator(".ku-facility-video video");
+    await expect(video).toHaveAttribute("preload", "none");
+    await expect(video).not.toHaveAttribute("poster");
   });
 
   test("P1-05 손잡이를 탭하면 상세 패널이 닫힌다", async ({ page }) => {
