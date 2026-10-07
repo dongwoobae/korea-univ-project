@@ -2,8 +2,8 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
 
-// 업로드 전 재생 가능 여부 검사(isVideoPlayable)를 통과해야 변환 없이 업로드로
-// 진행되므로, 더미 바이트가 아닌 실제 H.264 파일을 올린다.
+// 목업이 unpkg(ffmpeg 코어)를 끊어 변환은 항상 실패한다. 재생 가능한 원본으로
+// 대체되는 경로를 타려면 더미 바이트가 아닌 실제 H.264 파일이 필요하다.
 const PLAYABLE_VIDEO = path.join(__dirname, "fixtures/tiny-h264.mp4");
 
 test.describe("독립 시설과 명소 관리자 CRUD", () => {
@@ -146,10 +146,18 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
     await row.getByRole("button", { name: "동영상" }).click();
     await expect(page.getByText("동영상 관리")).toBeVisible();
 
+    await expect(page.getByText("가로 영상을 추천드려요")).toBeVisible();
     await page
       .locator('input[type="file"][accept^="video/"]')
       .setInputFiles(PLAYABLE_VIDEO);
+    await expect(
+      page.getByText("용량을 줄이지 못해 원본을 올렸어요"),
+    ).toBeVisible();
     await expect(page.locator("video")).toBeVisible();
+    expect(
+      state.facilities.find((facility) => facility.id === "f-installed")
+        ?.video_poster_url,
+    ).toBe("https://cdn.test/video.jpg");
 
     const caption = page.getByPlaceholder("동영상 설명 추가...");
     await caption.fill("정문 방향 경사로 영상");
@@ -169,6 +177,68 @@ test.describe("독립 시설과 명소 관리자 CRUD", () => {
       .last()
       .click();
     await expect(page.getByText(/동영상 추가/)).toBeVisible();
+  });
+
+  test("변환 도구를 불러오는 중에 나가면 업로드 요청이 나가지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseCore = () => {};
+    await page.route("https://unpkg.com/**", async (route) => {
+      await new Promise<void>((resolve) => (releaseCore = resolve));
+      await route.abort();
+    });
+    const uploadCalls: string[] = [];
+    page.on("request", (request) => {
+      const { pathname } = new URL(request.url());
+      if (pathname.startsWith("/api/facility-video"))
+        uploadCalls.push(pathname);
+    });
+    await page.goto("/admin/dashboard/facilities");
+    const row = page.getByText("중앙광장 경사로").locator("xpath=../..");
+    await row.getByRole("button", { name: "동영상" }).click();
+
+    await page
+      .locator('input[type="file"][accept^="video/"]')
+      .setInputFiles(PLAYABLE_VIDEO);
+    // 진행 영역과 업로드 버튼 라벨에 같은 문구가 두 번 나온다.
+    await expect(
+      page.getByText("변환 도구 불러오는 중...").first(),
+    ).toBeVisible();
+    await page
+      .getByRole("dialog", { name: "동영상 관리" })
+      .getByRole("button", { name: "닫기" })
+      .click();
+    await page.getByRole("button", { name: "중단하고 나가기" }).click();
+    await expect(page.getByText("동영상 관리")).toHaveCount(0);
+    releaseCore();
+
+    // 취소 플래그가 없으면 이 사이에 재생 검사를 거쳐 presign이 나간다.
+    await page.waitForTimeout(1500);
+    expect(uploadCalls).toEqual([]);
+  });
+
+  test("포스터 업로드가 실패하면 포스터 없이 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.route("https://upload.test/poster", (route) =>
+      route.fulfill({
+        status: 500,
+        headers: { "access-control-allow-origin": "*" },
+        body: "",
+      }),
+    );
+    await page.goto("/admin/dashboard/facilities");
+    const row = page.getByText("중앙광장 경사로").locator("xpath=../..");
+    await row.getByRole("button", { name: "동영상" }).click();
+
+    await page
+      .locator('input[type="file"][accept^="video/"]')
+      .setInputFiles(PLAYABLE_VIDEO);
+
+    await expect(page.locator("video")).toBeVisible();
+    const facility = state.facilities.find((item) => item.id === "f-installed");
+    expect(facility?.video_url).toBe("https://cdn.test/video.mp4");
+    expect(facility?.video_poster_url).toBeNull();
   });
 
   test("사진을 선택한 신규 명소를 한 번에 저장하고 삭제한다", async ({

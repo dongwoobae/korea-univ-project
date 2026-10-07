@@ -9,11 +9,13 @@ import { useModalFocus } from "@/lib/useModalFocus";
 import type { FacilityWithType } from "@/types/domain";
 import { isVideoPlayable } from "@/lib/videoPlayback";
 import { compressVideo, terminateFFmpeg } from "@/lib/compressVideo";
+import { captureVideoPoster } from "@/lib/videoPoster";
 import {
-  MAX_VIDEO_LABEL,
-  exceedsVideoLimit,
-  formatExcessSize,
-} from "@/lib/videoUpload";
+  type PresignResult,
+  type UploadPhase,
+  uploadFacilityVideo,
+} from "@/lib/facilityVideoUpload";
+import { MAX_VIDEO_LABEL } from "@/lib/videoUpload";
 
 export default function FacilityVideoModal({
   facility,
@@ -26,8 +28,7 @@ export default function FacilityVideoModal({
   showToast: (message: string, type?: string) => void;
   onClose: () => void;
 }) {
-  // null | "checking" | "loading" | "compressing" | "preparing" | "uploading"
-  const [phase, setPhase] = useState<string | null>(null);
+  const [phase, setPhase] = useState<UploadPhase | null>(null);
   const [progress, setProgress] = useState(0);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -38,6 +39,7 @@ export default function FacilityVideoModal({
   const [savingCaption, setSavingCaption] = useState(false);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(facility.video_url);
   const xhrRef = useRef<XMLHttpRequest | null>(null);
+  const cancelledRef = useRef(false);
 
   const busy = phase !== null;
   const titleId = useId();
@@ -57,7 +59,8 @@ export default function FacilityVideoModal({
   }
 
   async function handleForceClose() {
-    if (xhrRef.current) xhrRef.current.abort();
+    cancelledRef.current = true;
+    xhrRef.current?.abort();
     onUpdate();
     onClose();
   }
@@ -101,107 +104,79 @@ export default function FacilityVideoModal({
     onUpdate();
   }
 
+  function putWithXhr(
+    url: string,
+    body: Blob,
+    contentType: string,
+    onProgress?: (progress: number) => void,
+  ) {
+    return new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhrRef.current = xhr;
+      if (onProgress) {
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable)
+            onProgress(Math.round((ev.loaded / ev.total) * 100));
+        };
+      }
+      xhr.onload = () =>
+        xhr.status === 200 ? resolve() : reject(new Error("업로드 실패"));
+      xhr.onerror = () => reject(new Error("네트워크 오류가 발생했어요"));
+      xhr.onabort = () => reject(new Error("업로드 취소됨"));
+      xhr.open("PUT", url);
+      xhr.setRequestHeader("Content-Type", contentType);
+      xhr.send(body);
+    });
+  }
+
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    cancelledRef.current = false;
+    setPhase("compressing");
+    setProgress(0);
 
     try {
-      // 1. 브라우저가 이 파일의 비디오 트랙을 디코드할 수 있는지 먼저 확인한다.
-      //    아이폰 기본 촬영물(HEVC)은 mp4/mov 컨테이너라 형식 검사를 통과하지만
-      //    공개 화면에서 소리만 나고 화면이 검게 나오므로, 재생 불가일 때만
-      //    H.264로 변환해 올린다. 이미 재생 가능한 파일은 변환하지 않는다.
-      setPhase("checking");
-      let payload: Blob = file;
-      let contentType = file.type;
-      let converted = false;
-
-      if (!(await isVideoPlayable(file))) {
-        try {
-          payload = await compressVideo(file, setProgress, setPhase);
-          contentType = "video/mp4";
-          converted = true;
-        } catch {
-          showToast(
-            "이 영상은 브라우저에서 재생할 수 없고 변환도 실패했어요. H.264(mp4)로 저장해 다시 올려주세요",
-            "error",
-          );
-          return;
-        }
-      }
-
-      // 상한은 **실제로 올라가는 payload**에만 건다. 원본으로 미리 막으면
-      // 변환하면 상한 아래로 내려오는 파일(고압축이 아닌 큰 HEVC 등)이
-      // 변환도 못 해보고 튕긴다 — 원래 되던 업로드였다.
-      if (exceedsVideoLimit(payload.size)) {
-        showToast(
-          `${converted ? "변환 결과가" : "파일이"} 너무 커요 (${formatExcessSize(payload.size)}) · 최대 ${MAX_VIDEO_LABEL}`,
-          "error",
-        );
-        return;
-      }
-
-      // 2. Presigned URL 발급
-      setPhase("preparing");
-      setProgress(0);
-      const presignRes = await authedFetch("/api/facility-video-presign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          facilityId: facility.id,
-          contentType,
-          fileSize: payload.size,
-        }),
-      });
-      const presignData = await presignRes.json();
-      if (!presignRes.ok || presignData.error) {
-        showToast(`준비 실패: ${presignData.error}`, "error");
-        return;
-      }
-
-      // 3. R2에 직접 업로드
-      setPhase("uploading");
-      setProgress(0);
-      const xhr = new XMLHttpRequest();
-      xhrRef.current = xhr;
-      await new Promise<void>((resolve, reject) => {
-        xhr.upload.onprogress = (ev) => {
-          if (ev.lengthComputable)
-            setProgress(Math.round((ev.loaded / ev.total) * 100));
-        };
-        xhr.onload = () => resolve();
-        xhr.onerror = () => reject(new Error("네트워크 오류"));
-        xhr.onabort = () => reject(new Error("업로드 취소됨"));
-        xhr.open("PUT", presignData.presignedUrl);
-        xhr.setRequestHeader("Content-Type", contentType);
-        xhr.send(payload);
+      const result = await uploadFacilityVideo(file, {
+        compress: compressVideo,
+        isPlayable: (blob) => isVideoPlayable(blob),
+        capturePoster: (blob) => captureVideoPoster(blob),
+        presign: async (body): Promise<PresignResult> => {
+          const res = await authedFetch("/api/facility-video-presign", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ facilityId: facility.id, ...body }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.error)
+            throw new Error(`준비 실패: ${data.error}`);
+          return data;
+        },
+        put: putWithXhr,
+        confirm: async (body) => {
+          const res = await authedFetch("/api/facility-video-confirm", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ facilityId: facility.id, ...body }),
+          });
+          const data = await res.json();
+          if (!res.ok || data.error)
+            throw new Error(`저장 실패: ${data.error}`);
+        },
+        isCancelled: () => cancelledRef.current,
+        onPhase: setPhase,
+        onProgress: setProgress,
       });
 
-      if (xhr.status !== 200) {
-        showToast("업로드 실패", "error");
-        return;
+      if (result.status === "uploaded") {
+        setCurrentVideoUrl(result.videoUrl);
+        if (result.usedOriginal)
+          showToast("용량을 줄이지 못해 원본을 올렸어요", "warning");
+        else showToast("동영상이 업로드됐어요!");
+        onUpdate();
+      } else if (result.status === "failed") {
+        showToast(result.message, "error");
       }
-
-      // 4. DB에 URL 저장
-      const confirmRes = await authedFetch("/api/facility-video-confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          facilityId: facility.id,
-          videoUrl: presignData.publicUrl,
-        }),
-      });
-      const confirmData = await confirmRes.json();
-      if (!confirmRes.ok || confirmData.error) {
-        showToast(`저장 실패: ${confirmData.error}`, "error");
-        return;
-      }
-
-      setCurrentVideoUrl(presignData.publicUrl);
-      showToast("동영상이 업로드됐어요!");
-      onUpdate();
-    } catch (err) {
-      if ((err as Error).message !== "업로드 취소됨")
-        showToast("네트워크 오류가 발생했어요", "error");
     } finally {
       setPhase(null);
       setProgress(0);
@@ -242,7 +217,7 @@ export default function FacilityVideoModal({
       : phase === "loading"
         ? "변환 도구 불러오는 중..."
         : phase === "compressing"
-          ? `재생 가능한 형식으로 변환 중... ${progress}%`
+          ? `용량을 줄이는 중... ${progress}%`
           : phase === "preparing"
             ? "업로드 준비 중..."
             : phase === "uploading"
@@ -462,6 +437,9 @@ export default function FacilityVideoModal({
                 />
               </label>
             )}
+            <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6b7280" }}>
+              가로 영상을 추천드려요
+            </p>
           </div>
         </div>
       </div>
