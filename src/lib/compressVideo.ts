@@ -1,25 +1,45 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile, toBlobURL } from "@ffmpeg/util";
+import { transcodeArgs } from "@/lib/videoTranscode";
+
+const CORE_BASE_URL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
 
 let ffmpeg: FFmpeg | null = null;
+let ready: Promise<FFmpeg> | null = null;
 
 export function terminateFFmpeg() {
-  if (ffmpeg) {
-    ffmpeg.terminate();
-    ffmpeg = null;
-  }
+  ffmpeg?.terminate();
+  ffmpeg = null;
+  ready = null;
 }
 
-async function getFFmpeg(): Promise<FFmpeg> {
-  if (ffmpeg) return ffmpeg;
+function getFFmpeg(): Promise<FFmpeg> {
+  if (ready) return ready;
+  // load()가 끝나기 전에 넣어 둬야 불러오는 중에도 terminateFFmpeg가 이 인스턴스에 닿는다.
   const instance = new FFmpeg();
-  const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
-  await instance.load({
-    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
-    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
-  });
   ffmpeg = instance;
-  return instance;
+  const loading = (async () => {
+    const coreURL = await toBlobURL(
+      `${CORE_BASE_URL}/ffmpeg-core.js`,
+      "text/javascript",
+    );
+    const wasmURL = await toBlobURL(
+      `${CORE_BASE_URL}/ffmpeg-core.wasm`,
+      "application/wasm",
+    );
+    // 코어를 받는 사이 종료됐다. 받는 요청 자체는 끊을 수단이 없다.
+    if (ffmpeg !== instance) throw new Error("ffmpeg terminated");
+    await instance.load({ coreURL, wasmURL });
+    return instance;
+  })();
+  ready = loading;
+  loading.catch(() => {
+    if (ffmpeg === instance) {
+      ffmpeg = null;
+      ready = null;
+    }
+  });
+  return loading;
 }
 
 export async function compressVideo(
@@ -28,8 +48,7 @@ export async function compressVideo(
   onProgress?: (progress: number) => void,
   onPhase?: (phase: "loading" | "compressing") => void,
 ): Promise<Blob> {
-  const needsLoad = ffmpeg === null;
-  if (needsLoad) onPhase?.("loading");
+  if (ready === null) onPhase?.("loading");
 
   const ff = await getFFmpeg();
   onPhase?.("compressing");
@@ -40,34 +59,18 @@ export async function compressVideo(
   ff.on("progress", handleProgress);
 
   const inputName = "input" + file.name.slice(file.name.lastIndexOf("."));
-  await ff.writeFile(inputName, await fetchFile(file));
-
-  await ff.exec([
-    "-i",
-    inputName,
-    "-c:v",
-    "libx264",
-    "-crf",
-    "28",
-    "-preset",
-    "ultrafast",
-    "-vf",
-    "scale='min(1280,iw)':-2",
-    "-c:a",
-    "aac",
-    "-b:a",
-    "128k",
-    "-movflags",
-    "+faststart",
-    "output.mp4",
-  ]);
-
-  const data = await ff.readFile("output.mp4");
-
-  await ff.deleteFile(inputName);
-  await ff.deleteFile("output.mp4");
-  ff.off("progress", handleProgress);
-
-  onProgress?.(100);
-  return new Blob([data as unknown as BlobPart], { type: "video/mp4" });
+  try {
+    await ff.writeFile(inputName, await fetchFile(file));
+    await ff.exec(transcodeArgs(inputName, "output.mp4", "ultrafast"));
+    const data = await ff.readFile("output.mp4");
+    await ff.deleteFile(inputName);
+    await ff.deleteFile("output.mp4");
+    ff.off("progress", handleProgress);
+    onProgress?.(100);
+    return new Blob([data as unknown as BlobPart], { type: "video/mp4" });
+  } catch (error) {
+    // 메모리 부족 등으로 실패한 wasm을 다음 업로드가 다시 쓰지 않게 버린다.
+    if (ffmpeg === ff) terminateFFmpeg();
+    throw error;
+  }
 }
