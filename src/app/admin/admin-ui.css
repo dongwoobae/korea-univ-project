@@ -1416,3 +1416,65 @@ button.ku-admin-overview-item {
 .ku-feedback-foot a {
   color: var(--ku-primary-text);
 }
+.ku-facility-photo-manager {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.ku-facility-photo-manager-item {
+  position: relative;
+}
+.ku-facility-photo-manager-item img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+.ku-facility-photo-manager-item button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ku-overlay);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+.ku-facility-photo-manager-add {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border: 1.5px dashed var(--ku-border-input);
+  border-radius: 6px;
+  color: var(--ku-text-2);
+  font-size: 11px;
+  text-align: center;
+  cursor: pointer;
+}
+.ku-facility-photo-manager-add[data-busy] {
+  cursor: default;
+  opacity: 0.6;
+}
+.ku-facility-photo-manager-add:focus-within {
+  outline: 2px solid var(--ku-primary-text);
+  outline-offset: 2px;
+}
+.ku-facility-pending-link {
+  padding: 4px 10px;
+  border: 1px solid var(--ku-status-warn-fg);
+  border-radius: 999px;
+  background: var(--ku-status-warn-bg);
+  color: var(--ku-status-warn-fg);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}

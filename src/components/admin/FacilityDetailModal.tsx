@@ -3,6 +3,7 @@
 import { useId, useRef } from "react";
 import { useModalFocus } from "@/lib/useModalFocus";
 import FacilityInstallationControl from "@/components/admin/FacilityInstallationControl";
+import FacilityPhotoManager from "@/components/admin/FacilityPhotoManager";
 import FacilityTranslationControl from "@/components/admin/FacilityTranslationControl";
 import type { FacilityWithType } from "@/types/domain";
 
@@ -11,6 +12,7 @@ interface FacilityDetailModalProps {
   toggling: boolean;
   onToggleInstalled: () => void;
   onTranslated: () => void | Promise<void>;
+  onPhotosChanged: () => void | Promise<void>;
   onRequestEdit: () => void;
   onRequestDelete: () => void;
   onClose: () => void;
@@ -22,6 +24,7 @@ export default function FacilityDetailModal({
   toggling,
   onToggleInstalled,
   onTranslated,
+  onPhotosChanged,
   onRequestEdit,
   onRequestDelete,
   onClose,
@@ -96,6 +99,16 @@ export default function FacilityDetailModal({
               ? `위도 ${facility.lat} / 경도 ${facility.lng}`
               : "좌표 없음"}
           </span>
+        </div>
+
+        <div className="ku-facility-modal-field">
+          <span className="ku-facility-modal-field-label">사진</span>
+          <FacilityPhotoManager
+            facilityId={facility.id}
+            photos={facility.facility_photos ?? []}
+            onChanged={onPhotosChanged}
+            showToast={showToast}
+          />
         </div>
 
         {/* 인라인으로 같은 모양을 재현하면 모바일의 sticky 배치와 최소 터치

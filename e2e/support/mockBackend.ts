@@ -1021,6 +1021,37 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     state.photos.push(photo);
     return json(route, { id: photo.id, url: photo.url });
   }
+  if (path === "/api/upload-facility-photo") {
+    const rawBody = route.request().postData() ?? "";
+    const facilityId =
+      rawBody.match(/name="facilityId"\r?\n\r?\n([^\r\n]+)/)?.[1] ?? "";
+    const used = new Set(
+      state.facilityPhotos
+        .filter((photo) => photo.facility_id === facilityId)
+        .map((photo) => photo.sort_order),
+    );
+    // 실제 라우트처럼 비어 있는 가장 작은 슬롯을 쓴다.
+    const slot = [0, 1, 2].find((index) => !used.has(index));
+    if (slot === undefined)
+      return json(route, { error: "사진은 3장까지예요" }, 409);
+    const sequence = state.facilityPhotos.length + 1;
+    const photo = {
+      id: `fp-up-${sequence}`,
+      facility_id: facilityId,
+      storage_path: `${facilityId}/up-${sequence}.webp`,
+      sort_order: slot,
+      created_at: new Date(Date.UTC(2026, 9, 9, 0, 0, sequence)).toISOString(),
+    };
+    state.facilityPhotos.push(photo);
+    return json(route, { id: photo.id, storage_path: photo.storage_path });
+  }
+  if (path === "/api/delete-facility-photo") {
+    const { photoId } = route.request().postDataJSON() as { photoId: string };
+    state.facilityPhotos = state.facilityPhotos.filter(
+      (photo) => photo.id !== photoId,
+    );
+    return json(route, { ok: true });
+  }
   if (path === "/api/delete-landmark-photo") {
     const { landmarkId } = route.request().postDataJSON() as {
       landmarkId: string;

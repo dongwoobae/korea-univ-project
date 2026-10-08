@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
 import { invalidateNeighborBuildings } from "@/lib/neighborBuildings";
 import type {
@@ -76,6 +77,7 @@ export default function BuildingDetail() {
   const [editingFacilityId, setEditingFacilityId] = useState<string | null>(
     null,
   );
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const addFacilityRef = useRef<HTMLButtonElement>(null);
 
   // 객체가 아니라 id를 들고 매 렌더 목록에서 찾는다.
@@ -113,7 +115,10 @@ export default function BuildingDetail() {
       supabase.from("buildings").select("*").eq("id", id).single(),
       supabase
         .from("building_facilities")
-        .select("*, facility_types(code, label)")
+        // deleteFacility가 사진을 먼저 지우려면 사진 목록이 있어야 한다.
+        .select(
+          "*, facility_types(code, label), facility_photos(id, storage_path, sort_order, created_at)",
+        )
         .eq("building_id", id)
         .order("created_at", { nullsFirst: true })
         .order("id"),
@@ -145,6 +150,25 @@ export default function BuildingDetail() {
     }
     void init();
   }, [fetchData, router]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      const response = await authedFetch(
+        `/api/facility-requests?status=open&building=${id}`,
+      ).catch(() => null);
+      if (!response?.ok || cancelled) return;
+      const body = (await response.json().catch(() => null)) as {
+        total?: unknown;
+      } | null;
+      if (!cancelled && typeof body?.total === "number")
+        setPendingRequestCount(body.total);
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [id]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -375,6 +399,7 @@ export default function BuildingDetail() {
           addFacilityRef={addFacilityRef}
           onChanged={fetchData}
           onSelectFacility={setSelectedFacilityId}
+          pendingRequestCount={pendingRequestCount}
           showToast={showToast}
         />
         <div
@@ -474,6 +499,7 @@ export default function BuildingDetail() {
           toggling={togglingId === selectedFacility.id}
           onToggleInstalled={() => handleToggleInstalled(selectedFacility)}
           onTranslated={fetchData}
+          onPhotosChanged={fetchData}
           onRequestEdit={() => {
             setEditingFacilityId(selectedFacility.id);
             setSelectedFacilityId(null);
