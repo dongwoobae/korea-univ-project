@@ -44,7 +44,10 @@ export type FacilityWithType = Facility & {
     Pick<FacilityType, "code" | "label" | "label_en" | "label_zh">
   > | null;
   /** 조회가 facility_photos를 embed한 경우에만 있다 */
-  facility_photos?: Pick<FacilityPhoto, "id" | "storage_path" | "sort_order">[];
+  facility_photos?: Pick<
+    FacilityPhoto,
+    "id" | "storage_path" | "sort_order" | "created_at"
+  >[];
 };
 
 export type BuildingWithCollege = Building & {

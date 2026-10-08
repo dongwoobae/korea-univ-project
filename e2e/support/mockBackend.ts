@@ -19,6 +19,7 @@
  *          `admin_building_flags` 뷰와 `rpc/get_admin_building_summary`는
  *          `buildingFlags()` **한 곳**에서 나온다(아래 주석 참고).
  *      - `/api/<route>`     → `handleApi()`: Next 라우트 핸들러 흉내(/api/buildings 등).
+ *      - `/storage/v1/object/public/*` → 공개 버킷 이미지(빈 WebP 200).
  *      - `/auth/v1/*`       → 로그인·로그아웃·현재 유저 조회.
  *      - 타일/CDN/업로드 호스트(cartocdn·arcgis·unpkg·cdn.test·upload.test)는 abort 또는 빈 200.
  *
@@ -45,6 +46,9 @@ export interface MockState {
   landmarks: Row[];
   slopes: Row[];
   photos: Row[];
+  facilityPhotos: Row[];
+  facilityRequests: Row[];
+  facilityRequestPhotos: Row[];
 }
 
 // ── 픽스처(고정 데이터) ───────────────────────────────────────────────
@@ -301,6 +305,9 @@ function createState(authenticated: boolean): MockState {
         updated_at: "2026-08-30T00:00:00Z",
       },
     ],
+    facilityPhotos: [],
+    facilityRequests: [],
+    facilityRequestPhotos: [],
     photos: [
       {
         id: 1,
@@ -462,6 +469,17 @@ function rows(state: MockState, name: string, url: URL): Row[] {
       result = result.filter((row) => ids.has(String(row.building_id)));
     }
   }
+  if (
+    name === "building_facilities" &&
+    url.searchParams.get("select")?.includes("facility_photos(")
+  ) {
+    result = result.map((row) => ({
+      ...row,
+      facility_photos: state.facilityPhotos.filter(
+        (photo) => photo.facility_id === row.id,
+      ),
+    }));
+  }
   if (name === "building_photos") {
     const parent = url.searchParams.get("building_id");
     if (parent?.startsWith("eq."))
@@ -561,6 +579,16 @@ function projectEmbeds(result: Row[], select: string | null): Row[] {
     const projected = { ...row };
     for (const embed of embeds) {
       const value = projected[embed.name];
+      if (Array.isArray(value)) {
+        projected[embed.name] = value.map((item) =>
+          Object.fromEntries(
+            embed.columns
+              .filter((column) => column in (item as Row))
+              .map((column) => [column, (item as Row)[column]]),
+          ),
+        );
+        continue;
+      }
       if (!value || typeof value !== "object" || Array.isArray(value)) continue;
       const source = value as Row;
       projected[embed.name] = Object.fromEntries(
@@ -964,6 +992,14 @@ export async function installMockBackend(
       return route.fulfill({
         status: 200,
         headers: { "access-control-allow-origin": "*" },
+        body: "",
+      });
+    }
+
+    if (url.pathname.startsWith("/storage/v1/object/public/")) {
+      return route.fulfill({
+        status: 200,
+        contentType: "image/webp",
         body: "",
       });
     }

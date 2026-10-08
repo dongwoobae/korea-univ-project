@@ -1511,3 +1511,23 @@
     display: none;
   }
 }
+
+.ku-facility-photos {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.ku-facility-photo-thumb {
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--ku-border);
+  border-radius: 8px;
+  background: var(--ku-surface-raised);
+  cursor: pointer;
+}
+.ku-facility-photo-thumb:focus-visible {
+  outline: 2px solid var(--ku-primary);
+  outline-offset: 2px;
+}

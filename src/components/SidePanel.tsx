@@ -109,7 +109,9 @@ export default function SidePanel({
         .single(),
       supabase
         .from("building_facilities")
-        .select("*, facility_types(code, label, label_en, label_zh)")
+        .select(
+          "*, facility_types(code, label, label_en, label_zh), facility_photos(id, storage_path, sort_order, created_at)",
+        )
         .eq("building_id", buildingId),
       supabase
         .from("building_photos")

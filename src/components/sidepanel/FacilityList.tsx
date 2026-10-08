@@ -1,6 +1,7 @@
 "use client";
 
 import { FacilityTypeIcon } from "@/components/map/iconography";
+import FacilityPhotoStrip from "@/components/sidepanel/FacilityPhotoStrip";
 import type { LangCode } from "@/lib/translations";
 import type { FacilityWithType } from "@/types/domain";
 
@@ -114,6 +115,11 @@ export default function FacilityList({
                         : t("notInstalled")}
                     </span>
                   </div>
+                  <FacilityPhotoStrip
+                    photos={facility.facility_photos ?? []}
+                    facilityName={name}
+                    t={t}
+                  />
                   {facility.video_url && (
                     <figure className="ku-facility-video">
                       <video
