@@ -54,7 +54,7 @@ describe("POST .../approve", () => {
       { id: "p1", storage_path: "r1/a.webp" },
       { id: "p2", storage_path: "r1/b.webp" },
     ];
-    tables.facility_requests = { status: "new" };
+    tables.facility_requests = { status: "new", facility_id: null };
     copyToFacility.mockImplementation(
       async (_path: string, facilityId: string) => `${facilityId}/copy.webp`,
     );
@@ -89,6 +89,15 @@ describe("POST .../approve", () => {
       ],
     });
     expect(cleanupRequestPhotos).toHaveBeenCalledWith(ID);
+    expect(removeFolder).not.toHaveBeenCalled();
+    expect(consoleError).not.toHaveBeenCalled();
+    const typeQuery = from.mock.results.find(
+      (_r, i) => from.mock.calls[i][0] === "facility_types",
+    )!.value as { calls: { method: string; args: unknown[] }[] };
+    expect(typeQuery.calls).toContainEqual({
+      method: "eq",
+      args: ["code", "elevator"],
+    });
     const photoQuery = from.mock.results.find(
       (_r, i) => from.mock.calls[i][0] === "facility_request_photos",
     )!.value as { calls: { method: string; args: unknown[] }[] };
@@ -122,20 +131,20 @@ describe("POST .../approve", () => {
     expect(rpc).not.toHaveBeenCalled();
     expect(removeFolder).toHaveBeenCalledWith(
       "facility-photos",
-      expect.stringMatching(/^[0-9a-f-]{36}$/),
+      copyToFacility.mock.calls[0][1],
     );
   });
 
   it("함수가 already_processed면 시설 폴더를 지우고 409", async () => {
     rpc.mockResolvedValue({ data: "already_processed", error: null });
-    tables.facility_requests = { status: "rejected" };
+    tables.facility_requests = { status: "rejected", facility_id: null };
     const { POST } = await import("./route");
     const response = await POST(...call({ fields, photoIds: ["p1"] }));
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({ error: "이미 처리된 요청이에요" });
     expect(removeFolder).toHaveBeenCalledWith(
       "facility-photos",
-      expect.any(String),
+      copyToFacility.mock.calls[0][1],
     );
     expect(cleanupRequestPhotos).not.toHaveBeenCalled();
   });
@@ -168,11 +177,13 @@ describe("POST .../approve", () => {
 
   it("복사 중 다른 관리자가 거절했다면(원본 사라짐) 409로 답한다", async () => {
     copyToFacility.mockResolvedValue(null);
-    tables.facility_requests = { status: "rejected" };
+    tables.facility_requests = { status: "rejected", facility_id: null };
     const { POST } = await import("./route");
-    expect((await POST(...call({ fields, photoIds: ["p1"] }))).status).toBe(
-      409,
-    );
+    const response = await POST(...call({ fields, photoIds: ["p1"] }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: "이미 처리된 요청이에요" });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(removeFolder).toHaveBeenCalled();
   });
 
   it("정리가 실패해도 승인은 성공으로 답하고 알린다", async () => {
@@ -184,19 +195,87 @@ describe("POST .../approve", () => {
 
   it("필드가 잘못됐거나 없는 유형이면 400", async () => {
     const { POST } = await import("./route");
-    expect(
-      (await POST(...call({ fields: { facility_code: "" }, photoIds: [] })))
-        .status,
-    ).toBe(400);
+    const badFields = await POST(
+      ...call({ fields: { facility_code: "" }, photoIds: [] }),
+    );
+    expect(badFields.status).toBe(400);
+    expect(await badFields.json()).toEqual({ error: "입력값을 확인해 주세요" });
     tables.facility_types = null;
-    expect((await POST(...call({ fields, photoIds: [] }))).status).toBe(400);
+    const noType = await POST(...call({ fields, photoIds: [] }));
+    expect(noType.status).toBe(400);
+    expect(await noType.json()).toEqual({ error: "없는 시설 유형이에요" });
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it("사진을 넷 이상 고르면 400", async () => {
+    tables.facility_request_photos = ["p1", "p2", "p3", "p4"].map((id) => ({
+      id,
+      storage_path: `r1/${id}.webp`,
+    }));
     const { POST } = await import("./route");
-    expect(
-      (await POST(...call({ fields, photoIds: ["a", "b", "c", "d"] }))).status,
-    ).toBe(400);
+    const response = await POST(
+      ...call({ fields, photoIds: ["p1", "p2", "p3", "p4"] }),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "사진 선택이 올바르지 않아요",
+    });
+    expect(copyToFacility).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("같은 사진 id를 두 번 고르면 400이고 복사하지 않는다", async () => {
+    const { POST } = await import("./route");
+    const response = await POST(...call({ fields, photoIds: ["p1", "p1"] }));
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "사진 선택이 올바르지 않아요",
+    });
+    expect(copyToFacility).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("사진 id가 이 요청 것이 아닌데 요청이 이미 끝났으면 409", async () => {
+    tables.facility_requests = { status: "approved", facility_id: "other" };
+    const { POST } = await import("./route");
+    const response = await POST(...call({ fields, photoIds: ["gone"] }));
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: "이미 처리된 요청이에요" });
+    expect(copyToFacility).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("함수 오류인데 이 호출의 승인이 커밋돼 있으면 폴더를 지우지 않고 성공으로 답한다", async () => {
+    rpc.mockImplementation(
+      async (_name: string, args: { p_facility_id: string }) => {
+        tables.facility_requests = {
+          status: "approved",
+          facility_id: args.p_facility_id,
+        };
+        return { data: null, error: { message: "lost", code: "08006" } };
+      },
+    );
+    const { POST } = await import("./route");
+    const response = await POST(...call({ fields, photoIds: ["p1"] }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      facilityId: copyToFacility.mock.calls[0][1],
+      cleanupFailed: false,
+    });
+    expect(removeFolder).not.toHaveBeenCalled();
+    expect(cleanupRequestPhotos).toHaveBeenCalledWith(ID);
+  });
+
+  it("폴더 삭제가 실패하면 시설 id와 함께 로그를 남긴다", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "x", code: "1" } });
+    removeFolder.mockResolvedValue(false);
+    const { POST } = await import("./route");
+    const response = await POST(...call({ fields, photoIds: ["p1"] }));
+    expect(response.status).toBe(500);
+    expect(consoleError).toHaveBeenCalledWith(
+      "[facility-requests] approve folder removal failed",
+      { id: ID, facilityId: copyToFacility.mock.calls[0][1] },
+    );
   });
 
   it("유형 조회가 실패하면 없는 유형이 아니라 500이다", async () => {
@@ -236,5 +315,18 @@ describe("POST .../approve", () => {
     expect(await response.json()).toEqual({ error: "사진을 옮기지 못했어요" });
     expect(removeFolder).toHaveBeenCalled();
     expect(consoleError).toHaveBeenCalled();
+  });
+
+  it("실패 뒤 요청을 다시 읽을 때 id로 거른다", async () => {
+    copyToFacility.mockResolvedValue(null);
+    const { POST } = await import("./route");
+    await POST(...call({ fields, photoIds: ["p1"] }));
+    const index = from.mock.calls.findIndex(
+      ([table]) => table === "facility_requests",
+    );
+    const query = from.mock.results[index].value as {
+      calls: { method: string; args: unknown[] }[];
+    };
+    expect(query.calls).toContainEqual({ method: "eq", args: ["id", ID] });
   });
 });

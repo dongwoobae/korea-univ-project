@@ -18,6 +18,13 @@ function badRequest(error: string) {
   return NextResponse.json({ error }, { status: 400 });
 }
 
+function alreadyProcessed() {
+  return NextResponse.json(
+    { error: "이미 처리된 요청이에요" },
+    { status: 409 },
+  );
+}
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -36,7 +43,8 @@ export async function POST(
   if (
     !Array.isArray(photoIds) ||
     photoIds.length > MAX_FACILITY_PHOTOS ||
-    !photoIds.every((photoId) => typeof photoId === "string")
+    !photoIds.every((photoId) => typeof photoId === "string") ||
+    new Set(photoIds).size !== photoIds.length
   ) {
     return badRequest("사진 선택이 올바르지 않아요");
   }
@@ -77,18 +85,20 @@ export async function POST(
   const selected = photoIds.map((photoId) =>
     (ownPhotos ?? []).find((photo) => photo.id === photoId),
   );
-  if (selected.some((photo) => !photo))
+  if (selected.some((photo) => !photo)) {
+    // 다른 관리자가 먼저 처리해 정리가 사진 행을 지운 경우가 흔한 원인이다.
+    const { current } = await readRequest();
+    if (current && isEndStatus(current.status)) return alreadyProcessed();
     return badRequest("이 요청의 사진이 아니에요");
+  }
 
   // 공개 사진 경로에 시설 id가 들어가는데 시설은 함수 안에서야 생긴다 — id를 먼저 만든다.
   const facilityId = randomUUID();
 
-  async function abort(fallback: { error: string; status: number }) {
-    // 복사가 일부만 끝났어도 같은 폴더라 함께 지워진다(설계 4.4).
-    await removeFolder(FACILITY_PHOTO_BUCKET, facilityId);
+  async function readRequest() {
     const { data: current, error: statusError } = await db
       .from("facility_requests")
-      .select("status")
+      .select("status, facility_id")
       .eq("id", id)
       .maybeSingle();
     if (statusError) {
@@ -96,11 +106,32 @@ export async function POST(
         id,
         code: statusError.code,
       });
-    } else if (current && isEndStatus(current.status)) {
-      return NextResponse.json(
-        { error: "이미 처리된 요청이에요" },
-        { status: 409 },
-      );
+    }
+    return { current: statusError ? null : current, failed: !!statusError };
+  }
+
+  async function removeFacilityFolder() {
+    if (!(await removeFolder(FACILITY_PHOTO_BUCKET, facilityId))) {
+      console.error("[facility-requests] approve folder removal failed", {
+        id,
+        facilityId,
+      });
+    }
+  }
+
+  async function finish() {
+    const cleaned = await cleanupRequestPhotos(id);
+    return NextResponse.json({ facilityId, cleanupFailed: !cleaned });
+  }
+
+  // 커밋은 됐는데 응답만 잃은 경우가 있어, 폴더를 지우기 전에 요청을 먼저 읽는다.
+  // 이 호출의 승인이 커밋됐다면 폴더를 지우는 순간 공개 시설의 사진이 끊긴다.
+  async function abort(fallback: { error: string; status: number }) {
+    const { current, failed } = await readRequest();
+    if (current?.facility_id === facilityId) return finish();
+    await removeFacilityFolder();
+    if (!failed && current && isEndStatus(current.status)) {
+      return alreadyProcessed();
     }
     return NextResponse.json(
       { error: fallback.error },
@@ -141,6 +172,5 @@ export async function POST(
     return abort({ error: "승인하지 못했어요", status: 500 });
   }
 
-  const cleaned = await cleanupRequestPhotos(id);
-  return NextResponse.json({ facilityId, cleanupFailed: !cleaned });
+  return finish();
 }
