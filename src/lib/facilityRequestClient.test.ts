@@ -131,8 +131,10 @@ describe("uploadRequestPhoto", () => {
       fetchImpl as unknown as { mock: { calls: [string, RequestInit][] } }
     ).mock.calls[0];
     expect(url).toBe("/api/facility-requests/r1/photos");
+    // 서버가 본문을 읽기 전에 검증하도록 토큰은 헤더로 보낸다.
+    expect(new Headers(init.headers).get("x-upload-token")).toBe("t");
     const form = init.body as FormData;
-    expect(form.get("token")).toBe("t");
+    expect(form.get("token")).toBeNull();
     expect(form.get("file")).toBeInstanceOf(Blob);
   });
 });

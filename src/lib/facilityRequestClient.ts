@@ -1,3 +1,5 @@
+import { UPLOAD_TOKEN_HEADER } from "@/lib/facilityPhotos";
+
 export type RequestErrorCode =
   "invalid" | "turnstile" | "rate_limited" | "unavailable" | "server";
 
@@ -74,13 +76,13 @@ export async function uploadRequestPhoto(
   fetchImpl: typeof fetch = fetch,
 ): Promise<PhotoUploadResult> {
   const form = new FormData();
-  form.append("token", uploadToken);
   form.append("file", blob, "photo.webp");
   try {
     const response = await fetchImpl(
       `/api/facility-requests/${requestId}/photos`,
       {
         method: "POST",
+        headers: { [UPLOAD_TOKEN_HEADER]: uploadToken },
         body: form,
       },
     );

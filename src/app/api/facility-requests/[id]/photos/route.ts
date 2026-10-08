@@ -2,6 +2,7 @@ import {
   FACILITY_REQUEST_PHOTO_BUCKET,
   MAX_FACILITY_PHOTO_BYTES,
   MULTIPART_OVERHEAD_BYTES,
+  UPLOAD_TOKEN_HEADER,
 } from "@/lib/facilityPhotos";
 import { removeObject, uploadPhoto } from "@/lib/server/requestPhotoStorage";
 import { verifyUploadToken } from "@/lib/server/requestSecurity";
@@ -21,6 +22,10 @@ export async function POST(
   if (!isUuid(id)) return fail("not_found", 404);
   const secret = process.env.FACILITY_REQUEST_HASH_SECRET;
   if (!secret) return fail("unavailable", 503);
+  // 공개 라우트라 본문(최대 수 MB)을 읽기 전에 토큰부터 본다.
+  const token = request.headers.get(UPLOAD_TOKEN_HEADER) ?? "";
+  if (!verifyUploadToken(token, id, Date.now(), secret))
+    return fail("token", 403);
   if (
     Number(request.headers.get("content-length") ?? 0) >
     MAX_FACILITY_PHOTO_BYTES + MULTIPART_OVERHEAD_BYTES
@@ -29,13 +34,6 @@ export async function POST(
   }
 
   const form = await request.formData().catch(() => null);
-  const token = form?.get("token");
-  if (
-    typeof token !== "string" ||
-    !verifyUploadToken(token, id, Date.now(), secret)
-  ) {
-    return fail("token", 403);
-  }
   const file = form?.get("file");
   if (!(file instanceof File)) return fail("invalid", 400);
   if (file.size > MAX_FACILITY_PHOTO_BYTES) return fail("too_large", 413);

@@ -822,6 +822,12 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   const photoUpload = path.match(/^\/api\/facility-requests\/([^/]+)\/photos$/);
   if (photoUpload) {
     const requestId = photoUpload[1];
+    // 실제 라우트처럼 토큰은 헤더로만 받는다(요청 생성 대역이 준 값).
+    if (
+      route.request().headers()["x-upload-token"] !==
+      `${requestId}.9999999999999.sig`
+    )
+      return json(route, { error: "token" }, 403);
     const count = state.facilityRequestPhotos.filter(
       (photo) => photo.request_id === requestId,
     ).length;
