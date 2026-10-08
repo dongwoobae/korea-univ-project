@@ -82,3 +82,16 @@ export interface FacilityRequestDetail {
   building: { id: number; name: string | null; geojson: unknown } | null;
   photos: { id: string; sort_order: number; url: string | null }[];
 }
+
+export interface FeedbackItem {
+  id: string;
+  feedback_type: string;
+  content: string;
+  page_url: string | null;
+  status: FeedbackStatus;
+  created_at: string;
+}
+
+export function isFeedbackStatus(value: unknown): value is FeedbackStatus {
+  return value === "new" || value === "reviewing" || value === "resolved";
+}
