@@ -130,7 +130,29 @@ export async function GET(request: Request) {
   );
   const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
   const building = Number(url.searchParams.get("building"));
+  const byBuilding = Number.isSafeInteger(building) && building > 0;
   const { from, to } = getAdminPageRange(page);
+
+  // 건물 상세는 개수만 본다 — 사진 조인과 서명 주소 발급을 건너뛴다.
+  if (url.searchParams.get("countOnly") === "1") {
+    let countQuery = supabaseAdmin()
+      .from("facility_requests")
+      .select("id", { count: "exact", head: true });
+    if (statuses) countQuery = countQuery.in("status", statuses);
+    if (byBuilding) countQuery = countQuery.eq("building_id", building);
+    const { count, error } = await countQuery;
+    if (error) {
+      console.error("[facility-requests] count failed", {
+        code: error.code,
+        message: error.message,
+      });
+      return Response.json(
+        { error: "개수를 불러오지 못했어요" },
+        { status: 500 },
+      );
+    }
+    return Response.json({ total: count ?? 0 });
+  }
 
   let query = supabaseAdmin()
     .from("facility_requests")
@@ -139,8 +161,7 @@ export async function GET(request: Request) {
       { count: "exact" },
     );
   if (statuses) query = query.in("status", statuses);
-  if (Number.isSafeInteger(building) && building > 0)
-    query = query.eq("building_id", building);
+  if (byBuilding) query = query.eq("building_id", building);
   const { data, error, count } = await query
     .order("created_at", { ascending: false })
     .order("id")

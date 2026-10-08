@@ -155,7 +155,7 @@ export default function BuildingDetail() {
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       const response = await authedFetch(
-        `/api/facility-requests?status=open&building=${id}`,
+        `/api/facility-requests?status=open&building=${id}&countOnly=1`,
       ).catch(() => null);
       if (!response?.ok || cancelled) return;
       const body = (await response.json().catch(() => null)) as {

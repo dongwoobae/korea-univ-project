@@ -312,6 +312,26 @@ describe("GET /api/facility-requests", () => {
     expect(calls().some((call) => call.method === "in")).toBe(false);
   });
 
+  it("countOnly면 사진을 조인하지 않고 개수만 준다", async () => {
+    const { GET } = await import("./route");
+    const response = await GET(
+      new Request(
+        "https://local.test/api/facility-requests?status=open&building=7&countOnly=1",
+      ),
+    );
+    expect(await response.json()).toEqual({ total: 1 });
+    expect(calls()).toContainEqual({
+      method: "select",
+      args: ["id", { count: "exact", head: true }],
+    });
+    expect(calls()).toContainEqual({ method: "eq", args: ["building_id", 7] });
+    expect(calls()).toContainEqual({
+      method: "in",
+      args: ["status", ["new", "reviewing"]],
+    });
+    expect(signedUrls).not.toHaveBeenCalled();
+  });
+
   it("조회가 실패하면 빈 목록이 아니라 500이다", async () => {
     from.mockImplementation(() =>
       queryStub({
