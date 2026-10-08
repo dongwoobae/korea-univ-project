@@ -19,6 +19,7 @@
  *          `admin_building_flags` 뷰와 `rpc/get_admin_building_summary`는
  *          `buildingFlags()` **한 곳**에서 나온다(아래 주석 참고).
  *      - `/api/<route>`     → `handleApi()`: Next 라우트 핸들러 흉내(/api/buildings 등).
+ *      - `/storage/v1/object/public/*` → 공개 버킷 이미지(빈 WebP 200).
  *      - `/auth/v1/*`       → 로그인·로그아웃·현재 유저 조회.
  *      - 타일/CDN/업로드 호스트(cartocdn·arcgis·unpkg·cdn.test·upload.test)는 abort 또는 빈 200.
  *
@@ -45,6 +46,9 @@ export interface MockState {
   landmarks: Row[];
   slopes: Row[];
   photos: Row[];
+  facilityPhotos: Row[];
+  facilityRequests: Row[];
+  facilityRequestPhotos: Row[];
 }
 
 // ── 픽스처(고정 데이터) ───────────────────────────────────────────────
@@ -301,6 +305,9 @@ function createState(authenticated: boolean): MockState {
         updated_at: "2026-08-30T00:00:00Z",
       },
     ],
+    facilityPhotos: [],
+    facilityRequests: [],
+    facilityRequestPhotos: [],
     photos: [
       {
         id: 1,
@@ -462,6 +469,17 @@ function rows(state: MockState, name: string, url: URL): Row[] {
       result = result.filter((row) => ids.has(String(row.building_id)));
     }
   }
+  if (
+    name === "building_facilities" &&
+    url.searchParams.get("select")?.includes("facility_photos(")
+  ) {
+    result = result.map((row) => ({
+      ...row,
+      facility_photos: state.facilityPhotos.filter(
+        (photo) => photo.facility_id === row.id,
+      ),
+    }));
+  }
   if (name === "building_photos") {
     const parent = url.searchParams.get("building_id");
     if (parent?.startsWith("eq."))
@@ -561,6 +579,16 @@ function projectEmbeds(result: Row[], select: string | null): Row[] {
     const projected = { ...row };
     for (const embed of embeds) {
       const value = projected[embed.name];
+      if (Array.isArray(value)) {
+        projected[embed.name] = value.map((item) =>
+          Object.fromEntries(
+            embed.columns
+              .filter((column) => column in (item as Row))
+              .map((column) => [column, (item as Row)[column]]),
+          ),
+        );
+        continue;
+      }
       if (!value || typeof value !== "object" || Array.isArray(value)) continue;
       const source = value as Row;
       projected[embed.name] = Object.fromEntries(
@@ -693,6 +721,22 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   return json(route, []);
 }
 
+// 제보함 상태 필터. 운영 매핑(inboxStatus)을 import하지 않고 따로 적는다.
+const REQUEST_FILTER: Record<string, string[] | null> = {
+  open: ["new", "reviewing"],
+  new: ["new"],
+  reviewing: ["reviewing"],
+  done: ["approved", "rejected"],
+  all: null,
+};
+const FEEDBACK_FILTER: Record<string, string[] | null> = {
+  open: ["new", "reviewing"],
+  new: ["new"],
+  reviewing: ["reviewing"],
+  done: ["resolved"],
+  all: null,
+};
+
 // ── /api/* : Next 라우트 핸들러 흉내 ─────────────────────────────────────
 // 공개 데이터(buildings/facilities/landmarks/slopes)와 관리자 액션(번역·사진/영상
 // 업로드·설정)을 상태 기반으로 응답. 매칭 안 되는 /api/*는 { ok: true }.
@@ -713,6 +757,176 @@ async function handleApi(route: Route, state: MockState, url: URL) {
         })),
     });
   }
+  if (path === "/api/facility-requests" && route.request().method() === "GET") {
+    const statuses =
+      REQUEST_FILTER[url.searchParams.get("status") ?? "open"] ?? null;
+    const building = Number(url.searchParams.get("building"));
+    const items = state.facilityRequests
+      .filter((row) => !statuses || statuses.includes(String(row.status)))
+      .filter((row) => !building || row.building_id === building)
+      .map((row) => {
+        const photos = state.facilityRequestPhotos.filter(
+          (photo) => photo.request_id === row.id,
+        );
+        return {
+          id: row.id,
+          building_id: row.building_id,
+          building_name:
+            state.buildings.find((b) => b.id === row.building_id)?.name ?? null,
+          facility_code: row.facility_code,
+          name: row.name ?? null,
+          floor_info: row.floor_info ?? null,
+          has_location: row.lat != null && row.lng != null,
+          status: row.status,
+          created_at: row.created_at,
+          facility_id: row.facility_id ?? null,
+          photo_count: photos.length,
+          thumbnail_url: photos.length
+            ? "https://cdn.test/request-thumb.webp"
+            : null,
+        };
+      });
+    return json(route, { items, total: items.length });
+  }
+  if (path === "/api/inbox-counts") {
+    return json(route, {
+      requests: state.facilityRequests.filter((row) => row.status === "new")
+        .length,
+      feedback: state.feedbackSubmissions.filter(
+        (row) => (row.status ?? "new") === "new",
+      ).length,
+    });
+  }
+  if (
+    path === "/api/facility-requests" &&
+    route.request().method() === "POST"
+  ) {
+    const body = route.request().postDataJSON() as {
+      buildingId: number;
+      fields: Row;
+      turnstileToken: string;
+    };
+    const id = `00000000-0000-4000-8000-${String(state.facilityRequests.length + 1).padStart(12, "0")}`;
+    state.facilityRequests.push({
+      id,
+      building_id: body.buildingId,
+      ...body.fields,
+      status: "new",
+      created_at: "2026-10-08T00:00:00Z",
+      reviewed_at: null,
+      facility_id: null,
+      turnstile_token: body.turnstileToken,
+    });
+    return json(route, { id, uploadToken: `${id}.9999999999999.sig` }, 201);
+  }
+  const photoUpload = path.match(/^\/api\/facility-requests\/([^/]+)\/photos$/);
+  if (photoUpload) {
+    const requestId = photoUpload[1];
+    const count = state.facilityRequestPhotos.filter(
+      (photo) => photo.request_id === requestId,
+    ).length;
+    if (count >= 3) return json(route, { error: "full" }, 409);
+    const photoId = `rp-${state.facilityRequestPhotos.length + 1}`;
+    state.facilityRequestPhotos.push({
+      id: photoId,
+      request_id: requestId,
+      storage_path: `${requestId}/${photoId}.webp`,
+      sort_order: count,
+    });
+    return json(route, { id: photoId }, 201);
+  }
+  const requestAction = path.match(
+    /^\/api\/facility-requests\/([^/]+)(?:\/(status|reject|cleanup|approve))?$/,
+  );
+  if (requestAction) {
+    const [, requestId, action] = requestAction;
+    const row = state.facilityRequests.find((item) => item.id === requestId);
+    if (!row) return json(route, { error: "요청이 없어요" }, 404);
+    const photos = () =>
+      state.facilityRequestPhotos.filter(
+        (photo) => photo.request_id === requestId,
+      );
+    const removePhotos = () => {
+      state.facilityRequestPhotos = state.facilityRequestPhotos.filter(
+        (photo) => photo.request_id !== requestId,
+      );
+    };
+    const open = row.status === "new" || row.status === "reviewing";
+    if (!action) {
+      const building = state.buildings.find(
+        (item) => item.id === row.building_id,
+      );
+      return json(route, {
+        ...row,
+        building: building
+          ? { id: building.id, name: building.name, geojson: building.geojson }
+          : null,
+        photos: photos().map((photo) => ({
+          id: photo.id,
+          sort_order: photo.sort_order,
+          // 서명 주소 발급 실패를 흉내낸다.
+          url: photo.unsigned ? null : `https://cdn.test/${photo.id}.webp`,
+        })),
+      });
+    }
+    if (action === "status") {
+      const { status } = route.request().postDataJSON() as { status: string };
+      const from = status === "reviewing" ? "new" : "reviewing";
+      if (row.status !== from)
+        return json(
+          route,
+          { error: "이미 처리됐거나 상태가 바뀐 요청이에요" },
+          409,
+        );
+      row.status = status;
+      return json(route, { status });
+    }
+    if (action === "reject") {
+      if (!open) return json(route, { error: "이미 처리된 요청이에요" }, 409);
+      row.status = "rejected";
+      removePhotos();
+      return json(route, { ok: true, cleanupFailed: false });
+    }
+    if (action === "cleanup") {
+      removePhotos();
+      return json(route, { ok: true });
+    }
+    if (!open) return json(route, { error: "이미 처리된 요청이에요" }, 409);
+    if (state.buildings.find((item) => item.id === row.building_id)?.is_deleted)
+      return json(
+        route,
+        { error: "삭제된 건물의 요청이에요. 건물을 복구한 뒤 승인해 주세요" },
+        409,
+      );
+    const { fields, photoIds } = route.request().postDataJSON() as {
+      fields: Row;
+      photoIds: string[];
+    };
+    const facilityId = `f-approved-${requestId.slice(-4)}`;
+    state.facilities.push({
+      id: facilityId,
+      building_id: row.building_id,
+      ...fields,
+      translation_status: "pending",
+      facility_types:
+        types.find((type) => type.code === fields.facility_code) ?? null,
+      created_at: "2026-10-08T00:00:00Z",
+      updated_at: "2026-10-08T00:00:00Z",
+    });
+    photoIds.forEach((photoId, index) =>
+      state.facilityPhotos.push({
+        id: `fp-${photoId}`,
+        facility_id: facilityId,
+        storage_path: `${facilityId}/${photoId}.webp`,
+        sort_order: index,
+        created_at: "2026-10-08T00:00:00Z",
+      }),
+    );
+    row.status = "approved";
+    row.facility_id = facilityId;
+    removePhotos();
+    return json(route, { facilityId, cleanupFailed: false });
+  }
   if (path === "/api/facilities")
     return json(
       route,
@@ -732,8 +946,39 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     );
   if (path === "/api/feedback") {
     const submission = route.request().postDataJSON() as Row;
-    state.feedbackSubmissions.push(submission);
+    state.feedbackSubmissions.push({
+      id: `fb-${state.feedbackSubmissions.length + 1}`,
+      status: "new",
+      created_at: "2026-10-08T00:00:00Z",
+      ...submission,
+    });
     return json(route, { ok: true }, 201);
+  }
+  if (path === "/api/admin-feedback") {
+    const statuses =
+      FEEDBACK_FILTER[url.searchParams.get("status") ?? "open"] ?? null;
+    const items = state.feedbackSubmissions
+      .filter(
+        (row) => !statuses || statuses.includes(String(row.status ?? "new")),
+      )
+      .map((row) => ({
+        id: row.id,
+        feedback_type: row.feedback_type ?? row.type,
+        content: row.content,
+        page_url: row.page_url ?? row.pageUrl ?? null,
+        status: row.status ?? "new",
+        created_at: row.created_at ?? "2026-10-08T00:00:00Z",
+      }));
+    return json(route, { items, total: items.length });
+  }
+  const feedbackPatch = path.match(/^\/api\/admin-feedback\/([^/]+)$/);
+  if (feedbackPatch) {
+    const row = state.feedbackSubmissions.find(
+      (item) => item.id === feedbackPatch[1],
+    );
+    if (!row) return json(route, { error: "피드백이 없어요" }, 404);
+    row.status = (route.request().postDataJSON() as { status: string }).status;
+    return json(route, { status: row.status });
   }
   if (path.startsWith("/api/revalidate-")) return json(route, { ok: true });
   if (path === "/api/translate") {
@@ -781,6 +1026,37 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     };
     state.photos.push(photo);
     return json(route, { id: photo.id, url: photo.url });
+  }
+  if (path === "/api/upload-facility-photo") {
+    const rawBody = route.request().postData() ?? "";
+    const facilityId =
+      rawBody.match(/name="facilityId"\r?\n\r?\n([^\r\n]+)/)?.[1] ?? "";
+    const used = new Set(
+      state.facilityPhotos
+        .filter((photo) => photo.facility_id === facilityId)
+        .map((photo) => photo.sort_order),
+    );
+    // 실제 라우트처럼 비어 있는 가장 작은 슬롯을 쓴다.
+    const slot = [0, 1, 2].find((index) => !used.has(index));
+    if (slot === undefined)
+      return json(route, { error: "사진은 3장까지예요" }, 409);
+    const sequence = state.facilityPhotos.length + 1;
+    const photo = {
+      id: `fp-up-${sequence}`,
+      facility_id: facilityId,
+      storage_path: `${facilityId}/up-${sequence}.webp`,
+      sort_order: slot,
+      created_at: new Date(Date.UTC(2026, 9, 9, 0, 0, sequence)).toISOString(),
+    };
+    state.facilityPhotos.push(photo);
+    return json(route, { id: photo.id, storage_path: photo.storage_path });
+  }
+  if (path === "/api/delete-facility-photo") {
+    const { photoId } = route.request().postDataJSON() as { photoId: string };
+    state.facilityPhotos = state.facilityPhotos.filter(
+      (photo) => photo.id !== photoId,
+    );
+    return json(route, { ok: true });
   }
   if (path === "/api/delete-landmark-photo") {
     const { landmarkId } = route.request().postDataJSON() as {
@@ -964,6 +1240,24 @@ export async function installMockBackend(
       return route.fulfill({
         status: 200,
         headers: { "access-control-allow-origin": "*" },
+        body: "",
+      });
+    }
+
+    if (url.hostname === "challenges.cloudflare.com") {
+      // 실제 위젯 대신 즉시 토큰을 주는 대역.
+      return route.fulfill({
+        status: 200,
+        contentType: "application/javascript",
+        // 렌더마다 다른 토큰을 줘 화면이 새 토큰을 받았는지 가릴 수 있게 한다.
+        body: `window.turnstile = { n: 0, render(el, o) { const n = ++this.n; setTimeout(() => o.callback("e2e-turnstile-token-" + n), 0); return "w" + n; }, remove() {} };`,
+      });
+    }
+
+    if (url.pathname.startsWith("/storage/v1/object/public/")) {
+      return route.fulfill({
+        status: 200,
+        contentType: "image/webp",
         body: "",
       });
     }

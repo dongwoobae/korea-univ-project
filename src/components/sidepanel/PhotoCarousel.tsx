@@ -184,13 +184,18 @@ export default function PhotoCarousel({
       )}
       {lightboxOpen && photos.length > 0 && (
         <PhotoLightbox
-          photos={photos}
+          photos={photos.map((photo) => {
+            const caption =
+              lang === "ko"
+                ? photo.caption
+                : (photo[`caption_${lang}`] ?? photo.caption);
+            return { url: photo.url, alt: caption ?? displayName, caption };
+          })}
           index={photoIndex}
           onIndexChange={setPhotoIndex}
           onClose={() => setLightboxOpen(false)}
-          buildingName={buildingName}
-          displayName={displayName}
-          lang={lang}
+          title={displayName}
+          downloadBaseName={buildingName}
           t={t}
         />
       )}

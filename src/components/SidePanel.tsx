@@ -12,11 +12,16 @@ import type {
 import SidePanelHeader from "@/components/sidepanel/SidePanelHeader";
 import PhotoCarousel from "@/components/sidepanel/PhotoCarousel";
 import FacilityList from "@/components/sidepanel/FacilityList";
+import FacilityRequestModal from "@/components/sidepanel/FacilityRequestModal";
+import { getPolygonRingCenter } from "@/lib/polygonCenter";
+import type { Feature, Polygon } from "geojson";
 
 export type SidePanelPhoto = Pick<
   BuildingPhoto,
   "id" | "url" | "caption" | "caption_en" | "caption_zh"
 >;
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 const FAVORITES_KEY = "ku_favorites";
 
@@ -49,6 +54,7 @@ export default function SidePanel({
   const [photos, setPhotos] = useState<SidePanelPhoto[]>([]);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [requestOpen, setRequestOpen] = useState(false);
   const [errors, setErrors] = useState({
     building: false,
     facilities: false,
@@ -109,7 +115,9 @@ export default function SidePanel({
         .single(),
       supabase
         .from("building_facilities")
-        .select("*, facility_types(code, label, label_en, label_zh)")
+        .select(
+          "*, facility_types(code, label, label_en, label_zh), facility_photos(id, storage_path, sort_order, created_at)",
+        )
         .eq("building_id", buildingId),
       supabase
         .from("building_photos")
@@ -360,6 +368,31 @@ export default function SidePanel({
           lastUpdated={building?.last_updated}
           t={t}
         />
+        {/* 사이트 키가 없으면 버튼을 숨긴다 — 배포와 환경 변수 등록 순서가 어긋나도 실패하는 버튼이 보이지 않는다. */}
+        {TURNSTILE_SITE_KEY && !loading && (
+          <div className="ku-request-entry">
+            <button
+              type="button"
+              className="ku-request-entry-button"
+              onClick={() => setRequestOpen(true)}
+            >
+              {t("requestButton")}
+            </button>
+          </div>
+        )}
+        {requestOpen && (
+          <FacilityRequestModal
+            buildingId={buildingId}
+            buildingName={displayName}
+            mapCenter={getPolygonRingCenter(
+              (building?.geojson as unknown as Feature<Polygon> | null) ?? null,
+            )}
+            siteKey={TURNSTILE_SITE_KEY}
+            lang={lang}
+            t={t}
+            onClose={() => setRequestOpen(false)}
+          />
+        )}
       </aside>
     </>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import Link from "next/link";
 import AddFacilityButton from "@/components/admin/AddFacilityButton";
 import BulkRetranslateButton from "@/components/admin/BulkRetranslateButton";
 import { FacilityTypeIcon } from "@/components/map/iconography";
@@ -26,6 +27,7 @@ export default function BuildingFacilityListCard({
   addFacilityRef,
   onChanged,
   onSelectFacility,
+  pendingRequestCount,
   showToast,
 }: {
   buildingId: number;
@@ -35,6 +37,7 @@ export default function BuildingFacilityListCard({
   addFacilityRef: RefObject<HTMLButtonElement | null>;
   onChanged: () => void | Promise<void>;
   onSelectFacility: (facilityId: string) => void;
+  pendingRequestCount: number;
   showToast: (message: string, type?: string) => void;
 }) {
   return (
@@ -67,6 +70,14 @@ export default function BuildingFacilityListCard({
             flexWrap: "wrap",
           }}
         >
+          {pendingRequestCount > 0 && (
+            <Link
+              className="ku-facility-pending-link"
+              href={`/admin/dashboard/inbox?building=${buildingId}`}
+            >
+              검토 대기 요청 {pendingRequestCount}건
+            </Link>
+          )}
           <BulkRetranslateButton
             facilities={facilities}
             onDone={onChanged}

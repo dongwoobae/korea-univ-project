@@ -75,6 +75,7 @@ const SCREENS = [
   { name: "시설 목록", path: "/admin/dashboard/facilities" },
   { name: "경사도 목록", path: "/admin/dashboard/slopes" },
   { name: "명소 목록", path: "/admin/dashboard/landmarks" },
+  { name: "제보함", path: "/admin/dashboard/inbox" },
   { name: "건물 상세", path: "/admin/buildings/1" },
   { name: "건물 신규 등록", path: "/admin/buildings/new" },
   { name: "경사도 경로 그리기", path: "/admin/slopes/new" },

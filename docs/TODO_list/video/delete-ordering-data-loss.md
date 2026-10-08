@@ -1,7 +1,7 @@
 # 시설 삭제가 중간에 실패하면 동영상만 사라진다
 
 `deleteFacility`는 동영상을 **먼저** 지우고 시설 row를 나중에 지운다
-(`src/lib/facilityDelete.ts:13-28`).
+(`deleteFacility`, `src/lib/facilityDelete.ts`).
 
 ```ts
 if (facility.video_url) {
@@ -66,3 +66,10 @@ service-role 서버 라우트라 성공률이 다르다 — **성공률이 높�
 ## 출처
 
 2026-08-06 codex 3-lane 리뷰 lane C(공격자).
+
+2026-10-08 — 시설 사진 추가 설계 중 확인. `docs/specs/2026-10-08-facility-request-design.md` 5.3.
+사진 단계(동영상 → 사진 → row)가 같은 순서에 들어와 같은 문제가 사진에도 있다. 다만 "순서만 뒤집는다"는
+그대로 옮겨지지 않는다 — 클라이언트는 사진 id만 갖고 있고 `storage_path`는 행과 함께 cascade로 사라지므로,
+row를 먼저 지우려면 서버가 시설 폴더(`{facility_id}/`)째 지워야 한다.
+또 업로드 라우트의 되돌리기 `removeObject`가 실패하면 행 없는 파일이 `{facility_id}/`에 남고, 행 기반인
+시설 삭제는 그 파일을 수거하지 못한다.

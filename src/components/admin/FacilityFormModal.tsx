@@ -1,7 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState, type CSSProperties } from "react";
-import dynamic from "next/dynamic";
+import { useId, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { authedFetch } from "@/lib/authedFetch";
 import { validateFacilityForm } from "@/lib/facilityForm";
@@ -9,11 +8,11 @@ import { inferCampusFromPoint } from "@/lib/campusGeometry";
 import { translateFacility } from "@/lib/facilityTranslation";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
 import { useModalFocus } from "@/lib/useModalFocus";
+import FacilityFields, {
+  ADMIN_FACILITY_FIELD_LABELS,
+} from "@/components/facility/FacilityFields";
+import type { FacilityFieldValues } from "@/lib/facilityFields";
 import type { FacilityType, FacilityWithType } from "@/types/domain";
-
-const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
-  ssr: false,
-});
 
 interface FacilityFormModalProps {
   /** null이면 건물 비종속(독립) 시설 */
@@ -38,7 +37,7 @@ export default function FacilityFormModal({
 }: FacilityFormModalProps) {
   const standalone = buildingId === null;
   const editing = facility !== null;
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FacilityFieldValues>({
     facility_code: facility?.facility_code ?? "",
     name: facility?.name ?? "",
     description: facility?.description ?? "",
@@ -152,23 +151,6 @@ export default function FacilityFormModal({
     showToast(editing ? "시설이 수정되었어요!" : "시설이 추가되었어요!");
   }
 
-  const inputStyle: CSSProperties = {
-    width: "100%",
-    padding: "8px 10px",
-    border: "1px solid #ddd",
-    borderRadius: 6,
-    fontSize: 13,
-    outline: "none",
-    boxSizing: "border-box",
-    marginTop: 4,
-  };
-  const labelStyle: CSSProperties = {
-    fontSize: 12,
-    color: "#555",
-    display: "block",
-    marginTop: 12,
-  };
-
   return (
     <div
       ref={dialogRef}
@@ -205,138 +187,54 @@ export default function FacilityFormModal({
           {editing ? "시설 수정" : "시설 추가"}
         </div>
 
-        <label style={labelStyle} htmlFor={`${fieldId}-code`}>
-          시설 유형 *
-        </label>
-        <select
-          id={`${fieldId}-code`}
-          value={form.facility_code}
-          onChange={(e) => setForm({ ...form, facility_code: e.target.value })}
-          style={inputStyle}
-        >
-          <option value="">선택해주세요</option>
-          {facilityTypes.map((t) => (
-            <option key={t.code} value={t.code}>
-              {t.label}
-            </option>
-          ))}
-        </select>
-
-        <label style={labelStyle} htmlFor={`${fieldId}-name`}>
-          시설 이름 (선택)
-        </label>
-        <input
-          id={`${fieldId}-name`}
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-          placeholder="예: 정문 엘리베이터"
-          style={inputStyle}
+        <FacilityFields
+          idPrefix={fieldId}
+          value={form}
+          onChange={setForm}
+          facilityTypes={facilityTypes.map((type) => ({
+            code: type.code,
+            label: type.label ?? type.code,
+          }))}
+          labels={ADMIN_FACILITY_FIELD_LABELS}
+          mapCenter={center}
+          highlightBuildingId={buildingId ?? undefined}
+          showFloor={!standalone}
+          showInstalled
+          locationRequired={standalone}
+          locationFooter={
+            <>
+              <button
+                className="ku-current-location-button"
+                type="button"
+                onClick={useCurrentLocation}
+              >
+                <span aria-hidden="true">📍</span> 현 위치로 찍기
+              </button>
+              {form.lat && form.lng && (
+                <div aria-live="polite" style={{ fontSize: 12, marginTop: 8 }}>
+                  <div style={{ color: "#2563EB" }}>
+                    선택된 위치: {form.lat}, {form.lng}
+                  </div>
+                  <div
+                    style={{
+                      color: positionCampus ? "#166534" : "#B45309",
+                      marginTop: 4,
+                      fontWeight: 500,
+                    }}
+                  >
+                    {!boundaries && !boundariesError
+                      ? "캠퍼스 영역 확인 중..."
+                      : positionCampus
+                        ? `${positionCampus} 영역입니다.`
+                        : boundariesError
+                          ? "캠퍼스 영역을 확인하지 못했습니다. 저장은 가능합니다."
+                          : "캠퍼스 영역 밖입니다. 인접 지역 시설이라면 그대로 저장할 수 있습니다."}
+                  </div>
+                </div>
+              )}
+            </>
+          }
         />
-
-        <label style={labelStyle} htmlFor={`${fieldId}-description`}>
-          설명 (선택)
-        </label>
-        <input
-          id={`${fieldId}-description`}
-          value={form.description}
-          onChange={(e) => setForm({ ...form, description: e.target.value })}
-          placeholder="예: 정문 우측 내부"
-          style={inputStyle}
-        />
-
-        {!standalone && (
-          <>
-            <label style={labelStyle} htmlFor={`${fieldId}-floor`}>
-              층 정보 (선택)
-            </label>
-            <input
-              id={`${fieldId}-floor`}
-              value={form.floor_info}
-              onChange={(e) => setForm({ ...form, floor_info: e.target.value })}
-              placeholder="예: 1층~4층"
-              style={inputStyle}
-            />
-          </>
-        )}
-
-        <div style={labelStyle}>
-          위치 (지도에서 클릭해서 선택){standalone ? " *" : ""}
-        </div>
-        <div
-          className="ku-facility-map-frame"
-          style={{
-            marginTop: 4,
-            borderRadius: 8,
-            overflow: "hidden",
-            border: "1px solid #ddd",
-          }}
-        >
-          <FacilityMap
-            center={center}
-            highlightId={buildingId ?? undefined}
-            markerPosition={
-              form.lat && form.lng
-                ? [parseFloat(form.lat), parseFloat(form.lng)]
-                : null
-            }
-            onMapClick={(lat, lng) =>
-              setForm((prev) => ({
-                ...prev,
-                lat: lat.toFixed(7),
-                lng: lng.toFixed(7),
-              }))
-            }
-          />
-        </div>
-
-        <button
-          className="ku-current-location-button"
-          type="button"
-          onClick={useCurrentLocation}
-        >
-          <span aria-hidden="true">📍</span> 현 위치로 찍기
-        </button>
-
-        {form.lat && form.lng && (
-          <div aria-live="polite" style={{ fontSize: 12, marginTop: 8 }}>
-            <div style={{ color: "#2563EB" }}>
-              선택된 위치: {form.lat}, {form.lng}
-            </div>
-            <div
-              style={{
-                color: positionCampus ? "#166534" : "#B45309",
-                marginTop: 4,
-                fontWeight: 500,
-              }}
-            >
-              {!boundaries && !boundariesError
-                ? "캠퍼스 영역 확인 중..."
-                : positionCampus
-                  ? `${positionCampus} 영역입니다.`
-                  : boundariesError
-                    ? "캠퍼스 영역을 확인하지 못했습니다. 저장은 가능합니다."
-                    : "캠퍼스 영역 밖입니다. 인접 지역 시설이라면 그대로 저장할 수 있습니다."}
-            </div>
-          </div>
-        )}
-
-        <label
-          style={{
-            ...labelStyle,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={form.is_installed}
-            onChange={(e) =>
-              setForm({ ...form, is_installed: e.target.checked })
-            }
-          />
-          설치됨
-        </label>
 
         <div className="ku-facility-modal-actions">
           <button
