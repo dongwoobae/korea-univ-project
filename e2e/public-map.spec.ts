@@ -240,15 +240,22 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByRole("checkbox", { name: /경사도/ })).toBeChecked();
   });
 
-  test("경사도 범례는 계단식 막대와 경계 눈금(%·°)을 보여준다", async ({
+  test("경사도 범례는 그라데이션 막대에 세 단계와 경계 눈금(%·°)을 보여준다", async ({
     page,
   }) => {
     await page.goto("/");
     await page.getByRole("checkbox", { name: /경사도/ }).check();
 
-    await expect(page.locator(".ku-slope-scale-step")).toHaveCount(6);
+    await expect(page.locator(".ku-slope-scale-bar")).toHaveCSS(
+      "background-image",
+      /linear-gradient/,
+    );
+    const levels = page.locator(".ku-slope-scale-levels");
+    for (const label of ["기준 이내", "특례 범위", "초과"]) {
+      await expect(levels.getByText(label, { exact: true })).toBeVisible();
+    }
     const ticks = page.locator(".ku-slope-scale-tick");
-    for (const label of ["5.56%", "8.33%", "12.5%", "4.76°"]) {
+    for (const label of ["8.33%", "4.76°", "12.5%", "7.13°"]) {
       await expect(ticks.getByText(label, { exact: true })).toBeVisible();
     }
 
@@ -258,6 +265,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await page.getByRole("checkbox", { name: /경사도/ }).check();
     await expect(page.locator(".ku-slope-scale-bar")).toBeVisible();
     await expect(ticks.getByText("12.5%", { exact: true })).toBeVisible();
+    await expect(levels.getByText("초과", { exact: true })).toBeVisible();
   });
 
   test("낮은 줌에서 라벨과 가까운 마커를 정리하고 확대하면 펼친다", async ({

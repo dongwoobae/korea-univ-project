@@ -3,7 +3,6 @@ import {
   MAX_SLOPE_DEG,
   RAMP_EXCEPTION_RATIO,
   RELAXED_RATIO,
-  SLOPE_BANDS,
   WALKWAY_RATIO,
   degToPercent,
   formatDeg,
@@ -16,19 +15,6 @@ import {
   slopeWarningFromDeg,
   toDegrees,
 } from "./slopeScale";
-
-const BAND_COLORS = [
-  "#91D4C6",
-  "#36A980",
-  "#0465AF",
-  "#E6B816",
-  "#D75A07",
-  "#9A023C",
-];
-
-// 변환을 거치지 않은 %로 칸을 찾는다. 테스트의 기대값 계산용.
-const colorOfExactPercent = (percent: number) =>
-  SLOPE_BANDS.find((band) => percent <= band.maxPercent)!.color;
 
 describe("degToPercent / percentToDeg", () => {
   it("45°는 100%다", () => {
@@ -80,49 +66,37 @@ describe("isSlopeDegInRange", () => {
   });
 });
 
+// 기대값은 slopeScale.ts를 거치지 않고 OKLab 보간을 따로 계산한 값이다.
 describe("slopeColorFromDeg", () => {
-  it("색 순서가 설계와 같다", () => {
-    expect(SLOPE_BANDS.map((band) => band.color)).toEqual(BAND_COLORS);
+  it("기준점에서는 그 기준색이다", () => {
+    expect(slopeColorFromDeg(0)).toBe("#0465AF");
+    expect(slopeColorFromDeg(percentToDeg(100 / 12))).toBe("#36A980");
+    expect(slopeColorFromDeg(percentToDeg(10))).toBe("#E6B816");
+    expect(slopeColorFromDeg(percentToDeg(12.5))).toBe("#D75A07");
+    expect(slopeColorFromDeg(percentToDeg(20))).toBe("#9A023C");
   });
 
-  it("경계값은 그 칸에 포함되고 바로 위는 다음 칸이다", () => {
-    SLOPE_BANDS.slice(0, -1).forEach((band, index) => {
-      expect(slopeColorFromDeg(percentToDeg(band.maxPercent))).toBe(
-        BAND_COLORS[index],
-      );
-      expect(slopeColorFromDeg(percentToDeg(band.maxPercent + 0.01))).toBe(
-        BAND_COLORS[index + 1],
-      );
-    });
+  it("기준점 사이는 OKLab으로 섞은 중간색이다", () => {
+    expect(slopeColorFromDeg(percentToDeg(100 / 24))).toBe("#17899B");
+    expect(slopeColorFromDeg(percentToDeg(55 / 6))).toBe("#9DB360");
+    expect(slopeColorFromDeg(percentToDeg(11.25))).toBe("#E18B0E");
+    expect(slopeColorFromDeg(percentToDeg(16.25))).toBe("#B83731");
   });
 
-  it("E2E가 쓰는 값의 칸", () => {
-    expect(slopeColorFromDeg(1)).toBe("#91D4C6");
-    expect(slopeColorFromDeg(3)).toBe("#36A980");
-    expect(slopeColorFromDeg(7.2)).toBe("#D75A07");
-    expect(slopeColorFromDeg(10)).toBe("#9A023C");
+  it("마지막 기준점을 넘으면 그 색에 머문다", () => {
+    expect(slopeColorFromDeg(percentToDeg(30))).toBe("#9A023C");
+    expect(slopeColorFromDeg(MAX_SLOPE_DEG)).toBe("#9A023C");
   });
 
-  it("부동소수 오차로 경계를 살짝 넘어도 그 칸에 남는다", () => {
-    expect(slopeColorFromDeg(percentToDeg(100 / 12 + 1e-12))).toBe("#0465AF");
+  it("내리막은 같은 크기의 오르막과 같은 색이다", () => {
+    expect(slopeColorFromDeg(-percentToDeg(10))).toBe("#E6B816");
   });
-});
 
-// 설계 2.2 — 자릿수 반올림은 어떤 경계값을 반드시 위 칸으로 민다. 저장은 반올림 없이.
-describe("% 입력이 도 저장을 거쳐도 같은 칸에 남는다", () => {
-  it.each([
-    WALKWAY_RATIO * 100,
-    RELAXED_RATIO * 100,
-    RAMP_EXCEPTION_RATIO * 100,
-    2,
-    5.56,
-    8.33,
-    12.5,
-    15,
-  ])("%s%%", (percent) => {
-    expect(slopeColorFromDeg(percentToDeg(percent))).toBe(
-      colorOfExactPercent(percent),
-    );
+  it("E2E가 쓰는 값의 색", () => {
+    expect(slopeColorFromDeg(1)).toBe("#0775A7");
+    expect(slopeColorFromDeg(3)).toBe("#1F9195");
+    expect(slopeColorFromDeg(7.2)).toBe("#D6590B");
+    expect(slopeColorFromDeg(10)).toBe("#AD2936");
   });
 });
 

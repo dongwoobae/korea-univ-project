@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { FeatureCollection, Polygon } from "geojson";
 import {
   assignCampusesToBuildings,
+  buildingIdsInCampus,
   inferCampusFromGeometry,
   inferCampusFromPoint,
 } from "./campusGeometry";
@@ -106,5 +107,41 @@ describe("campus geometry", () => {
       boundaries,
     );
     expect(result.features[0].properties?.campus).toBe("동쪽");
+  });
+
+  it("판정한 캠퍼스가 같은 건물 id만 고른다", () => {
+    const rows = [
+      {
+        id: 1,
+        geojson: building([
+          [1, 1],
+          [2, 1],
+          [2, 2],
+          [1, 1],
+        ]),
+      },
+      {
+        id: 2,
+        geojson: building([
+          [6, 1],
+          [7, 1],
+          [7, 2],
+          [6, 1],
+        ]),
+      },
+      {
+        id: 3,
+        geojson: building([
+          [12, 1],
+          [13, 1],
+          [13, 2],
+          [12, 1],
+        ]),
+      },
+      { id: 4, geojson: null },
+    ];
+    expect(buildingIdsInCampus(rows, "서쪽", boundaries)).toEqual([1]);
+    expect(buildingIdsInCampus(rows, "동쪽", boundaries)).toEqual([2]);
+    expect(buildingIdsInCampus(rows, "북쪽", boundaries)).toEqual([]);
   });
 });

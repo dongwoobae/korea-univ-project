@@ -144,3 +144,19 @@ export function assignCampusesToBuildings(
     })),
   };
 }
+
+export function buildingIdsInCampus(
+  rows: readonly { id: number; geojson: unknown }[],
+  campus: string,
+  boundaries: CampusBoundaryCollection,
+): number[] {
+  return rows
+    .filter(
+      (row) =>
+        inferCampusFromGeometry(
+          row.geojson as Feature | Geometry | null,
+          boundaries,
+        ) === campus,
+    )
+    .map((row) => row.id);
+}
