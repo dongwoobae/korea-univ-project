@@ -8,6 +8,7 @@ import {
 import { supabaseAdmin } from "./supabaseAdmin";
 
 const SIGNED_URL_SECONDS = 600;
+const LIST_PAGE_SIZE = 100;
 
 export async function uploadPhoto(
   bucket: string,
@@ -44,30 +45,42 @@ export async function removeObject(
   return !error;
 }
 
-/** 행이 생기기 전에 실패해 남은 파일까지 지우려고 행이 아니라 폴더를 나열한다(설계 2.7). */
+/**
+ * 행이 생기기 전에 실패해 남은 파일까지 지우려고 행이 아니라 폴더를 나열한다(설계 2.7).
+ * 지운 뒤 다시 나열하면 다음 묶음이 맨 앞부터 나오므로, 한 페이지보다 적게 나올 때까지 반복한다.
+ */
 export async function removeFolder(
   bucket: string,
   folderId: string,
 ): Promise<boolean> {
   const storage = supabaseAdmin().storage.from(bucket);
-  const { data, error } = await storage.list(folderId, { limit: 100 });
-  if (error) {
-    console.error("[photo-storage] list failed", {
-      bucket,
-      message: error.message,
+  for (;;) {
+    const { data, error } = await storage.list(folderId, {
+      limit: LIST_PAGE_SIZE,
     });
-    return false;
+    if (error) {
+      console.error("[photo-storage] list failed", {
+        bucket,
+        folderId,
+        message: error.message,
+      });
+      return false;
+    }
+    const items = data ?? [];
+    if (items.length === 0) return true;
+    const { error: removeError } = await storage.remove(
+      items.map((item) => `${folderId}/${item.name}`),
+    );
+    if (removeError) {
+      console.error("[photo-storage] folder remove failed", {
+        bucket,
+        folderId,
+        message: removeError.message,
+      });
+      return false;
+    }
+    if (items.length < LIST_PAGE_SIZE) return true;
   }
-  const paths = (data ?? []).map((item) => `${folderId}/${item.name}`);
-  if (paths.length === 0) return true;
-  const { error: removeError } = await storage.remove(paths);
-  if (removeError) {
-    console.error("[photo-storage] folder remove failed", {
-      bucket,
-      message: removeError.message,
-    });
-  }
-  return !removeError;
 }
 
 export async function copyToFacility(
@@ -81,7 +94,11 @@ export async function copyToFacility(
       destinationBucket: FACILITY_PHOTO_BUCKET,
     });
   if (error) {
-    console.error("[photo-storage] copy failed", { message: error.message });
+    console.error("[photo-storage] copy failed", {
+      requestPhotoPath,
+      facilityId,
+      message: error.message,
+    });
     return null;
   }
   return destination;
@@ -99,6 +116,7 @@ export async function cleanupRequestPhotos(
     .eq("request_id", requestId);
   if (error)
     console.error("[photo-storage] request photo rows delete failed", {
+      requestId,
       message: error.message,
     });
   return !error;
