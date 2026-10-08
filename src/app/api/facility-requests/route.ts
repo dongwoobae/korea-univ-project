@@ -22,9 +22,12 @@ export async function POST(request: Request) {
     string,
     unknown
   > | null;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return fail("invalid", 400);
+  }
 
-  // 채워진 honeypot은 저장 없이 성공으로 답한다(피드백 라우트와 같다).
-  if (body && typeof body.website === "string" && body.website.length > 0) {
+  // 봇이 걸렸다는 걸 알아채지 못하게 성공으로 답한다(피드백 라우트와 같다).
+  if (typeof body.website === "string" && body.website.length > 0) {
     return Response.json({ ok: true }, { status: 201 });
   }
 
@@ -34,12 +37,12 @@ export async function POST(request: Request) {
 
   const ip = clientIp(request);
   const token =
-    typeof body?.turnstileToken === "string" ? body.turnstileToken : "";
+    typeof body.turnstileToken === "string" ? body.turnstileToken : "";
   if (!(await verifyTurnstile(token, ip, turnstileSecret)))
     return fail("turnstile", 400);
 
-  const buildingId = body?.buildingId;
-  const fields = parseFacilityFields(body?.fields);
+  const buildingId = body.buildingId;
+  const fields = parseFacilityFields(body.fields);
   if (
     typeof buildingId !== "number" ||
     !Number.isSafeInteger(buildingId) ||
@@ -50,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   const db = supabaseAdmin();
-  const [{ data: building }, { data: type }] = await Promise.all([
+  const [buildingResult, typeResult] = await Promise.all([
     // is_deleted가 null인 건물도 살아 있다 — eq(false)는 null을 빼 버린다.
     db
       .from("buildings")
@@ -64,7 +67,14 @@ export async function POST(request: Request) {
       .eq("code", fields.facility_code)
       .maybeSingle(),
   ]);
-  if (!building || !type) return fail("invalid", 400);
+  if (buildingResult.error || typeResult.error) {
+    console.error("[facility-requests] lookup failed", {
+      building: buildingResult.error?.code,
+      type: typeResult.error?.code,
+    });
+    return fail("server", 500);
+  }
+  if (!buildingResult.data || !typeResult.data) return fail("invalid", 400);
 
   const { data: result, error } = await db.rpc("create_facility_request", {
     p_fields: {
@@ -76,6 +86,7 @@ export async function POST(request: Request) {
       lat: fields.lat,
       lng: fields.lng,
     },
+    // IP가 없는 요청은 거절하지 않고 한 버킷을 공유한다. Vercel은 항상 x-real-ip를 넣으므로 그 밖의 실행 환경에서만 생긴다.
     p_client_hash: clientHash(ip ?? "unknown", hashSecret),
   });
   if (error || !result) {

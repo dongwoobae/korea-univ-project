@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { clientHash, verifyUploadToken } from "@/lib/server/requestSecurity";
 import { queryStub } from "@/test/queryStub";
 
 const verifyTurnstile = vi.fn();
@@ -39,7 +40,7 @@ describe("POST /api/facility-requests", () => {
     vi.stubEnv("FACILITY_REQUEST_HASH_SECRET", "hs");
     buildingRow = { id: 1 };
     typeRow = { code: "elevator" };
-    // Task 8의 GET 테스트가 같은 대역의 구현을 바꾸므로 여기서 다시 정한다.
+    // 테스트마다 건물·유형 응답을 바꾸므로 매번 구현을 다시 정한다.
     from.mockImplementation((table: string) =>
       queryStub({
         data: table === "buildings" ? buildingRow : typeRow,
@@ -69,7 +70,52 @@ describe("POST /api/facility-requests", () => {
       facility_code: "elevator",
       floor_info: "3층",
     });
-    expect(args.p_client_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(args.p_client_hash).toBe(clientHash("1.2.3.4", "hs"));
+    expect(verifyUploadToken(body.uploadToken, body.id, Date.now(), "hs")).toBe(
+      true,
+    );
+  });
+
+  it("IP 헤더가 없으면 unknown 버킷으로 묶는다", async () => {
+    const { POST } = await import("./route");
+    const request = new Request("https://local.test/api/facility-requests", {
+      method: "POST",
+      body: JSON.stringify(valid),
+    });
+    expect((await POST(request)).status).toBe(201);
+    expect(rpc.mock.calls[0][1].p_client_hash).toBe(
+      clientHash("unknown", "hs"),
+    );
+  });
+
+  it("JSON이 아닌 본문은 400 invalid", async () => {
+    const { POST } = await import("./route");
+    const request = new Request("https://local.test/api/facility-requests", {
+      method: "POST",
+      headers: { "x-real-ip": "1.2.3.4" },
+      body: "not json",
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "invalid" });
+    expect(verifyTurnstile).not.toHaveBeenCalled();
+  });
+
+  it("건물·유형 조회가 실패하면 500 server이고 기록한다", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    from.mockImplementation(() =>
+      queryStub({ data: null, error: { code: "PGRST000", message: "down" } }),
+    );
+    const { POST } = await import("./route");
+    const response = await POST(post(valid));
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: "server" });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(logged).toHaveBeenCalledWith("[facility-requests] lookup failed", {
+      building: "PGRST000",
+      type: "PGRST000",
+    });
+    logged.mockRestore();
   });
 
   it("honeypot이 채워지면 저장 없이 성공으로 답한다", async () => {
@@ -116,17 +162,17 @@ describe("POST /api/facility-requests", () => {
 
   it("필드·건물 id가 잘못되면 400 invalid", async () => {
     const { POST } = await import("./route");
-    expect((await POST(post({ ...valid, buildingId: "1" }))).status).toBe(400);
-    expect(
-      (await POST(post({ ...valid, fields: { facility_code: "" } }))).status,
-    ).toBe(400);
-    expect(
-      (
-        await POST(
-          post({ ...valid, fields: { facility_code: "elevator", lat: 37 } }),
-        )
-      ).status,
-    ).toBe(400);
+    const bodies = [
+      { ...valid, buildingId: "1" },
+      { ...valid, fields: { facility_code: "" } },
+      { ...valid, fields: { facility_code: "elevator", lat: 37 } },
+    ];
+    for (const body of bodies) {
+      const response = await POST(post(body));
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ error: "invalid" });
+    }
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it("함수가 rate_limited면 429", async () => {
@@ -157,12 +203,23 @@ describe("POST /api/facility-requests", () => {
   it("비밀값이 없으면 503 unavailable", async () => {
     vi.stubEnv("TURNSTILE_SECRET_KEY", "");
     const { POST } = await import("./route");
-    expect((await POST(post(valid))).status).toBe(503);
+    const response = await POST(post(valid));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "unavailable" });
+  });
+
+  it("해시 비밀값이 없으면 503 unavailable", async () => {
+    vi.stubEnv("FACILITY_REQUEST_HASH_SECRET", "");
+    const { POST } = await import("./route");
+    const response = await POST(post(valid));
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: "unavailable" });
   });
 
   it("본문이 크면 413", async () => {
     const { POST } = await import("./route");
     const response = await POST(post(valid, { "content-length": "20000" }));
     expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: "invalid" });
   });
 });
