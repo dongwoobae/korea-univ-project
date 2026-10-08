@@ -29,7 +29,7 @@
 - **현장 실측 기반 경사도 입력** — 배포된 경로를 감사해 표시 구간 137개 중 31개(23%)가 GPS 고도 노이즈 탓에 0.0% 평지로 그려지는 것을 확인하고, 관리자가 지도에 경로를 그린 뒤 구간별 실측값을 직접 넣는 방식으로 전환
 - **접근성 전수 감사 기반 개선** — UX 감사 문서(`docs/audits/`)로 P0~P3 항목을 분류하고, 모달 초점 트랩·라이브 리전·터치 타겟·폼 라벨을 순차 구현하며 E2E로 회귀를 고정
 - **JavaScript → TypeScript 전면 이관** — 설계 문서를 먼저 작성한 뒤 `src/` 전체(138개 파일)를 `strict` 모드로 이관하고, 우회로 남아 있던 암묵적 `any` 162건까지 걷어 `no-explicit-any`를 error로 유지
-- **결정론적 E2E 환경 구축** — 1299줄 목 백엔드(PostgREST·Next 라우트·Auth·저장소·브라우저 API 스텁)로 외부 의존 없이 19개 spec·171개 시나리오를 실행
+- **결정론적 E2E 환경 구축** — 1325줄 목 백엔드(PostgREST·Next 라우트·Auth·저장소·브라우저 API 스텁)로 외부 의존 없이 19개 spec·173개 시나리오를 실행
 - **마이그레이션 안전장치** — 적용된 마이그레이션의 수정·삭제를 CI에서 차단하고, 적용 후 로컬↔원격 이력 일치를 별도 잡에서 검증
 - **다국어 자동화** — Papago NMT 연동으로 시설·명소 정보를 자동 번역하고, 번역 실패를 관리자 화면에 드러내 개별·일괄 재번역 가능
 
@@ -131,7 +131,7 @@ src/
         facilities/page.tsx          # 독립(건물 미소속) 시설 관리
         landmarks/page.tsx           # 캠퍼스 명소 관리
         slopes/page.tsx              # 경사도 경로 목록 — 수정·삭제
-        inbox/page.tsx               # 제보함 — 등록 요청·피드백 탭, 검토 모달
+        inbox/page.tsx               # 제보함 — 등록 요청·피드백 탭, 검토·피드백 상세 모달
       buildings/
         new/page.tsx                 # 신규 건물 추가 (폴리곤 그리기 + 캠퍼스 자동 판정)
         [id]/page.tsx                # 건물 상세 — 카드 조합 + 저장·삭제·복구 오케스트레이션
@@ -544,11 +544,11 @@ npm run test:e2e:ui   # Playwright UI 모드
 
 ### 테스트 범위
 
-**Vitest 단위 테스트 (59개 파일, 435개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, WebP 바이트 판정·Safari 대체 인코딩, 영상 변환 인자·포스터 캡처·업로드 순서, 일괄 변환 대상 판정·journal, 피드백 입력 검증, 피드백·명소 삭제·사진 업로드·영상 presign/confirm/삭제 API 라우트, 시설 필드 서버 파서·사진 표시 순서, 업로드 토큰·IP 해시·Turnstile 검증, 요청 생성·사진 업로드·상세·상태·거절·정리·승인·제보함 개수·관리자 피드백·시설 사진 API 라우트(`src/test/queryStub.ts`의 쿼리 체인 대역).
+**Vitest 단위 테스트 (62개 파일, 445개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, WebP 바이트 판정·Safari 대체 인코딩, 영상 변환 인자·포스터 캡처·업로드 순서, 일괄 변환 대상 판정·journal, 피드백 입력 검증, 피드백·명소 삭제·사진 업로드·영상 presign/confirm/삭제 API 라우트, 시설 필드 서버 파서·사진 표시 순서, 업로드 토큰·IP 해시·Turnstile 검증, 요청 생성·사진 업로드·상세·상태·거절·정리·승인·제보함 개수·관리자 피드백·시설 사진 API 라우트(`src/test/queryStub.ts`의 쿼리 체인 대역).
 
 경사 경로 판단 로직은 `src/lib/slopeRoute.ts`(경로·저장 포맷)와 `src/lib/slopeScale.ts`(단위·색·기준선)의 순수 함수로 빼 두었습니다. Vitest가 `environment: "node"`로 돌기 때문에, Leaflet에 묶인 채로는 단위 테스트가 닿지 않습니다.
 
-**Playwright E2E (19개 spec, 171개 시나리오)**
+**Playwright E2E (19개 spec, 173개 시나리오)**
 
 | 파일                                    | 검증 대상                                                                                                                                                                                                                                                                                                                                                         |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -569,10 +569,10 @@ npm run test:e2e:ui   # Playwright UI 모드
 | `admin-dark.spec.ts`                    | 다크 모드 대비 회귀 가드 — 하드코딩 밝은 색·근검정 텍스트 0건 단언                                                                                                                                                                                                                                                                                                |
 | `admin-campus-boundaries.spec.ts`       | 캠퍼스 밖 시설 경고하되 저장 허용                                                                                                                                                                                                                                                                                                                                 |
 | `facility-request.spec.ts`              | 사이드패널에서 유형·층·사진을 넣어 요청 접수, 유형 누락 안내, 빈도 초과 문구와 재전송, **사진별 진행 + 실패한 사진만 재업로드**, 업로드 토큰 거절 시 남은 사진 중단                                                                                                                                                                                               |
-| `admin-inbox.spec.ts`                   | 메뉴 신규 수 배지, 상태 필터·건물 필터, **검토 모달에서 고쳐 승인하면 고친 값과 고른 사진으로 시설 생성**, 확인 중 표시·되돌리기, 확인을 거친 거절과 읽기 전용, 다른 관리자가 먼저 처리(409), 볼 수 없는 사진 공개 차단, 피드백 상태 변경·목록 오류 표시                                                                                                          |
-| `facility-photos.spec.ts`               | 공개 사이드패널 시설 사진 썸네일 → 라이트박스(업로드 순서), 관리자 시설 사진 추가·삭제, 사진 칸 순서와 3장 상한, 건물 상세의 검토 대기 요청 수 → 제보함                                                                                                                                                                                                           |
+| `admin-inbox.spec.ts`                   | 메뉴 신규 수 배지, 상태 필터·건물 필터, **검토 모달에서 고쳐 승인하면 고친 값과 고른 사진으로 시설 생성**, 확인 중 표시·되돌리기, 확인을 거친 거절과 읽기 전용, 다른 관리자가 먼저 처리(409), 볼 수 없는 사진 공개 차단, 피드백 상세 모달·상태 변경·목록 오류 표시                                                                                                |
+| `facility-photos.spec.ts`               | 공개 사이드패널 시설 사진 썸네일 → 라이트박스(업로드 순서), 관리자 시설 사진 추가·삭제, 사진 칸 순서와 3장 상한, 시설 삭제가 사진도 지움, 건물 상세의 검토 대기 요청 수 → 제보함                                                                                                                                                                                  |
 
-E2E는 `e2e/support/mockBackend.ts`(1299줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다. 쓰기 요청의 `id` 외 필터(`is.null`, `eq.`)도 실제 PostgREST처럼 적용하므로, 저장 조건에 건 잠금이 목 위에서만 통과하는 일이 없습니다.
+E2E는 `e2e/support/mockBackend.ts`(1325줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다. 쓰기 요청의 `id` 외 필터(`is.null`, `eq.`)도 실제 PostgREST처럼 적용하므로, 저장 조건에 건 잠금이 목 위에서만 통과하는 일이 없습니다.
 
 ---
 
@@ -678,7 +678,7 @@ UI 고정 문자열은 `src/lib/translations.ts`(언어당 키 72개)에서 관�
 
 - TypeScript 전면 이관(`strict`), 암묵적 `any` 제거, `no-console` 규칙
 - 모달 초점 관리(중첩 스택), 토스트 라이브 리전, 44px 터치 타겟, 폼 라벨 연결
-- Vitest 단위 59파일 + Playwright E2E 19 spec
+- Vitest 단위 62파일 + Playwright E2E 19 spec
 - CI 8잡 게이트 + 마이그레이션 안전 검사·이력 대조
 - Supabase keep-alive 크론
 
