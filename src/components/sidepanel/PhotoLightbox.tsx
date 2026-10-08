@@ -6,19 +6,22 @@ import Image from "next/image";
 import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
 import { useModalFocus } from "@/lib/useModalFocus";
 import { photoDownloadUrl, photoFileName } from "@/lib/photoDownload";
-import type { LangCode } from "@/lib/translations";
-import type { SidePanelPhoto } from "@/components/SidePanel";
+
+export interface LightboxPhoto {
+  url: string;
+  alt: string;
+  caption?: string | null;
+}
 
 interface PhotoLightboxProps {
-  photos: SidePanelPhoto[];
+  photos: LightboxPhoto[];
   index: number;
   onIndexChange: (index: number) => void;
   onClose: () => void;
-  /** 다운로드 파일명용 원래 이름 */
-  buildingName: string;
-  /** 화면 표시용 이름(언어에 따라 다름) */
-  displayName: string;
-  lang: LangCode;
+  /** 머리줄에 보이는 이름(언어에 따라 다름) */
+  title: string;
+  /** 내려받기 파일 이름 앞부분 */
+  downloadBaseName: string;
   t: (key: string) => string;
 }
 
@@ -27,9 +30,8 @@ export default function PhotoLightbox({
   index,
   onIndexChange,
   onClose,
-  buildingName,
-  displayName,
-  lang,
+  title,
+  downloadBaseName,
   t,
 }: PhotoLightboxProps) {
   const titleId = useId();
@@ -48,8 +50,7 @@ export default function PhotoLightbox({
   }, [count, index, onIndexChange]);
 
   if (!photo) return null;
-  const caption =
-    lang === "ko" ? photo.caption : (photo[`caption_${lang}`] ?? photo.caption);
+  const caption = photo.caption ?? null;
 
   // 사이드패널이 쌓임 맥락을 만들어 모달을 그 안에 가둔다. body로 뺀다(FeedbackButton과 같다).
   return createPortal(
@@ -69,7 +70,7 @@ export default function PhotoLightbox({
       >
         <div className="ku-photo-lightbox-header">
           <span id={titleId} className="ku-photo-lightbox-title">
-            {displayName}
+            {title}
           </span>
           <span className="ku-photo-lightbox-count">
             {index + 1} / {count}
@@ -78,7 +79,7 @@ export default function PhotoLightbox({
             className="ku-photo-lightbox-action"
             href={photoDownloadUrl(
               photo.url,
-              photoFileName(buildingName, index),
+              photoFileName(downloadBaseName, index),
             )}
             aria-label={t("photoDownload")}
           >
@@ -96,7 +97,7 @@ export default function PhotoLightbox({
         <div className="ku-photo-lightbox-stage">
           <Image
             src={photo.url}
-            alt={caption ?? displayName}
+            alt={photo.alt}
             fill
             sizes="100vw"
             unoptimized
