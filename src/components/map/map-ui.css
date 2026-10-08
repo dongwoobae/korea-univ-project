@@ -1533,7 +1533,7 @@
   cursor: pointer;
 }
 .ku-facility-photo-thumb:focus-visible {
-  outline: 2px solid var(--ku-primary);
+  outline: 2px solid var(--ku-crimson-700);
   outline-offset: 2px;
 }
 
@@ -1543,10 +1543,10 @@
 .ku-request-entry-button {
   width: 100%;
   padding: 10px;
-  border: 1px solid var(--ku-primary);
+  border: 1px solid var(--ku-crimson-700);
   border-radius: 8px;
   background: var(--ku-surface);
-  color: var(--ku-primary-text);
+  color: var(--ku-crimson-700);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -1672,14 +1672,18 @@
   color: var(--ku-text-1);
   cursor: pointer;
 }
+/* 공개 지도의 주요 버튼(.ku-button--primary)과 같은 크림슨 */
 .ku-request-modal-primary {
-  border-color: var(--ku-primary) !important;
-  background: var(--ku-primary) !important;
+  border-color: #8c0000 !important;
+  background: #8c0000 !important;
   color: #fff !important;
 }
+.ku-request-modal-primary:hover:not(:disabled) {
+  background: #6e0000 !important;
+}
 .ku-request-modal-primary:disabled {
-  background: var(--ku-primary-disabled) !important;
-  border-color: var(--ku-primary-disabled) !important;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 @media (max-width: 767px) {
   .ku-request-modal {
@@ -1712,7 +1716,7 @@
   border-color: var(--ku-border-input) !important;
 }
 .ku-request-photo-add:focus-within {
-  outline: 2px solid var(--ku-primary);
+  outline: 2px solid var(--ku-crimson-700);
   outline-offset: 2px;
 }
 .ku-request-modal-done {

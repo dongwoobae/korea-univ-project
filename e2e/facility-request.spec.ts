@@ -39,9 +39,15 @@ test.describe("시설 등록 요청", () => {
 
     const submit = dialog.getByRole("button", { name: "요청 보내기" });
     await expect(submit).toBeEnabled();
+    // 공개 지도의 주요 버튼은 크림슨이다(피드백 제출과 같다).
+    await expect(submit).toHaveCSS("background-color", "rgb(140, 0, 0)");
     await submit.click();
 
     await expect(dialog.getByRole("status")).toContainText("요청을 보냈어요");
+    // 보낸 뒤에는 같은 안내가 부제와 본문에 겹쳐 보이지 않는다.
+    await expect(
+      dialog.getByText("관리자가 확인한 뒤 지도에 올라가요"),
+    ).toHaveCount(1);
     expect(state.facilityRequests).toHaveLength(1);
     expect(state.facilityRequests[0]).toMatchObject({
       building_id: 1,
