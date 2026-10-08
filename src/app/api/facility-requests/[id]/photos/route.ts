@@ -65,7 +65,7 @@ export async function POST(
     result === "full" ||
     result === "not_found"
   ) {
-    // 이 삭제가 실패해도 파일은 요청 폴더 안이라 정리(설계 2.7) 때 지워진다.
+    // not_new·full·함수 실패에서는 이 삭제가 실패해도 요청 행이 있어 정리(설계 2.7) 때 폴더째 지워진다. not_found는 행이 없어 지울 기회가 이 삭제뿐이다.
     await removeObject(FACILITY_REQUEST_PHOTO_BUCKET, path);
     if (error || !result) {
       console.error("[facility-request-photos] add failed", {

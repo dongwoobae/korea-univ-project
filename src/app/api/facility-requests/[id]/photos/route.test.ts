@@ -69,6 +69,7 @@ describe("POST /api/facility-requests/[id]/photos", () => {
       p_request_id: ID,
       p_storage_path: `${ID}/x.webp`,
     });
+    expect(removeObject).not.toHaveBeenCalled();
   });
 
   it("다른 요청의 토큰·만료된 토큰은 403이고 올리지 않는다", async () => {
@@ -81,10 +82,11 @@ describe("POST /api/facility-requests/[id]/photos", () => {
     const wrong = await POST(...post(ID, other));
     expect(wrong.status).toBe(403);
     expect(await wrong.json()).toEqual({ error: "token" });
-    expect(
-      (await POST(...post(ID, signUploadToken(ID, Date.now() - 1, "hs"))))
-        .status,
-    ).toBe(403);
+    const expired = await POST(
+      ...post(ID, signUploadToken(ID, Date.now() - 1, "hs")),
+    );
+    expect(expired.status).toBe(403);
+    expect(await expired.json()).toEqual({ error: "token" });
     expect(uploadPhoto).not.toHaveBeenCalled();
     expect(rpc).not.toHaveBeenCalled();
   });
@@ -172,6 +174,49 @@ describe("POST /api/facility-requests/[id]/photos", () => {
     const { POST } = await import("./route");
     const response = await POST(...post("abc", token()));
     expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "not_found" });
     expect(uploadPhoto).not.toHaveBeenCalled();
+  });
+
+  it("content-length가 한도를 넘으면 본문을 읽기 전에 413", async () => {
+    const { POST } = await import("./route");
+    const [request, context] = post(ID, token());
+    request.headers.set("content-length", String(5 * 1024 * 1024));
+    const response = await POST(request, context);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: "too_large" });
+    expect(uploadPhoto).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it.each(["없음", "문자열"])("file 필드가 %s이면 400", async (kind) => {
+    const { POST } = await import("./route");
+    const form = new FormData();
+    form.append("token", token());
+    if (kind === "문자열") form.append("file", "not a file");
+    const response = await POST(
+      new Request(`https://local.test/api/facility-requests/${ID}/photos`, {
+        method: "POST",
+        body: form,
+      }),
+      { params: Promise.resolve({ id: ID }) },
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "invalid" });
+    expect(uploadPhoto).not.toHaveBeenCalled();
+  });
+
+  it("함수가 오류 없이 빈 결과를 주면 올린 파일을 지우고 500", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { POST } = await import("./route");
+    const response = await POST(...post(ID, token()));
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({ error: "server" });
+    expect(removeObject).toHaveBeenCalledWith(
+      "facility-request-photos",
+      `${ID}/x.webp`,
+    );
+    expect(spy).toHaveBeenCalled();
   });
 });
