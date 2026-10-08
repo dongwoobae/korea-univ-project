@@ -18,6 +18,7 @@ import {
   type FacilityRequestDetail,
 } from "@/lib/inboxStatus";
 import { getPolygonRingCenter } from "@/lib/polygonCenter";
+import { readErrorMessage } from "@/lib/responseError";
 import { useModalFocus } from "@/lib/useModalFocus";
 
 interface FacilityRequestReviewModalProps {
@@ -38,11 +39,6 @@ function toFields(detail: FacilityRequestDetail): FacilityFieldValues {
     lat: detail.lat != null ? String(detail.lat) : "",
     lng: detail.lng != null ? String(detail.lng) : "",
   };
-}
-
-async function readError(response: Response, fallback: string) {
-  const body = (await response.json().catch(() => ({}))) as { error?: unknown };
-  return typeof body.error === "string" ? body.error : fallback;
 }
 
 export default function FacilityRequestReviewModal({
@@ -84,9 +80,7 @@ export default function FacilityRequestReviewModal({
       if (cancelled) return;
       if (!body) {
         showToast(
-          response
-            ? await readError(response, "요청을 불러오지 못했어요")
-            : "요청을 불러오지 못했어요",
+          await readErrorMessage(response, "요청을 불러오지 못했어요"),
           "error",
         );
         onClose();
@@ -113,10 +107,7 @@ export default function FacilityRequestReviewModal({
 
   // 실패 응답이면 안내하고 목록과 상세를 다시 읽는다. 상태가 바뀐 요청을 낡은 화면으로 두지 않는다.
   async function failed(response: Response | null, fallback: string) {
-    showToast(
-      response ? await readError(response, fallback) : fallback,
-      "error",
-    );
+    showToast(await readErrorMessage(response, fallback), "error");
     onChanged();
     if (response?.status === 409) setLoadKey((key) => key + 1);
   }

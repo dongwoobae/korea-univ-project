@@ -1390,33 +1390,41 @@ button.ku-admin-overview-item {
   color: var(--ku-text-2);
   font-size: 11px;
 }
-.ku-feedback-content {
+.ku-feedback-preview {
   display: -webkit-box;
-  margin: 6px 0;
-  overflow: hidden;
-  color: var(--ku-text-1);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-}
-.ku-feedback-content[data-expanded="true"] {
-  display: block;
-}
-.ku-feedback-foot {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-}
-.ku-feedback-foot button {
+  width: 100%;
+  margin: 6px 0 0;
   padding: 0;
+  overflow: hidden;
   border: 0;
   background: none;
-  color: var(--ku-primary-text);
+  color: var(--ku-text-1);
+  font: inherit;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   cursor: pointer;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
-.ku-feedback-foot a {
+.ku-feedback-preview:hover {
   color: var(--ku-primary-text);
+}
+.ku-feedback-detail-content {
+  margin: 0;
+  color: var(--ku-text-1);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ku-feedback-detail-status {
+  flex: 1 1 auto;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  background: var(--ku-surface);
+  color: var(--ku-text-1);
 }
 .ku-facility-photo-manager {
   display: flex;

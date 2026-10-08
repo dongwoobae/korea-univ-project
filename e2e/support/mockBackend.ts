@@ -822,6 +822,12 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   const photoUpload = path.match(/^\/api\/facility-requests\/([^/]+)\/photos$/);
   if (photoUpload) {
     const requestId = photoUpload[1];
+    // 실제 라우트처럼 토큰은 헤더로만 받는다(요청 생성 대역이 준 값).
+    if (
+      route.request().headers()["x-upload-token"] !==
+      `${requestId}.9999999999999.sig`
+    )
+      return json(route, { error: "token" }, 403);
     const count = state.facilityRequestPhotos.filter(
       (photo) => photo.request_id === requestId,
     ).length;
@@ -930,7 +936,12 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   if (path === "/api/facilities")
     return json(
       route,
-      state.facilities.filter((row) => row.is_installed),
+      state.facilities.filter(
+        (row) =>
+          row.is_installed &&
+          !state.buildings.find((building) => building.id === row.building_id)
+            ?.is_deleted,
+      ),
     );
   if (path === "/api/landmarks") return json(route, state.landmarks);
   // 실제 라우트는 id·name·segments만 select한다. 넓게 돌려주면 공개 지도가
@@ -1050,6 +1061,15 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     };
     state.facilityPhotos.push(photo);
     return json(route, { id: photo.id, storage_path: photo.storage_path });
+  }
+  if (path === "/api/delete-facility-photos") {
+    const { facilityId } = route.request().postDataJSON() as {
+      facilityId: string;
+    };
+    state.facilityPhotos = state.facilityPhotos.filter(
+      (photo) => photo.facility_id !== facilityId,
+    );
+    return json(route, { ok: true });
   }
   if (path === "/api/delete-facility-photo") {
     const { photoId } = route.request().postDataJSON() as { photoId: string };

@@ -295,7 +295,10 @@ export default function FacilityRequestModal({
           {t("requestTitle")}
         </h2>
         <p className="ku-request-modal-subtitle">
-          {buildingName} · {t("requestSubtitle")}
+          {/* 보낸 뒤 본문이 같은 안내를 하므로 부제에는 건물명만 남긴다. */}
+          {phase === "done"
+            ? buildingName
+            : `${buildingName} · ${t("requestSubtitle")}`}
         </p>
 
         {phase === "done" ? (

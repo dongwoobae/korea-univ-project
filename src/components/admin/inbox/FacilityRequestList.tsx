@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import AdminPagination from "@/components/admin/AdminPagination";
 import InboxFilterSelect from "@/components/admin/inbox/InboxFilterSelect";
-import { authedFetch } from "@/lib/authedFetch";
-import { formatAdminUpdatedAt } from "@/lib/adminList";
+import { useInboxList } from "@/components/admin/inbox/useInboxList";
+import { formatAdminReceivedAt } from "@/lib/adminList";
 import {
   REQUEST_STATUS_LABELS,
   type FacilityRequestListItem,
-  type InboxFilter,
 } from "@/lib/inboxStatus";
 
 interface FacilityRequestListProps {
@@ -26,55 +24,17 @@ export default function FacilityRequestList({
   onOpen,
   refreshKey,
 }: FacilityRequestListProps) {
-  const [filter, setFilter] = useState<InboxFilter>("open");
-  const [page, setPage] = useState(1);
-  const [items, setItems] = useState<FacilityRequestListItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [state, setState] = useState<"loading" | "error" | "ready">("loading");
-
-  useEffect(() => {
-    let cancelled = false;
-    const params = new URLSearchParams({ status: filter, page: String(page) });
-    if (building) params.set("building", String(building));
-    const timer = window.setTimeout(async () => {
-      setState("loading");
-      const response = await authedFetch(
-        `/api/facility-requests?${params}`,
-      ).catch(() => null);
-      if (cancelled) return;
-      const body = response?.ok
-        ? ((await response.json().catch(() => null)) as {
-            items: FacilityRequestListItem[];
-            total: number;
-          } | null)
-        : null;
-      if (cancelled) return;
-      if (!body || !Array.isArray(body.items)) {
-        setItems([]);
-        setTotal(0);
-        setState("error");
-        return;
-      }
-      setItems(body.items);
-      setTotal(body.total);
-      setState("ready");
-    }, 0);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [filter, page, building, refreshKey]);
+  const { filter, setFilter, page, setPage, items, total, state } =
+    useInboxList<FacilityRequestListItem>(
+      "/api/facility-requests",
+      building ? { building: String(building) } : {},
+      refreshKey,
+    );
 
   return (
     <section aria-label="등록 요청">
       <div className="ku-admin-list-controls">
-        <InboxFilterSelect
-          value={filter}
-          onChange={(next) => {
-            setFilter(next);
-            setPage(1);
-          }}
-        />
+        <InboxFilterSelect value={filter} onChange={setFilter} />
         {building && (
           <button
             type="button"
@@ -123,7 +83,7 @@ export default function FacilityRequestList({
                   <span className="ku-inbox-row-meta">
                     사진 {item.photo_count} ·{" "}
                     {item.has_location ? "위치 있음" : "위치 없음"} ·{" "}
-                    {formatAdminUpdatedAt(item.created_at)}
+                    {formatAdminReceivedAt(item.created_at)}
                   </span>
                 </span>
                 <span className="ku-inbox-status" data-status={item.status}>

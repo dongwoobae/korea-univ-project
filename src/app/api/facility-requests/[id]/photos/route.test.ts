@@ -29,11 +29,11 @@ function post(
   bytes: Uint8Array<ArrayBuffer> = webp(),
 ) {
   const form = new FormData();
-  form.append("token", token);
   form.append("file", new Blob([bytes], { type: "image/webp" }), "p.webp");
   return [
     new Request(`https://local.test/api/facility-requests/${id}/photos`, {
       method: "POST",
+      headers: { "x-upload-token": token },
       body: form,
     }),
     { params: Promise.resolve({ id }) },
@@ -187,6 +187,17 @@ describe("POST /api/facility-requests/[id]/photos", () => {
     expect(uploadPhoto).not.toHaveBeenCalled();
   });
 
+  it("토큰이 틀리면 본문을 읽기 전에 403", async () => {
+    const { POST } = await import("./route");
+    const [request, context] = post(ID, "forged");
+    const formData = vi.spyOn(request, "formData");
+    const response = await POST(request, context);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "token" });
+    expect(formData).not.toHaveBeenCalled();
+    expect(uploadPhoto).not.toHaveBeenCalled();
+  });
+
   it("content-length가 한도를 넘으면 본문을 읽기 전에 413", async () => {
     const { POST } = await import("./route");
     const [request, context] = post(ID, token());
@@ -201,11 +212,11 @@ describe("POST /api/facility-requests/[id]/photos", () => {
   it.each(["없음", "문자열"])("file 필드가 %s이면 400", async (kind) => {
     const { POST } = await import("./route");
     const form = new FormData();
-    form.append("token", token());
     if (kind === "문자열") form.append("file", "not a file");
     const response = await POST(
       new Request(`https://local.test/api/facility-requests/${ID}/photos`, {
         method: "POST",
+        headers: { "x-upload-token": token() },
         body: form,
       }),
       { params: Promise.resolve({ id: ID }) },

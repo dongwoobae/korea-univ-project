@@ -7,6 +7,8 @@ export const MAX_FACILITY_PHOTO_BYTES = 4 * 1024 * 1024;
 export const MULTIPART_OVERHEAD_BYTES = 64 * 1024;
 export const MAX_FACILITY_PHOTOS = 3;
 export const PHOTO_CACHE_CONTROL = "31536000";
+/** 요청 사진 업로드 토큰을 싣는 헤더. 본문을 읽기 전에 검증하려고 multipart 필드가 아니라 헤더로 받는다. */
+export const UPLOAD_TOKEN_HEADER = "x-upload-token";
 
 /** 한 요청·시설의 파일은 그 id 폴더에만 둔다 — 정리와 실패 되돌리기가 폴더 단위다(설계 2.4). */
 export function photoObjectPath(folderId: string, random: string): string {

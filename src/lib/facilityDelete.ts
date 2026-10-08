@@ -11,7 +11,6 @@ import { authedFetch } from "@/lib/authedFetch";
 export async function deleteFacility(facility: {
   id: string;
   video_url?: string | null;
-  facility_photos?: { id: string }[] | null;
 }): Promise<string | null> {
   if (facility.video_url) {
     const res = await authedFetch("/api/delete-facility-video", {
@@ -25,16 +24,13 @@ export async function deleteFacility(facility: {
     if (!res.ok) return "동영상 삭제에 실패해 시설을 지우지 못했어요";
   }
 
-  for (const photo of facility.facility_photos ?? []) {
-    const res = await authedFetch("/api/delete-facility-photo", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ photoId: photo.id }),
-    });
-    // 일부만 지워진 채 다시 누르면 이미 지운 사진이 404로 온다 — 끝난 것으로 본다.
-    if (!res.ok && res.status !== 404)
-      return "사진 삭제에 실패해 시설을 지우지 못했어요";
-  }
+  // 사진은 서버가 시설 폴더째 지운다. 사진 목록을 조인하지 않은 화면에서 지워도 남지 않는다.
+  const photos = await authedFetch("/api/delete-facility-photos", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ facilityId: facility.id }),
+  });
+  if (!photos.ok) return "사진 삭제에 실패해 시설을 지우지 못했어요";
 
   const { error } = await supabase
     .from("building_facilities")

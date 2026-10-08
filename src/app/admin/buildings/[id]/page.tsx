@@ -115,7 +115,7 @@ export default function BuildingDetail() {
       supabase.from("buildings").select("*").eq("id", id).single(),
       supabase
         .from("building_facilities")
-        // deleteFacility가 사진을 먼저 지우려면 사진 목록이 있어야 한다.
+        // 시설 상세 모달의 사진 칸이 쓴다. created_at은 업로드 순서 정렬에 필요하다.
         .select(
           "*, facility_types(code, label), facility_photos(id, storage_path, sort_order, created_at)",
         )
@@ -213,6 +213,10 @@ export default function BuildingDetail() {
       return;
     }
     invalidateNeighborBuildings();
+    // 공개 시설 목록이 삭제된 건물의 시설을 빼고 캐시되므로 비운다.
+    await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
+      () => {},
+    );
     router.push("/admin/dashboard");
   }
 
@@ -226,6 +230,9 @@ export default function BuildingDetail() {
       return;
     }
     invalidateNeighborBuildings();
+    await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
+      () => {},
+    );
     showToast("건물이 복구되었어요!");
     fetchData();
   }

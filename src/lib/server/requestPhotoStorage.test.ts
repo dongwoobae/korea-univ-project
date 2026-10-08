@@ -82,6 +82,18 @@ describe("requestPhotoStorage", () => {
     expect(bucket.remove).toHaveBeenLastCalledWith(["r1/x.webp"]);
   });
 
+  it("지운 뒤에도 가득 찬 페이지가 계속 나오면 상한에서 멈추고 false다", async () => {
+    const { removeFolder } = await import("./requestPhotoStorage");
+    const full = Array.from({ length: 100 }, (_, i) => ({ name: `${i}.webp` }));
+    bucket.list.mockResolvedValue({ data: full, error: null });
+    expect(await removeFolder("facility-photos", "f1")).toBe(false);
+    expect(bucket.remove).toHaveBeenCalledTimes(10);
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[photo-storage] folder remove did not finish",
+      { bucket: "facility-photos", folderId: "f1" },
+    );
+  });
+
   it("나열이 실패하면 지우지 않고 false다", async () => {
     bucket.list.mockResolvedValue({ data: null, error: { message: "down" } });
     const { removeFolder } = await import("./requestPhotoStorage");

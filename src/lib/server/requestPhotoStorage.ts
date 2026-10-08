@@ -9,6 +9,8 @@ import { supabaseAdmin } from "./supabaseAdmin";
 
 const SIGNED_URL_SECONDS = 600;
 const LIST_PAGE_SIZE = 100;
+// 한 폴더는 사진 몇 장뿐이다. 지운 뒤에도 같은 페이지가 계속 나오면(삭제가 반영되지 않음) 무한히 돌지 않게 끊는다.
+const MAX_REMOVE_ROUNDS = 10;
 
 export async function uploadPhoto(
   bucket: string,
@@ -54,7 +56,7 @@ export async function removeFolder(
   folderId: string,
 ): Promise<boolean> {
   const storage = supabaseAdmin().storage.from(bucket);
-  for (;;) {
+  for (let round = 0; round < MAX_REMOVE_ROUNDS; round += 1) {
     const { data, error } = await storage.list(folderId, {
       limit: LIST_PAGE_SIZE,
     });
@@ -81,6 +83,11 @@ export async function removeFolder(
     }
     if (items.length < LIST_PAGE_SIZE) return true;
   }
+  console.error("[photo-storage] folder remove did not finish", {
+    bucket,
+    folderId,
+  });
+  return false;
 }
 
 export async function copyToFacility(

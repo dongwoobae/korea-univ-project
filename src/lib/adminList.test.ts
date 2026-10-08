@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAdminSearchFilter,
+  formatAdminReceivedAt,
   formatAdminUpdatedAt,
   getAdminPageCount,
   getAdminPaginationPages,
@@ -58,6 +59,12 @@ describe("admin list helpers", () => {
     expect(formatAdminUpdatedAt(null)).toBe("수정일 없음");
     expect(formatAdminUpdatedAt("not-a-date")).toBe("수정일 없음");
     expect(formatAdminUpdatedAt("2026-07-23T00:00:00Z")).toMatch(/^수정 /);
+  });
+
+  it("제보함의 접수 시각은 '접수'로 표기한다", () => {
+    expect(formatAdminReceivedAt("2026-10-08T00:00:00Z")).toMatch(/^접수 /);
+    expect(formatAdminReceivedAt(null)).toBe("접수일 없음");
+    expect(formatAdminReceivedAt("not-a-date")).toBe("접수일 없음");
   });
 
   it("검색어를 PostgREST OR 필터로 안전하게 변환한다", () => {
