@@ -12,6 +12,10 @@ vi.mock("@/lib/server/supabaseAdmin", () => ({
   supabaseAdmin: () => ({ from }),
 }));
 
+type Calls = { method: string; args: unknown[] }[];
+const callsOf = (index: number) =>
+  (from.mock.results[index].value as { calls: Calls }).calls;
+
 const call = () =>
   [
     new Request("https://local.test/x", { method: "POST" }),
@@ -47,10 +51,18 @@ describe("POST .../reject", () => {
     const { POST } = await import("./route");
     const response = await POST(...call());
     expect(await response.json()).toEqual({ ok: true, cleanupFailed: false });
-    const query = from.mock.results[0].value as {
-      calls: { method: string; args: unknown[] }[];
-    };
-    expect(query.calls).toContainEqual({
+    const calls = callsOf(0);
+    expect(calls).toContainEqual({
+      method: "update",
+      args: [
+        expect.objectContaining({
+          status: "rejected",
+          reviewed_at: expect.any(String),
+        }),
+      ],
+    });
+    expect(calls).toContainEqual({ method: "eq", args: ["id", "r1"] });
+    expect(calls).toContainEqual({
       method: "in",
       args: ["status", ["new", "reviewing"]],
     });

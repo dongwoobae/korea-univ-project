@@ -10,6 +10,10 @@ vi.mock("@/lib/server/supabaseAdmin", () => ({
   supabaseAdmin: () => ({ from }),
 }));
 
+type Calls = { method: string; args: unknown[] }[];
+const callsOf = (index: number) =>
+  (from.mock.results[index].value as { calls: Calls }).calls;
+
 const call = (body: unknown) =>
   [
     new Request("https://local.test/api/facility-requests/r1/status", {
@@ -47,16 +51,29 @@ describe("POST .../status", () => {
     const response = await POST(...call({ status: "reviewing" }));
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "reviewing" });
-    const query = from.mock.results[0].value as {
-      calls: { method: string; args: unknown[] }[];
-    };
-    expect(query.calls).toContainEqual({
+    const calls = callsOf(0);
+    expect(calls).toContainEqual({
       method: "update",
       args: [{ status: "reviewing" }],
     });
-    expect(query.calls).toContainEqual({
+    expect(calls).toContainEqual({ method: "eq", args: ["id", "r1"] });
+    expect(calls).toContainEqual({ method: "eq", args: ["status", "new"] });
+  });
+
+  it("신규로 되돌릴 때는 확인 중인 요청만 바꾼다", async () => {
+    const { POST } = await import("./route");
+    const response = await POST(...call({ status: "new" }));
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: "new" });
+    const calls = callsOf(0);
+    expect(calls).toContainEqual({
+      method: "update",
+      args: [{ status: "new" }],
+    });
+    expect(calls).toContainEqual({ method: "eq", args: ["id", "r1"] });
+    expect(calls).toContainEqual({
       method: "eq",
-      args: ["status", "new"],
+      args: ["status", "reviewing"],
     });
   });
 
@@ -67,6 +84,10 @@ describe("POST .../status", () => {
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       error: "이미 처리됐거나 상태가 바뀐 요청이에요",
+    });
+    expect(callsOf(0)).toContainEqual({
+      method: "eq",
+      args: ["status", "reviewing"],
     });
   });
 

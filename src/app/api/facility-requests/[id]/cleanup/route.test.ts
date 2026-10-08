@@ -12,6 +12,10 @@ vi.mock("@/lib/server/supabaseAdmin", () => ({
   supabaseAdmin: () => ({ from }),
 }));
 
+type Calls = { method: string; args: unknown[] }[];
+const callsOf = (index: number) =>
+  (from.mock.results[index].value as { calls: Calls }).calls;
+
 const call = () =>
   [
     new Request("https://local.test/x", { method: "POST" }),
@@ -48,6 +52,8 @@ describe("POST .../cleanup", () => {
     const ok = await POST(...call());
     expect(ok.status).toBe(200);
     expect(await ok.json()).toEqual({ ok: true });
+    expect(callsOf(0)).toContainEqual({ method: "eq", args: ["id", "r1"] });
+    expect(cleanupRequestPhotos).toHaveBeenCalledWith("r1");
     row = { status: "new" };
     const blocked = await POST(...call());
     expect(blocked.status).toBe(409);
