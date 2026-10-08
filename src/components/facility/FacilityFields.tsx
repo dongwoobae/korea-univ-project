@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from "react";
 import dynamic from "next/dynamic";
 import {
   FACILITY_FIELD_LIMITS,
@@ -57,7 +57,7 @@ const labelStyle: CSSProperties = {
 interface FacilityFieldsProps {
   idPrefix: string;
   value: FacilityFieldValues;
-  onChange: (next: FacilityFieldValues) => void;
+  onChange: Dispatch<SetStateAction<FacilityFieldValues>>;
   facilityTypes: { code: string; label: string }[];
   labels: FacilityFieldLabels;
   mapCenter: [number, number];
@@ -65,7 +65,7 @@ interface FacilityFieldsProps {
   showFloor: boolean;
   showInstalled: boolean;
   locationRequired?: boolean;
-  /** 지도 아래 — 현재 위치 버튼·캠퍼스 안내 */
+  /** 지도 아래에 붙는 내용 */
   locationFooter?: ReactNode;
   disabled?: boolean;
 }
@@ -85,7 +85,7 @@ export default function FacilityFields({
   disabled = false,
 }: FacilityFieldsProps) {
   const set = (patch: Partial<FacilityFieldValues>) =>
-    onChange({ ...value, ...patch });
+    onChange((prev) => ({ ...prev, ...patch }));
 
   return (
     <>
