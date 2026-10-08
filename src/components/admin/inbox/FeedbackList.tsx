@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AdminPagination from "@/components/admin/AdminPagination";
 import InboxFilterSelect from "@/components/admin/inbox/InboxFilterSelect";
+import { useInboxList } from "@/components/admin/inbox/useInboxList";
 import { authedFetch } from "@/lib/authedFetch";
 import { formatAdminUpdatedAt } from "@/lib/adminList";
 import { FEEDBACK_TYPES } from "@/lib/feedback";
@@ -10,7 +11,6 @@ import {
   FEEDBACK_STATUS_LABELS,
   type FeedbackItem,
   type FeedbackStatus,
-  type InboxFilter,
 } from "@/lib/inboxStatus";
 
 const TYPE_LABELS = new Map<string, string>(
@@ -27,44 +27,10 @@ export default function FeedbackList({
 }: {
   showToast: (message: string, type?: string) => void;
 }) {
-  const [filter, setFilter] = useState<InboxFilter>("open");
-  const [page, setPage] = useState(1);
-  const [items, setItems] = useState<FeedbackItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [state, setState] = useState<"loading" | "error" | "ready">("loading");
   const [refreshKey, setRefreshKey] = useState(0);
+  const { filter, setFilter, page, setPage, items, total, state } =
+    useInboxList<FeedbackItem>("/api/admin-feedback", {}, refreshKey);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      setState("loading");
-      const response = await authedFetch(
-        `/api/admin-feedback?status=${filter}&page=${page}`,
-      ).catch(() => null);
-      if (cancelled) return;
-      const body = response?.ok
-        ? ((await response.json().catch(() => null)) as {
-            items: FeedbackItem[];
-            total: number;
-          } | null)
-        : null;
-      if (cancelled) return;
-      if (!body || !Array.isArray(body.items)) {
-        setItems([]);
-        setTotal(0);
-        setState("error");
-        return;
-      }
-      setItems(body.items);
-      setTotal(body.total);
-      setState("ready");
-    }, 0);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [filter, page, refreshKey]);
 
   async function changeStatus(id: string, status: FeedbackStatus) {
     const response = await authedFetch(`/api/admin-feedback/${id}`, {
@@ -81,13 +47,7 @@ export default function FeedbackList({
   return (
     <section aria-label="피드백">
       <div className="ku-admin-list-controls">
-        <InboxFilterSelect
-          value={filter}
-          onChange={(next) => {
-            setFilter(next);
-            setPage(1);
-          }}
-        />
+        <InboxFilterSelect value={filter} onChange={setFilter} />
       </div>
       {state === "loading" ? (
         <div className="ku-admin-empty">불러오는 중...</div>

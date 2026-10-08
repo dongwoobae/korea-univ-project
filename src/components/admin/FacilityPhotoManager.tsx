@@ -11,6 +11,7 @@ import {
 } from "@/lib/facilityPhotos";
 import { facilityPhotoUrl } from "@/lib/facilityPhotoUrl";
 import { convertToWebP } from "@/lib/imageToWebP";
+import { readErrorMessage } from "@/lib/responseError";
 import type { FacilityPhoto } from "@/types/domain";
 
 interface FacilityPhotoManagerProps {
@@ -21,11 +22,6 @@ interface FacilityPhotoManagerProps {
   >[];
   onChanged: () => void | Promise<void>;
   showToast: (message: string, type?: string) => void;
-}
-
-async function readError(response: Response, fallback: string) {
-  const body = (await response.json().catch(() => ({}))) as { error?: unknown };
-  return typeof body.error === "string" ? body.error : fallback;
 }
 
 export default function FacilityPhotoManager({
@@ -62,9 +58,7 @@ export default function FacilityPhotoManager({
       }).catch(() => null);
       if (!response?.ok) {
         showToast(
-          response
-            ? await readError(response, "사진을 올리지 못했어요")
-            : "사진을 올리지 못했어요",
+          await readErrorMessage(response, "사진을 올리지 못했어요"),
           "error",
         );
         return;
