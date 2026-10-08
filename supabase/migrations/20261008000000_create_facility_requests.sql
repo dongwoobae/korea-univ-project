@@ -46,8 +46,8 @@ alter table public.facility_requests enable row level security;
 alter table public.facility_request_photos enable row level security;
 alter table public.facility_photos enable row level security;
 
--- 요청 두 테이블은 서버 API(서비스 키)만 다룬다. Supabase 기본 권한이 anon에도
--- grant를 주므로 명시적으로 회수한다.
+-- Supabase 기본 권한이 anon에도 grant를 주므로 세 테이블 모두 명시적으로 회수한다.
+-- 요청 두 테이블은 서버 API(서비스 키)만 다루고, facility_photos는 아래에서 읽기만 다시 연다.
 revoke all on table public.facility_requests from anon, authenticated;
 revoke all on table public.facility_request_photos from anon, authenticated;
 revoke all on table public.facility_photos from anon, authenticated;
@@ -68,6 +68,7 @@ declare
   v_id uuid;
 begin
   -- 같은 해시의 동시 요청이 둘 다 9건을 보고 통과하지 않게 세기 전에 잠근다.
+  -- READ COMMITTED 전제: 세는 문장의 스냅숏이 잠금 대기 뒤에 잡힌다. REPEATABLE READ 이상이면 둘 다 9건을 본다.
   perform pg_advisory_xact_lock(hashtext(p_client_hash));
   if (
     select count(*)
@@ -222,7 +223,7 @@ grant execute on function public.create_facility_request(jsonb, text) to service
 grant execute on function public.add_facility_request_photo(uuid, text) to service_role;
 grant execute on function public.approve_facility_request(uuid, uuid, jsonb, jsonb) to service_role;
 
--- 크기·형식 상한을 버킷에도 걸어 서버 검사가 빠져도 저장소가 거른다(설계 2.4).
+-- 크기 상한은 저장소가 강제한다. 형식은 저장소가 선언된 Content-Type만 보므로 WebP 여부는 서버가 바이트로 검사한다(설계 2.4).
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
   ('facility-request-photos', 'facility-request-photos', false, 4194304, array['image/webp']),

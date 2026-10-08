@@ -105,8 +105,8 @@ create table public.facility_photos (
 | `facility-request-photos` | 아니 | 요청 사진. 승인 전 상태 |
 | `facility-photos`         | 예   | 지도에 나가는 시설 사진 |
 
-- 두 버킷 모두 버킷 설정으로 `file_size_limit` 4MB, `allowed_mime_types` `image/webp`를 건다. 서버 검사가
-  빠져도 저장소가 거른다.
+- 두 버킷 모두 버킷 설정으로 `file_size_limit` 4MB, `allowed_mime_types` `image/webp`를 건다. 크기는
+  저장소가 강제하지만 형식은 저장소가 선언된 Content-Type만 보므로, WebP 여부는 서버가 바이트로 검사한다.
 - 비공개 버킷은 관리자 화면에서 서버가 만든 10분짜리 열람 주소(`createSignedUrls`)로만 본다.
 - 경로: 요청 사진 `{request_id}/{random}.webp`, 시설 사진 `{facility_id}/{random}.webp`. **한 요청·한 시설의 파일은
   그 id 폴더 안에만 둔다.** 정리(2.7)와 실패 시 되돌리기(4.4)가 행이 아니라 폴더를 기준으로 지우므로, 행이 생기기
@@ -126,11 +126,11 @@ create table public.facility_photos (
 "상태를 확인하고 쓴다"를 서버 API에서 두 번의 요청으로 하면, 그 사이에 다른 요청이 끼어든다. 상태·장수·빈도처럼
 확인 결과에 따라 쓰는 곳은 모두 DB 함수 하나로 잠그고 확인하고 쓴다.
 
-| 함수                                                                                      | 잠그는 것                                      | 확인                                                                    | 쓰기                                                                                  | 돌려주는 값                                           |
-| ----------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------- |
-| `create_facility_request(fields jsonb, client_hash text)`                                 | `pg_advisory_xact_lock(hashtext(client_hash))` | 같은 해시로 최근 1시간에 만든 요청 수 < 10                              | 요청 행                                                                               | 요청 id, 또는 `rate_limited`                          |
-| `add_facility_request_photo(request_id uuid, storage_path text)`                          | 요청 행 `for update`                           | 상태 `new`, 사진 3장 미만                                               | 사진 행(비어 있는 가장 작은 `sort_order`)                                             | 사진 id, 또는 `not_new`·`full`·`not_found`            |
-| `approve_facility_request(request_id uuid, facility_id uuid, fields jsonb, photos jsonb)` | 요청 행 `for update`                           | 상태 `new`·`reviewing`, `photos`의 모든 `request_photo_id`가 이 요청 것 | 시설 행(`facility_id`로), 시설 사진 행, 요청을 `approved`·`facility_id`·`reviewed_at` | `approved`, 또는 `already_processed`·`photo_mismatch` |
+| 함수                                                                                              | 잠그는 것                                      | 확인                                                                    | 쓰기                                                                                  | 돌려주는 값                                                       |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `create_facility_request(p_fields jsonb, p_client_hash text)`                                     | `pg_advisory_xact_lock(hashtext(client_hash))` | 같은 해시로 최근 1시간에 만든 요청 수 < 10                              | 요청 행                                                                               | 요청 id, 또는 `rate_limited`                                      |
+| `add_facility_request_photo(p_request_id uuid, p_storage_path text)`                              | 요청 행 `for update`                           | 상태 `new`, 사진 3장 미만                                               | 사진 행(비어 있는 가장 작은 `sort_order`)                                             | 사진 id, 또는 `not_new`·`full`·`not_found`                        |
+| `approve_facility_request(p_request_id uuid, p_facility_id uuid, p_fields jsonb, p_photos jsonb)` | 요청 행 `for update`                           | 상태 `new`·`reviewing`, `photos`의 모든 `request_photo_id`가 이 요청 것 | 시설 행(`facility_id`로), 시설 사진 행, 요청을 `approved`·`facility_id`·`reviewed_at` | `approved`, 또는 `not_found`·`already_processed`·`photo_mismatch` |
 
 - `fields`: `{ facility_code, name, description, floor_info, is_installed, lat, lng }`. 승인 함수는 `building_id`를 요청
   행에서 가져오고 `translation_status`를 `pending`으로 둔다(관리자 폼과 같다).
