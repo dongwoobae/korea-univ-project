@@ -57,11 +57,12 @@ export default function DashboardLayout({
     async function loadCounts() {
       const response = await authedFetch("/api/inbox-counts").catch(() => null);
       if (!response?.ok || cancelled) return;
-      const body = (await response.json()) as {
+      const body = (await response.json().catch(() => null)) as {
         requests: number;
         feedback: number;
-      };
-      if (!cancelled) setInboxCount(body.requests + body.feedback);
+      } | null;
+      if (!body || cancelled) return;
+      setInboxCount(body.requests + body.feedback);
     }
     const timer = window.setTimeout(() => void loadCounts(), 0);
     const refresh = () => void loadCounts();
@@ -130,11 +131,9 @@ export default function DashboardLayout({
               <Link key={item.href} href={item.href} data-active={active}>
                 {item.label}
                 {item.href === INBOX_HREF && inboxCount > 0 && (
-                  <span
-                    className="ku-admin-nav-badge"
-                    aria-label={`신규 ${inboxCount}건`}
-                  >
-                    {inboxCount}
+                  <span className="ku-admin-nav-badge">
+                    <span aria-hidden="true">{inboxCount}</span>
+                    <span className="ku-sr-only">신규 {inboxCount}건</span>
                   </span>
                 )}
               </Link>

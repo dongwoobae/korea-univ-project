@@ -37,19 +37,24 @@ export default function FacilityRequestList({
     const params = new URLSearchParams({ status: filter, page: String(page) });
     if (building) params.set("building", String(building));
     const timer = window.setTimeout(async () => {
+      setState("loading");
       const response = await authedFetch(
         `/api/facility-requests?${params}`,
       ).catch(() => null);
       if (cancelled) return;
-      if (!response?.ok) {
+      const body = response?.ok
+        ? ((await response.json().catch(() => null)) as {
+            items: FacilityRequestListItem[];
+            total: number;
+          } | null)
+        : null;
+      if (cancelled) return;
+      if (!body || !Array.isArray(body.items)) {
+        setItems([]);
+        setTotal(0);
         setState("error");
         return;
       }
-      const body = (await response.json()) as {
-        items: FacilityRequestListItem[];
-        total: number;
-      };
-      if (cancelled) return;
       setItems(body.items);
       setTotal(body.total);
       setState("ready");
