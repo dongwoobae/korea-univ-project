@@ -35,6 +35,17 @@ describe("업로드 토큰", () => {
     ).toBe(false);
   });
 
+  it("서명이 요청 id에 묶여 있어 id 구간만 바꿔도 거부한다", () => {
+    const [, expires, signature] = signUploadToken(ID, 2_000, "s1").split(".");
+    expect(
+      verifyUploadToken(`${OTHER}.${expires}.${signature}`, OTHER, 1_000, "s1"),
+    ).toBe(false);
+  });
+
+  it("서명 길이가 다르면 예외 없이 거부한다", () => {
+    expect(verifyUploadToken(`${ID}.2000.short`, ID, 1_000, "s1")).toBe(false);
+  });
+
   it("형식이 깨진 토큰은 거부한다", () => {
     expect(verifyUploadToken("", ID, 0, "s1")).toBe(false);
     expect(verifyUploadToken("a.b", ID, 0, "s1")).toBe(false);

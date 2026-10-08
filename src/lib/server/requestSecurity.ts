@@ -33,7 +33,10 @@ export function verifyUploadToken(
   return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
-/** Vercel이 x-real-ip와 x-forwarded-for를 채운다. */
+/**
+ * Vercel이 클라이언트가 보낸 값을 덮어쓰기 때문에 이 헤더를 믿을 수 있다.
+ * Vercel 밖(next dev, E2E, 자체 호스팅)에서는 클라이언트가 임의로 정해 rate limit을 피할 수 있다.
+ */
 export function clientIp(request: Request): string | null {
   const real = request.headers.get("x-real-ip")?.trim();
   if (real) return real;

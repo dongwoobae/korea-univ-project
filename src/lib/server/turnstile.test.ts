@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { verifyTurnstile } from "./turnstile";
 
 function fakeFetch(response: Response | Error) {
@@ -49,5 +49,57 @@ describe("verifyTurnstile", () => {
         fakeFetch(new Response("x", { status: 500 })),
       ),
     ).toBe(false);
+  });
+
+  it("ip가 없으면 remoteip를 보내지 않는다", async () => {
+    const f = fakeFetch(Response.json({ success: true }));
+    await verifyTurnstile("tok", null, "s", f);
+    const call = (f as unknown as { mock: { calls: [string, RequestInit][] } })
+      .mock.calls[0];
+    expect((call[1].body as URLSearchParams).has("remoteip")).toBe(false);
+  });
+});
+
+describe("verifyTurnstile 로그", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("설정 오류 코드는 false를 돌려주고 로그를 남기되 토큰·비밀값은 싣지 않는다", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const f = fakeFetch(
+      Response.json({
+        success: false,
+        "error-codes": ["invalid-input-secret"],
+      }),
+    );
+    expect(await verifyTurnstile("tok-xyz", null, "sec-xyz", f)).toBe(false);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(spy.mock.calls)).not.toMatch(/tok-xyz|sec-xyz/);
+  });
+
+  it("비정상 응답은 false를 돌려주고 로그를 남긴다", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const f = fakeFetch(new Response("x", { status: 500 }));
+    expect(await verifyTurnstile("t", null, "s", f)).toBe(false);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("호출 예외도 로그를 남긴다", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      await verifyTurnstile("t", null, "s", fakeFetch(new Error("down"))),
+    ).toBe(false);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("사용자 쪽 실패는 로그를 남기지 않는다", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const f = fakeFetch(
+      Response.json({
+        success: false,
+        "error-codes": ["timeout-or-duplicate"],
+      }),
+    );
+    expect(await verifyTurnstile("t", null, "s", f)).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
   });
 });
