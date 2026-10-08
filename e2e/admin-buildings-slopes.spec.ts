@@ -1166,6 +1166,39 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     ).not.toBeChecked();
   });
 
+  test("새 경로 편집기에 다른 경로를 경사 색으로 깔고 클릭을 가로채지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/new");
+
+    const others = page.locator(".leaflet-slopeOthers-pane path");
+    await expect(others).toHaveCount(2);
+    // 픽스처 경로 1(3°)·2(7.2°)의 색. 기대값 근거는 src/lib/slopeScale.test.ts.
+    await expect(others.and(page.locator('[stroke="#1F9195"]'))).toHaveCount(1);
+    await expect(others.and(page.locator('[stroke="#D6590B"]'))).toHaveCount(1);
+    await expect(others.and(page.locator(".leaflet-interactive"))).toHaveCount(
+      0,
+    );
+  });
+
+  test("수정 화면은 편집 중인 경로를 빼고 깔며 다른 경로는 드래그 모드에 잡히지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/slopes/2");
+
+    const others = page.locator(".leaflet-slopeOthers-pane path");
+    await expect(others).toHaveCount(1);
+    await expect(others).toHaveAttribute("stroke", "#1F9195");
+
+    await page.locator(".leaflet-pm-icon-drag").locator("..").click();
+    await expect(
+      page.locator(".leaflet-overlay-pane path.leaflet-pm-draggable"),
+    ).toHaveCount(1);
+    await expect(others).not.toHaveClass(/leaflet-pm-draggable/);
+  });
+
   for (const snapOn of [false, true]) {
     test(`스냅이 ${snapOn ? "켜" : "꺼"}져 있으면 건물 외곽선 근처에서 꼭짓점이 ${snapOn ? "외곽선에 붙는다" : "찍은 자리에 놓인다"}`, async ({
       page,

@@ -61,6 +61,8 @@ function slopesEqual(a: (number | null)[], b: (number | null)[]) {
 }
 
 interface SlopeRouteEditorProps {
+  /** 새 경로면 null */
+  routeId: string | null;
   initialName: string;
   initialVertices: Vertex[] | null;
   initialSlopes: (number | null)[];
@@ -70,6 +72,7 @@ interface SlopeRouteEditorProps {
 }
 
 export default function SlopeRouteEditor({
+  routeId,
   initialName,
   initialVertices,
   initialSlopes,
@@ -183,6 +186,7 @@ export default function SlopeRouteEditor({
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <SlopeRouteMap
           initialVertices={initialVertices}
+          editingRouteId={routeId}
           onVerticesChange={handleVerticesChange}
           slopes={slopes}
           snapToBuildings={snapToBuildings}

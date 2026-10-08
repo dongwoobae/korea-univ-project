@@ -115,6 +115,7 @@ export default function EditSlopeRoutePage() {
         // 편집기와 지도는 초기 props를 마운트 때 한 번만 읽는다. id가 바뀌면
         // 새로 세우지 않는 한 이전 경로의 선과 입력값이 남는다.
         key={params.id}
+        routeId={params.id}
         initialName={name}
         initialVertices={vertices}
         initialSlopes={slopes}
