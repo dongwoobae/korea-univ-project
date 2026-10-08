@@ -65,4 +65,37 @@ describe("deleteFacility", () => {
 
     expect(result).toBe("권한 없음");
   });
+
+  it("사진이 있으면 동영상 다음에 사진을 하나씩 지운 뒤 row를 삭제한다", async () => {
+    authedFetch.mockResolvedValue(new Response("{}", { status: 200 }));
+    const { deleteFacility } = await import("./facilityDelete");
+
+    const result = await deleteFacility({
+      id: "f5",
+      video_url: null,
+      facility_photos: [{ id: "fp1" }, { id: "fp2" }],
+    });
+
+    const paths = authedFetch.mock.calls.map((call) => call[0]);
+    expect(paths.slice(0, 2)).toEqual([
+      "/api/delete-facility-photo",
+      "/api/delete-facility-photo",
+    ]);
+    expect(eq).toHaveBeenCalledWith("id", "f5");
+    expect(result).toBeNull();
+    authedFetch.mockReset();
+  });
+
+  it("사진 삭제가 실패하면 row를 지우지 않고 메시지를 돌려준다", async () => {
+    authedFetch.mockResolvedValueOnce(new Response("{}", { status: 500 }));
+    const { deleteFacility } = await import("./facilityDelete");
+
+    const result = await deleteFacility({
+      id: "f6",
+      facility_photos: [{ id: "fp1" }],
+    });
+
+    expect(eq).not.toHaveBeenCalled();
+    expect(result).toBe("사진 삭제에 실패해 시설을 지우지 못했어요");
+  });
 });

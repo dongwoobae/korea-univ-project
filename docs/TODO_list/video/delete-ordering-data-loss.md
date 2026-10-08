@@ -1,7 +1,7 @@
 # 시설 삭제가 중간에 실패하면 동영상만 사라진다
 
 `deleteFacility`는 동영상을 **먼저** 지우고 시설 row를 나중에 지운다
-(`src/lib/facilityDelete.ts:13-28`).
+(`deleteFacility`, `src/lib/facilityDelete.ts`).
 
 ```ts
 if (facility.video_url) {
@@ -14,6 +14,11 @@ const { error } = await supabase.from("building_facilities").delete().eq("id", f
 이 순서는 **의도된 것**이다. 함수 docstring이 "정리에 실패하면 고아 객체가 남지
 않도록 row를 남겨두고 메시지를 반환한다"고 적고 있다. 첫 단계가 실패하는 경우는
 잘 다뤄져 있다.
+
+2026-10-08 — 사진 단계가 같은 순서에 들어왔다(동영상 → 사진 → row). 사진은
+`/api/delete-facility-photo`로 한 장씩 파일과 `facility_photos` 행을 지우므로,
+사진 중간에서 실패하면 먼저 지운 사진도 돌아오지 않는다. 아래 문제와 해법이
+사진에도 그대로 적용된다.
 
 문제는 **반대 방향이다.** 첫 단계가 성공하고 두 번째가 실패하면:
 
