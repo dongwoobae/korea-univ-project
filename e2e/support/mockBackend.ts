@@ -741,6 +741,44 @@ async function handleApi(route: Route, state: MockState, url: URL) {
         })),
     });
   }
+  if (
+    path === "/api/facility-requests" &&
+    route.request().method() === "POST"
+  ) {
+    const body = route.request().postDataJSON() as {
+      buildingId: number;
+      fields: Row;
+      turnstileToken: string;
+    };
+    const id = `00000000-0000-4000-8000-${String(state.facilityRequests.length + 1).padStart(12, "0")}`;
+    state.facilityRequests.push({
+      id,
+      building_id: body.buildingId,
+      ...body.fields,
+      status: "new",
+      created_at: "2026-10-08T00:00:00Z",
+      reviewed_at: null,
+      facility_id: null,
+      turnstile_token: body.turnstileToken,
+    });
+    return json(route, { id, uploadToken: `${id}.9999999999999.sig` }, 201);
+  }
+  const photoUpload = path.match(/^\/api\/facility-requests\/([^/]+)\/photos$/);
+  if (photoUpload) {
+    const requestId = photoUpload[1];
+    const count = state.facilityRequestPhotos.filter(
+      (photo) => photo.request_id === requestId,
+    ).length;
+    if (count >= 3) return json(route, { error: "full" }, 409);
+    const photoId = `rp-${state.facilityRequestPhotos.length + 1}`;
+    state.facilityRequestPhotos.push({
+      id: photoId,
+      request_id: requestId,
+      storage_path: `${requestId}/${photoId}.webp`,
+      sort_order: count,
+    });
+    return json(route, { id: photoId }, 201);
+  }
   if (path === "/api/facilities")
     return json(
       route,
@@ -993,6 +1031,15 @@ export async function installMockBackend(
         status: 200,
         headers: { "access-control-allow-origin": "*" },
         body: "",
+      });
+    }
+
+    if (url.hostname === "challenges.cloudflare.com") {
+      // 실제 위젯 대신 즉시 토큰을 주는 대역.
+      return route.fulfill({
+        status: 200,
+        contentType: "application/javascript",
+        body: `window.turnstile = { render(el, o) { setTimeout(() => o.callback("e2e-turnstile-token"), 0); return "w1"; }, remove() {} };`,
       });
     }
 

@@ -1531,3 +1531,173 @@
   outline: 2px solid var(--ku-primary);
   outline-offset: 2px;
 }
+
+.ku-request-entry {
+  padding: 12px 20px 20px;
+}
+.ku-request-entry-button {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--ku-primary);
+  border-radius: 8px;
+  background: var(--ku-surface);
+  color: var(--ku-primary-text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ku-request-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ku-backdrop);
+}
+.ku-request-modal {
+  width: min(480px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--ku-surface);
+  color: var(--ku-text-1);
+  box-shadow: var(--ku-shadow-overlay);
+}
+.ku-request-modal input,
+.ku-request-modal select {
+  border-color: var(--ku-border-input) !important;
+  background: var(--ku-surface);
+  color: var(--ku-text-1);
+}
+.ku-request-modal label,
+.ku-request-modal-subtitle,
+.ku-request-photos-hint {
+  color: var(--ku-text-2) !important;
+}
+.ku-request-modal-title {
+  margin: 0;
+  font-size: 17px;
+}
+.ku-request-modal-subtitle {
+  margin: 4px 0 8px;
+  font-size: 12px;
+}
+.ku-request-photo-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ku-request-photo-slot {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border: 1px solid var(--ku-border);
+  border-radius: 8px;
+}
+.ku-request-photo-slot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ku-request-photo-slot[data-status="too_large"],
+.ku-request-photo-slot[data-status="failed"] {
+  border-color: var(--ku-danger);
+}
+.ku-request-photo-status {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 1px 3px;
+  background: var(--ku-overlay);
+  color: #fff;
+  font-size: 10px;
+}
+.ku-request-photo-slot button {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--ku-overlay);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+.ku-request-photo-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border: 1.5px dashed var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-text-2);
+  font-size: 11px;
+  text-align: center;
+  cursor: pointer;
+}
+.ku-request-photos-hint {
+  margin: 6px 0 12px;
+  font-size: 12px;
+}
+.ku-request-modal-error {
+  color: var(--ku-danger);
+  font-size: 13px;
+}
+.ku-request-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.ku-request-modal-actions button {
+  flex: 1;
+  min-height: 44px;
+  border: 1px solid var(--ku-border);
+  border-radius: 8px;
+  background: var(--ku-surface);
+  color: var(--ku-text-1);
+  cursor: pointer;
+}
+.ku-request-modal-primary {
+  border-color: var(--ku-primary) !important;
+  background: var(--ku-primary) !important;
+  color: #fff !important;
+}
+.ku-request-modal-primary:disabled {
+  background: var(--ku-primary-disabled) !important;
+  border-color: var(--ku-primary-disabled) !important;
+}
+@media (max-width: 767px) {
+  .ku-request-modal {
+    width: 100vw;
+    max-height: 100dvh;
+    height: 100dvh;
+    border-radius: 0;
+  }
+}
+
+.ku-request-modal .ku-current-location-button {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  background: var(--ku-surface);
+  color: var(--ku-text-1);
+  font-size: 13px;
+  cursor: pointer;
+}
+.ku-request-photos {
+  margin-top: 16px;
+}
+.ku-request-photos-label {
+  font-size: 12px;
+  color: var(--ku-text-2);
+}
