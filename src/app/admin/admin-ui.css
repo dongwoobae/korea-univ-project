@@ -1322,7 +1322,9 @@ button.ku-admin-overview-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ku-surface-raised);
+  box-sizing: border-box;
+  border: 1.5px dashed var(--ku-border-input);
+  background: var(--ku-bg);
   color: var(--ku-text-3);
   font-size: 12px;
 }
