@@ -70,6 +70,32 @@ export async function POST(
   }
   if (!type) return badRequest("없는 시설 유형이에요");
 
+  // 요청 생성 라우트는 삭제된 건물을 거르지만, 요청 뒤에 건물이 삭제될 수 있다.
+  // 공개 시설 목록은 건물 삭제 여부를 보지 않으므로 여기서 막지 않으면 삭제된 건물의 시설이 지도에 뜬다.
+  const { data: target, error: targetError } = await db
+    .from("facility_requests")
+    .select("buildings(is_deleted)")
+    .eq("id", id)
+    .maybeSingle();
+  if (targetError) {
+    console.error("[facility-requests] approve request lookup failed", {
+      id,
+      code: targetError.code,
+    });
+    return NextResponse.json(
+      { error: "요청을 확인하지 못했어요" },
+      { status: 500 },
+    );
+  }
+  if (!target)
+    return Response.json({ error: "요청이 없어요" }, { status: 404 });
+  if (target.buildings?.is_deleted === true) {
+    return NextResponse.json(
+      { error: "삭제된 건물의 요청이에요. 건물을 복구한 뒤 승인해 주세요" },
+      { status: 409 },
+    );
+  }
+
   // 다른 요청의 사진이 이 시설로 공개되지 않게 이 요청의 사진 중에서만 고른다(설계 4.4).
   const { data: ownPhotos, error: photoError } = await db
     .from("facility_request_photos")
@@ -129,9 +155,24 @@ export async function POST(
 
   // 커밋은 됐는데 응답만 잃은 경우가 있어, 폴더를 지우기 전에 요청을 먼저 읽는다.
   // 이 호출의 승인이 커밋됐다면 폴더를 지우는 순간 공개 시설의 사진이 끊긴다.
-  async function abort(fallback: { error: string; status: number }) {
+  // outcomeUnknown: 함수 호출이 오류로 끝나 커밋 여부를 모른다.
+  async function abort(
+    fallback: { error: string; status: number },
+    outcomeUnknown = false,
+  ) {
     const { current, failed } = await readRequest();
     if (current?.facility_id === facilityId) return finish();
+    // 커밋 여부도 확인하지 못했으면 폴더를 남긴다. 행 없는 파일이 남는 쪽이 공개 사진이 끊기는 쪽보다 낫다.
+    if (failed && outcomeUnknown) {
+      console.error("[facility-requests] approve outcome unknown", {
+        id,
+        facilityId,
+      });
+      return NextResponse.json(
+        { error: "승인 결과를 확인하지 못했어요. 목록을 다시 확인해 주세요" },
+        { status: 500 },
+      );
+    }
     await removeFacilityFolder();
     if (!failed && current && isEndStatus(current.status)) {
       return alreadyProcessed();
@@ -142,21 +183,19 @@ export async function POST(
     );
   }
 
-  const copied: {
-    request_photo_id: string;
-    storage_path: string;
-    sort_order: number;
-  }[] = [];
-  for (const [index, photo] of selected.entries()) {
-    const destination = await copyToFacility(photo!.storage_path, facilityId);
-    if (!destination)
-      return abort({ error: "사진을 옮기지 못했어요", status: 500 });
-    copied.push({
-      request_photo_id: photo!.id,
-      storage_path: destination,
-      sort_order: index,
-    });
-  }
+  // 모두 끝난 뒤에 판단한다 — 하나가 실패한 순간 폴더를 지우면 아직 도는 복사가 그 뒤에 파일을 남긴다.
+  const destinations = await Promise.all(
+    selected.map((photo) =>
+      copyToFacility(photo!.storage_path, facilityId).catch(() => null),
+    ),
+  );
+  if (destinations.some((destination) => !destination))
+    return abort({ error: "사진을 옮기지 못했어요", status: 500 });
+  const copied = selected.map((photo, index) => ({
+    request_photo_id: photo!.id,
+    storage_path: destinations[index]!,
+    sort_order: index,
+  }));
 
   const { data: result, error } = await db.rpc("approve_facility_request", {
     p_request_id: id,
@@ -172,7 +211,7 @@ export async function POST(
       });
     if (result === "photo_mismatch")
       return abort({ error: "이 요청의 사진이 아니에요", status: 400 });
-    return abort({ error: "승인하지 못했어요", status: 500 });
+    return abort({ error: "승인하지 못했어요", status: 500 }, !!error);
   }
 
   return finish();

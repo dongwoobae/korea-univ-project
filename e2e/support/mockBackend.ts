@@ -892,6 +892,12 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       return json(route, { ok: true });
     }
     if (!open) return json(route, { error: "이미 처리된 요청이에요" }, 409);
+    if (state.buildings.find((item) => item.id === row.building_id)?.is_deleted)
+      return json(
+        route,
+        { error: "삭제된 건물의 요청이에요. 건물을 복구한 뒤 승인해 주세요" },
+        409,
+      );
     const { fields, photoIds } = route.request().postDataJSON() as {
       fields: Row;
       photoIds: string[];

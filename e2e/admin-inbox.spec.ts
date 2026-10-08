@@ -210,6 +210,34 @@ test.describe("제보함 — 검토 모달", () => {
     await expect(dialog.getByText("승인됨")).toBeVisible();
   });
 
+  test("승인이 거절돼도 고치던 값과 사진 선택은 남는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const list = await openInbox(page);
+    await list.getByRole("listitem").first().getByRole("button").click();
+    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
+    await dialog.getByLabel("층 정보 (선택)").fill("4층");
+    await dialog.getByRole("checkbox", { name: "사진 2 공개" }).uncheck();
+    state.buildings[0].is_deleted = true;
+    await dialog.getByRole("button", { name: "승인하고 등록" }).click();
+
+    await expect(
+      page.getByText(
+        "삭제된 건물의 요청이에요. 건물을 복구한 뒤 승인해 주세요",
+      ),
+    ).toBeVisible();
+    await expect(dialog.getByLabel("층 정보 (선택)")).toHaveValue("4층");
+    await expect(
+      dialog.getByRole("checkbox", { name: "사진 2 공개" }),
+    ).not.toBeChecked();
+    await expect(
+      dialog.getByRole("button", { name: "승인하고 등록" }),
+    ).toBeEnabled();
+    expect(
+      state.facilities.some((f) => String(f.id).startsWith("f-approved")),
+    ).toBe(false);
+  });
+
   test("볼 수 없는 사진은 공개할 수 없고 승인에서 빠진다", async ({ page }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);

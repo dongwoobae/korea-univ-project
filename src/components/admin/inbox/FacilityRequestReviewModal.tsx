@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { Feature, Polygon } from "geojson";
 import ConfirmModal from "@/components/ConfirmModal";
 import FacilityFields, {
@@ -61,8 +61,9 @@ export default function FacilityRequestReviewModal({
   const [publish, setPublish] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [confirmReject, setConfirmReject] = useState(false);
-  // 다른 관리자가 먼저 처리했으면(409) 상세를 다시 읽어 읽기 전용으로 보인다.
+  // 실패한 뒤 상세를 다시 읽어 실제 상태를 보인다 — 다른 관리자가 먼저 처리했거나 승인 결과를 모를 때.
   const [loadKey, setLoadKey] = useState(0);
+  const loadedRef = useRef(false);
   const dialogRef = useModalFocus<HTMLDivElement>({
     onClose,
     closeOnEscape: !busy && !confirmReject,
@@ -92,6 +93,9 @@ export default function FacilityRequestReviewModal({
         return;
       }
       setDetail(body);
+      // 다시 읽은 요청이 아직 처리 전이면 관리자가 고치던 값과 사진 선택을 그대로 둔다.
+      if (loadedRef.current && !isEndStatus(body.status)) return;
+      loadedRef.current = true;
       setFields(toFields(body));
       // 서명 주소가 없는 사진은 관리자가 보지 못했으므로 공개 대상에서 뺀다.
       setPublish(
@@ -165,8 +169,8 @@ export default function FacilityRequestReviewModal({
     if (!response?.ok) {
       setBusy(false);
       await failed(response, "승인하지 못했어요");
-      // 응답을 잃었으면 승인됐을 수도 있다. 다시 읽어 실제 상태를 보인다.
-      if (!response) setLoadKey((key) => key + 1);
+      // 응답을 잃었거나 서버가 결과를 확인하지 못했으면 승인됐을 수도 있다. 409는 failed가 이미 다시 읽는다.
+      if (response?.status !== 409) setLoadKey((key) => key + 1);
       return;
     }
     const { facilityId, cleanupFailed } = (await response.json()) as {
