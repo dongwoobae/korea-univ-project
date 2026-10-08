@@ -13,6 +13,10 @@ let deletion: unknown;
 const from = vi.fn(() =>
   queryStub(from.mock.calls.length === 1 ? lookup : deletion),
 );
+const queryAt = (index: number) =>
+  from.mock.results[index].value as {
+    calls: { method: string; args: unknown[] }[];
+  };
 vi.mock("@/lib/server/supabaseAdmin", () => ({
   supabaseAdmin: () => ({ from }),
 }));
@@ -44,6 +48,15 @@ describe("POST /api/delete-facility-photo", () => {
     expect(await response.json()).toEqual({ ok: true });
     expect(removeObject).toHaveBeenCalledWith("facility-photos", "f1/x.webp");
     expect(from).toHaveBeenCalledTimes(2);
+    expect(queryAt(0).calls).toContainEqual({
+      method: "eq",
+      args: ["id", PHOTO_ID],
+    });
+    expect(queryAt(1).calls.map((call) => call.method)).toEqual([
+      "delete",
+      "eq",
+    ]);
+    expect(queryAt(1).calls[1].args).toEqual(["id", PHOTO_ID]);
   });
 
   it("파일 삭제가 실패하면 행을 남기고 500", async () => {
@@ -60,7 +73,9 @@ describe("POST /api/delete-facility-photo", () => {
   it("없는 사진은 404", async () => {
     lookup = { data: null, error: null };
     const { POST } = await import("./route");
-    expect((await POST(post())).status).toBe(404);
+    const response = await POST(post());
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "사진이 없어요" });
     expect(removeObject).not.toHaveBeenCalled();
   });
 
@@ -91,6 +106,7 @@ describe("POST /api/delete-facility-photo", () => {
     const { POST } = await import("./route");
     const response = await POST(post("fp1"));
     expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "사진이 없어요" });
     expect(from).not.toHaveBeenCalled();
     expect(removeObject).not.toHaveBeenCalled();
   });
@@ -99,6 +115,7 @@ describe("POST /api/delete-facility-photo", () => {
     const { POST } = await import("./route");
     const response = await POST(post(null));
     expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "사진 ID 누락" });
     expect(from).not.toHaveBeenCalled();
   });
 });

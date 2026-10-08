@@ -3,15 +3,13 @@ import {
   FACILITY_PHOTO_BUCKET,
   MAX_FACILITY_PHOTOS,
   MAX_FACILITY_PHOTO_BYTES,
+  MULTIPART_OVERHEAD_BYTES,
 } from "@/lib/facilityPhotos";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { removeObject, uploadPhoto } from "@/lib/server/requestPhotoStorage";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isUuid } from "@/lib/uuid";
 import { WEBP_SNIFF_BYTES, isWebP } from "@/lib/webpBytes";
-
-// multipart 경계·필드 이름이 파일 크기에 더해진다.
-const MULTIPART_OVERHEAD_BYTES = 64 * 1024;
 
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
@@ -114,7 +112,11 @@ export async function POST(request: Request) {
       });
     }
     return NextResponse.json(
-      { error: conflict ? "사진은 3장까지예요" : "사진을 저장하지 못했어요" },
+      {
+        error: conflict
+          ? "동시에 올라온 사진이 있어요. 다시 시도해 주세요"
+          : "사진을 저장하지 못했어요",
+      },
       { status: conflict ? 409 : 500 },
     );
   }

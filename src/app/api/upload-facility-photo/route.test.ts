@@ -81,6 +81,22 @@ describe("POST /api/upload-facility-photo", () => {
       FACILITY_ID,
       expect.any(Uint8Array),
     );
+    const lookups = [
+      from.mock.results[0].value,
+      from.mock.results[1].value,
+    ] as {
+      calls: { method: string; args: unknown[] }[];
+    }[];
+    expect(from.mock.calls[0]).toEqual(["building_facilities"]);
+    expect(lookups[0].calls).toContainEqual({
+      method: "eq",
+      args: ["id", FACILITY_ID],
+    });
+    expect(from.mock.calls[1]).toEqual(["facility_photos"]);
+    expect(lookups[1].calls).toContainEqual({
+      method: "eq",
+      args: ["facility_id", FACILITY_ID],
+    });
     const insertQuery = from.mock.results[2].value as {
       calls: { method: string; args: unknown[] }[];
     };
@@ -100,7 +116,9 @@ describe("POST /api/upload-facility-photo", () => {
       },
     });
     const { POST } = await import("./route");
-    expect((await POST(post())).status).toBe(409);
+    const response = await POST(post());
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: "사진은 3장까지예요" });
     expect(uploadPhoto).not.toHaveBeenCalled();
   });
 
@@ -109,8 +127,13 @@ describe("POST /api/upload-facility-photo", () => {
       insert: { data: null, error: { code: "23505", message: "dup" } },
     });
     const { POST } = await import("./route");
-    expect((await POST(post())).status).toBe(409);
+    const response = await POST(post());
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: "동시에 올라온 사진이 있어요. 다시 시도해 주세요",
+    });
     expect(removeObject).toHaveBeenCalledWith("facility-photos", "f1/x.webp");
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 
   it("행 저장이 다른 이유로 실패하면 파일을 지우고 500", async () => {
@@ -130,7 +153,9 @@ describe("POST /api/upload-facility-photo", () => {
   it("없는 시설은 404", async () => {
     arrange({ facility: { data: null, error: null } });
     const { POST } = await import("./route");
-    expect((await POST(post())).status).toBe(404);
+    const response = await POST(post());
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "시설이 없어요" });
     expect(uploadPhoto).not.toHaveBeenCalled();
   });
 
@@ -149,7 +174,11 @@ describe("POST /api/upload-facility-photo", () => {
   it("기존 사진 조회가 실패하면 500, 올리지 않는다", async () => {
     arrange({ existing: { data: null, error: { message: "down" } } });
     const { POST } = await import("./route");
-    expect((await POST(post())).status).toBe(500);
+    const response = await POST(post());
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "시설 정보를 불러오지 못했어요",
+    });
     expect(uploadPhoto).not.toHaveBeenCalled();
     expect(errorSpy).toHaveBeenCalled();
   });
@@ -180,6 +209,9 @@ describe("POST /api/upload-facility-photo", () => {
       post(webp(), FACILITY_ID, { "content-length": String(10 * 1024 * 1024) }),
     );
     expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({
+      error: "사진은 4MB까지 올릴 수 있어요",
+    });
     expect(from).not.toHaveBeenCalled();
     expect(uploadPhoto).not.toHaveBeenCalled();
   });

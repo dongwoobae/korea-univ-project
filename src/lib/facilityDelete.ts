@@ -31,7 +31,9 @@ export async function deleteFacility(facility: {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ photoId: photo.id }),
     });
-    if (!res.ok) return "사진 삭제에 실패해 시설을 지우지 못했어요";
+    // 일부만 지워진 채 다시 누르면 이미 지운 사진이 404로 온다 — 끝난 것으로 본다.
+    if (!res.ok && res.status !== 404)
+      return "사진 삭제에 실패해 시설을 지우지 못했어요";
   }
 
   const { error } = await supabase

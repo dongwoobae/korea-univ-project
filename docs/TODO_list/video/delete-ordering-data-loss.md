@@ -15,11 +15,6 @@ const { error } = await supabase.from("building_facilities").delete().eq("id", f
 않도록 row를 남겨두고 메시지를 반환한다"고 적고 있다. 첫 단계가 실패하는 경우는
 잘 다뤄져 있다.
 
-2026-10-08 — 사진 단계가 같은 순서에 들어왔다(동영상 → 사진 → row). 사진은
-`/api/delete-facility-photo`로 한 장씩 파일과 `facility_photos` 행을 지우므로,
-사진 중간에서 실패하면 먼저 지운 사진도 돌아오지 않는다. 아래 문제와 해법이
-사진에도 그대로 적용된다.
-
 문제는 **반대 방향이다.** 첫 단계가 성공하고 두 번째가 실패하면:
 
 - R2 객체는 이미 `DeleteObjectCommand`로 지워졌다 — 복구 수단이 없다
@@ -71,3 +66,10 @@ service-role 서버 라우트라 성공률이 다르다 — **성공률이 높�
 ## 출처
 
 2026-08-06 codex 3-lane 리뷰 lane C(공격자).
+
+2026-10-08 — 시설 사진 추가 설계 중 확인. `docs/specs/2026-10-08-facility-request-design.md` 5.3.
+사진 단계(동영상 → 사진 → row)가 같은 순서에 들어와 같은 문제가 사진에도 있다. 다만 "순서만 뒤집는다"는
+그대로 옮겨지지 않는다 — 클라이언트는 사진 id만 갖고 있고 `storage_path`는 행과 함께 cascade로 사라지므로,
+row를 먼저 지우려면 서버가 시설 폴더(`{facility_id}/`)째 지워야 한다.
+또 업로드 라우트의 되돌리기 `removeObject`가 실패하면 행 없는 파일이 `{facility_id}/`에 남고, 행 기반인
+시설 삭제는 그 파일을 수거하지 못한다.

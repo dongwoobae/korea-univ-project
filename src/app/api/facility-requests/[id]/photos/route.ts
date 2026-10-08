@@ -1,15 +1,13 @@
 import {
   FACILITY_REQUEST_PHOTO_BUCKET,
   MAX_FACILITY_PHOTO_BYTES,
+  MULTIPART_OVERHEAD_BYTES,
 } from "@/lib/facilityPhotos";
 import { removeObject, uploadPhoto } from "@/lib/server/requestPhotoStorage";
 import { verifyUploadToken } from "@/lib/server/requestSecurity";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isUuid } from "@/lib/uuid";
 import { WEBP_SNIFF_BYTES, isWebP } from "@/lib/webpBytes";
-
-// multipart 경계·필드 이름이 파일 크기에 더해진다.
-const MULTIPART_OVERHEAD_BYTES = 64 * 1024;
 
 function fail(error: string, status: number) {
   return Response.json({ error }, { status });
