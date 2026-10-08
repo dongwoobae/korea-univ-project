@@ -350,7 +350,7 @@ grant execute on function public.get_admin_building_summary() to authenticated;
 
 ## 6. 캠퍼스 필터 (2026-10-08)
 
-발주자 요청: 관리자 화면에서 캠퍼스별로 건물을 본다.
+요청: 관리자 화면에서 캠퍼스별로 건물을 본다.
 
 - 판정은 DB `buildings.campus`가 아니라 목록의 캠퍼스 열과 같은 `inferCampusFromGeometry`(건물 모양 ×
   `public/campus-boundaries.geojson`)다. 2026-10-08 운영 97행 중 96행의 `campus`가 `서울`이라 컬럼으로는 거를 수 없다.
