@@ -258,6 +258,130 @@ export type Database = {
         };
         Relationships: [];
       };
+      facility_photos: {
+        Row: {
+          created_at: string;
+          facility_id: string;
+          id: string;
+          sort_order: number;
+          storage_path: string;
+        };
+        Insert: {
+          created_at?: string;
+          facility_id: string;
+          id?: string;
+          sort_order: number;
+          storage_path: string;
+        };
+        Update: {
+          created_at?: string;
+          facility_id?: string;
+          id?: string;
+          sort_order?: number;
+          storage_path?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "facility_photos_facility_id_fkey";
+            columns: ["facility_id"];
+            isOneToOne: false;
+            referencedRelation: "building_facilities";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      facility_request_photos: {
+        Row: {
+          id: string;
+          request_id: string;
+          sort_order: number;
+          storage_path: string;
+        };
+        Insert: {
+          id?: string;
+          request_id: string;
+          sort_order: number;
+          storage_path: string;
+        };
+        Update: {
+          id?: string;
+          request_id?: string;
+          sort_order?: number;
+          storage_path?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "facility_request_photos_request_id_fkey";
+            columns: ["request_id"];
+            isOneToOne: false;
+            referencedRelation: "facility_requests";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      facility_requests: {
+        Row: {
+          building_id: number;
+          client_hash: string;
+          created_at: string;
+          description: string | null;
+          facility_code: string;
+          facility_id: string | null;
+          floor_info: string | null;
+          id: string;
+          lat: number | null;
+          lng: number | null;
+          name: string | null;
+          reviewed_at: string | null;
+          status: string;
+        };
+        Insert: {
+          building_id: number;
+          client_hash: string;
+          created_at?: string;
+          description?: string | null;
+          facility_code: string;
+          facility_id?: string | null;
+          floor_info?: string | null;
+          id?: string;
+          lat?: number | null;
+          lng?: number | null;
+          name?: string | null;
+          reviewed_at?: string | null;
+          status?: string;
+        };
+        Update: {
+          building_id?: number;
+          client_hash?: string;
+          created_at?: string;
+          description?: string | null;
+          facility_code?: string;
+          facility_id?: string | null;
+          floor_info?: string | null;
+          id?: string;
+          lat?: number | null;
+          lng?: number | null;
+          name?: string | null;
+          reviewed_at?: string | null;
+          status?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "facility_requests_building_id_fkey";
+            columns: ["building_id"];
+            isOneToOne: false;
+            referencedRelation: "buildings";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "facility_requests_facility_id_fkey";
+            columns: ["facility_id"];
+            isOneToOne: false;
+            referencedRelation: "building_facilities";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       facility_types: {
         Row: {
           code: string;
@@ -372,6 +496,29 @@ export type Database = {
       };
     };
     Functions: {
+      add_facility_request_photo: {
+        Args: {
+          p_request_id: string;
+          p_storage_path: string;
+        };
+        Returns: string;
+      };
+      approve_facility_request: {
+        Args: {
+          p_facility_id: string;
+          p_fields: Json;
+          p_photos: Json;
+          p_request_id: string;
+        };
+        Returns: string;
+      };
+      create_facility_request: {
+        Args: {
+          p_client_hash: string;
+          p_fields: Json;
+        };
+        Returns: string;
+      };
       get_admin_building_summary: {
         Args: Record<PropertyKey, never>;
         Returns: {
