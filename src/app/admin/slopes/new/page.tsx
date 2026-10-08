@@ -51,6 +51,7 @@ export default function NewSlopeRoutePage() {
         경사도 경로 그리기
       </h1>
       <SlopeRouteEditor
+        routeId={null}
         initialName=""
         initialVertices={null}
         initialSlopes={[]}

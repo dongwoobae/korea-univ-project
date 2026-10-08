@@ -9,7 +9,8 @@ import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import { KU_BOUNDS, containsPoint } from "@/lib/mapBounds";
 import { isSlopeDegInRange, slopeColorFromDeg } from "@/lib/slopeScale";
-import type { Vertex } from "@/lib/slopeRoute";
+import { readRoutePoints, type Vertex } from "@/lib/slopeRoute";
+import { supabase } from "@/lib/supabaseClient";
 import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
 import { addNeighborLayer } from "@/lib/neighborLayer";
 
@@ -17,6 +18,8 @@ const KU_CENTER: [number, number] = [37.5893, 127.0327];
 
 interface SlopeRouteMapProps {
   initialVertices: Vertex[] | null;
+  /** 다른 경로로 깔지 않을 경로. 새 경로면 null */
+  editingRouteId: string | null;
   onVerticesChange: (vertices: Vertex[]) => void;
   slopes: (number | null)[];
   snapToBuildings: boolean;
@@ -28,6 +31,7 @@ interface SlopeRouteMapProps {
 
 export default function SlopeRouteMap({
   initialVertices,
+  editingRouteId,
   onVerticesChange,
   slopes,
   snapToBuildings,
@@ -40,6 +44,7 @@ export default function SlopeRouteMap({
   const onChangeRef = useRef(onVerticesChange);
   const onResetReadyRef = useRef(onResetReady);
   const initialRef = useRef(initialVertices);
+  const editingRouteIdRef = useRef(editingRouteId);
   const previewRef = useRef<L.LayerGroup | null>(null);
   const labelsRef = useRef<L.LayerGroup | null>(null);
   const verticesRef = useRef<Vertex[]>([]);
@@ -90,6 +95,38 @@ export default function SlopeRouteMap({
       })
       .catch(() => {
         // 배경 건물은 보조 정보다. 실패해도 경로는 그릴 수 있다.
+      });
+
+    // 이미 그린 곳과 안 그린 곳을 보는 용도라 스냅·드래그 모드 대상(pmIgnore)에서 뺀다.
+    const othersPane = map.createPane("slopeOthers");
+    othersPane.style.zIndex = "320";
+    void supabase
+      .from("slope_segments")
+      .select("id, segments")
+      .then(({ data, error }) => {
+        if (disposed || error) return;
+        for (const route of data ?? []) {
+          if (String(route.id) === editingRouteIdRef.current) continue;
+          const points = readRoutePoints(route.segments);
+          if (!points) continue;
+          const [, ...measured] = points;
+          measured.forEach((point, i) => {
+            L.polyline(
+              [
+                [points[i].lat, points[i].lng],
+                [point.lat, point.lng],
+              ],
+              {
+                color: slopeColorFromDeg(point.slope),
+                weight: 4,
+                opacity: 0.55,
+                interactive: false,
+                pmIgnore: true,
+                pane: "slopeOthers",
+              },
+            ).addTo(map);
+          });
+        }
       });
 
     // 편집선(overlayPane, z-index 400)보다 아래에 둔다. "아래에 그린다"를 말로만

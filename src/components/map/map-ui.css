@@ -405,19 +405,24 @@
   /* 양 끝 눈금 라벨이 패널 가장자리로 넘치지 않게 좌우 여백을 둔다 */
   margin: 0 14px 6px;
 }
+.ku-slope-scale-levels {
+  position: relative;
+  height: 16px;
+  margin-bottom: 2px;
+}
+.ku-slope-scale-level {
+  position: absolute;
+  top: 0;
+  color: var(--ku-text-2);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  white-space: nowrap;
+}
 .ku-slope-scale-bar {
-  display: flex;
-  gap: 2px;
   height: 10px;
-}
-.ku-slope-scale-step {
-  flex: 1 1 0;
-}
-.ku-slope-scale-step:first-child {
-  border-radius: 3px 0 0 3px;
-}
-.ku-slope-scale-step:last-child {
-  border-radius: 0 3px 3px 0;
+  border-radius: 3px;
 }
 .ku-slope-scale-ticks {
   position: relative;

@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { campusColor } from "@/lib/theme";
 import {
+  buildingIdsInCampus,
   inferCampusFromGeometry,
   type CampusBoundaryCollection,
 } from "@/lib/campusGeometry";
@@ -52,6 +53,7 @@ export default function BuildingsPage() {
   const [activeFlag, setActiveFlag] = useState<AdminBuildingFlagKey | null>(
     null,
   );
+  const [campusFilter, setCampusFilter] = useState("all");
   const [listError, setListError] = useState(false);
   const debouncedSearch = useDebouncedValue(search);
   const router = useRouter();
@@ -91,6 +93,9 @@ export default function BuildingsPage() {
     return () => window.clearTimeout(timer);
   }, [fetchSummary]);
 
+  // 경계는 판정 기준일 뿐이다. 필터가 꺼져 있을 때 경계 로드가 목록을 다시 불러오지 않게 한다.
+  const filterBoundaries = campusFilter === "all" ? null : campusBoundaries;
+
   const fetchData = useCallback(async () => {
     setListError(false);
 
@@ -110,20 +115,46 @@ export default function BuildingsPage() {
         setLoading(false);
         return;
       }
-      if (resolved.status === "empty") {
-        // 빈 배열을 .in()에 넘기면 id=in.()으로 직렬화돼 PostgREST가 파싱 오류를 낸다.
+      flagIds = resolved.status === "empty" ? [] : resolved.ids;
+    }
+
+    let campusIds: number[] | null = null;
+    if (filterBoundaries) {
+      const campusResponse = await supabase
+        .from("buildings")
+        .select("id, geojson");
+      if (campusResponse.error) {
+        console.error("캠퍼스 판정용 건물 조회 실패", campusResponse.error);
         setBuildings([]);
         setFacilityCounts(new Map());
         setTotalCount(0);
+        setListError(true);
         setLoading(false);
         return;
       }
-      flagIds = resolved.ids;
+      campusIds = buildingIdsInCampus(
+        campusResponse.data ?? [],
+        campusFilter,
+        filterBoundaries,
+      );
+    }
+
+    const filterIds =
+      flagIds && campusIds
+        ? flagIds.filter((id) => campusIds.includes(id))
+        : (flagIds ?? campusIds);
+    if (filterIds?.length === 0) {
+      // 빈 배열을 .in()에 넘기면 id=in.()으로 직렬화돼 PostgREST가 파싱 오류를 낸다.
+      setBuildings([]);
+      setFacilityCounts(new Map());
+      setTotalCount(0);
+      setLoading(false);
+      return;
     }
 
     const { from, to } = getAdminPageRange(page);
     let query = supabase.from("buildings").select("*", { count: "exact" });
-    if (flagIds) query = query.in("id", flagIds);
+    if (filterIds) query = query.in("id", filterIds);
     const searchFilter = buildAdminSearchFilter(
       ["name", "name_en"],
       debouncedSearch,
@@ -170,7 +201,7 @@ export default function BuildingsPage() {
     setFacilityCounts(counts);
     setTotalCount(nextTotal);
     setLoading(false);
-  }, [activeFlag, debouncedSearch, page]);
+  }, [activeFlag, campusFilter, filterBoundaries, debouncedSearch, page]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -206,6 +237,11 @@ export default function BuildingsPage() {
       ),
     [buildings, campusBoundaries],
   );
+
+  const filterLabels = [
+    campusFilter === "all" ? null : campusFilter,
+    activeFlag ? ADMIN_BUILDING_FLAG_LABELS[activeFlag] : null,
+  ].filter((label): label is string => label !== null);
 
   return (
     <div className="ku-admin-main">
@@ -318,13 +354,33 @@ export default function BuildingsPage() {
         searchLabel="건물명 검색"
         resultCount={buildings.length}
         totalCount={totalCount}
-        hasActiveFilters={search.trim() !== "" || activeFlag !== null}
+        hasActiveFilters={
+          search.trim() !== "" || activeFlag !== null || campusFilter !== "all"
+        }
         onReset={() => {
           setSearch("");
           setActiveFlag(null);
+          setCampusFilter("all");
           setPage(1);
         }}
-      />
+      >
+        <select
+          value={campusFilter}
+          disabled={!campusBoundaries}
+          onChange={(event) => {
+            setCampusFilter(event.target.value);
+            setPage(1);
+          }}
+          aria-label="캠퍼스 필터"
+        >
+          <option value="all">모든 캠퍼스</option>
+          {Object.keys(campusColor).map((campus) => (
+            <option key={campus} value={campus}>
+              {campus}
+            </option>
+          ))}
+        </select>
+      </AdminListControls>
 
       {loading ? (
         <div className="ku-admin-empty">불러오는 중...</div>
@@ -342,8 +398,8 @@ export default function BuildingsPage() {
         </div>
       ) : buildings.length === 0 ? (
         <div className="ku-admin-empty">
-          {activeFlag
-            ? `‘${ADMIN_BUILDING_FLAG_LABELS[activeFlag]}’에 해당하는 건물이 없습니다.`
+          {filterLabels.length > 0
+            ? `${filterLabels.map((label) => `‘${label}’`).join("·")}에 해당하는 건물이 없습니다.`
             : "검색 결과가 없습니다."}
         </div>
       ) : (
