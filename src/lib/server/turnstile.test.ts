@@ -30,6 +30,7 @@ describe("verifyTurnstile", () => {
   });
 
   it("빈 토큰·네트워크 오류·비정상 응답은 거부한다(닫힌 쪽으로 실패)", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(
       await verifyTurnstile(
         "",
@@ -49,6 +50,8 @@ describe("verifyTurnstile", () => {
         fakeFetch(new Response("x", { status: 500 })),
       ),
     ).toBe(false);
+    expect(spy).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
   });
 
   it("ip가 없으면 remoteip를 보내지 않는다", async () => {
