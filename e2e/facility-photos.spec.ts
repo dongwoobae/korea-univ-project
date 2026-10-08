@@ -127,6 +127,33 @@ test.describe("관리자 시설 사진", () => {
     await expect(dialog.locator('input[type="file"]')).toHaveCount(0);
   });
 
+  test("시설을 삭제하면 그 시설의 사진도 지운다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.facilityPhotos.push({
+      id: "fp1",
+      facility_id: "f-building",
+      storage_path: "f-building/a.webp",
+      sort_order: 0,
+      created_at: "2026-10-01T00:00:00Z",
+    });
+    await page.goto("/admin/buildings/1");
+    await page.getByRole("button", { name: /중앙 엘리베이터/ }).click();
+    await page
+      .getByRole("dialog", { name: "중앙 엘리베이터" })
+      .getByRole("button", { name: "삭제", exact: true })
+      .click();
+    await page
+      .getByRole("dialog", { name: "시설을 삭제할까요?" })
+      .getByRole("button", { name: "삭제", exact: true })
+      .click();
+
+    await expect(
+      page.getByRole("dialog", { name: "중앙 엘리베이터" }),
+    ).toHaveCount(0);
+    expect(state.facilities.some((f) => f.id === "f-building")).toBe(false);
+    expect(state.facilityPhotos).toHaveLength(0);
+  });
+
   test("건물 상세에 그 건물의 검토 대기 요청 수가 보이고 제보함으로 간다", async ({
     page,
   }) => {

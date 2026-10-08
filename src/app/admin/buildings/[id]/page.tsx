@@ -115,7 +115,7 @@ export default function BuildingDetail() {
       supabase.from("buildings").select("*").eq("id", id).single(),
       supabase
         .from("building_facilities")
-        // deleteFacility가 사진을 먼저 지우려면 사진 목록이 있어야 한다.
+        // 시설 상세 모달의 사진 칸이 쓴다. created_at은 업로드 순서 정렬에 필요하다.
         .select(
           "*, facility_types(code, label), facility_photos(id, storage_path, sort_order, created_at)",
         )

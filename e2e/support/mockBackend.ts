@@ -1062,6 +1062,15 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     state.facilityPhotos.push(photo);
     return json(route, { id: photo.id, storage_path: photo.storage_path });
   }
+  if (path === "/api/delete-facility-photos") {
+    const { facilityId } = route.request().postDataJSON() as {
+      facilityId: string;
+    };
+    state.facilityPhotos = state.facilityPhotos.filter(
+      (photo) => photo.facility_id !== facilityId,
+    );
+    return json(route, { ok: true });
+  }
   if (path === "/api/delete-facility-photo") {
     const { photoId } = route.request().postDataJSON() as { photoId: string };
     state.facilityPhotos = state.facilityPhotos.filter(
