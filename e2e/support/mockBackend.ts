@@ -828,6 +828,92 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     });
     return json(route, { id: photoId }, 201);
   }
+  const requestAction = path.match(
+    /^\/api\/facility-requests\/([^/]+)(?:\/(status|reject|cleanup|approve))?$/,
+  );
+  if (requestAction) {
+    const [, requestId, action] = requestAction;
+    const row = state.facilityRequests.find((item) => item.id === requestId);
+    if (!row) return json(route, { error: "요청이 없어요" }, 404);
+    const photos = () =>
+      state.facilityRequestPhotos.filter(
+        (photo) => photo.request_id === requestId,
+      );
+    const removePhotos = () => {
+      state.facilityRequestPhotos = state.facilityRequestPhotos.filter(
+        (photo) => photo.request_id !== requestId,
+      );
+    };
+    const open = row.status === "new" || row.status === "reviewing";
+    if (!action) {
+      const building = state.buildings.find(
+        (item) => item.id === row.building_id,
+      );
+      return json(route, {
+        ...row,
+        building: building
+          ? { id: building.id, name: building.name, geojson: building.geojson }
+          : null,
+        photos: photos().map((photo) => ({
+          id: photo.id,
+          sort_order: photo.sort_order,
+          // 서명 주소 발급 실패를 흉내낸다.
+          url: photo.unsigned ? null : `https://cdn.test/${photo.id}.webp`,
+        })),
+      });
+    }
+    if (action === "status") {
+      const { status } = route.request().postDataJSON() as { status: string };
+      const from = status === "reviewing" ? "new" : "reviewing";
+      if (row.status !== from)
+        return json(
+          route,
+          { error: "이미 처리됐거나 상태가 바뀐 요청이에요" },
+          409,
+        );
+      row.status = status;
+      return json(route, { status });
+    }
+    if (action === "reject") {
+      if (!open) return json(route, { error: "이미 처리된 요청이에요" }, 409);
+      row.status = "rejected";
+      removePhotos();
+      return json(route, { ok: true, cleanupFailed: false });
+    }
+    if (action === "cleanup") {
+      removePhotos();
+      return json(route, { ok: true });
+    }
+    if (!open) return json(route, { error: "이미 처리된 요청이에요" }, 409);
+    const { fields, photoIds } = route.request().postDataJSON() as {
+      fields: Row;
+      photoIds: string[];
+    };
+    const facilityId = `f-approved-${requestId.slice(-4)}`;
+    state.facilities.push({
+      id: facilityId,
+      building_id: row.building_id,
+      ...fields,
+      translation_status: "pending",
+      facility_types:
+        types.find((type) => type.code === fields.facility_code) ?? null,
+      created_at: "2026-10-08T00:00:00Z",
+      updated_at: "2026-10-08T00:00:00Z",
+    });
+    photoIds.forEach((photoId, index) =>
+      state.facilityPhotos.push({
+        id: `fp-${photoId}`,
+        facility_id: facilityId,
+        storage_path: `${facilityId}/${photoId}.webp`,
+        sort_order: index,
+        created_at: "2026-10-08T00:00:00Z",
+      }),
+    );
+    row.status = "approved";
+    row.facility_id = facilityId;
+    removePhotos();
+    return json(route, { facilityId, cleanupFailed: false });
+  }
   if (path === "/api/facilities")
     return json(
       route,

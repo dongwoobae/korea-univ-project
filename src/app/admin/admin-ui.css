@@ -1285,3 +1285,78 @@ button.ku-admin-overview-item {
   background: var(--ku-status-missing-bg);
   color: var(--ku-status-missing-fg);
 }
+.ku-review-modal-title {
+  margin-bottom: 6px;
+  font-size: 16px;
+  font-weight: 600;
+}
+.ku-review-modal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-review-modal-meta a {
+  color: var(--ku-primary-text);
+}
+.ku-review-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+.ku-review-photos img,
+.ku-review-photo-missing {
+  display: block;
+  width: 96px;
+  height: 96px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+.ku-review-photo-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ku-surface-raised);
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-review-photos label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.ku-review-actions {
+  flex-wrap: wrap;
+}
+.ku-review-actions button {
+  flex: 1 1 auto;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  background: var(--ku-surface);
+  color: var(--ku-text-1);
+  font-size: 13px;
+  cursor: pointer;
+}
+.ku-review-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.ku-review-actions .ku-review-reject {
+  border-color: var(--ku-danger);
+  color: var(--ku-danger);
+}
+.ku-review-actions .ku-review-approve {
+  border-color: var(--ku-primary);
+  background: var(--ku-primary);
+  color: #fff;
+}

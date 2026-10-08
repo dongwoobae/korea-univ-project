@@ -105,3 +105,128 @@ test.describe("제보함 — 등록 요청 목록", () => {
     await expect(list.getByRole("listitem")).toHaveCount(2);
   });
 });
+
+test.describe("제보함 — 검토 모달", () => {
+  test("층을 고치고 사진 하나를 빼고 승인하면 그 값으로 시설이 생기고 목록에서 빠진다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const list = await openInbox(page);
+
+    await list.getByRole("listitem").first().getByRole("button").click();
+    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
+    await expect(dialog.getByLabel("시설 유형 *")).toHaveValue("elevator");
+    await dialog.getByLabel("층 정보 (선택)").fill("4층");
+    await dialog.getByRole("checkbox", { name: "사진 2 공개" }).uncheck();
+    await dialog.getByRole("button", { name: "승인하고 등록" }).click();
+
+    await expect(dialog).toBeHidden();
+    const created = state.facilities.find((facility) =>
+      String(facility.id).startsWith("f-approved"),
+    );
+    expect(created).toMatchObject({
+      building_id: 1,
+      facility_code: "elevator",
+      floor_info: "4층",
+    });
+    expect(
+      state.facilityPhotos.filter((photo) => photo.facility_id === created!.id),
+    ).toHaveLength(1);
+    await expect(list.getByRole("listitem")).toHaveCount(1);
+  });
+
+  test("확인 중으로 표시하고 되돌린다 — 모달은 열린 채다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const list = await openInbox(page);
+    await list.getByRole("listitem").first().getByRole("button").click();
+    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
+
+    await dialog.getByRole("button", { name: "확인 중으로 표시" }).click();
+    await expect(
+      dialog.getByRole("button", { name: "신규로 되돌리기" }),
+    ).toBeVisible();
+    expect(state.facilityRequests[0].status).toBe("reviewing");
+    await dialog.getByRole("button", { name: "신규로 되돌리기" }).click();
+    await expect(
+      dialog.getByRole("button", { name: "확인 중으로 표시" }),
+    ).toBeVisible();
+    expect(state.facilityRequests[0].status).toBe("new");
+  });
+
+  test("거절은 확인을 거치고, 거절된 요청은 읽기 전용으로 열린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const list = await openInbox(page);
+    await list.getByRole("listitem").first().getByRole("button").click();
+    await page
+      .getByRole("dialog", { name: /등록 요청/ })
+      .getByRole("button", { name: "거절" })
+      .click();
+    await page
+      .getByRole("dialog", { name: "이 요청을 거절할까요?" })
+      .getByRole("button", { name: "거절" })
+      .click();
+
+    await expect(page.getByRole("dialog", { name: /등록 요청/ })).toBeHidden();
+    expect(state.facilityRequests[0].status).toBe("rejected");
+    expect(
+      state.facilityRequestPhotos.filter(
+        (p) => p.request_id === state.facilityRequests[0].id,
+      ),
+    ).toHaveLength(0);
+
+    await page
+      .getByRole("combobox", { name: "상태 필터" })
+      .selectOption("done");
+    await expect(list.getByRole("listitem")).toHaveCount(2);
+    await list.getByRole("listitem").first().getByRole("button").click();
+    const readOnly = page.getByRole("dialog", { name: /등록 요청/ });
+    await expect(readOnly.getByLabel("시설 유형 *")).toBeDisabled();
+    await expect(
+      readOnly.getByRole("button", { name: "승인하고 등록" }),
+    ).toHaveCount(0);
+  });
+
+  test("다른 관리자가 먼저 처리했으면(409) 안내하고 읽기 전용으로 다시 읽는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const list = await openInbox(page);
+    await list.getByRole("listitem").first().getByRole("button").click();
+    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
+    await expect(dialog.getByLabel("시설 유형 *")).toBeEnabled();
+    state.facilityRequests[0].status = "approved";
+    await dialog.getByRole("button", { name: "승인하고 등록" }).click();
+
+    await expect(page.getByText("이미 처리된 요청이에요")).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "승인하고 등록" }),
+    ).toHaveCount(0);
+    await expect(dialog.getByText("승인됨")).toBeVisible();
+  });
+
+  test("볼 수 없는 사진은 공개할 수 없고 승인에서 빠진다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    state.facilityRequestPhotos[1].unsigned = true;
+    const list = await openInbox(page);
+    await list.getByRole("listitem").first().getByRole("button").click();
+    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
+
+    await expect(dialog.getByText("볼 수 없음")).toBeVisible();
+    const hidden = dialog.getByRole("checkbox", { name: "사진 2 공개" });
+    await expect(hidden).toBeDisabled();
+    await expect(hidden).not.toBeChecked();
+    await dialog.getByRole("button", { name: "승인하고 등록" }).click();
+
+    await expect(dialog).toBeHidden();
+    expect(state.facilityPhotos.map((photo) => photo.storage_path)).toEqual([
+      "f-approved-0001/rp-1.webp",
+    ]);
+  });
+});

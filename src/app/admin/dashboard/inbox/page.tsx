@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import FacilityRequestList from "@/components/admin/inbox/FacilityRequestList";
+import FacilityRequestReviewModal from "@/components/admin/inbox/FacilityRequestReviewModal";
+import Toast from "@/components/Toast";
 import { supabase } from "@/lib/supabaseClient";
 
 type Tab = "requests" | "feedback";
@@ -12,8 +14,22 @@ export default function InboxPage() {
   const [types, setTypes] = useState<{ code: string; label: string | null }[]>(
     [],
   );
-  const [, setOpenId] = useState<string | null>(null);
-  const [refreshKey] = useState(0);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(
+    null,
+  );
+
+  // 검토 모달의 상세 조회 effect가 이 둘에 의존한다. 고정하지 않으면 상세를 반복해 불러온다.
+  const showToast = useCallback(
+    (message: string, type = "success") => setToast({ message, type }),
+    [],
+  );
+  const closeModal = useCallback(() => setOpenId(null), []);
+  const refresh = useCallback(() => {
+    setRefreshKey((key) => key + 1);
+    window.dispatchEvent(new Event("inboxCountsChanged"));
+  }, []);
 
   useEffect(() => {
     // useSearchParams는 Suspense 경계를 요구한다. 다른 관리자 화면처럼 location에서 읽는다.
@@ -80,6 +96,25 @@ export default function InboxPage() {
           refreshKey={refreshKey}
         />
       ) : null}
+      {openId && (
+        <FacilityRequestReviewModal
+          requestId={openId}
+          facilityTypes={types.map((type) => ({
+            code: type.code,
+            label: type.label ?? type.code,
+          }))}
+          onClose={closeModal}
+          onChanged={refresh}
+          showToast={showToast}
+        />
+      )}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
