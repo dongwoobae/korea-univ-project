@@ -302,6 +302,44 @@ test.describe("제보함 — 피드백", () => {
     await expect(list).toContainText("중앙도서관 경사로 위치가 틀려요");
   });
 
+  test("본문 미리보기를 누르면 모달에 전체 본문과 제보 페이지가 보이고, 모달에서 상태를 바꾼다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    const longContent = `${"경사로 위치가 지도와 달라요. ".repeat(20)}끝 문장`;
+    state.feedbackSubmissions.push({
+      id: "fb-1",
+      feedback_type: "error",
+      content: longContent,
+      page_url: "https://campus.example/building/1",
+      status: "new",
+      created_at: "2026-10-08T00:00:00Z",
+    });
+    await page.goto("/admin/dashboard/inbox?tab=feedback");
+    const list = page.getByRole("list", { name: "피드백 목록" });
+    await expect(list.getByRole("button", { name: "펼치기" })).toHaveCount(0);
+
+    const preview = list.getByRole("button", { name: /경사로 위치가/ });
+    await preview.click();
+    const dialog = page.getByRole("dialog", { name: "오류 제보" });
+    await expect(dialog).toContainText("끝 문장");
+    await expect(
+      dialog.getByRole("link", { name: "제보한 페이지" }),
+    ).toHaveAttribute("href", "https://campus.example/building/1");
+
+    await dialog
+      .getByRole("combobox", { name: "처리 상태" })
+      .selectOption("resolved");
+    await expect(list.getByRole("listitem")).toHaveCount(0);
+    expect(state.feedbackSubmissions[0].status).toBe("resolved");
+    await expect(
+      dialog.getByRole("combobox", { name: "처리 상태" }),
+    ).toHaveValue("resolved");
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+  });
+
   test("목록을 불러오지 못하면 빈 목록이 아니라 오류로 보인다", async ({
     page,
   }) => {
