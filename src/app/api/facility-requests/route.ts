@@ -1,4 +1,13 @@
+import { getAdminPageRange } from "@/lib/adminList";
 import { parseFacilityFields } from "@/lib/facilityFields";
+import {
+  parseInboxFilter,
+  requestStatusesFor,
+  type FacilityRequestListItem,
+  type RequestStatus,
+} from "@/lib/inboxStatus";
+import { requireAdmin } from "@/lib/requireAdmin";
+import { signedUrls } from "@/lib/server/requestPhotoStorage";
 import {
   UPLOAD_TOKEN_TTL_MS,
   clientHash,
@@ -109,4 +118,70 @@ export async function POST(request: Request) {
     },
     { status: 201 },
   );
+}
+
+export async function GET(request: Request) {
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
+
+  const url = new URL(request.url);
+  const statuses = requestStatusesFor(
+    parseInboxFilter(url.searchParams.get("status")),
+  );
+  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+  const building = Number(url.searchParams.get("building"));
+  const { from, to } = getAdminPageRange(page);
+
+  let query = supabaseAdmin()
+    .from("facility_requests")
+    .select(
+      "id, building_id, facility_code, name, floor_info, lat, lng, status, created_at, facility_id, buildings(name), facility_request_photos(id, storage_path, sort_order)",
+      { count: "exact" },
+    );
+  if (statuses) query = query.in("status", statuses);
+  if (Number.isSafeInteger(building) && building > 0)
+    query = query.eq("building_id", building);
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .order("id")
+    .range(from, to);
+  if (error) {
+    console.error("[facility-requests] list failed", {
+      code: error.code,
+      message: error.message,
+    });
+    return Response.json(
+      { error: "목록을 불러오지 못했어요" },
+      { status: 500 },
+    );
+  }
+
+  const rows = data ?? [];
+  const firstPhotos = rows.map(
+    (row) =>
+      [...(row.facility_request_photos ?? [])].sort(
+        (a, b) => a.sort_order - b.sort_order,
+      )[0],
+  );
+  const urls = await signedUrls(
+    firstPhotos.flatMap((photo) => (photo ? [photo.storage_path] : [])),
+  );
+
+  const items: FacilityRequestListItem[] = rows.map((row, index) => ({
+    id: row.id,
+    building_id: row.building_id,
+    building_name: row.buildings?.name ?? null,
+    facility_code: row.facility_code,
+    name: row.name,
+    floor_info: row.floor_info,
+    has_location: row.lat !== null && row.lng !== null,
+    status: row.status as RequestStatus,
+    created_at: row.created_at,
+    facility_id: row.facility_id,
+    photo_count: row.facility_request_photos?.length ?? 0,
+    thumbnail_url: firstPhotos[index]
+      ? (urls.get(firstPhotos[index].storage_path) ?? null)
+      : null,
+  }));
+  return Response.json({ items, total: count ?? 0 });
 }

@@ -1,7 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clientHash, verifyUploadToken } from "@/lib/server/requestSecurity";
 import { queryStub } from "@/test/queryStub";
 
+const requireAdmin = vi.fn();
+vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
+const signedUrls = vi.fn();
+vi.mock("@/lib/server/requestPhotoStorage", () => ({ signedUrls }));
 const verifyTurnstile = vi.fn();
 vi.mock("@/lib/server/turnstile", () => ({ verifyTurnstile }));
 
@@ -221,5 +225,111 @@ describe("POST /api/facility-requests", () => {
     const response = await POST(post(valid, { "content-length": "20000" }));
     expect(response.status).toBe(413);
     expect(await response.json()).toEqual({ error: "invalid" });
+  });
+});
+
+describe("GET /api/facility-requests", () => {
+  const rows = [
+    {
+      id: "r1",
+      building_id: 1,
+      facility_code: "elevator",
+      name: null,
+      floor_info: "3층",
+      lat: 37.5,
+      lng: 127.0,
+      status: "new",
+      created_at: "2026-10-08T00:00:00Z",
+      facility_id: null,
+      buildings: { name: "아산이학관" },
+      facility_request_photos: [
+        { id: "p2", storage_path: "r1/b.webp", sort_order: 1 },
+        { id: "p1", storage_path: "r1/a.webp", sort_order: 0 },
+      ],
+    },
+  ];
+  const calls = (index = 0) =>
+    (
+      from.mock.results[index].value as {
+        calls: { method: string; args: unknown[] }[];
+      }
+    ).calls;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    requireAdmin.mockResolvedValue({ user: { id: "admin" } });
+    from.mockImplementation(() =>
+      queryStub({ data: rows, error: null, count: 1 }),
+    );
+    signedUrls.mockResolvedValue(new Map([["r1/a.webp", "https://signed/a"]]));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("관리자가 아니면 그 응답을 그대로 돌려주고 조회하지 않는다", async () => {
+    requireAdmin.mockResolvedValue({
+      response: Response.json({ error: "인증 필요" }, { status: 401 }),
+    });
+    const { GET } = await import("./route");
+    expect(
+      (await GET(new Request("https://local.test/api/facility-requests")))
+        .status,
+    ).toBe(401);
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("기본 필터는 신규·확인 중, 첫 사진(순서 0)을 서명 주소로 준다", async () => {
+    const { GET } = await import("./route");
+    const response = await GET(
+      new Request("https://local.test/api/facility-requests"),
+    );
+    const body = await response.json();
+    expect(body.total).toBe(1);
+    expect(body.items[0]).toMatchObject({
+      id: "r1",
+      building_name: "아산이학관",
+      photo_count: 2,
+      has_location: true,
+      thumbnail_url: "https://signed/a",
+    });
+    expect(calls()).toContainEqual({
+      method: "in",
+      args: ["status", ["new", "reviewing"]],
+    });
+    expect(signedUrls).toHaveBeenCalledWith(["r1/a.webp"]);
+  });
+
+  it("building 필터를 건다", async () => {
+    const { GET } = await import("./route");
+    await GET(
+      new Request(
+        "https://local.test/api/facility-requests?status=all&building=7",
+      ),
+    );
+    expect(calls()).toContainEqual({ method: "eq", args: ["building_id", 7] });
+    expect(calls().some((call) => call.method === "in")).toBe(false);
+  });
+
+  it("조회가 실패하면 빈 목록이 아니라 500이다", async () => {
+    from.mockImplementation(() =>
+      queryStub({
+        data: null,
+        error: { code: "XX000", message: "boom" },
+        count: null,
+      }),
+    );
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { GET } = await import("./route");
+    const response = await GET(
+      new Request("https://local.test/api/facility-requests"),
+    );
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: "목록을 불러오지 못했어요",
+    });
+    expect(spy).toHaveBeenCalled();
+    expect(signedUrls).not.toHaveBeenCalled();
   });
 });
