@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { formatAdminUpdatedAt } from "@/lib/adminList";
+import { formatAdminReceivedAt } from "@/lib/adminList";
 import {
   FEEDBACK_STATUS_LABELS,
   type FeedbackItem,
@@ -65,7 +65,7 @@ export default function FeedbackDetailModal({
           {typeLabel}
         </div>
         <div className="ku-review-modal-meta">
-          <span>{formatAdminUpdatedAt(item.created_at)}</span>
+          <span>{formatAdminReceivedAt(item.created_at)}</span>
           {item.page_url && isWebUrl(item.page_url) && (
             <a href={item.page_url} target="_blank" rel="noreferrer">
               제보한 페이지

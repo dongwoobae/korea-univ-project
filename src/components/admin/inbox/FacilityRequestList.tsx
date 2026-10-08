@@ -3,7 +3,7 @@
 import AdminPagination from "@/components/admin/AdminPagination";
 import InboxFilterSelect from "@/components/admin/inbox/InboxFilterSelect";
 import { useInboxList } from "@/components/admin/inbox/useInboxList";
-import { formatAdminUpdatedAt } from "@/lib/adminList";
+import { formatAdminReceivedAt } from "@/lib/adminList";
 import {
   REQUEST_STATUS_LABELS,
   type FacilityRequestListItem,
@@ -83,7 +83,7 @@ export default function FacilityRequestList({
                   <span className="ku-inbox-row-meta">
                     사진 {item.photo_count} ·{" "}
                     {item.has_location ? "위치 있음" : "위치 없음"} ·{" "}
-                    {formatAdminUpdatedAt(item.created_at)}
+                    {formatAdminReceivedAt(item.created_at)}
                   </span>
                 </span>
                 <span className="ku-inbox-status" data-status={item.status}>

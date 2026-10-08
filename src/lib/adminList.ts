@@ -76,3 +76,10 @@ export function formatAdminUpdatedAt(value: string | null | undefined) {
   if (!date || Number.isNaN(date.getTime())) return "수정일 없음";
   return `수정 ${date.toLocaleDateString("ko-KR")}`;
 }
+
+/** 제보함 항목은 고친 시각이 아니라 들어온 시각을 보인다. */
+export function formatAdminReceivedAt(value: string | null | undefined) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "접수일 없음";
+  return `접수 ${date.toLocaleDateString("ko-KR")}`;
+}

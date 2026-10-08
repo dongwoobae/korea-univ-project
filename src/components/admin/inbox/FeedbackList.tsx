@@ -6,7 +6,7 @@ import FeedbackDetailModal from "@/components/admin/inbox/FeedbackDetailModal";
 import InboxFilterSelect from "@/components/admin/inbox/InboxFilterSelect";
 import { useInboxList } from "@/components/admin/inbox/useInboxList";
 import { authedFetch } from "@/lib/authedFetch";
-import { formatAdminUpdatedAt } from "@/lib/adminList";
+import { formatAdminReceivedAt } from "@/lib/adminList";
 import { FEEDBACK_TYPES } from "@/lib/feedback";
 import {
   FEEDBACK_STATUS_LABELS,
@@ -70,7 +70,7 @@ export default function FeedbackList({
                   {typeLabel(item.feedback_type)}
                 </span>
                 <span className="ku-inbox-row-meta">
-                  {formatAdminUpdatedAt(item.created_at)}
+                  {formatAdminReceivedAt(item.created_at)}
                 </span>
                 <select
                   aria-label="처리 상태"
