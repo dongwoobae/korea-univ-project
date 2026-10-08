@@ -180,7 +180,8 @@ Vercel 서버 함수의 요청 본문 한도가 4.5MB이고, 이 한도는 파�
 요청에 담으면 장당 1.3MB 정도로 묶여야 해서, 요청과 사진을 나눠 보낸다.
 
 1. `POST /api/facility-requests` — 입력값과 Turnstile 토큰(사진 없음). 통과하면 `{ id, uploadToken }`.
-2. 사진마다 `POST /api/facility-requests/{id}/photos` — 파일 한 장과 `uploadToken`.
+2. 사진마다 `POST /api/facility-requests/{id}/photos` — 파일 한 장과 `uploadToken`. 토큰은 `X-Upload-Token` 헤더로
+   보내 서버가 본문을 읽기 전에 검증한다(2026-10-08 후속 PR에서 multipart 필드에서 옮김).
 3. 사진마다 `올리는 중 / 완료 / 실패`를 보이고, 실패한 사진만 다시 시도할 수 있다(토큰 유효 동안).
 4. 모두 끝나면 완료 안내 "요청을 보냈어요. 관리자가 확인한 뒤 지도에 올라가요."
 

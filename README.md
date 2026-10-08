@@ -161,7 +161,8 @@ src/
       inbox-counts/route.ts          # 제보함 메뉴 배지 숫자
       admin-feedback/route.ts        # 피드백 목록 · [id] 상태 변경 (관리자)
       upload-facility-photo/route.ts # 시설 사진 → Supabase Storage
-      delete-facility-photo/route.ts
+      delete-facility-photo/route.ts # 시설 사진 한 장 삭제
+      delete-facility-photos/route.ts# 시설 삭제의 사진 단계 — 시설 폴더째 삭제
   components/
     MapWrapper.tsx                   # dynamic import (ssr: false)
     SidePanel.tsx                    # 건물 상세 패널 (사진·시설·즐겨찾기·TTS·스와이프 닫기)
@@ -211,7 +212,7 @@ src/
       BuildingPhotoManager.tsx       # 사진 업로드/삭제 (WebP 변환 · 실패만 재시도)
       BuildingVideoManager.tsx       # 건물 단위 시설 영상 섹션
       FacilityPhotoManager.tsx       # 시설 상세 모달의 사진 칸 (추가·삭제)
-      inbox/                         # 제보함 — 요청 목록·검토 모달·피드백 목록·상태 필터
+      inbox/                         # 제보함 — 요청 목록·검토 모달·피드백 목록·상태 필터·목록 훅
       building-detail/               # 건물 상세 카드 — 헤더·이름·단과대·시설 목록·폴리곤
       LandmarkFormModal.tsx / FeedbackEmailModal.tsx / AddFacilityButton.tsx
   lib/
@@ -257,6 +258,7 @@ src/
     facilityRequestClient.ts         # 요청 모달의 제출·사진 업로드 호출
     inboxStatus.ts                   # 제보함 필터 ↔ 상태 값, 상태 이름, 응답 타입
     uuid.ts                          # [id] 라우트의 형식 검사
+    responseError.ts                 # 관리자 API 실패 응답의 오류 문구 읽기
     server/
       supabaseAdmin.ts               # 서비스 키 클라이언트 (지연 생성)
       requestSecurity.ts             # 업로드 토큰 서명·검증, 접속 IP, IP 해시
