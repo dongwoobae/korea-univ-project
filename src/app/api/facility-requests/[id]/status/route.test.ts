@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryStub } from "@/test/queryStub";
 
+const ID = "5b0c1d2e-0000-4000-8000-000000000001";
+
 const requireAdmin = vi.fn();
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
-let updated: unknown[] = [{ id: "r1" }];
+let updated: unknown[] = [{ id: ID }];
 let queryError: unknown = null;
 const from = vi.fn(() => queryStub({ data: updated, error: queryError }));
 vi.mock("@/lib/server/supabaseAdmin", () => ({
@@ -14,25 +16,33 @@ type Calls = { method: string; args: unknown[] }[];
 const callsOf = (index: number) =>
   (from.mock.results[index].value as { calls: Calls }).calls;
 
-const call = (body: unknown) =>
+const call = (body: unknown, id = ID) =>
   [
-    new Request("https://local.test/api/facility-requests/r1/status", {
+    new Request(`https://local.test/api/facility-requests/${ID}/status`, {
       method: "POST",
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ id: "r1" }) },
+    { params: Promise.resolve({ id }) },
   ] as const;
 
 describe("POST .../status", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     requireAdmin.mockResolvedValue({ user: { id: "admin" } });
-    updated = [{ id: "r1" }];
+    updated = [{ id: ID }];
     queryError = null;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("형식이 틀린 id는 조회 전에 404다", async () => {
+    const { POST } = await import("./route");
+    const response = await POST(...call({ status: "reviewing" }, "../x"));
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "요청이 없어요" });
+    expect(from).not.toHaveBeenCalled();
   });
 
   it("관리자가 아니면 그 응답을 돌려주고 갱신하지 않는다", async () => {
@@ -56,7 +66,7 @@ describe("POST .../status", () => {
       method: "update",
       args: [{ status: "reviewing" }],
     });
-    expect(calls).toContainEqual({ method: "eq", args: ["id", "r1"] });
+    expect(calls).toContainEqual({ method: "eq", args: ["id", ID] });
     expect(calls).toContainEqual({ method: "eq", args: ["status", "new"] });
   });
 
@@ -70,7 +80,7 @@ describe("POST .../status", () => {
       method: "update",
       args: [{ status: "new" }],
     });
-    expect(calls).toContainEqual({ method: "eq", args: ["id", "r1"] });
+    expect(calls).toContainEqual({ method: "eq", args: ["id", ID] });
     expect(calls).toContainEqual({
       method: "eq",
       args: ["status", "reviewing"],

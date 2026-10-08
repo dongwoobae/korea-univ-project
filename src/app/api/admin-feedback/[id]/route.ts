@@ -1,6 +1,7 @@
 import { isFeedbackStatus } from "@/lib/inboxStatus";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { isUuid } from "@/lib/uuid";
 
 export async function PATCH(
   request: Request,
@@ -10,6 +11,8 @@ export async function PATCH(
   if (auth.response) return auth.response;
 
   const { id } = await params;
+  if (!isUuid(id))
+    return Response.json({ error: "피드백을 찾을 수 없어요" }, { status: 404 });
   const body = (await request.json().catch(() => null)) as {
     status?: unknown;
   } | null;

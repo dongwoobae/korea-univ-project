@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/requireAdmin";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { isUuid } from "@/lib/uuid";
 
 const OPPOSITE = { new: "reviewing", reviewing: "new" } as const;
 
@@ -10,6 +11,8 @@ export async function POST(
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
   const { id } = await params;
+  if (!isUuid(id))
+    return Response.json({ error: "요청이 없어요" }, { status: 404 });
   const body = (await request.json().catch(() => null)) as {
     status?: unknown;
   } | null;

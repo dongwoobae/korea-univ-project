@@ -55,6 +55,15 @@ describe("POST /api/facility-requests/[id]/photos", () => {
 
   const token = () => signUploadToken(ID, Date.now() + 60_000, "hs");
 
+  it("형식이 틀린 id는 404이고 올리지 않는다", async () => {
+    const { POST } = await import("./route");
+    const response = await POST(...post("../x", token()));
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "not_found" });
+    expect(uploadPhoto).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it("토큰이 맞으면 비공개 버킷 요청 폴더에 올리고 함수로 행을 만든다", async () => {
     const { POST } = await import("./route");
     const response = await POST(...post(ID, token()));

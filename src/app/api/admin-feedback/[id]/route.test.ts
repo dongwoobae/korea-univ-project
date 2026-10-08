@@ -8,13 +8,14 @@ vi.mock("@/lib/server/supabaseAdmin", () => ({
   supabaseAdmin: () => ({ from }),
 }));
 
-const call = (body: unknown) =>
+const ID = "5b0c1d2e-0000-4000-8000-000000000001";
+const call = (body: unknown, id = ID) =>
   [
     new Request("https://local.test/x", {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ id: "fb1" }) },
+    { params: Promise.resolve({ id }) },
   ] as const;
 
 describe("PATCH /api/admin-feedback/[id]", () => {
@@ -41,7 +42,25 @@ describe("PATCH /api/admin-feedback/[id]", () => {
       method: "update",
       args: [{ status: "resolved" }],
     });
-    expect(stub.calls).toContainEqual({ method: "eq", args: ["id", "fb1"] });
+    expect(stub.calls).toContainEqual({ method: "eq", args: ["id", ID] });
+  });
+
+  it("형식이 틀린 id는 404이고 갱신하지 않는다", async () => {
+    const { PATCH } = await import("./route");
+    const response = await PATCH(...call({ status: "new" }, "../x"));
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "피드백을 찾을 수 없어요" });
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  it("JSON이 아닌 본문은 400이고 갱신하지 않는다", async () => {
+    const { PATCH } = await import("./route");
+    const response = await PATCH(
+      new Request("https://local.test/x", { method: "PATCH", body: "nope" }),
+      { params: Promise.resolve({ id: ID }) },
+    );
+    expect(response.status).toBe(400);
+    expect(from).not.toHaveBeenCalled();
   });
 
   it("허용되지 않은 상태는 400이고 갱신하지 않는다", async () => {

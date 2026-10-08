@@ -5,10 +5,9 @@ import {
 import { removeObject, uploadPhoto } from "@/lib/server/requestPhotoStorage";
 import { verifyUploadToken } from "@/lib/server/requestSecurity";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { isUuid } from "@/lib/uuid";
 import { WEBP_SNIFF_BYTES, isWebP } from "@/lib/webpBytes";
 
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // multipart 경계·필드 이름이 파일 크기에 더해진다.
 const MULTIPART_OVERHEAD_BYTES = 64 * 1024;
 
@@ -21,7 +20,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  if (!UUID_PATTERN.test(id)) return fail("not_found", 404);
+  if (!isUuid(id)) return fail("not_found", 404);
   const secret = process.env.FACILITY_REQUEST_HASH_SECRET;
   if (!secret) return fail("unavailable", 503);
   if (

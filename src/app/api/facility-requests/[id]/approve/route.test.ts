@@ -23,7 +23,7 @@ vi.mock("@/lib/server/supabaseAdmin", () => ({
   supabaseAdmin: () => ({ from, rpc }),
 }));
 
-const ID = "r1";
+const ID = "5b0c1d2e-0000-4000-8000-000000000001";
 const fields = {
   facility_code: "elevator",
   name: "후문 엘리베이터",
@@ -32,13 +32,13 @@ const fields = {
   lat: 37.5,
   lng: 127.0,
 };
-const call = (body: unknown) =>
+const call = (body: unknown, id = ID) =>
   [
     new Request("https://local.test/x", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-    { params: Promise.resolve({ id: ID }) },
+    { params: Promise.resolve({ id }) },
   ] as const;
 
 describe("POST .../approve", () => {
@@ -65,6 +65,16 @@ describe("POST .../approve", () => {
 
   afterEach(() => {
     consoleError.mockRestore();
+  });
+
+  it("형식이 틀린 id는 조회 전에 404다", async () => {
+    const { POST } = await import("./route");
+    const response = await POST(...call({ fields, photoIds: [] }, "../x"));
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "요청이 없어요" });
+    expect(from).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+    expect(copyToFacility).not.toHaveBeenCalled();
   });
 
   it("고른 사진만 시설 폴더로 복사하고 함수 하나로 승인한 뒤 요청 사진을 정리한다", async () => {

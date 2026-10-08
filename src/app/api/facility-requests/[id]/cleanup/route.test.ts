@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryStub } from "@/test/queryStub";
 
+const ID = "5b0c1d2e-0000-4000-8000-000000000001";
+
 const requireAdmin = vi.fn();
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const cleanupRequestPhotos = vi.fn();
@@ -16,10 +18,10 @@ type Calls = { method: string; args: unknown[] }[];
 const callsOf = (index: number) =>
   (from.mock.results[index].value as { calls: Calls }).calls;
 
-const call = () =>
+const call = (id = ID) =>
   [
     new Request("https://local.test/x", { method: "POST" }),
-    { params: Promise.resolve({ id: "r1" }) },
+    { params: Promise.resolve({ id }) },
   ] as const;
 
 describe("POST .../cleanup", () => {
@@ -33,6 +35,15 @@ describe("POST .../cleanup", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it("형식이 틀린 id는 조회 전에 404다", async () => {
+    const { POST } = await import("./route");
+    const response = await POST(...call("../x"));
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "요청이 없어요" });
+    expect(from).not.toHaveBeenCalled();
+    expect(cleanupRequestPhotos).not.toHaveBeenCalled();
   });
 
   it("관리자가 아니면 그 응답을 돌려주고 조회·정리하지 않는다", async () => {
@@ -52,8 +63,8 @@ describe("POST .../cleanup", () => {
     const ok = await POST(...call());
     expect(ok.status).toBe(200);
     expect(await ok.json()).toEqual({ ok: true });
-    expect(callsOf(0)).toContainEqual({ method: "eq", args: ["id", "r1"] });
-    expect(cleanupRequestPhotos).toHaveBeenCalledWith("r1");
+    expect(callsOf(0)).toContainEqual({ method: "eq", args: ["id", ID] });
+    expect(cleanupRequestPhotos).toHaveBeenCalledWith(ID);
     row = { status: "new" };
     const blocked = await POST(...call());
     expect(blocked.status).toBe(409);

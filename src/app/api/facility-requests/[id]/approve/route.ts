@@ -13,6 +13,7 @@ import {
   removeFolder,
 } from "@/lib/server/requestPhotoStorage";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { isUuid } from "@/lib/uuid";
 
 function badRequest(error: string) {
   return NextResponse.json({ error }, { status: 400 });
@@ -32,6 +33,8 @@ export async function POST(
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
   const { id } = await params;
+  if (!isUuid(id))
+    return Response.json({ error: "요청이 없어요" }, { status: 404 });
 
   const body = (await request.json().catch(() => null)) as {
     fields?: unknown;

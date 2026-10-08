@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getAdminPageRange } from "@/lib/adminList";
 import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
@@ -46,6 +47,32 @@ describe("GET /api/admin-feedback", () => {
       method: "in",
       args: ["status", ["resolved"]],
     });
+  });
+
+  it("status가 없으면 신규·확인 중, 최신순·id 보조 정렬로 읽는다", async () => {
+    const stub = queryStub({ data: [row], error: null, count: 1 });
+    from.mockReturnValueOnce(stub);
+    const { GET } = await import("./route");
+    await GET(new Request("https://local.test/api/admin-feedback"));
+    expect(from).toHaveBeenCalledWith("feedback_submissions");
+    expect(stub.calls).toContainEqual({
+      method: "in",
+      args: ["status", ["new", "reviewing"]],
+    });
+    expect(stub.calls).toContainEqual({
+      method: "order",
+      args: ["created_at", { ascending: false }],
+    });
+    expect(stub.calls).toContainEqual({ method: "order", args: ["id"] });
+  });
+
+  it("page=2는 다음 구간을 읽는다", async () => {
+    const stub = queryStub({ data: [row], error: null, count: 1 });
+    from.mockReturnValueOnce(stub);
+    const { GET } = await import("./route");
+    await GET(new Request("https://local.test/api/admin-feedback?page=2"));
+    const { from: start, to } = getAdminPageRange(2);
+    expect(stub.calls).toContainEqual({ method: "range", args: [start, to] });
   });
 
   it("전체 필터는 상태 조건을 걸지 않는다", async () => {

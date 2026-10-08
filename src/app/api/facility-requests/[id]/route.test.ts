@@ -52,6 +52,15 @@ describe("GET /api/facility-requests/[id]", () => {
     vi.restoreAllMocks();
   });
 
+  it("형식이 틀린 id는 조회 전에 404다", async () => {
+    const { GET } = await import("./route");
+    const response = await GET(...call("../x"));
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "요청이 없어요" });
+    expect(from).not.toHaveBeenCalled();
+    expect(signedUrls).not.toHaveBeenCalled();
+  });
+
   it("관리자가 아니면 그 응답을 그대로 돌려주고 조회하지 않는다", async () => {
     requireAdmin.mockResolvedValue({
       response: Response.json({ error: "인증 필요" }, { status: 401 }),

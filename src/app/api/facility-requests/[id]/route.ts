@@ -2,6 +2,7 @@ import type { FacilityRequestDetail, RequestStatus } from "@/lib/inboxStatus";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { signedUrls } from "@/lib/server/requestPhotoStorage";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
+import { isUuid } from "@/lib/uuid";
 
 export async function GET(
   request: Request,
@@ -10,6 +11,8 @@ export async function GET(
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
   const { id } = await params;
+  if (!isUuid(id))
+    return Response.json({ error: "요청이 없어요" }, { status: 404 });
 
   const { data: row, error } = await supabaseAdmin()
     .from("facility_requests")
