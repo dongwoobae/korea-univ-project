@@ -6,6 +6,7 @@ type Tables = Database["public"]["Tables"];
 export type Building = Tables["buildings"]["Row"];
 export type Facility = Tables["building_facilities"]["Row"];
 export type FacilityType = Tables["facility_types"]["Row"];
+export type FacilityPhoto = Tables["facility_photos"]["Row"];
 export type College = Tables["colleges"]["Row"];
 export type BuildingPhoto = Tables["building_photos"]["Row"];
 export type Landmark = Tables["landmarks"]["Row"];
@@ -42,6 +43,8 @@ export type FacilityWithType = Facility & {
   facility_types: Partial<
     Pick<FacilityType, "code" | "label" | "label_en" | "label_zh">
   > | null;
+  /** 조회가 facility_photos를 embed한 경우에만 있다 */
+  facility_photos?: Pick<FacilityPhoto, "id" | "storage_path" | "sort_order">[];
 };
 
 export type BuildingWithCollege = Building & {
