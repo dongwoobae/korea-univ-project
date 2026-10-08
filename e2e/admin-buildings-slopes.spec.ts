@@ -482,7 +482,7 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     const preview = page
       .locator(".leaflet-pane.slope-preview-pane path")
       .first();
-    await expect(preview).toHaveAttribute("stroke", "#D75A07");
+    await expect(preview).toHaveAttribute("stroke", "#D6590B");
   });
 
   test("수정 화면에서 지우고 다시 그리기를 누르면 선과 입력값이 함께 비워지고 다시 그릴 수 있다", async ({
@@ -783,10 +783,10 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       .first();
 
     await page.getByLabel("구간 1 경사도").fill("1");
-    await expect(preview).toHaveAttribute("stroke", "#91D4C6");
+    await expect(preview).toHaveAttribute("stroke", "#0775A7");
 
     await page.getByLabel("구간 1 경사도").fill("10");
-    await expect(preview).toHaveAttribute("stroke", "#9A023C");
+    await expect(preview).toHaveAttribute("stroke", "#AD2936");
   });
 
   test("꼭짓점을 드래그하면 미리보기 선도 새 좌표를 따라간다", async ({
@@ -942,9 +942,8 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await page.goto("/");
     await page.getByRole("checkbox", { name: "경사도" }).check();
 
-    // 10°는 17.63%라 15% 초과 칸 #9A023C다(src/lib/slopeScale.ts).
-    // 픽스처의 두 행(3° #36A980, 7.2° #D75A07)은 이 색이 아니라 방금 저장한 경로만 잡힌다.
-    const saved = page.locator('path[stroke="#9A023C"]').first();
+    // 10°(17.63%)의 색. 픽스처의 두 행(3°, 7.2°)은 다른 색이라 방금 저장한 경로만 잡힌다.
+    const saved = page.locator('path[stroke="#AD2936"]').first();
     await expect(saved).toBeVisible();
 
     await saved.dispatchEvent("click");
