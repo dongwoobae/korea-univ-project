@@ -729,6 +729,13 @@ const REQUEST_FILTER: Record<string, string[] | null> = {
   done: ["approved", "rejected"],
   all: null,
 };
+const FEEDBACK_FILTER: Record<string, string[] | null> = {
+  open: ["new", "reviewing"],
+  new: ["new"],
+  reviewing: ["reviewing"],
+  done: ["resolved"],
+  all: null,
+};
 
 // ── /api/* : Next 라우트 핸들러 흉내 ─────────────────────────────────────
 // 공개 데이터(buildings/facilities/landmarks/slopes)와 관리자 액션(번역·사진/영상
@@ -933,8 +940,39 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     );
   if (path === "/api/feedback") {
     const submission = route.request().postDataJSON() as Row;
-    state.feedbackSubmissions.push(submission);
+    state.feedbackSubmissions.push({
+      id: `fb-${state.feedbackSubmissions.length + 1}`,
+      status: "new",
+      created_at: "2026-10-08T00:00:00Z",
+      ...submission,
+    });
     return json(route, { ok: true }, 201);
+  }
+  if (path === "/api/admin-feedback") {
+    const statuses =
+      FEEDBACK_FILTER[url.searchParams.get("status") ?? "open"] ?? null;
+    const items = state.feedbackSubmissions
+      .filter(
+        (row) => !statuses || statuses.includes(String(row.status ?? "new")),
+      )
+      .map((row) => ({
+        id: row.id,
+        feedback_type: row.feedback_type ?? row.type,
+        content: row.content,
+        page_url: row.page_url ?? row.pageUrl ?? null,
+        status: row.status ?? "new",
+        created_at: row.created_at ?? "2026-10-08T00:00:00Z",
+      }));
+    return json(route, { items, total: items.length });
+  }
+  const feedbackPatch = path.match(/^\/api\/admin-feedback\/([^/]+)$/);
+  if (feedbackPatch) {
+    const row = state.feedbackSubmissions.find(
+      (item) => item.id === feedbackPatch[1],
+    );
+    if (!row) return json(route, { error: "피드백이 없어요" }, 404);
+    row.status = (route.request().postDataJSON() as { status: string }).status;
+    return json(route, { status: row.status });
   }
   if (path.startsWith("/api/revalidate-")) return json(route, { ok: true });
   if (path === "/api/translate") {

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import FacilityRequestList from "@/components/admin/inbox/FacilityRequestList";
 import FacilityRequestReviewModal from "@/components/admin/inbox/FacilityRequestReviewModal";
+import FeedbackList from "@/components/admin/inbox/FeedbackList";
 import Toast from "@/components/Toast";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -95,7 +96,9 @@ export default function InboxPage() {
           onOpen={setOpenId}
           refreshKey={refreshKey}
         />
-      ) : null}
+      ) : (
+        <FeedbackList showToast={showToast} />
+      )}
       {openId && (
         <FacilityRequestReviewModal
           requestId={openId}

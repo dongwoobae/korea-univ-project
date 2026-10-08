@@ -1360,3 +1360,59 @@ button.ku-admin-overview-item {
   background: var(--ku-primary);
   color: #fff;
 }
+.ku-feedback-row {
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--ku-border);
+}
+.ku-feedback-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ku-feedback-head .ku-inbox-row-meta {
+  display: inline;
+}
+.ku-feedback-head select {
+  margin-left: auto;
+  padding: 4px 8px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 6px;
+  background: var(--ku-surface);
+  color: var(--ku-text-1);
+}
+.ku-feedback-type {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--ku-surface-raised);
+  color: var(--ku-text-2);
+  font-size: 11px;
+}
+.ku-feedback-content {
+  display: -webkit-box;
+  margin: 6px 0;
+  overflow: hidden;
+  color: var(--ku-text-1);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.ku-feedback-content[data-expanded="true"] {
+  display: block;
+}
+.ku-feedback-foot {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+.ku-feedback-foot button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ku-primary-text);
+  cursor: pointer;
+}
+.ku-feedback-foot a {
+  color: var(--ku-primary-text);
+}

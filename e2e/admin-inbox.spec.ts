@@ -230,3 +230,59 @@ test.describe("제보함 — 검토 모달", () => {
     ]);
   });
 });
+
+test.describe("제보함 — 피드백", () => {
+  test("피드백 탭에서 상태를 바꾸면 기본 목록에서 빠지고 처리 완료에 보인다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.feedbackSubmissions.push(
+      {
+        id: "fb-1",
+        feedback_type: "error",
+        content: "중앙도서관 경사로 위치가 틀려요",
+        page_url: "https://campus.example/",
+        status: "new",
+        created_at: "2026-10-08T00:00:00Z",
+      },
+      {
+        id: "fb-2",
+        feedback_type: "feature",
+        content: "영문 이름도 검색되면 좋겠어요",
+        page_url: null,
+        status: "reviewing",
+        created_at: "2026-10-07T00:00:00Z",
+      },
+    );
+    await page.goto("/admin/dashboard/inbox?tab=feedback");
+    const list = page.getByRole("list", { name: "피드백 목록" });
+    await expect(list.getByRole("listitem")).toHaveCount(2);
+    await expect(list.getByRole("listitem").first()).toContainText("오류 제보");
+
+    await list
+      .getByRole("listitem")
+      .first()
+      .getByRole("combobox", { name: "처리 상태" })
+      .selectOption("resolved");
+    await expect(list.getByRole("listitem")).toHaveCount(1);
+    expect(state.feedbackSubmissions[0].status).toBe("resolved");
+
+    await page
+      .getByRole("combobox", { name: "상태 필터" })
+      .selectOption("done");
+    await expect(list.getByRole("listitem")).toHaveCount(1);
+    await expect(list).toContainText("중앙도서관 경사로 위치가 틀려요");
+  });
+
+  test("목록을 불러오지 못하면 빈 목록이 아니라 오류로 보인다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.route("**/api/admin-feedback?*", (route) =>
+      route.fulfill({ status: 500, json: { error: "x" } }),
+    );
+    await page.goto("/admin/dashboard/inbox?tab=feedback");
+    await expect(page.getByText("목록을 불러오지 못했어요.")).toBeVisible();
+    await expect(page.getByText("피드백이 없어요.")).toHaveCount(0);
+  });
+});
