@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
+import { authedFetch } from "@/lib/authedFetch";
 import {
   FEEDBACK_EMAILS_FALLBACK,
   getSetting,
@@ -14,11 +15,13 @@ import {
 import FeedbackEmailModal from "@/components/admin/FeedbackEmailModal";
 import "../admin-ui.css";
 
+const INBOX_HREF = "/admin/dashboard/inbox";
 const NAV = [
   { label: "건물", href: "/admin/dashboard/buildings" },
   { label: "독립 시설", href: "/admin/dashboard/facilities" },
   { label: "명소", href: "/admin/dashboard/landmarks" },
   { label: "경사도", href: "/admin/dashboard/slopes" },
+  { label: "제보함", href: INBOX_HREF },
 ];
 
 export default function DashboardLayout({
@@ -33,6 +36,7 @@ export default function DashboardLayout({
   );
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [inboxCount, setInboxCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
@@ -47,6 +51,27 @@ export default function DashboardLayout({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCounts() {
+      const response = await authedFetch("/api/inbox-counts").catch(() => null);
+      if (!response?.ok || cancelled) return;
+      const body = (await response.json()) as {
+        requests: number;
+        feedback: number;
+      };
+      if (!cancelled) setInboxCount(body.requests + body.feedback);
+    }
+    const timer = window.setTimeout(() => void loadCounts(), 0);
+    const refresh = () => void loadCounts();
+    window.addEventListener("inboxCountsChanged", refresh);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      window.removeEventListener("inboxCountsChanged", refresh);
+    };
+  }, [pathname]);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user: authenticatedUser } }) => {
@@ -104,6 +129,14 @@ export default function DashboardLayout({
             return (
               <Link key={item.href} href={item.href} data-active={active}>
                 {item.label}
+                {item.href === INBOX_HREF && inboxCount > 0 && (
+                  <span
+                    className="ku-admin-nav-badge"
+                    aria-label={`신규 ${inboxCount}건`}
+                  >
+                    {inboxCount}
+                  </span>
+                )}
               </Link>
             );
           })}

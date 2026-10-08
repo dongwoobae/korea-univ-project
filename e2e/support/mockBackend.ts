@@ -721,6 +721,15 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   return json(route, []);
 }
 
+// 제보함 상태 필터. 운영 매핑(inboxStatus)을 import하지 않고 따로 적는다.
+const REQUEST_FILTER: Record<string, string[] | null> = {
+  open: ["new", "reviewing"],
+  new: ["new"],
+  reviewing: ["reviewing"],
+  done: ["approved", "rejected"],
+  all: null,
+};
+
 // ── /api/* : Next 라우트 핸들러 흉내 ─────────────────────────────────────
 // 공개 데이터(buildings/facilities/landmarks/slopes)와 관리자 액션(번역·사진/영상
 // 업로드·설정)을 상태 기반으로 응답. 매칭 안 되는 /api/*는 { ok: true }.
@@ -739,6 +748,46 @@ async function handleApi(route: Route, state: MockState, url: URL) {
             name_en: row.name_en,
           },
         })),
+    });
+  }
+  if (path === "/api/facility-requests" && route.request().method() === "GET") {
+    const statuses =
+      REQUEST_FILTER[url.searchParams.get("status") ?? "open"] ?? null;
+    const building = Number(url.searchParams.get("building"));
+    const items = state.facilityRequests
+      .filter((row) => !statuses || statuses.includes(String(row.status)))
+      .filter((row) => !building || row.building_id === building)
+      .map((row) => {
+        const photos = state.facilityRequestPhotos.filter(
+          (photo) => photo.request_id === row.id,
+        );
+        return {
+          id: row.id,
+          building_id: row.building_id,
+          building_name:
+            state.buildings.find((b) => b.id === row.building_id)?.name ?? null,
+          facility_code: row.facility_code,
+          name: row.name ?? null,
+          floor_info: row.floor_info ?? null,
+          has_location: row.lat != null && row.lng != null,
+          status: row.status,
+          created_at: row.created_at,
+          facility_id: row.facility_id ?? null,
+          photo_count: photos.length,
+          thumbnail_url: photos.length
+            ? "https://cdn.test/request-thumb.webp"
+            : null,
+        };
+      });
+    return json(route, { items, total: items.length });
+  }
+  if (path === "/api/inbox-counts") {
+    return json(route, {
+      requests: state.facilityRequests.filter((row) => row.status === "new")
+        .length,
+      feedback: state.feedbackSubmissions.filter(
+        (row) => (row.status ?? "new") === "new",
+      ).length,
     });
   }
   if (
