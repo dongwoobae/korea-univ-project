@@ -125,7 +125,7 @@ src/
       dashboard/
         layout.tsx                   # 인증 가드, 4탭 내비, 모바일 계정 메뉴
         page.tsx                     # /admin/dashboard → buildings 리다이렉트
-        buildings/page.tsx           # 건물 목록 — 보완 현황 카드 + 플래그 필터 + 검색 + 서버 페이지네이션
+        buildings/page.tsx           # 건물 목록 — 보완 현황 카드 + 플래그·캠퍼스 필터 + 검색 + 서버 페이지네이션
         facilities/page.tsx          # 독립(건물 미소속) 시설 관리
         landmarks/page.tsx           # 캠퍼스 명소 관리
         slopes/page.tsx              # 경사도 경로 목록 — 수정·삭제
@@ -242,7 +242,7 @@ src/
     lib/                             # journal·영상 대상 분류
   types/
     domain.ts                        # database.types.ts 기반 도메인 타입
-e2e/                                 # Playwright E2E (15 spec) + support/mockBackend.ts
+e2e/                                 # Playwright E2E (16 spec) + support/mockBackend.ts
 supabase/
   migrations/                        # SQL 마이그레이션 (17개)
   database.types.ts                  # 생성된 DB 타입
@@ -467,11 +467,11 @@ npm run test:e2e:ui   # Playwright UI 모드
 
 ### 테스트 범위
 
-**Vitest 단위 테스트 (39개 파일, 273개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, WebP 바이트 판정·Safari 대체 인코딩, 영상 변환 인자·포스터 캡처·업로드 순서, 일괄 변환 대상 판정·journal, 피드백 입력 검증, 피드백·명소 삭제·사진 업로드·영상 presign/confirm/삭제 API 라우트.
+**Vitest 단위 테스트 (39개 파일, 267개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, WebP 바이트 판정·Safari 대체 인코딩, 영상 변환 인자·포스터 캡처·업로드 순서, 일괄 변환 대상 판정·journal, 피드백 입력 검증, 피드백·명소 삭제·사진 업로드·영상 presign/confirm/삭제 API 라우트.
 
 경사 경로 판단 로직은 `src/lib/slopeRoute.ts`(경로·저장 포맷)와 `src/lib/slopeScale.ts`(단위·색·기준선)의 순수 함수로 빼 두었습니다. Vitest가 `environment: "node"`로 돌기 때문에, Leaflet에 묶인 채로는 단위 테스트가 닿지 않습니다.
 
-**Playwright E2E (15개 spec, 146개 시나리오)**
+**Playwright E2E (16개 spec, 150개 시나리오)**
 
 | 파일                                    | 검증 대상                                                                                                                                                                                                                                                                                                                                                         |
 | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -483,6 +483,7 @@ npm run test:e2e:ui   # Playwright UI 모드
 | `admin-auth.spec.ts`                    | 비로그인 리다이렉트, 로그인/로그아웃, 피드백 이메일 변경                                                                                                                                                                                                                                                                                                          |
 | `admin-buildings-slopes.spec.ts`        | **보완 현황 서버 집계 표시**, 서버 페이지네이션, 건물 생성 검증·폴리곤 저장, 소프트 삭제/복원, **사진 파일별 성공/실패 + 실패만 재시도**, Safari처럼 canvas가 WebP를 못 만들면 wasm으로 인코딩, **경로 그리기·구간 입력·저장 포맷**, 열어둔 사이 바뀐 행 보호, 깨진 저장 포맷 거부, 도·% 입력, 현재 위치·구간 번호, **저장한 경로가 공개 지도에 그려지는지 확인** |
 | `admin-buildings-flag-filter.spec.ts`   | 경고 카드 클릭 시 목록 개수가 카드 숫자와 일치, 필터·검색어 AND 결합, 0건 카드의 빈 목록 처리                                                                                                                                                                                                                                                                     |
+| `admin-buildings-campus-filter.spec.ts` | 경계 판정 캠퍼스로 목록 좁히기, 경고 카드와 AND 결합, 0건 문구, 초기화                                                                                                                                                                                                                                                                                            |
 | `admin-building-facility-modal.spec.ts` | 시설 행 → 상세 모달, 유형별 아이콘, 배지가 붙는 조건, 상태 토글의 목록 반영, 초점 복귀(닫기·ESC·삭제), 일괄 재번역 성공/실패                                                                                                                                                                                                                                      |
 | `admin-building-video.spec.ts`          | 건물 동영상 섹션 목록, 업로드 모달, 교체 경고, 미설치 시설의 공개 안 됨 표시, 시설 없는 건물 비활성                                                                                                                                                                                                                                                               |
 | `admin-content.spec.ts`                 | 독립 시설 검색·필터·정렬, 시설 CRUD, **저장 성공과 번역 실패 분리 + 재번역**, 영상 업로드(변환 실패 시 원본 대체)→자막→삭제, 변환 도구 불러오는 중 취소, 포스터 업로드 실패, 명소 CRUD·필터·페이지네이션                                                                                                                                                          |
@@ -591,7 +592,7 @@ UI 고정 문자열은 `src/lib/translations.ts`(언어당 키 72개)에서 관�
 
 - TypeScript 전면 이관(`strict`), 암묵적 `any` 제거, `no-console` 규칙
 - 모달 초점 관리(중첩 스택), 토스트 라이브 리전, 44px 터치 타겟, 폼 라벨 연결
-- Vitest 단위 39파일 + Playwright E2E 15 spec
+- Vitest 단위 39파일 + Playwright E2E 16 spec
 - CI 8잡 게이트 + 마이그레이션 안전 검사·이력 대조
 - Supabase keep-alive 크론
 
