@@ -47,7 +47,7 @@ test.describe("시설 등록 요청", () => {
       building_id: 1,
       facility_code: "elevator",
       floor_info: "3층",
-      turnstile_token: "e2e-turnstile-token",
+      turnstile_token: expect.stringMatching(/^e2e-turnstile-token-\d+$/),
     });
     expect(state.facilityRequestPhotos).toHaveLength(2);
   });
@@ -68,15 +68,16 @@ test.describe("시설 등록 요청", () => {
     page,
   }) => {
     await installMockBackend(page);
-    await page.route("**/api/facility-requests", (route) =>
-      route.request().method() === "POST"
-        ? route.fulfill({
-            status: 429,
-            contentType: "application/json",
-            body: '{"error":"rate_limited"}',
-          })
-        : route.fallback(),
-    );
+    const tokens: string[] = [];
+    await page.route("**/api/facility-requests", (route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      tokens.push(route.request().postDataJSON().turnstileToken);
+      return route.fulfill({
+        status: 429,
+        contentType: "application/json",
+        body: '{"error":"rate_limited"}',
+      });
+    });
     await openLibrary(page);
     await page.getByRole("button", { name: "시설 등록 요청" }).click();
     const dialog = page.getByRole("dialog", { name: "시설 등록 요청" });
@@ -85,8 +86,94 @@ test.describe("시설 등록 요청", () => {
     await expect(dialog.getByRole("alert")).toHaveText(
       "요청이 많아요. 잠시 후 다시 시도해 주세요",
     );
+    const submit = dialog.getByRole("button", { name: "요청 보내기" });
+    await expect(submit).toBeEnabled();
+    await submit.click();
+    await expect.poll(() => tokens.length).toBe(2);
+    expect(tokens[1]).not.toBe(tokens[0]);
+  });
+
+  async function fillWithPhotos(
+    page: import("@playwright/test").Page,
+    count: number,
+  ) {
+    await openLibrary(page);
+    await page.getByRole("button", { name: "시설 등록 요청" }).click();
+    const dialog = page.getByRole("dialog", { name: "시설 등록 요청" });
+    await dialog.getByLabel("시설 유형 *").selectOption("elevator");
+    await dialog.locator('input[type="file"]').setInputFiles(
+      Array.from({ length: count }, (_, i) => ({
+        name: `p${i}.png`,
+        mimeType: "image/png",
+        buffer: PNG,
+      })),
+    );
     await expect(
-      dialog.getByRole("button", { name: "요청 보내기" }),
-    ).toBeEnabled();
+      dialog.locator('.ku-request-photo-slot[data-status="ready"]'),
+    ).toHaveCount(count);
+    return dialog;
+  }
+
+  test("사진별로 진행을 보이고, 실패한 사진만 다시 올린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page);
+    let posts = 0;
+    await page.route("**/api/facility-requests/*/photos", async (route) => {
+      posts += 1;
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      if (posts === 2)
+        return route.fulfill({
+          status: 500,
+          contentType: "application/json",
+          body: '{"error":"server"}',
+        });
+      return route.fallback();
+    });
+    const dialog = await fillWithPhotos(page, 3);
+
+    await dialog.getByRole("button", { name: "요청 보내기" }).click();
+    await expect(
+      dialog.locator('.ku-request-photo-slot[data-status="uploading"]'),
+    ).toHaveCount(1);
+    await expect(
+      dialog.getByRole("button", { name: "실패한 사진 다시 올리기" }),
+    ).toBeVisible();
+    await expect(
+      dialog.locator('.ku-request-photo-slot[data-status="failed"]'),
+    ).toHaveCount(1);
+    await expect(
+      dialog.locator('.ku-request-photo-slot[data-status="done"]'),
+    ).toHaveCount(2);
+    expect(posts).toBe(3);
+
+    await dialog
+      .getByRole("button", { name: "실패한 사진 다시 올리기" })
+      .click();
+    await expect(dialog.getByRole("status")).toContainText("요청을 보냈어요");
+    expect(posts).toBe(4);
+    expect(state.facilityRequestPhotos).toHaveLength(3);
+  });
+
+  test("업로드 토큰이 거절되면 남은 사진을 올리지 않고 안내한다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    let posts = 0;
+    await page.route("**/api/facility-requests/*/photos", (route) => {
+      posts += 1;
+      return route.fulfill({
+        status: 403,
+        contentType: "application/json",
+        body: '{"error":"token"}',
+      });
+    });
+    const dialog = await fillWithPhotos(page, 3);
+    await dialog.getByRole("button", { name: "요청 보내기" }).click();
+    await expect(dialog.getByRole("status")).toContainText("요청을 보냈어요");
+    await expect(dialog.getByRole("status")).toContainText(
+      "시간이 지나 사진을 더 올릴 수 없어요",
+    );
+    expect(posts).toBe(1);
   });
 });

@@ -1039,7 +1039,8 @@ export async function installMockBackend(
       return route.fulfill({
         status: 200,
         contentType: "application/javascript",
-        body: `window.turnstile = { render(el, o) { setTimeout(() => o.callback("e2e-turnstile-token"), 0); return "w1"; }, remove() {} };`,
+        // 렌더마다 다른 토큰을 줘 화면이 새 토큰을 받았는지 가릴 수 있게 한다.
+        body: `window.turnstile = { n: 0, render(el, o) { const n = ++this.n; setTimeout(() => o.callback("e2e-turnstile-token-" + n), 0); return "w" + n; }, remove() {} };`,
       });
     }
 

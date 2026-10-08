@@ -150,7 +150,7 @@ export default function FacilityFields({
         </>
       )}
 
-      <div style={labelStyle}>
+      <div className="ku-facility-location-label" style={labelStyle}>
         {labels.location}
         {locationRequired ? " *" : ""}
       </div>

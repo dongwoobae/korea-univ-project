@@ -59,6 +59,7 @@ export default function FacilityRequestModal({
     EMPTY_FACILITY_FIELDS,
   );
   const [types, setTypes] = useState<{ code: string; label: string }[]>([]);
+  const [typesFailed, setTypesFailed] = useState(false);
   const [slots, setSlots] = useState<PhotoSlot[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [widgetKey, setWidgetKey] = useState(0);
@@ -67,6 +68,7 @@ export default function FacilityRequestModal({
   const [website, setWebsite] = useState("");
   const requestRef = useRef<{ id: string; uploadToken: string } | null>(null);
   const slotsRef = useRef(slots);
+  const mountedRef = useRef(true);
   const dialogRef = useModalFocus<HTMLDivElement>({
     onClose,
     closeOnEscape: phase !== "sending",
@@ -75,6 +77,13 @@ export default function FacilityRequestModal({
   useEffect(() => {
     slotsRef.current = slots;
   }, [slots]);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   useEffect(
     () => () => {
@@ -89,10 +98,17 @@ export default function FacilityRequestModal({
     void supabase
       .from("facility_types")
       .select("code, label, label_en, label_zh")
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (cancelled) return;
+        if (error || !data) {
+          if (error)
+            console.error("[facility-request] 시설 유형 조회 실패", error);
+          setTypesFailed(true);
+          return;
+        }
+        setTypesFailed(false);
         setTypes(
-          (data ?? []).map((type) => ({
+          data.map((type) => ({
             code: type.code,
             label:
               (lang === "en"
@@ -131,10 +147,20 @@ export default function FacilityRequestModal({
             updateSlot(key, { status: "too_large" });
             return;
           }
-          updateSlot(key, {
-            status: "ready",
-            blob,
-            previewUrl: URL.createObjectURL(blob),
+          if (!mountedRef.current) return;
+          // 변환 중 슬롯이 지워졌으면 주소를 만들지 않는다 — 만들면 해제할 곳이 없다.
+          setSlots((previous) => {
+            if (!previous.some((slot) => slot.key === key)) return previous;
+            return previous.map((slot) =>
+              slot.key === key
+                ? {
+                    ...slot,
+                    status: "ready",
+                    blob,
+                    previewUrl: URL.createObjectURL(blob),
+                  }
+                : slot,
+            );
           });
         })
         .catch(() => updateSlot(key, { status: "failed" }));
@@ -165,6 +191,7 @@ export default function FacilityRequestModal({
   async function uploadPending() {
     const request = requestRef.current;
     if (!request) return;
+    if (!mountedRef.current) return;
     setPhase("uploading");
     let stopped = false;
     let failed = false;
@@ -173,12 +200,14 @@ export default function FacilityRequestModal({
       if (!slot.blob || (slot.status !== "ready" && slot.status !== "failed"))
         continue;
       if (stopped) continue;
+      if (!mountedRef.current) return;
       updateSlot(slot.key, { status: "uploading" });
       const result = await uploadRequestPhoto(
         request.id,
         request.uploadToken,
         slot.blob,
       );
+      if (!mountedRef.current) return;
       if (result === "done") {
         updateSlot(slot.key, { status: "done" });
         continue;
@@ -273,13 +302,15 @@ export default function FacilityRequestModal({
           <div role="status" className="ku-request-modal-done">
             <p>{t("requestDone")}</p>
             {errorKey && <p className="ku-request-modal-note">{t(errorKey)}</p>}
-            <button
-              type="button"
-              className="ku-request-modal-primary"
-              onClick={onClose}
-            >
-              {t("closeLabel")}
-            </button>
+            <div className="ku-request-modal-actions">
+              <button
+                type="button"
+                className="ku-request-modal-primary"
+                onClick={onClose}
+              >
+                {t("closeLabel")}
+              </button>
+            </div>
           </div>
         ) : (
           <>
@@ -310,7 +341,7 @@ export default function FacilityRequestModal({
               <div className="ku-request-photos-label">
                 {t("requestPhotosLabel")}
               </div>
-              <ul className="ku-request-photo-slots">
+              <ul className="ku-request-photo-slots" aria-live="polite">
                 {slots.map((slot, index) => (
                   <li
                     key={slot.key}
@@ -386,6 +417,11 @@ export default function FacilityRequestModal({
             {errorKey && (
               <p role="alert" className="ku-request-modal-error">
                 {t(errorKey)}
+              </p>
+            )}
+            {typesFailed && !errorKey && (
+              <p role="alert" className="ku-request-modal-error">
+                {t("errFacilityTypes")}
               </p>
             )}
 
