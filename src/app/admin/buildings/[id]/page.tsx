@@ -213,6 +213,10 @@ export default function BuildingDetail() {
       return;
     }
     invalidateNeighborBuildings();
+    // 공개 시설 목록이 삭제된 건물의 시설을 빼고 캐시되므로 비운다.
+    await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
+      () => {},
+    );
     router.push("/admin/dashboard");
   }
 
@@ -226,6 +230,9 @@ export default function BuildingDetail() {
       return;
     }
     invalidateNeighborBuildings();
+    await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
+      () => {},
+    );
     showToast("건물이 복구되었어요!");
     fetchData();
   }

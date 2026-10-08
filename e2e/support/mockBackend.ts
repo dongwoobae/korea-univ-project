@@ -930,7 +930,12 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   if (path === "/api/facilities")
     return json(
       route,
-      state.facilities.filter((row) => row.is_installed),
+      state.facilities.filter(
+        (row) =>
+          row.is_installed &&
+          !state.buildings.find((building) => building.id === row.building_id)
+            ?.is_deleted,
+      ),
     );
   if (path === "/api/landmarks") return json(route, state.landmarks);
   // 실제 라우트는 id·name·segments만 select한다. 넓게 돌려주면 공개 지도가

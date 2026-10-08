@@ -11,7 +11,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from("building_facilities")
     .select(
-      "*, facility_types(code, label, label_en, label_zh), buildings(name, name_en)",
+      "*, facility_types(code, label, label_en, label_zh), buildings(name, name_en, is_deleted)",
     )
     .eq("is_installed", true)
     .not("lat", "is", null)
@@ -19,5 +19,9 @@ export async function GET() {
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
-  return Response.json(data ?? []);
+  // 소프트 삭제된 건물은 지도에서 빠지므로 그 건물의 시설 마커도 뺀다. 건물이 없는 독립 시설은 남긴다.
+  // is_deleted가 null인 건물도 살아 있다.
+  return Response.json(
+    (data ?? []).filter((row) => row.buildings?.is_deleted !== true),
+  );
 }

@@ -244,6 +244,12 @@ test.describe("건물과 경사도 관리자 흐름", () => {
 
   test("건물명 수정과 소프트 삭제·복원을 수행한다", async ({ page }) => {
     const state = await installMockBackend(page, { authenticated: true });
+    // 공개 시설 목록은 삭제된 건물의 시설을 빼고 캐시된다 — 삭제·복구가 캐시를 비워야 한다.
+    let facilityRevalidations = 0;
+    page.on("request", (request) => {
+      if (request.url().endsWith("/api/revalidate-facilities"))
+        facilityRevalidations += 1;
+    });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/admin/buildings/1");
 
@@ -278,9 +284,11 @@ test.describe("건물과 경사도 관리자 흐름", () => {
       .click();
     await page.getByRole("button", { name: "복구", exact: true }).click();
     await expect(page.getByRole("button", { name: /건물 복구/ })).toBeVisible();
+    expect(facilityRevalidations).toBe(1);
 
     await page.getByRole("button", { name: /건물 복구/ }).click();
     await expect(page.getByRole("button", { name: "건물 삭제" })).toBeVisible();
+    await expect.poll(() => facilityRevalidations).toBe(2);
 
     await page.getByRole("button", { name: /중앙 엘리베이터/ }).click();
     const dialog = page.getByRole("dialog", { name: "중앙 엘리베이터" });
