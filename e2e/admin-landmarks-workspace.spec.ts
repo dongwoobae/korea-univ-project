@@ -542,7 +542,7 @@ test.describe("명소 작업 화면 — 상세 패널 편집", () => {
     const detail = await openSquirrel(page);
 
     for (let step = 0; step < 4; step += 1) {
-      await page.getByRole("button", { name: "Zoom out" }).click();
+      await page.getByRole("button", { name: "축소" }).click();
     }
     await page
       .locator(".ku-map-workspace-map .leaflet-container")

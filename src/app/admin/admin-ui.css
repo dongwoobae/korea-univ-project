@@ -2193,6 +2193,151 @@ button.ku-admin-overview-item {
   font-size: 12px;
   font-weight: 600;
 }
+.ku-landmark-emoji-button {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  color: var(--ku-text-1);
+  background: color-mix(in srgb, var(--ku-bg) 70%, var(--ku-surface));
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+.ku-landmark-emoji-button:hover:not(:disabled),
+.ku-landmark-emoji-button[aria-expanded="true"] {
+  border-color: var(--ku-crimson-700);
+}
+.ku-landmark-emoji-button:focus-visible {
+  outline: 2px solid var(--ku-primary-text);
+  outline-offset: 2px;
+}
+.ku-landmark-emoji-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.ku-landmark-picker-loading {
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-landmark-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 14px;
+}
+.ku-landmark-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.ku-landmark-fields input {
+  height: 40px;
+}
+.ku-landmark-fields textarea,
+.ku-landmark-translation-form textarea {
+  min-height: 84px;
+  padding: 9px 11px !important;
+  resize: vertical;
+}
+.ku-landmark-photo-frame {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--ku-divider);
+}
+.ku-landmark-photo-empty {
+  display: grid;
+  place-items: center;
+  border: 1.5px dashed var(--ku-border-input);
+  color: var(--ku-text-3);
+  background: transparent;
+  font-size: 12.5px;
+}
+.ku-landmark-translation {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--ku-bg) 55%, var(--ku-surface));
+}
+.ku-landmark-translation-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ku-landmark-translation-head h3 {
+  color: var(--ku-text-1);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ku-landmark-translation-fill {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--ku-crimson-700);
+  border-radius: 8px;
+  color: var(--ku-primary-text);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-landmark-translation-fill:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.ku-landmark-translation-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+.ku-landmark-translation-rows > div {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 13px;
+}
+.ku-landmark-translation-rows dt {
+  color: var(--ku-text-3);
+  font-weight: 600;
+}
+.ku-landmark-translation-rows dd {
+  margin: 0;
+  color: var(--ku-text-1);
+  overflow-wrap: anywhere;
+}
+.ku-landmark-translation-empty {
+  color: var(--ku-status-warn-fg);
+  font-weight: 600;
+}
+.ku-landmark-translation-actions {
+  display: flex;
+  gap: 14px;
+}
+.ku-landmark-translation-actions button {
+  padding: 0;
+  border: 0;
+  color: var(--ku-primary-text);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-landmark-translation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .ku-detail-hint {
   color: var(--ku-text-3);
   font-size: 12px;
@@ -2411,5 +2556,12 @@ button.ku-admin-overview-item {
   }
   .ku-detail-media {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .ku-landmark-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ku-landmark-translation-actions button,
+  .ku-landmark-translation-fill {
+    min-height: 44px;
   }
 }

@@ -44,6 +44,8 @@ export interface DetailDraftPin {
   position: LatLngTuple | null;
   setPosition: (position: LatLngTuple) => void;
   saving: boolean;
+  /** 새로 만들기의 초안 핀이 보일 글자(이모지 마커). 없으면 지도가 정한 기본 모양을 쓴다 */
+  emoji?: string;
 }
 
 export const ADMIN_MOBILE_QUERY = "(max-width: 767px)";

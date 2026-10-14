@@ -91,7 +91,10 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
   }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/landmarks");
-    await page.getByRole("button", { name: /다람쥐길/ }).click();
+    await page
+      .getByRole("region", { name: "명소", exact: true })
+      .getByRole("button", { name: /다람쥐길/ })
+      .click();
     const panel = page.getByRole("region", { name: "다람쥐길", exact: true });
 
     await expect(panel.getByLabel("이름 *")).toBeEditable();
