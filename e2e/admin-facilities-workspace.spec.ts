@@ -1045,17 +1045,48 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
   }) => {
     await installMockBackend(page, { authenticated: true });
     await openFromBuildings(page);
-    await saveAndSettle(page, await editName(page));
+    const historyLength = () => page.evaluate(() => window.history.length);
+    const detail = await editName(page);
+    await expect.poll(() => unloadBlocked(page)).toBe(true);
+    const trapped = await historyLength();
+    await saveAndSettle(page, detail);
 
     await detailPanel(page, "고치는 중")
       .getByLabel("시설 이름 (선택)")
       .fill("다시 고치는 중");
+    // 다시 고쳐도 기록을 더 쌓지 않는다(설계 2026-10-14 3.4)
+    await expect.poll(() => unloadBlocked(page)).toBe(true);
+    expect(await historyLength()).toBe(trapped);
     await page.evaluate(() => window.history.back());
     await page
       .getByRole("dialog", { name: LEAVE_TITLE })
       .getByRole("button", { name: "나가기" })
       .click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
+  });
+
+  test("다른 사이트에서 들어온 탭에서도 뒤로가기의 나가기는 그 사이트로 돌아간다", async ({
+    page,
+    baseURL,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    const external = "https://external.test/";
+    await page.route(external, (route) =>
+      route.fulfill({
+        contentType: "text/html",
+        body: `<a href="${baseURL}/admin/dashboard/facilities">관리자</a>`,
+      }),
+    );
+    await page.goto(external);
+    await page.getByRole("link", { name: "관리자" }).click();
+    await editName(page);
+
+    await page.evaluate(() => window.history.back());
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(page).toHaveURL(external);
   });
 
   test("앞으로 가기로 돌아온 기록에서 고친 뒤 나가기도 이전 화면으로 간다", async ({
@@ -1173,6 +1204,19 @@ test.describe("독립 시설 작업 화면 — 모바일", () => {
     await expect(detail).toHaveCount(0);
     await expect(sheet).toBeVisible();
   });
+
+  test("상세 위쪽 지도 띠를 누르면 핀이 옮겨진다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities?id=f-installed");
+    const detail = detailPanel(page, "중앙광장 경사로");
+    const coords = detail.locator(".ku-detail-coords");
+    await expect(coords).toHaveText(/\d/);
+    const before = await coords.textContent();
+
+    const strip = await detail.locator(".ku-detail-panel-strip").boundingBox();
+    await page.mouse.click(strip!.x + 40, strip!.y + strip!.height - 30);
+    await expect(coords).not.toHaveText(before ?? "");
+  });
 });
 
 test.describe("독립 시설 작업 화면 — 태블릿", () => {
@@ -1212,4 +1256,35 @@ test.describe("독립 시설 작업 화면 — 태블릿", () => {
     await expect(detail).toHaveCount(0);
     await expect(list).toBeVisible();
   });
+
+  // 경계는 패널 폭에서 계산한 ADMIN_NARROW_QUERY와 CSS 미디어 쿼리가 함께 정한다. 둘이 어긋나면 한쪽에서 깨진다
+  for (const { width, listHidden } of [
+    { width: 963, listHidden: true },
+    { width: 964, listHidden: false },
+  ]) {
+    test(`${width}px에서 상세를 열면 목록이 ${listHidden ? "숨는다" : "남고 겹치지 않는다"}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await installMockBackend(page, { authenticated: true });
+      await page.goto("/admin/dashboard/facilities");
+      const list = listPanel(page);
+
+      await listRow(page, "공사 중 주차구역").click();
+      const detail = detailPanel(page, "공사 중 주차구역");
+      await expect(detail).toBeVisible();
+      if (listHidden) {
+        await expect(list).toBeHidden();
+        return;
+      }
+      await expect(list).toBeVisible();
+      const [listBox, zoomBox, detailBox] = await Promise.all([
+        list.boundingBox(),
+        page.locator(".ku-map-workspace .leaflet-control-zoom").boundingBox(),
+        detail.boundingBox(),
+      ]);
+      expect(listBox!.x + listBox!.width).toBeLessThan(zoomBox!.x);
+      expect(zoomBox!.x + zoomBox!.width).toBeLessThan(detailBox!.x);
+    });
+  }
 });
