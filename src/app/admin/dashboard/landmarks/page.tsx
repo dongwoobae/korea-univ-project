@@ -1,352 +1,249 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { authedFetch } from "@/lib/authedFetch";
-import { deleteLandmark } from "@/lib/landmarkDelete";
-import type { Landmark } from "@/types/domain";
+import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
-import ConfirmModal from "@/components/ConfirmModal";
-import LandmarkFormModal from "@/components/admin/LandmarkFormModal";
-import AdminListControls from "@/components/admin/AdminListControls";
-import AdminPagination from "@/components/admin/AdminPagination";
-import { LandmarkEmoji } from "@/components/map/iconography";
+import LandmarkDetailPanel from "@/components/admin/landmarks/LandmarkDetailPanel";
+import LandmarkListRow from "@/components/admin/landmarks/LandmarkListRow";
+import AdminMapWorkspace from "@/components/admin/workspace/AdminMapWorkspace";
+import WorkspaceListPanel from "@/components/admin/workspace/WorkspaceListPanel";
 import {
-  buildAdminSearchFilter,
-  formatAdminUpdatedAt,
-  getAdminPageCount,
-  getAdminPageRange,
-  type AdminListSort,
-} from "@/lib/adminList";
-import { useDebouncedValue } from "@/lib/useDebouncedValue";
+  ADMIN_MOBILE_QUERY,
+  type WorkspaceFocus,
+} from "@/components/admin/workspace/types";
+import { useAdminCollection } from "@/components/admin/workspace/useAdminCollection";
+import {
+  applyWorkspaceState,
+  useWorkspaceCloseRequest,
+  useWorkspaceSelection,
+} from "@/components/admin/workspace/useWorkspaceSelection";
+import {
+  INITIAL_ADMIN_COLLECTION_QUERY,
+  pageOfItem,
+  viewAdminCollection,
+  type AdminChip,
+} from "@/lib/adminCollection";
+import {
+  LANDMARK_CHIPS,
+  LANDMARK_COLLECTION_POLICY,
+  landmarkCampusLabel,
+  type LandmarkChip,
+} from "@/lib/landmarkWorkspace";
+import { supabase } from "@/lib/supabaseClient";
+import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
+import { useMediaQuery } from "@/lib/useMediaQuery";
+import { readWorkspaceState, type WorkspaceState } from "@/lib/workspaceUrl";
+import type { Landmark } from "@/types/domain";
 
-const KU_CENTER: [number, number] = [37.5893, 127.0327];
+const LandmarkWorkspaceMap = dynamic(
+  () => import("@/components/admin/landmarks/LandmarkWorkspaceMap"),
+  { ssr: false },
+);
+
+const NOT_FOUND_MESSAGE = "명소를 찾지 못했어요. 삭제됐거나 주소가 틀렸어요.";
+
+function currentSelection() {
+  return readWorkspaceState(window.location.search, { allowEdit: false });
+}
 
 export default function LandmarksPage() {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">(
+    "loading",
+  );
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
-  const [editingLandmark, setEditingLandmark] = useState<Landmark | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState<Landmark | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [photoFilter, setPhotoFilter] = useState("all");
-  const [sort, setSort] = useState<AdminListSort>("updated-desc");
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const debouncedSearch = useDebouncedValue(searchQuery);
+  const loadRequestRef = useRef(0);
+  const loadedRef = useRef(false);
+  const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
+  const { boundaries } = useCampusBoundaries();
+  const { state, request } = useWorkspaceSelection({ allowEdit: false });
+  const collection = useAdminCollection(landmarks, LANDMARK_COLLECTION_POLICY);
+  const { view, setPage } = collection;
+  const selected =
+    state.mode === "view"
+      ? (landmarks.find((landmark) => landmark.id === state.id) ?? null)
+      : null;
 
-  const hasActiveFilters =
-    searchQuery.trim() !== "" ||
-    photoFilter !== "all" ||
-    sort !== "updated-desc";
-
-  function resetControls() {
-    setSearchQuery("");
-    setPhotoFilter("all");
-    setSort("updated-desc");
-    setPage(1);
-  }
-
-  function showToast(message: string, type = "success") {
-    setToast({ message, type });
-  }
-
-  const fetchData = useCallback(async () => {
-    const { from, to } = getAdminPageRange(page);
-    let query = supabase.from("landmarks").select("*", { count: "exact" });
-    const searchFilter = buildAdminSearchFilter(
-      ["name", "name_en", "name_zh", "description"],
-      debouncedSearch,
-    );
-    if (searchFilter) query = query.or(searchFilter);
-    if (photoFilter === "with-photo") query = query.neq("photo_url", "");
-    if (photoFilter === "without-photo") query = query.is("photo_url", null);
-    query =
-      sort === "name"
-        ? query.order("name", { ascending: true })
-        : query.order("updated_at", {
-            ascending: sort === "updated-asc",
-            nullsFirst: false,
-          });
-    const { data, error, count } = await query
-      .order("id", { ascending: true })
-      .range(from, to);
+  const loadLandmarks = useCallback(async () => {
+    loadRequestRef.current += 1;
+    const ticket = loadRequestRef.current;
+    const { data, error } = await supabase
+      .from("landmarks")
+      .select("*")
+      .order("id", { ascending: true });
+    // 저장·사진 변경 뒤의 다시 받기가 겹치면 마지막 요청만 그린다
+    if (ticket !== loadRequestRef.current) return;
     if (error) {
-      setLoadError(true);
-      setLoading(false);
+      if (loadedRef.current) {
+        setToast({
+          message: "명소 목록을 새로 불러오지 못했어요",
+          type: "error",
+        });
+      } else {
+        setStatus("error");
+      }
       return;
     }
-    const nextTotal = count ?? 0;
-    const pageCount = getAdminPageCount(nextTotal);
-    if (page > pageCount) {
-      setPage(pageCount);
+    const rows: Landmark[] = data ?? [];
+    const firstLoad = !loadedRef.current;
+    loadedRef.current = true;
+    setLandmarks(rows);
+    setStatus("ready");
+    // 존재 검사는 조회가 끝난 뒤에만 한다. 조회 전 빈 목록으로 판정하면 맞는 링크도 닫힌다(설계 2026-10-14 3.4)
+    const selection = currentSelection();
+    if (selection.mode !== "view") return;
+    if (!rows.some((row) => row.id === selection.id)) {
+      applyWorkspaceState({ mode: "closed" });
+      setToast({ message: NOT_FOUND_MESSAGE, type: "warning" });
       return;
     }
-    setLoadError(false);
-    setLandmarks(data ?? []);
-    setTotalCount(nextTotal);
-    setLoading(false);
-  }, [debouncedSearch, page, photoFilter, sort]);
+    // 페이지는 첫 성공에서만 맞춘다. 다시 받기는 보던 페이지를 둔다
+    if (firstLoad) {
+      const page = pageOfItem(
+        viewAdminCollection(
+          rows,
+          LANDMARK_COLLECTION_POLICY,
+          INITIAL_ADMIN_COLLECTION_QUERY,
+        ).matched,
+        selection.id,
+        LANDMARK_COLLECTION_POLICY.id,
+      );
+      if (page !== null) setPage(page);
+    }
+  }, [setPage]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void fetchData(), 0);
-    return () => window.clearTimeout(timer);
-  }, [fetchData]);
+    const timer = window.setTimeout(() => void loadLandmarks(), 0);
+    return () => {
+      window.clearTimeout(timer);
+      // 떠난 뒤에 끝난 조회가 그때의 주소(다른 화면)에서 ?id=를 지우지 않게 진행 중인 요청을 버린다
+      loadRequestRef.current += 1;
+    };
+  }, [loadLandmarks]);
 
-  async function handleDelete(landmark: Landmark) {
-    const error = await deleteLandmark(landmark);
-    setConfirmDelete(null);
-    if (error) {
-      showToast(error, "error");
-      return;
-    }
-    fetchData();
-    authedFetch("/api/revalidate-landmarks", { method: "POST" }).catch(
-      () => {},
-    );
-    showToast("명소가 삭제되었어요");
+  function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
+    request(next, alsoApply);
   }
 
-  if (loading)
-    return (
-      <div style={{ padding: 40, color: "var(--ku-text-3)" }}>
-        불러오는 중...
-      </div>
-    );
-  if (loadError)
-    return (
-      <div style={{ padding: 40, textAlign: "center" }}>
-        <p>명소 목록을 불러오지 못했어요.</p>
-        <button onClick={fetchData}>다시 시도</button>
-      </div>
-    );
+  useWorkspaceCloseRequest(state.mode !== "closed", () =>
+    requestSelection({ mode: "closed" }),
+  );
+
+  // 칩·검색·정렬은 설계 2026-10-14 3.3대로 선택을 푼다
+  function clearSelectionThen(change: () => void) {
+    requestSelection({ mode: "closed" }, change);
+  }
+
+  function select(id: string) {
+    if (!mobile && state.mode === "view" && state.id === id) {
+      requestSelection({ mode: "closed" });
+      return;
+    }
+    const page = collection.pageOf(id);
+    requestSelection({ mode: "view", id }, () => {
+      if (page !== null) setPage(page);
+    });
+  }
+
+  function retry() {
+    // 목록을 받은 뒤에 "loading"으로 가면, 이번 조회가 실패할 때 토스트만 뜨고 패널이 거기 멈춘다
+    if (!loadedRef.current) setStatus("loading");
+    void loadLandmarks();
+  }
+
+  const focus: WorkspaceFocus | null = selected
+    ? {
+        key: selected.id,
+        target: { point: [selected.lat, selected.lng] },
+      }
+    : null;
+
+  const chips = [
+    { key: "all", label: "전체", count: view.chipCounts.all },
+    ...LANDMARK_CHIPS.map((chip) => ({
+      ...chip,
+      count: view.chipCounts[chip.key],
+    })),
+  ];
+
+  const closePanel = () => requestSelection({ mode: "closed" });
+  const detail =
+    state.mode === "new" ? (
+      <LandmarkDetailPanel
+        key="new"
+        landmark={null}
+        boundaries={boundaries}
+        onClose={closePanel}
+      />
+    ) : selected ? (
+      <LandmarkDetailPanel
+        key={selected.id}
+        landmark={selected}
+        boundaries={boundaries}
+        onClose={closePanel}
+      />
+    ) : null;
 
   return (
-    <div style={{ padding: 24, maxWidth: 860, margin: "0 auto" }}>
-      <div
-        style={{
-          background: "var(--ku-surface)",
-          borderRadius: 10,
-          padding: 20,
-          border: "1px solid var(--ku-border)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 4,
-          }}
-        >
-          <div style={{ fontSize: 15, fontWeight: 600 }}>명소</div>
-          <button
-            onClick={() => setCreating(true)}
-            style={{
-              fontSize: 13,
-              padding: "8px 16px",
-              background: "var(--ku-primary)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              cursor: "pointer",
-            }}
-          >
-            + 명소 추가
-          </button>
-        </div>
-        <div
-          style={{ fontSize: 12, color: "var(--ku-text-2)", marginBottom: 16 }}
-        >
-          지도에 표시할 캠퍼스 명소를 관리해요.
-        </div>
-
-        <AdminListControls
-          searchValue={searchQuery}
-          onSearchChange={(value) => {
-            setSearchQuery(value);
-            setPage(1);
-          }}
-          searchLabel="명소 검색"
-          searchPlaceholder="명소명 또는 설명 검색"
-          resultCount={landmarks.length}
-          totalCount={totalCount}
-          hasActiveFilters={hasActiveFilters}
-          onReset={resetControls}
-        >
-          <select
-            value={photoFilter}
-            onChange={(event) => {
-              setPhotoFilter(event.target.value);
-              setPage(1);
-            }}
-            aria-label="명소 사진 필터"
-          >
-            <option value="all">사진 전체</option>
-            <option value="with-photo">사진 있음</option>
-            <option value="without-photo">사진 없음</option>
-          </select>
-          <select
-            value={sort}
-            onChange={(event) => {
-              setSort(event.target.value as AdminListSort);
-              setPage(1);
-            }}
-            aria-label="명소 정렬"
-          >
-            <option value="updated-desc">최근 수정순</option>
-            <option value="updated-asc">오래 수정순</option>
-            <option value="name">이름순</option>
-          </select>
-        </AdminListControls>
-
-        {totalCount === 0 && !hasActiveFilters ? (
-          <div
-            style={{
-              textAlign: "center",
-              color: "var(--ku-text-3)",
-              fontSize: 13,
-              padding: "20px 0",
-            }}
-          >
-            등록된 명소가 없어요
-          </div>
-        ) : totalCount === 0 ? (
-          <div className="ku-admin-list-empty">조건에 맞는 명소가 없어요</div>
-        ) : (
-          landmarks.map((landmark) => (
-            <div
-              key={landmark.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 12,
-                padding: "12px 0",
-                borderBottom: "1px solid var(--ku-border)",
-              }}
-            >
-              <div style={{ display: "grid", placeItems: "center", width: 28 }}>
-                <LandmarkEmoji icon={landmark.icon} size={20} />
-              </div>
-              <div style={{ flex: "1 1 220px", minWidth: 0 }}>
-                <div
-                  data-testid="admin-list-item-name"
-                  style={{ fontSize: 14, fontWeight: 500 }}
-                >
-                  {landmark.name}
-                </div>
-                {landmark.description && (
-                  <div style={{ fontSize: 12, color: "var(--ku-text-2)" }}>
-                    {landmark.description}
-                  </div>
-                )}
-                <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
-                  위도 {landmark.lat} / 경도 {landmark.lng}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--ku-text-3)" }}>
-                  {formatAdminUpdatedAt(landmark.updated_at)}
-                </div>
-              </div>
-              <span
-                style={{
-                  fontSize: 11,
-                  padding: "3px 8px",
-                  borderRadius: 20,
-                  background: landmark.photo_url
-                    ? "var(--ku-status-warn-bg)"
-                    : "var(--ku-divider)",
-                  color: landmark.photo_url
-                    ? "var(--ku-status-warn-fg)"
-                    : "var(--ku-text-2)",
-                  flexShrink: 0,
-                }}
-              >
-                {landmark.photo_url ? "사진 있음" : "사진 없음"}
-              </span>
-              <button
-                onClick={() => setEditingLandmark(landmark)}
-                className="ku-admin-row-action"
-                style={{
-                  fontSize: 12,
-                  color: "var(--ku-primary-text)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                수정
-              </button>
-              <button
-                onClick={() => setConfirmDelete(landmark)}
-                className="ku-admin-row-action ku-admin-row-action--danger"
-                style={{
-                  fontSize: 12,
-                  color: "var(--ku-danger)",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                }}
-              >
-                삭제
-              </button>
-            </div>
-          ))
+    <>
+      <AdminMapWorkspace
+        focus={focus}
+        mobileMapStrip={0}
+        renderMap={(slot) => (
+          <LandmarkWorkspaceMap
+            {...slot}
+            landmarks={view.matched}
+            selected={selected}
+            onSelect={select}
+          />
         )}
-        <AdminPagination
-          page={page}
-          totalCount={totalCount}
-          onPageChange={setPage}
-        />
-      </div>
-
-      {creating && (
-        <LandmarkFormModal
-          center={KU_CENTER}
-          landmark={null}
-          onClose={() => setCreating(false)}
-          onSaved={() => {
-            setCreating(false);
-            fetchData();
-            authedFetch("/api/revalidate-landmarks", { method: "POST" }).catch(
-              () => {},
-            );
-          }}
-          showToast={showToast}
-        />
-      )}
-
-      {editingLandmark && (
-        <LandmarkFormModal
-          center={[editingLandmark.lat, editingLandmark.lng]}
-          landmark={editingLandmark}
-          onClose={() => setEditingLandmark(null)}
-          onSaved={() => {
-            setEditingLandmark(null);
-            fetchData();
-            authedFetch("/api/revalidate-landmarks", { method: "POST" }).catch(
-              () => {},
-            );
-          }}
-          onPhotoChanged={fetchData}
-          showToast={showToast}
-        />
-      )}
-
-      {confirmDelete && (
-        <ConfirmModal
-          message="명소를 삭제할까요?"
-          description="삭제한 명소와 연결된 사진은 복구할 수 없어요."
-          confirmLabel="삭제"
-          onConfirm={() => handleDelete(confirmDelete)}
-          onCancel={() => setConfirmDelete(null)}
-        />
-      )}
-
+        list={
+          <WorkspaceListPanel
+            title="명소"
+            caption={`지도에 표시하는 캠퍼스 명소 · 총 ${view.total}개`}
+            addLabel="＋ 명소 추가"
+            onAdd={() => requestSelection({ mode: "new" })}
+            searchValue={collection.search}
+            onSearchChange={(value) =>
+              clearSelectionThen(() => collection.setSearch(value))
+            }
+            searchLabel="명소 검색"
+            searchPlaceholder="명소명 또는 설명 검색"
+            chips={chips}
+            activeChip={collection.chip}
+            onChipChange={(key) =>
+              clearSelectionThen(() =>
+                collection.setChip(key as AdminChip<LandmarkChip>),
+              )
+            }
+            sort={collection.sort}
+            onSortChange={(sort) =>
+              clearSelectionThen(() => collection.setSort(sort))
+            }
+            sortLabel="명소 정렬"
+            status={status}
+            errorMessage="명소 목록을 불러오지 못했어요."
+            onRetry={retry}
+            matchedCount={view.matched.length}
+            page={view.page}
+            onPageChange={(page) => clearSelectionThen(() => setPage(page))}
+            legend={[]}
+          >
+            {view.pageItems.map((landmark) => (
+              <LandmarkListRow
+                key={landmark.id}
+                landmark={landmark}
+                campus={landmarkCampusLabel(landmark, boundaries)}
+                selected={landmark.id === selected?.id}
+                onSelect={() => select(landmark.id)}
+              />
+            ))}
+          </WorkspaceListPanel>
+        }
+        detail={detail}
+      />
       {toast && (
         <Toast
           message={toast.message}
@@ -354,6 +251,6 @@ export default function LandmarksPage() {
           onClose={() => setToast(null)}
         />
       )}
-    </div>
+    </>
   );
 }

@@ -73,12 +73,16 @@ function addChipLandmarks(state: MockState) {
       id: "l-no-photo",
       name: "사진 없는 연못",
       photo_url: null,
+      lat: 37.5905,
+      lng: 127.0345,
       updated_at: "2026-07-20T00:00:00Z",
     }),
     landmark({
       id: "l-no-translation",
       name: "번역 빈 정자",
       name_en: "",
+      lat: 37.5885,
+      lng: 127.0305,
       updated_at: "2026-07-10T00:00:00Z",
     }),
   );
