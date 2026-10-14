@@ -1089,6 +1089,45 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await expect(page).toHaveURL(external);
   });
 
+  test("뒤로 갈 기록이 없으면 나가기에도 머물고, 다음 뒤로가기에서 다시 묻는다", async ({
+    page: opener,
+    baseURL,
+  }) => {
+    // Playwright가 연 페이지는 about:blank 기록이 남는다. 주소 없이 연 창은 첫 이동이 빈 문서를 갈아 끼운다
+    const [page] = await Promise.all([
+      opener.waitForEvent("popup"),
+      opener.evaluate(() => window.open()),
+    ]);
+    await installMockBackend(page, { authenticated: true });
+    await page.goto(`${baseURL}/admin/dashboard/facilities`);
+    expect(await page.evaluate(() => window.history.length)).toBe(1);
+    const detail = await editName(page);
+
+    await page.evaluate(() => window.history.back());
+    const confirm = page.getByRole("dialog", { name: LEAVE_TITLE });
+    await confirm.getByRole("button", { name: "나가기" }).click();
+    // 판정을 기다리는 동안 낸 beforeunload는 떠나는 것으로 읽히므로, 기록을 다시 쌓은 뒤에 본다
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            (window.history.state as Record<string, unknown> | null)
+              ?.kuUnsavedTrap === true,
+        ),
+      )
+      .toBe(true);
+    await expect(page).toHaveURL(
+      /\/admin\/dashboard\/facilities\?id=f-installed$/,
+    );
+    expect(await unloadBlocked(page)).toBe(true);
+    await expect(detail.getByLabel("시설 이름 (선택)")).toHaveValue(
+      "고치는 중",
+    );
+
+    await page.evaluate(() => window.history.back());
+    await expect(confirm).toBeVisible();
+  });
+
   test("앞으로 가기로 돌아온 기록에서 고친 뒤 나가기도 이전 화면으로 간다", async ({
     page,
   }) => {
