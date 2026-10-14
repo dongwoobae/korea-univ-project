@@ -2170,3 +2170,218 @@ button.ku-admin-overview-item {
   color: var(--ku-text-3);
   font-size: 12px;
 }
+
+/* 목록·줌 버튼·상세 패널이 나란히 들어가지 않는 폭(설계 2026-10-14 3.5). 경계는 types.ts의 ADMIN_NARROW_QUERY와 같다.
+   visibility로 숨겨 상세를 닫았을 때 목록의 스크롤 위치가 남는다. */
+@media (min-width: 768px) and (max-width: 963px) {
+  .ku-map-workspace[data-detail-open] .ku-float-panel {
+    visibility: hidden;
+  }
+  .ku-map-workspace[data-detail-open] .leaflet-top.leaflet-left {
+    left: 16px;
+  }
+}
+
+@media (max-width: 767px) {
+  .ku-map-workspace {
+    height: calc(
+      100dvh - var(--ku-admin-header-height) - var(--ku-admin-nav-height) -
+        env(safe-area-inset-bottom)
+    );
+  }
+  .ku-map-workspace .leaflet-control-zoom {
+    display: none;
+  }
+  .ku-map-workspace .leaflet-bottom.leaflet-right {
+    bottom: 150px;
+  }
+  .ku-map-workspace[data-detail-open] .leaflet-bottom.leaflet-right {
+    right: 0;
+  }
+  .ku-workspace-mobile-bar {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ku-workspace-mobile-bar .ku-workspace-search input,
+  .ku-workspace-mobile-bar .ku-workspace-search-row select {
+    height: 46px;
+    border-radius: 12px;
+    box-shadow: var(--ku-shadow-floating);
+    font-size: 16px;
+  }
+  .ku-workspace-mobile-bar .ku-chip-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ku-workspace-mobile-bar .ku-chip {
+    min-height: 44px;
+    box-shadow: var(--ku-shadow-floating);
+  }
+  .ku-bottom-sheet {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    height: 150px;
+    border-radius: 18px 18px 0 0;
+    background: var(--ku-surface);
+    box-shadow: 0 -6px 24px rgba(28, 25, 23, 0.14);
+    transition: height 0.25s ease;
+  }
+  .ku-bottom-sheet[data-expanded] {
+    height: 58%;
+  }
+  .ku-bottom-sheet-handle {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 100%;
+    min-height: 44px;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .ku-bottom-sheet-handle span {
+    width: 40px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--ku-border-input);
+  }
+  .ku-bottom-sheet-head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px 10px;
+  }
+  .ku-bottom-sheet-head h1 {
+    font-size: 18px;
+    font-weight: 700;
+  }
+  .ku-bottom-sheet-head [role="status"] {
+    flex: 1;
+    color: var(--ku-text-3);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .ku-bottom-sheet-head select {
+    min-height: 44px;
+    border: 0;
+    color: var(--ku-text-2);
+    background: transparent;
+    font-size: 13px;
+  }
+  .ku-bottom-sheet-head .ku-workspace-primary {
+    min-height: 44px;
+  }
+  .ku-bottom-sheet-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+  .ku-bottom-sheet .ku-workspace-row {
+    min-height: 64px;
+  }
+  .ku-map-workspace[data-detail-open] .ku-bottom-sheet,
+  .ku-map-workspace[data-detail-open] .ku-workspace-mobile-bar {
+    display: none;
+  }
+
+  .ku-detail-panel {
+    inset: 0;
+    width: auto;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+  }
+  .ku-detail-panel > * {
+    background: var(--ku-surface);
+    pointer-events: auto;
+  }
+  /* 투명한 띠로 아래 지도가 보이고, 띠를 누르면 지도가 받아 핀을 옮긴다(설계 2026-10-14 2.5) */
+  .ku-detail-panel > .ku-detail-panel-strip {
+    flex: none;
+    height: var(--ku-map-strip);
+    background: transparent;
+    pointer-events: none;
+  }
+  .ku-detail-panel-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 4px;
+    height: 52px;
+    padding: 0 6px;
+    border-bottom: 1px solid var(--ku-divider);
+  }
+  .ku-detail-panel-back {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    color: var(--ku-text-1);
+    background: none;
+    cursor: pointer;
+    font-size: 26px;
+    line-height: 1;
+  }
+  .ku-detail-panel-bar h2 {
+    min-width: 0;
+    overflow: hidden;
+    font-size: 16px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ku-detail-panel-body {
+    padding: 16px 14px;
+  }
+  .ku-detail-panel-foot {
+    padding: 10px 14px;
+  }
+  .ku-detail-panel-foot .ku-detail-panel-spacer {
+    display: none;
+  }
+  .ku-detail-panel-foot .ku-workspace-button {
+    flex: 1;
+    height: 50px;
+  }
+  .ku-detail-panel-foot .ku-workspace-primary {
+    flex: 2;
+    height: 50px;
+  }
+  .ku-detail-form input,
+  .ku-detail-form select,
+  .ku-detail-form textarea {
+    min-height: 46px;
+    font-size: 16px !important;
+  }
+  .ku-detail-segment button {
+    min-height: 44px;
+    padding: 0 18px;
+  }
+  .ku-detail-translation-pill button,
+  .ku-detail-video button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .ku-workspace-button {
+    min-height: 44px;
+  }
+  .ku-detail-remove {
+    align-self: flex-start;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .ku-detail-media {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

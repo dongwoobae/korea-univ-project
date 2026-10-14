@@ -53,15 +53,31 @@ export const DEFAULT_WORKSPACE_VIEWPORT: WorkspaceViewport = {
   zoom: 17,
 };
 
-// admin-ui.css의 .ku-float-panel·.ku-detail-panel 폭·여백과 모바일 .ku-detail-panel-bar 높이에 맞춘다.
+// admin-ui.css의 .ku-float-panel·.ku-detail-panel·줌 버튼 폭·여백과 모바일 .ku-detail-panel-bar 높이에 맞춘다.
 const PANEL_GAP = 16;
 const LIST_PANEL_WIDTH = 404;
 const DETAIL_PANEL_WIDTH = 460;
+const ZOOM_CONTROL_WIDTH = 36;
 const MOBILE_DETAIL_BAR = 52;
+const SIDE_BY_SIDE_WIDTH =
+  PANEL_GAP +
+  LIST_PANEL_WIDTH +
+  PANEL_GAP +
+  ZOOM_CONTROL_WIDTH +
+  PANEL_GAP +
+  DETAIL_PANEL_WIDTH +
+  PANEL_GAP;
+
+/**
+ * 목록·줌 버튼·상세 패널을 나란히 놓을 수 없는 폭. 상세를 여는 동안 목록을 숨긴다(설계 2026-10-14 3.5).
+ * admin-ui.css의 태블릿 미디어 쿼리와 같은 경계다.
+ */
+export const ADMIN_NARROW_QUERY = `(max-width: ${SIDE_BY_SIDE_WIDTH - 1}px)`;
 
 /** 선택한 항목을 패널 밑이 아닌 곳에 놓는 여백(핸드오버 "지도 가시 영역") */
 export function workspaceInsets(options: {
   mobile: boolean;
+  narrow: boolean;
   detailOpen: boolean;
   height: number;
   mapStrip: number;
@@ -78,12 +94,13 @@ export function workspaceInsets(options: {
       left: 0,
     };
   }
+  const listHidden = options.narrow && options.detailOpen;
   return {
     top: PANEL_GAP,
     right: options.detailOpen
       ? PANEL_GAP + DETAIL_PANEL_WIDTH + PANEL_GAP
       : PANEL_GAP,
     bottom: PANEL_GAP,
-    left: PANEL_GAP + LIST_PANEL_WIDTH + PANEL_GAP,
+    left: listHidden ? PANEL_GAP : PANEL_GAP + LIST_PANEL_WIDTH + PANEL_GAP,
   };
 }

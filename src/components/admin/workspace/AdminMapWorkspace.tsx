@@ -10,6 +10,7 @@ import {
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import {
   ADMIN_MOBILE_QUERY,
+  ADMIN_NARROW_QUERY,
   DEFAULT_WORKSPACE_VIEWPORT,
   workspaceInsets,
   type WorkspaceFocus,
@@ -43,6 +44,7 @@ export default function AdminMapWorkspace({
   const [commands, setCommands] = useState<WorkspaceMapCommands | null>(null);
   const focusedKeyRef = useRef<string | null>(null);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
+  const narrow = useMediaQuery(ADMIN_NARROW_QUERY);
   const detailOpen = detail !== null;
 
   useEffect(() => {
@@ -56,12 +58,13 @@ export default function AdminMapWorkspace({
       focus.target,
       workspaceInsets({
         mobile,
+        narrow,
         detailOpen,
         height: rootRef.current?.clientHeight ?? 0,
         mapStrip: mobileMapStrip,
       }),
     );
-  }, [commands, focus, mobile, detailOpen, mobileMapStrip]);
+  }, [commands, focus, mobile, narrow, detailOpen, mobileMapStrip]);
 
   return (
     <div
