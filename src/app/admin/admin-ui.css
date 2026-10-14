@@ -774,9 +774,9 @@ button.ku-admin-overview-item {
   margin-top: 20px;
 }
 
-/* 지도 작업 화면으로 아직 옮기지 않은 탭(명소·경사도·제보함)의 입력 색과 버튼 반경을 맞춘다.
-   작업 화면은 자기 클래스가 값을 정하므로 뺀다. 마지막 탭을 옮기는 PR이 이 규칙을 지운다
-   (설계 2026-10-14 3.1). */
+/* 지도 작업 화면으로 아직 옮기지 않은 탭(경사도·제보함)의 입력 색과 버튼 반경을 맞춘다.
+   작업 화면은 자기 클래스가 값을 정하므로 뺀다. 명소의 이모지 피커는 작업 화면 안에 있어 이 규칙 밖이다.
+   피커 입력의 색은 후속으로 다룬다. 마지막 탭을 옮기는 PR이 이 규칙을 지운다(설계 2026-10-14 3.1). */
 .ku-admin-content > :not(.ku-map-workspace) input,
 .ku-admin-content > :not(.ku-map-workspace) textarea,
 .ku-admin-content > :not(.ku-map-workspace) select {
