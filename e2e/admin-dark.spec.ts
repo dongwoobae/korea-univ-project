@@ -110,7 +110,7 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
 
   test("시설 폼 모달에 하드코딩 밝은 색이 남지 않는다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/facilities");
+    await page.goto("/admin/buildings/1");
     await page.getByRole("button", { name: "+ 시설 추가" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
 

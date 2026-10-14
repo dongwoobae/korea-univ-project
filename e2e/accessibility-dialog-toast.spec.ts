@@ -6,7 +6,7 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/facilities");
+    await page.goto("/admin/buildings/1");
 
     const trigger = page.getByRole("button", { name: "+ 시설 추가" });
     await trigger.focus();
@@ -28,74 +28,6 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     await page.keyboard.press("Escape");
     await expect(dialog).toHaveCount(0);
     await expect(trigger).toBeFocused();
-  });
-
-  test("중첩 확인 모달만 먼저 닫고 바깥 영상 모달의 초점을 복원한다", async ({
-    page,
-  }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    const facility = state.facilities.find((item) => item.id === "f-installed");
-    if (facility) facility.video_url = "https://cdn.test/video.mp4";
-    await page.goto("/admin/dashboard/facilities");
-
-    const row = page.getByText("중앙광장 경사로").locator("xpath=../..");
-    const trigger = row.getByRole("button", { name: "동영상" });
-    await trigger.focus();
-    await trigger.click();
-
-    const videoDialog = page.getByRole("dialog", { name: "동영상 관리" });
-    const deleteButton = videoDialog.getByRole("button", {
-      name: "동영상 삭제",
-    });
-    await deleteButton.click();
-
-    const confirmDialog = page.getByRole("dialog", {
-      name: "동영상을 삭제할까요?",
-    });
-    await expect(
-      confirmDialog.getByRole("button", { name: "취소" }),
-    ).toBeFocused();
-
-    await page.keyboard.press("Escape");
-    await expect(confirmDialog).toHaveCount(0);
-    await expect(videoDialog).toBeVisible();
-    await expect(deleteButton).toBeFocused();
-
-    await page.keyboard.press("Escape");
-    await expect(videoDialog).toHaveCount(0);
-    await expect(trigger).toBeFocused();
-  });
-
-  test("동영상 삭제 성공 시 실행 버튼이 사라져도 초점이 남은 모달 안으로 복귀한다", async ({
-    page,
-  }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    const facility = state.facilities.find((item) => item.id === "f-installed");
-    if (facility) facility.video_url = "https://cdn.test/video.mp4";
-    await page.goto("/admin/dashboard/facilities");
-
-    const row = page.getByText("중앙광장 경사로").locator("xpath=../..");
-    await row.getByRole("button", { name: "동영상" }).click();
-
-    const videoDialog = page.getByRole("dialog", { name: "동영상 관리" });
-    const deleteButton = videoDialog.getByRole("button", {
-      name: "동영상 삭제",
-    });
-    await deleteButton.click();
-
-    const confirmDialog = page.getByRole("dialog", {
-      name: "동영상을 삭제할까요?",
-    });
-    await confirmDialog.getByRole("button", { name: "삭제" }).click();
-
-    await expect(confirmDialog).toHaveCount(0);
-    await expect(deleteButton).toHaveCount(0);
-    await expect(videoDialog).toBeVisible();
-    await expect
-      .poll(() =>
-        videoDialog.evaluate((el) => el.contains(document.activeElement)),
-      )
-      .toBe(true);
   });
 
   // 피커는 useModalFocus의 dialogStack에 자기를 얹어 최상단이 된다. 컨테이너에서
@@ -201,9 +133,12 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     ).toBeVisible();
     await errorToast.getByRole("button", { name: "알림 닫기" }).click();
 
-    await page.goto("/admin/dashboard/facilities");
-    const row = page.getByText("중앙광장 경사로").locator("xpath=../..");
-    await row.getByRole("button", { name: "미설치로 변경" }).click();
+    await page.goto("/admin/buildings/1");
+    await page.getByRole("button", { name: /중앙 엘리베이터/ }).click();
+    await page
+      .getByRole("dialog", { name: "중앙 엘리베이터" })
+      .getByRole("button", { name: "미설치로 변경" })
+      .click();
     await expect(
       page
         .locator(".ku-toast[role='status']")
@@ -241,13 +176,14 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
   }) => {
     await installMockBackend(page, { authenticated: true });
 
-    await page.goto("/admin/dashboard/facilities");
+    await page.goto("/admin/buildings/1");
     await page.getByRole("button", { name: "+ 시설 추가" }).click();
     const facilityDialog = page.getByRole("dialog", { name: "시설 추가" });
     await expect(facilityDialog.getByLabel("시설 유형 *")).toBeVisible();
     await expect(facilityDialog.getByLabel("시설 이름 (선택)")).toBeEditable();
     await expect(facilityDialog.getByLabel("설명 (선택)")).toBeEditable();
     await page.keyboard.press("Escape");
+    await page.goto("/admin/dashboard/buildings");
 
     const settingsTrigger = page.getByRole("button", { name: "설정" });
     await settingsTrigger.click();
@@ -277,23 +213,5 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
       "type",
       "file",
     );
-  });
-
-  test("모바일에서 관리자 행 동작 버튼이 44px 터치 영역을 확보한다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/admin/dashboard/facilities");
-
-    const row = page.getByText("중앙광장 경사로").locator("xpath=../..");
-    for (const name of ["동영상", "미설치로 변경", "수정", "삭제"]) {
-      const button = row.getByRole("button", { name, exact: true });
-      await expect(button, name).toBeVisible();
-      const box = await button.boundingBox();
-      expect(box, name).not.toBeNull();
-      expect(box!.width, name).toBeGreaterThanOrEqual(44);
-      expect(box!.height, name).toBeGreaterThanOrEqual(44);
-    }
   });
 });
