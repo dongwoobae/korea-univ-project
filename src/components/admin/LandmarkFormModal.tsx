@@ -306,7 +306,7 @@ export default function LandmarkFormModal({
             padding: "7px 10px",
             border: "1px solid var(--ku-primary-text)",
             borderRadius: 6,
-            background: "#fff",
+            background: "var(--ku-surface)",
             color: "var(--ku-primary-text)",
             fontSize: 12,
             cursor: "pointer",
