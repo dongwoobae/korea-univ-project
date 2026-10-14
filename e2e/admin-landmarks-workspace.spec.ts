@@ -719,3 +719,242 @@ test.describe("명소 작업 화면 — 상세 패널 편집", () => {
     await expect(listRow(page, "다람쥐길")).toBeVisible();
   });
 });
+
+const PHOTO_FILE = {
+  name: "pond.png",
+  mimeType: "image/png",
+  buffer: Buffer.from("not-really-a-png"),
+};
+
+function photoInput(detail: ReturnType<typeof detailPanel>) {
+  return detail.locator("input[type='file']");
+}
+
+test.describe("명소 작업 화면 — 사진", () => {
+  test("기존 명소는 사진을 고르는 즉시 올리고 행의 배지가 바뀐다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    await expect(listRow(page, "사진 없는 연못")).toContainText("사진 없음");
+    await listRow(page, "사진 없는 연못").click();
+    const detail = detailPanel(page, "사진 없는 연못");
+
+    await expect(detail.getByText("＋ 사진 선택")).toBeVisible();
+    await photoInput(detail).setInputFiles(PHOTO_FILE);
+
+    await expect(toast(page, "사진이 업로드되었어요")).toBeVisible();
+    await expect(listRow(page, "사진 없는 연못")).not.toContainText(
+      "사진 없음",
+    );
+    await expect(
+      detail.getByRole("button", { name: "사진 변경" }),
+    ).toBeVisible();
+    await expect(
+      detail.getByRole("button", { name: "사진 삭제" }),
+    ).toBeVisible();
+    expect(
+      state.landmarks.find((row) => row.id === "l-no-photo")?.photo_url,
+    ).toBe("https://cdn.test/uploaded-landmark.webp");
+  });
+
+  test("사진 삭제는 확인 없이 바로 지운다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+
+    await detail.getByRole("button", { name: "사진 삭제" }).click();
+
+    await expect(toast(page, "사진이 삭제되었어요")).toBeVisible();
+    await expect(listRow(page, "다람쥐길")).toContainText("사진 없음");
+    await expect(detail.getByText("＋ 사진 선택")).toBeVisible();
+    expect(state.landmarks[0].photo_url).toBeNull();
+  });
+
+  test("사진 삭제가 실패하면 오류로 알리고 사진을 남긴다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.route(
+      (url) => url.pathname === "/api/delete-landmark-photo",
+      (route) => serverError(route),
+    );
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+
+    await detail.getByRole("button", { name: "사진 삭제" }).click();
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "사진 삭제에 실패했어요" }),
+    ).toBeVisible();
+    await expect(listRow(page, "다람쥐길")).not.toContainText("사진 없음");
+  });
+
+  test("업로드가 실패하면 서버 메시지를 오류 토스트로 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, {
+      authenticated: true,
+      failBuildingPhotoUploads: 1,
+    });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    await listRow(page, "사진 없는 연못").click();
+    const detail = detailPanel(page, "사진 없는 연못");
+
+    await photoInput(detail).setInputFiles(PHOTO_FILE);
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "테스트 업로드 실패" }),
+    ).toBeVisible();
+    await expect(listRow(page, "사진 없는 연못")).toContainText("사진 없음");
+  });
+
+  test("사진을 바꾼 뒤 이름을 고쳐 저장해도 사진이 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+
+    await photoInput(detail).setInputFiles(PHOTO_FILE);
+    await expect(toast(page, "사진이 업로드되었어요")).toBeVisible();
+    await detail.getByLabel("이름 *").fill("도토리길");
+    await detail.getByRole("button", { name: "저장" }).click();
+
+    await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
+    expect(state.landmarks[0]).toMatchObject({
+      name: "도토리길",
+      photo_url: "https://cdn.test/uploaded-landmark.webp",
+    });
+  });
+
+  test("사진 작업 중에는 저장·삭제·사진 버튼·선택이 잠긴다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    let releaseUpload = () => {};
+    const uploadHeld = new Promise<void>(
+      (resolve) => (releaseUpload = resolve),
+    );
+    await page.route(
+      (url) => url.pathname === "/api/upload-landmark-photo",
+      async (route) => {
+        await uploadHeld;
+        return route.fallback();
+      },
+    );
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+
+    await photoInput(detail).setInputFiles(PHOTO_FILE);
+    await expect(detail.getByText("업로드 중...")).toBeVisible();
+    await expect(detail.getByRole("button", { name: "저장" })).toBeDisabled();
+    await expect(
+      detail.getByRole("button", { name: "삭제", exact: true }),
+    ).toBeDisabled();
+    await expect(
+      detail.getByRole("button", { name: "사진 변경" }),
+    ).toBeDisabled();
+    await expect(
+      detail.getByRole("button", { name: "사진 삭제" }),
+    ).toBeDisabled();
+    await expect(
+      detail.getByRole("button", { name: "상세 닫기" }),
+    ).toBeDisabled();
+
+    await listRow(page, "사진 없는 연못").click({ force: true });
+    await expect(page).toHaveURL(new RegExp(`\\?id=${SQUIRREL_ID}$`));
+
+    releaseUpload();
+    await expect(toast(page, "사진이 업로드되었어요")).toBeVisible();
+    await expect(detail.getByRole("button", { name: "저장" })).toBeEnabled();
+  });
+
+  test("새 명소는 사진을 미리보기로 들고 있다가 저장할 때 올린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    await listPanel(page).getByRole("button", { name: "＋ 명소 추가" }).click();
+    const detail = detailPanel(page, "명소 추가");
+
+    await page
+      .locator(".ku-map-workspace-map .leaflet-container")
+      .click({ position: { x: 600, y: 150 } });
+    await detail.getByPlaceholder("예: 다람쥐길").fill("새 연못");
+    await photoInput(detail).setInputFiles(PHOTO_FILE);
+
+    await expect(
+      toast(page, "명소를 저장할 때 사진도 함께 업로드해요"),
+    ).toBeVisible();
+    await expect(detail.getByText("저장 시 업로드: pond.png")).toBeVisible();
+    await expect(
+      detail.locator(".ku-landmark-photo-frame img"),
+    ).toHaveAttribute("src", /^blob:/);
+    expect(state.landmarks).toHaveLength(1);
+
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("명소가 추가되었어요")).toBeVisible();
+    await expect(page).toHaveURL(/\?id=22222222-2222-2222-2222-222222222222$/);
+    const created = detailPanel(page, "새 연못");
+    await expect(created).toBeVisible();
+    await expect(listRow(page, "새 연못")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(
+      created.locator(".ku-landmark-photo-frame img"),
+    ).toHaveAttribute("src", /uploaded-landmark/);
+    expect(state.landmarks.at(-1)).toMatchObject({
+      name: "새 연못",
+      photo_url: "https://cdn.test/uploaded-landmark.webp",
+    });
+  });
+
+  test("새 명소의 고른 사진은 저장 전에 바꾸거나 뺄 수 있다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    await listPanel(page).getByRole("button", { name: "＋ 명소 추가" }).click();
+    const detail = detailPanel(page, "명소 추가");
+
+    await photoInput(detail).setInputFiles(PHOTO_FILE);
+    await expect(detail.getByText("저장 시 업로드: pond.png")).toBeVisible();
+    await photoInput(detail).setInputFiles({ ...PHOTO_FILE, name: "lake.png" });
+    await expect(detail.getByText("저장 시 업로드: lake.png")).toBeVisible();
+    await detail.getByRole("button", { name: "사진 삭제" }).click();
+    await expect(detail.getByText(/저장 시 업로드/)).toHaveCount(0);
+    await expect(detail.getByText("＋ 사진 선택")).toBeVisible();
+  });
+
+  test("새 명소의 사진 업로드가 실패해도 명소는 사진 없이 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, {
+      authenticated: true,
+      failBuildingPhotoUploads: 1,
+    });
+    await page.goto("/admin/dashboard/landmarks");
+    await listPanel(page).getByRole("button", { name: "＋ 명소 추가" }).click();
+    const detail = detailPanel(page, "명소 추가");
+
+    await page
+      .locator(".ku-map-workspace-map .leaflet-container")
+      .click({ position: { x: 600, y: 150 } });
+    await detail.getByPlaceholder("예: 다람쥐길").fill("새 연못");
+    await photoInput(detail).setInputFiles(PHOTO_FILE);
+    await detail.getByRole("button", { name: "저장" }).click();
+
+    await expect(
+      toast(page, "명소는 저장됐지만 사진 업로드에 실패했어요"),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\?id=22222222-2222-2222-2222-222222222222$/);
+    expect(state.landmarks.at(-1)).toMatchObject({ name: "새 연못" });
+    expect(state.landmarks.at(-1)?.photo_url ?? null).toBeNull();
+    await expect(listRow(page, "새 연못")).toContainText("사진 없음");
+  });
+});
