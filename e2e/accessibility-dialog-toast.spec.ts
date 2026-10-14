@@ -285,4 +285,40 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
       "file",
     );
   });
+
+  test("모바일 독립 시설 상세의 버튼이 44px 터치 영역을 확보한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    const facility = state.facilities.find((item) => item.id === "f-installed");
+    if (facility) {
+      facility.translation_status = "failed";
+      facility.video_url = "https://cdn.test/video.mp4";
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/admin/dashboard/facilities?id=f-installed");
+
+    const detail = page.getByRole("region", {
+      name: "중앙광장 경사로",
+      exact: true,
+    });
+    for (const name of [
+      "목록으로",
+      "설치",
+      "미설치",
+      "재번역",
+      "현 위치로 찍기",
+      "교체",
+      "삭제",
+      "취소",
+      "저장",
+    ]) {
+      const button = detail.getByRole("button", { name, exact: true });
+      await expect(button, name).toBeVisible();
+      const box = await button.boundingBox();
+      expect(box, name).not.toBeNull();
+      expect(box!.width, name).toBeGreaterThanOrEqual(44);
+      expect(box!.height, name).toBeGreaterThanOrEqual(44);
+    }
+  });
 });

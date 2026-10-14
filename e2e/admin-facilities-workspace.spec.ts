@@ -995,3 +995,83 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await expect(detail).toHaveCount(0);
   });
 });
+
+test.describe("독립 시설 작업 화면 — 모바일", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("바텀시트에서 행을 누르면 지도 띠를 남긴 전체 화면 상세가 열린다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    const sheet = listPanel(page);
+
+    const handle = sheet.getByRole("button", { name: "목록 펼치기" });
+    await expect(handle).toHaveAttribute("aria-expanded", "false");
+    await handle.click();
+    await expect(
+      sheet.getByRole("button", { name: "목록 접기" }),
+    ).toHaveAttribute("aria-expanded", "true");
+
+    await page.getByRole("searchbox", { name: "독립 시설 검색" }).fill("공사");
+    await expect(sheet.getByTestId("admin-list-item-name")).toHaveText([
+      "공사 중 주차구역",
+    ]);
+    const row = listRow(page, "공사 중 주차구역");
+    const rowBox = await row.boundingBox();
+    expect(rowBox!.height).toBeGreaterThanOrEqual(64);
+    await row.click();
+
+    const detail = detailPanel(page, "공사 중 주차구역");
+    await expect(
+      detail.getByRole("heading", { name: "공사 중 주차구역" }),
+    ).toBeVisible();
+    await expect(sheet).toBeHidden();
+    // 상세 위쪽 띠로 작업 화면의 지도가 보인다(설계 2026-10-14 2.5)
+    const strip = await detail.locator(".ku-detail-panel-strip").boundingBox();
+    expect(strip?.height).toBe(190);
+
+    await detail.getByRole("button", { name: "목록으로" }).click();
+    await expect(detail).toHaveCount(0);
+    await expect(sheet).toBeVisible();
+  });
+});
+
+test.describe("독립 시설 작업 화면 — 태블릿", () => {
+  test.use({ viewport: { width: 820, height: 1180 } });
+
+  test("목록과 상세가 나란히 들어가지 않는 폭에서는 상세를 여는 동안 목록을 숨긴다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    const list = listPanel(page);
+
+    await listRow(page, "공사 중 주차구역").click();
+    const detail = detailPanel(page, "공사 중 주차구역");
+    await expect(detail).toBeVisible();
+    await expect(list).toBeHidden();
+
+    const marker = page.getByTestId("admin-facility-marker-f-uninstalled");
+    const zoom = page.locator(".ku-map-workspace .leaflet-control-zoom");
+    await expect
+      .poll(async () => {
+        const [markerBox, zoomBox, detailBox] = await Promise.all([
+          marker.boundingBox(),
+          zoom.boundingBox(),
+          detail.boundingBox(),
+        ]);
+        if (!markerBox || !zoomBox || !detailBox) return "잴 수 없음";
+        const markerX = markerBox.x + markerBox.width / 2;
+        const zoomRight = zoomBox.x + zoomBox.width;
+        return markerX < detailBox.x && zoomRight < detailBox.x
+          ? "상세 왼쪽"
+          : `겹침 (마커 ${Math.round(markerX)}, 줌 ${Math.round(zoomRight)}, 상세 ${Math.round(detailBox.x)})`;
+      })
+      .toBe("상세 왼쪽");
+
+    await detail.getByRole("button", { name: "상세 닫기" }).click();
+    await expect(detail).toHaveCount(0);
+    await expect(list).toBeVisible();
+  });
+});
