@@ -13,6 +13,12 @@ import {
   normalizeFeedbackEmails,
 } from "@/lib/settings";
 import FeedbackEmailModal from "@/components/admin/FeedbackEmailModal";
+import {
+  UnsavedChangesProvider,
+  useUnsavedChangesGuard,
+} from "@/components/admin/UnsavedChangesGuard";
+import { applyWorkspaceState } from "@/components/admin/workspace/useWorkspaceSelection";
+import { readWorkspaceState } from "@/lib/workspaceUrl";
 import "../admin-ui.css";
 
 const INBOX_HREF = "/admin/dashboard/inbox";
@@ -29,6 +35,14 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <UnsavedChangesProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </UnsavedChangesProvider>
+  );
+}
+
+function DashboardShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [feedbackEmails, setFeedbackEmails] = useState(
@@ -41,6 +55,7 @@ export default function DashboardLayout({
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
   const pathname = usePathname();
+  const { dirty, guard } = useUnsavedChangesGuard();
 
   useEffect(() => {
     let cancelled = false;
@@ -113,13 +128,38 @@ export default function DashboardLayout({
     router.push("/admin");
   }
 
+  function navigate(href: string) {
+    guard(() => router.push(href));
+  }
+
+  // onNavigate가 불리지 않는 클릭과 지금 페이지를 가리키는 링크는 설계 2026-10-14 3.4
+  function confirmBeforeLink(href: string) {
+    return (event: { preventDefault: () => void }) => {
+      const { mode } = readWorkspaceState(window.location.search, {
+        allowEdit: true,
+      });
+      if (href === pathname && mode !== "closed") {
+        event.preventDefault();
+        guard(() => applyWorkspaceState({ mode: "closed" }));
+        return;
+      }
+      if (!dirty) return;
+      event.preventDefault();
+      navigate(href);
+    };
+  }
+
   if (!authChecked)
     return <div className="ku-admin-loading">불러오는 중...</div>;
 
   return (
     <div className="ku-admin-shell">
       <header className="ku-admin-header">
-        <Link className="ku-admin-brand" href="/admin/dashboard/buildings">
+        <Link
+          className="ku-admin-brand"
+          href="/admin/dashboard/buildings"
+          onNavigate={confirmBeforeLink("/admin/dashboard/buildings")}
+        >
           <Image src="/favicon.png" alt="고려대학교" width={32} height={32} />
           <span>관리자 콘솔</span>
         </Link>
@@ -128,7 +168,12 @@ export default function DashboardLayout({
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
-              <Link key={item.href} href={item.href} data-active={active}>
+              <Link
+                key={item.href}
+                href={item.href}
+                data-active={active}
+                onNavigate={confirmBeforeLink(item.href)}
+              >
                 {item.label}
                 {item.href === INBOX_HREF && inboxCount > 0 && (
                   <span className="ku-admin-nav-badge">
@@ -152,14 +197,14 @@ export default function DashboardLayout({
           <button
             className="ku-admin-button ku-admin-map-link"
             type="button"
-            onClick={() => router.push("/")}
+            onClick={() => navigate("/")}
           >
             지도 보기
           </button>
           <button
             className="ku-admin-button ku-admin-logout"
             type="button"
-            onClick={handleLogout}
+            onClick={() => guard(() => void handleLogout())}
           >
             로그아웃
           </button>
@@ -211,7 +256,7 @@ export default function DashboardLayout({
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false);
-                    router.push("/");
+                    navigate("/");
                   }}
                 >
                   공개 지도 보기
@@ -222,7 +267,7 @@ export default function DashboardLayout({
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false);
-                    handleLogout();
+                    guard(() => void handleLogout());
                   }}
                 >
                   로그아웃

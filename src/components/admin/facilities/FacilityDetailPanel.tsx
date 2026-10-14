@@ -6,6 +6,7 @@ import FacilityFields, {
 } from "@/components/facility/FacilityFields";
 import FacilityPhotoManager from "@/components/admin/FacilityPhotoManager";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
+import { useUnsavedChanges } from "@/components/admin/UnsavedChangesGuard";
 import DetailPanel from "@/components/admin/workspace/DetailPanel";
 import {
   DEFAULT_WORKSPACE_VIEWPORT,
@@ -27,6 +28,7 @@ import { translateFacility } from "@/lib/facilityTranslation";
 import { facilityNeedsTranslation } from "@/lib/facilityTranslationState";
 import {
   facilityDisplayName,
+  facilityFormDirty,
   facilityFormFromRow,
 } from "@/lib/facilityWorkspace";
 import { supabase } from "@/lib/supabaseClient";
@@ -74,6 +76,7 @@ export default function FacilityDetailPanel({
   const onLocatedRef = useRef(onLocated);
   const fieldId = useId();
   const busy = saving || installing;
+  useUnsavedChanges(facilityFormDirty(form, facility));
 
   useEffect(() => {
     onDraftChangeRef.current = onDraftChange;

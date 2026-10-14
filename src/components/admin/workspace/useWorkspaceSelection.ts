@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { useUnsavedChangesGuard } from "@/components/admin/UnsavedChangesGuard";
 import {
   readWorkspaceState,
   writeWorkspaceState,
@@ -51,9 +52,11 @@ export function applyWorkspaceState(
 export function useWorkspaceSelection(options: { allowEdit: boolean }) {
   const search = useSyncExternalStore(subscribe, readSearch, readServerSearch);
   const state = readWorkspaceState(search, options);
+  const { guard } = useUnsavedChangesGuard();
 
+  // 확인 전에는 선택·페이지·URL 어느 것도 바꾸지 않고, 승인되면 한 번에 적용한다(설계 2026-10-14 3.4)
   function request(next: WorkspaceState, alsoApply?: () => void) {
-    applyWorkspaceState(next, alsoApply);
+    guard(() => applyWorkspaceState(next, alsoApply));
   }
 
   return { state, request };
