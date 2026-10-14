@@ -1,7 +1,8 @@
 # 같은 시설을 동시에 고치면 나중 저장이 앞의 변경과 번역을 덮는다
 
 `FacilityFormModal`은 열 때 시설 값 전체를 폼 상태로 복사하고
-(`src/components/admin/FacilityFormModal.tsx`의 `useState` 초기값), 저장할 때 그 전체를 payload로 보낸다.
+(`src/components/admin/FacilityFormModal.tsx`의 `useState` 초기값, `facilityFormFromRow`), 저장할 때 그 전체를
+`buildFacilityPayload`(`src/lib/facilitySave.ts`)가 만든 payload로 보낸다.
 이름만 고쳐도 `facility_code`·좌표·층·`is_installed`가 같이 간다. 갱신 조건은 `id` 하나뿐이다.
 
 그래서 두 가지가 생긴다.

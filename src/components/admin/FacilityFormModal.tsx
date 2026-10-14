@@ -1,11 +1,10 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import { authedFetch } from "@/lib/authedFetch";
 import { validateFacilityForm } from "@/lib/facilityForm";
 import { inferCampusFromPoint } from "@/lib/campusGeometry";
-import { translateFacility } from "@/lib/facilityTranslation";
+import { buildFacilityPayload, saveFacility } from "@/lib/facilitySave";
+import { facilityFormFromRow } from "@/lib/facilityWorkspace";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
 import { useModalFocus } from "@/lib/useModalFocus";
 import { color } from "@/lib/theme";
@@ -38,15 +37,9 @@ export default function FacilityFormModal({
 }: FacilityFormModalProps) {
   const standalone = buildingId === null;
   const editing = facility !== null;
-  const [form, setForm] = useState<FacilityFieldValues>({
-    facility_code: facility?.facility_code ?? "",
-    name: facility?.name ?? "",
-    description: facility?.description ?? "",
-    floor_info: facility?.floor_info ?? "",
-    is_installed: facility?.is_installed ?? true,
-    lat: facility?.lat != null ? String(facility.lat) : "",
-    lng: facility?.lng != null ? String(facility.lng) : "",
-  });
+  const [form, setForm] = useState<FacilityFieldValues>(() =>
+    facilityFormFromRow(facility),
+  );
   const [saving, setSaving] = useState(false);
   const titleId = useId();
   const fieldId = useId();
@@ -89,55 +82,17 @@ export default function FacilityFormModal({
       return;
     }
     setSaving(true);
-
-    const payload = {
-      building_id: buildingId,
-      facility_code: form.facility_code,
-      name: form.name || null,
-      description: form.description || null,
-      floor_info: standalone ? null : form.floor_info || null,
-      is_installed: form.is_installed,
-      lat: form.lat ? parseFloat(form.lat) : null,
-      lng: form.lng ? parseFloat(form.lng) : null,
-      translation_status: "pending",
-    };
-
-    // 주의: `editing` 불리언으로는 facility가 non-null로 좁혀지지 않는다.
-    // 반드시 facility 자체를 조건으로 써야 typecheck를 통과한다.
-    let facilityId: string;
-    if (facility) {
-      const { error } = await supabase
-        .from("building_facilities")
-        .update(payload)
-        .eq("id", facility.id);
-      if (error) {
-        setSaving(false);
-        showToast("저장에 실패했어요", "error");
-        return;
-      }
-      facilityId = facility.id;
-    } else {
-      const { data: inserted, error } = await supabase
-        .from("building_facilities")
-        .insert(payload)
-        .select("id")
-        .single();
-      if (error || !inserted) {
-        setSaving(false);
-        showToast("저장에 실패했어요", "error");
-        return;
-      }
-      facilityId = inserted.id;
-    }
-
-    const translated = await translateFacility(facilityId);
-    await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
-      () => {},
+    const result = await saveFacility(
+      facility?.id ?? null,
+      buildFacilityPayload(form, { buildingId, includeInstalled: true }),
     );
-
     setSaving(false);
+    if (result.status === "failed") {
+      showToast("저장에 실패했어요", "error");
+      return;
+    }
     onSaved();
-    if (!translated) {
+    if (!result.translated) {
       showToast(
         "시설은 저장했지만 자동 번역에 실패했어요. 목록에서 재번역해 주세요.",
         "warning",
