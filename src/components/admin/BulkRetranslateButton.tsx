@@ -25,7 +25,7 @@ export default function BulkRetranslateButton({
   async function handleClick() {
     const batch = targets;
     let failed = 0;
-    // 파파고를 병렬로 두들기지 않는다.
+    // 번역 API를 병렬로 두들기지 않는다.
     for (const [index, facility] of batch.entries()) {
       setRun({ total: batch.length, done: index + 1 });
       const ok = await translateFacility(facility);
