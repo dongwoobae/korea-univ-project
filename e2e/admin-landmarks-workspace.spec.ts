@@ -1202,6 +1202,41 @@ async function tapMap(page: Page, x: number, y: number) {
   await page.mouse.click(box!.x + x, box!.y + y);
 }
 
+/** 고르는 동안 선택 핀이 확인 바 위에 남은 지도의 가운데에 있는지 */
+async function pinPlacement(page: Page) {
+  const [mapBox, pinBox, barBox] = await Promise.all([
+    page.locator(".ku-map-workspace-map").boundingBox(),
+    page.locator(".ku-landmark-marker--selected").boundingBox(),
+    pickBar(page).boundingBox(),
+  ]);
+  if (!mapBox || !pinBox || !barBox) return "잴 수 없음";
+  const pinY = pinBox.y + pinBox.height / 2;
+  const middle = (mapBox.y + 12 + barBox.y) / 2;
+  return Math.abs(pinY - middle) <= 24
+    ? "가운데"
+    : `벗어남 (핀 ${Math.round(pinY)}, 가운데 ${Math.round(middle)})`;
+}
+
+/** 지도 영역의 왼쪽 위에서 잰 마커의 중심 */
+async function markerCenter(page: Page, marker: Locator) {
+  const [mapBox, box] = await Promise.all([
+    page.locator(".ku-map-workspace-map").boundingBox(),
+    marker.boundingBox(),
+  ]);
+  return {
+    x: Math.round(box!.x + box!.width / 2 - mapBox!.x),
+    y: Math.round(box!.y + box!.height / 2 - mapBox!.y),
+  };
+}
+
+/**
+ * 지도가 옮겨진다면 그 애니메이션이 끝날 만큼 기다린다. 지도가 움직이지 않는 것을 보는 단언이라
+ * 기다릴 사건이 따로 없다
+ */
+async function settleMap(page: Page) {
+  await page.waitForTimeout(800);
+}
+
 test.describe("명소 작업 화면 — 모바일 상세", () => {
   test.use({ viewport: { width: 390, height: 844 } });
 
@@ -1325,22 +1360,7 @@ test.describe("명소 작업 화면 — 모바일 위치 고르기", () => {
     await expect(detail).toBeHidden();
 
     // 핀은 확인 바 위에 남은 지도의 가운데로 옮겨진다
-    const map = page.locator(".ku-map-workspace-map");
-    await expect
-      .poll(async () => {
-        const [mapBox, pinBox, barBox] = await Promise.all([
-          map.boundingBox(),
-          pin.boundingBox(),
-          bar.boundingBox(),
-        ]);
-        if (!mapBox || !pinBox || !barBox) return "잴 수 없음";
-        const pinY = pinBox.y + pinBox.height / 2;
-        const middle = (mapBox.y + 12 + barBox.y) / 2;
-        return Math.abs(pinY - middle) <= 24
-          ? "가운데"
-          : `벗어남 (핀 ${Math.round(pinY)}, 가운데 ${Math.round(middle)})`;
-      })
-      .toBe("가운데");
+    await expect.poll(() => pinPlacement(page)).toBe("가운데");
     for (const name of ["취소", "이 위치로"]) {
       const box = await bar.getByRole("button", { name }).boundingBox();
       expect(box!.height, name).toBeGreaterThanOrEqual(44);
@@ -1425,5 +1445,76 @@ test.describe("명소 작업 화면 — 모바일 위치 고르기", () => {
     expect(created).toMatchObject({ name: "모바일 쉼터" });
     expect(created.lat).toBeCloseTo(lat, 6);
     expect(created.lng).toBeCloseTo(lng, 6);
+  });
+
+  test("이 위치로 뒤에도 지도는 고른 자리에 머물고, 다시 고르면 고른 자리에서 시작한다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto(`/admin/dashboard/landmarks?id=${SQUIRREL_ID}`);
+    const detail = detailPanel(page, "다람쥐길");
+    const pin = page.locator(".ku-landmark-marker--selected");
+    await expect(pin).toBeVisible();
+    const start = detail.getByRole("button", { name: "지도에서 위치 고르기" });
+    const bar = pickBar(page);
+    const barCoords = bar.locator(".ku-landmark-pick-coords");
+
+    await start.click();
+    await expect.poll(() => pinPlacement(page)).toBe("가운데");
+    await tapMap(page, 80, 120);
+    await expect(barCoords).not.toHaveText("37.58955, 127.03225");
+    const picked = await barCoords.textContent();
+    await expect(pin).toBeVisible();
+    const tapped = await markerCenter(page, pin);
+
+    await bar.getByRole("button", { name: "이 위치로" }).click();
+    await expect(detail).toBeVisible();
+    await settleMap(page);
+    // 지도가 고르기 전 저장 위치로 되돌아가면 핀이 누른 자리에서 벗어난다
+    const after = await markerCenter(page, pin);
+    expect(Math.abs(after.x - tapped.x)).toBeLessThanOrEqual(2);
+    expect(Math.abs(after.y - tapped.y)).toBeLessThanOrEqual(2);
+
+    await start.click();
+    await expect(barCoords).toHaveText(picked!);
+    await expect.poll(() => pinPlacement(page)).toBe("가운데");
+  });
+
+  test("다음 새 명소는 지난 새 명소에서 고른 자리로 지도를 옮기지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const squirrel = page.getByTestId(`admin-landmark-marker-${SQUIRREL_ID}`);
+    await expect(squirrel).toBeVisible();
+    const sheet = listPanel(page);
+    const bar = pickBar(page);
+
+    await sheet.getByRole("button", { name: "＋ 추가" }).click();
+    const detail = detailPanel(page, "명소 추가");
+    const start = detail.getByRole("button", { name: "지도에서 위치 고르기" });
+    await start.click();
+    await tapMap(page, 80, 120);
+    await bar.getByRole("button", { name: "이 위치로" }).click();
+    // 위치가 있는 채로 다시 고르면 그 자리로 지도를 옮긴다
+    await start.click();
+    await expect.poll(() => pinPlacement(page)).toBe("가운데");
+    await bar.getByRole("button", { name: "이 위치로" }).click();
+
+    await detail.getByRole("button", { name: "목록으로" }).click();
+    await page
+      .getByRole("dialog", { name: "저장하지 않은 변경사항이 있어요" })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(detail).toHaveCount(0);
+    await settleMap(page);
+    const before = await markerCenter(page, squirrel);
+
+    await sheet.getByRole("button", { name: "＋ 추가" }).click();
+    await expect(detailPanel(page, "명소 추가")).toBeVisible();
+    await settleMap(page);
+    const after = await markerCenter(page, squirrel);
+    expect(Math.abs(after.x - before.x)).toBeLessThanOrEqual(2);
+    expect(Math.abs(after.y - before.y)).toBeLessThanOrEqual(2);
   });
 });
