@@ -62,6 +62,10 @@ const DETAIL_PANEL_WIDTH = 460;
 const ZOOM_CONTROL_WIDTH = 36;
 const MOBILE_DETAIL_BAR = 52;
 const MOBILE_PICK_GAP = 12;
+/** 모바일 목록 상태에서 지도 위에 뜨는 검색 칸과 칩 줄이 차지하는 위쪽 높이(.ku-workspace-mobile-bar) */
+export const MOBILE_LIST_TOP = 118;
+/** 모바일 목록 바텀시트를 접었을 때의 높이(.ku-bottom-sheet) */
+export const MOBILE_SHEET_COLLAPSED = 150;
 /** 모바일에서 위치를 고르는 동안 지도 아래에 붙는 확인 바의 높이 */
 export const MOBILE_PICK_BAR = 124;
 const SIDE_BY_SIDE_WIDTH =
@@ -95,6 +99,16 @@ export function workspaceInsets(options: {
       top: MOBILE_PICK_GAP,
       right: 0,
       bottom: MOBILE_PICK_BAR,
+      left: 0,
+    };
+  }
+  if (options.mobile && options.mapStrip === 0) {
+    // 지도 띠가 없으면 상세가 지도를 모두 덮는다. 목록으로 돌아왔을 때 위쪽 검색·칩과 접힌 시트 밑에
+    // 점이 가리지 않게, 덮여 있는 동안에도 목록 상태의 여백으로 모은다
+    return {
+      top: MOBILE_LIST_TOP,
+      right: 0,
+      bottom: MOBILE_SHEET_COLLAPSED,
       left: 0,
     };
   }
