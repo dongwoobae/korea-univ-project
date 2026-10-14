@@ -53,11 +53,18 @@ export default function LandmarksPage() {
     "loading",
   );
   const [draft, setDraft] = useState<DetailDraftPin | null>(null);
+  // 모바일에서 상세를 접고 지도에서 위치를 고르는 패널(owner)과, 그때 핀으로 옮길 지도 초점
+  const [pickOwner, setPickOwner] = useState<string | null>(null);
+  const [pickFocus, setPickFocus] = useState<{
+    owner: string;
+    focus: WorkspaceFocus;
+  } | null>(null);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
   const loadRequestRef = useRef(0);
   const loadedRef = useRef(false);
+  const pickSeqRef = useRef(0);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const { boundaries, error: boundariesError } = useCampusBoundaries();
   const { state, request } = useWorkspaceSelection({ allowEdit: false });
@@ -71,6 +78,7 @@ export default function LandmarksPage() {
     state.mode === "view" ? state.id : state.mode === "new" ? "new" : null;
   const activeDraft = draft && draft.owner === panelKey ? draft : null;
   const saving = activeDraft?.saving ?? false;
+  const picking = mobile && pickOwner !== null && pickOwner === panelKey;
 
   function showToast(message: string, type = "success") {
     setToast({ message, type });
@@ -149,6 +157,8 @@ export default function LandmarksPage() {
   }
 
   function select(id: string) {
+    // 고르는 동안 지도를 누르는 것은 위치를 찍는 일이다. 다른 마커를 눌러도 선택을 옮기지 않는다
+    if (picking) return;
     if (!mobile && state.mode === "view" && state.id === id) {
       requestSelection({ mode: "closed" });
       return;
@@ -156,6 +166,28 @@ export default function LandmarksPage() {
     const page = collection.pageOf(id);
     requestSelection({ mode: "view", id }, () => {
       if (page !== null) setPage(page);
+    });
+  }
+
+  // 지도는 선택이 바뀔 때만 옮기지만 위치 고르기는 예외다. 상세에 덮였던 핀이 확인 바 위 지도에 보이게,
+  // 고르기를 시작할 때마다 새 key로 옮긴다(독립 시설의 현 위치로 찍기와 같은 방식).
+  // 고르기가 끝나면 초점도 거둔다. 같은 항목이나 새로 만들기를 다시 열 때 지난 위치로 옮겨지지 않게 한다
+  function handlePickingChange(next: boolean) {
+    if (!next || panelKey === null) {
+      setPickOwner(null);
+      setPickFocus(null);
+      return;
+    }
+    setPickOwner(panelKey);
+    const position = activeDraft?.position;
+    if (!position) return;
+    pickSeqRef.current += 1;
+    setPickFocus({
+      owner: panelKey,
+      focus: {
+        key: `pick:${pickSeqRef.current}`,
+        target: { point: position },
+      },
     });
   }
 
@@ -182,12 +214,15 @@ export default function LandmarksPage() {
     void loadLandmarks();
   }
 
-  const focus: WorkspaceFocus | null = selected
-    ? {
-        key: selected.id,
-        target: { point: [selected.lat, selected.lng] },
-      }
-    : null;
+  const focus: WorkspaceFocus | null =
+    pickFocus && pickFocus.owner === panelKey
+      ? pickFocus.focus
+      : selected
+        ? {
+            key: selected.id,
+            target: { point: [selected.lat, selected.lng] },
+          }
+        : null;
 
   const chips = [
     { key: "all", label: "전체", count: view.chipCounts.all },
@@ -205,6 +240,7 @@ export default function LandmarksPage() {
     onDeleted: handleDeleted,
     onClose: () => requestSelection({ mode: "closed" }),
     showToast,
+    onPickingChange: handlePickingChange,
   };
   const detail =
     state.mode === "new" ? (
@@ -222,6 +258,7 @@ export default function LandmarksPage() {
       <AdminMapWorkspace
         focus={focus}
         mobileMapStrip={0}
+        mobilePicking={picking}
         renderMap={(slot) => (
           <LandmarkWorkspaceMap
             {...slot}

@@ -2605,12 +2605,76 @@ button.ku-admin-overview-item {
   .ku-detail-media {
     grid-template-columns: minmax(0, 1fr);
   }
-  .ku-landmark-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
   .ku-landmark-photo-actions button,
   .ku-landmark-translation-actions button,
   .ku-landmark-translation-fill {
     min-height: 44px;
+  }
+  .ku-landmark-photo-actions button {
+    min-width: 44px;
+  }
+  /* 핸드오버 모바일 상세의 사진 미리보기. 본문 맨 위에 본문 폭으로 그린다 */
+  .ku-landmark-photo-frame {
+    height: 190px;
+  }
+  .ku-landmark-mobile-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .ku-landmark-mobile-head p {
+    min-width: 0;
+    color: var(--ku-text-3);
+    font-size: 12.5px;
+  }
+
+  /* 위치를 고르는 동안 상세 대신 작업 화면 아래에 붙는다. z-index 없이 지도 뒤 문서 순서로 지도 위에
+     그려진다(.ku-bottom-sheet와 같다). 높이는 types.ts의 MOBILE_PICK_BAR와 맞춘다 */
+  .ku-landmark-pick-bar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    min-height: 124px;
+    padding: 12px 14px;
+    border-radius: 18px 18px 0 0;
+    background: var(--ku-surface);
+    box-shadow: 0 -6px 24px rgba(28, 25, 23, 0.14);
+  }
+  .ku-landmark-pick-bar:focus-visible {
+    outline: 2px solid var(--ku-primary-text);
+    outline-offset: -2px;
+  }
+  .ku-landmark-pick-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: var(--ku-text-1);
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .ku-landmark-pick-coords {
+    color: var(--ku-text-2);
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 12.5px;
+    font-weight: 400;
+  }
+  .ku-landmark-pick-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .ku-landmark-pick-actions .ku-workspace-button {
+    flex: 1;
+    height: 50px;
+  }
+  .ku-landmark-pick-actions .ku-workspace-primary {
+    flex: 2;
+    height: 50px;
+    font-size: 13px;
+    font-weight: 700;
   }
 }
