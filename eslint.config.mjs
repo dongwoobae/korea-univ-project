@@ -37,6 +37,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Playwright e2e 실행용 로컬 빌드 산출물 (.gitignore 대상).
     ".next-e2e/**",
+    // 디자인 도구가 내보낸 핸드오버 원문(생성된 런타임 포함). 고치지 않는다.
+    "docs/specs/2026-10-14-admin-map-first-handoff/**",
   ]),
 ]);
 
