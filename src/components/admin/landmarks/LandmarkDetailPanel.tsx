@@ -58,8 +58,11 @@ interface LandmarkDetailPanelProps {
   onDeleted: (landmarkId: string) => Promise<void>;
   onClose: () => void;
   showToast: (message: string, type?: string) => void;
-  /** 모바일에서 상세를 접고 지도에서 위치를 고르는 중인지 알린다. 패널이 닫히면 false가 온다 */
-  onPickingChange: (picking: boolean) => void;
+  /**
+   * 모바일에서 상세를 접고 지도에서 위치를 고르는 중인지 알린다. 패널이 닫힐 때는 고르던 중이 아니었어도
+   * closed와 함께 false가 온다 — 고르기를 마친 것과 패널이 사라진 것을 페이지가 가른다
+   */
+  onPickingChange: (picking: boolean, closed?: boolean) => void;
 }
 
 export default function LandmarkDetailPanel({
@@ -100,11 +103,11 @@ export default function LandmarkDetailPanel({
     landmarkFormDirty(form, landmark, pendingPhoto?.file ?? null),
   );
 
-  // 닫을 때(언마운트) 마지막 미리보기 주소를 해제하고, 고르던 중에 닫혀도 페이지가 고르기를 끝내게 알린다
+  // 닫을 때(언마운트) 마지막 미리보기 주소를 해제하고, 패널이 사라졌다고 알려 페이지가 고르기와 그 초점을 거두게 한다
   useEffect(
     () => () => {
       if (pendingUrlRef.current) URL.revokeObjectURL(pendingUrlRef.current);
-      onPickingChangeRef.current(false);
+      onPickingChangeRef.current(false, true);
     },
     [],
   );

@@ -171,11 +171,12 @@ export default function LandmarksPage() {
 
   // 지도는 선택이 바뀔 때만 옮기지만 위치 고르기는 예외다. 상세에 덮였던 핀이 확인 바 위 지도에 보이게,
   // 고르기를 시작할 때마다 새 key로 옮긴다(독립 시설의 현 위치로 찍기와 같은 방식).
-  // 고르기가 끝나면 초점도 거둔다. 같은 항목이나 새로 만들기를 다시 열 때 지난 위치로 옮겨지지 않게 한다
-  function handlePickingChange(next: boolean) {
+  // 고르기를 마쳐도 초점은 남긴다. 거두면 key가 선택 id로 돌아가 지도가 고르기 전 저장 위치로 되돌아간다.
+  // 패널이 닫힐 때(closed) 거둔다. 새로 만들기는 모두 owner가 "new"라 남겨 두면 다음 새 명소가 지난 위치로 옮겨진다
+  function handlePickingChange(next: boolean, closed = false) {
     if (!next || panelKey === null) {
       setPickOwner(null);
-      setPickFocus(null);
+      if (closed) setPickFocus(null);
       return;
     }
     setPickOwner(panelKey);
