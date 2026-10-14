@@ -68,6 +68,7 @@ export default function StandaloneFacilitiesPage() {
     null,
   );
   const loadRequestRef = useRef(0);
+  const disposedRef = useRef(false);
   const loadedRef = useRef(false);
   const locateSeqRef = useRef(0);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
@@ -101,6 +102,7 @@ export default function StandaloneFacilitiesPage() {
   }, []);
 
   const loadFacilities = useCallback(async () => {
+    if (disposedRef.current) return;
     loadRequestRef.current += 1;
     const ticket = loadRequestRef.current;
     const { data, error } = await supabase
@@ -150,13 +152,16 @@ export default function StandaloneFacilitiesPage() {
   }, [setPage]);
 
   useEffect(() => {
+    disposedRef.current = false;
     const timer = window.setTimeout(() => {
       void loadTypes();
       void loadFacilities();
     }, 0);
     return () => {
       window.clearTimeout(timer);
-      // 떠난 뒤에 끝난 조회가 그때의 주소(다른 화면)에서 ?id=를 지우지 않게 진행 중인 요청을 버린다
+      // 떠난 뒤에 끝난 조회가 그때의 주소(다른 화면)에서 ?id=를 지우지 않게 진행 중인 요청을 버린다.
+      // 떠난 뒤 끝난 저장·삭제가 새로 시작하는 다시 받기와 그 뒤의 주소 갱신도 disposedRef가 막는다
+      disposedRef.current = true;
       loadRequestRef.current += 1;
     };
   }, [loadFacilities, loadTypes]);
@@ -211,6 +216,7 @@ export default function StandaloneFacilitiesPage() {
 
   async function handleSaved(facilityId: string, created: boolean) {
     await loadFacilities();
+    if (disposedRef.current) return;
     // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 새로 만들기 패널일 때만 바꾼다(설계 2026-10-14 3.4)
     if (created && currentSelection().mode === "new") {
       applyWorkspaceState({ mode: "view", id: facilityId });
@@ -218,6 +224,7 @@ export default function StandaloneFacilitiesPage() {
   }
 
   async function handleDeleted(facilityId: string) {
+    if (disposedRef.current) return;
     // 삭제는 선택을 잠그지 않는다. 기다리는 사이 다른 항목이나 새로 만들기로 옮겼으면 그 패널을 닫지 않는다(설계 2026-10-14 3.4)
     const selection = currentSelection();
     if (selection.mode === "view" && selection.id === facilityId) {

@@ -30,52 +30,11 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     await expect(trigger).toBeFocused();
   });
 
-  // 피커는 useModalFocus의 dialogStack에 자기를 얹어 최상단이 된다. 컨테이너에서
-  // capture로 가로채는 방식은 document 쪽 핸들러가 먼저 돌아 성립하지 않는다.
-  test("이모지 피커가 열린 상태의 Escape는 피커만 닫고 폼 입력을 남긴다", async ({
+  test("관리자 설정 모달도 Escape 후 실행 버튼으로 복귀한다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/landmarks");
-
-    await page.getByRole("button", { name: "+ 명소 추가" }).click();
-    const dialog = page.getByRole("dialog", { name: "명소 추가" });
-    await dialog.getByPlaceholder("예: 다람쥐길").fill("Escape 시험 명소");
-
-    const iconButton = dialog.getByLabel(/이모지 \*/);
-    await iconButton.click();
-    const search = dialog.getByLabel("이모지 검색");
-    await expect(search).toBeFocused();
-    await expect(iconButton).toHaveAttribute("aria-expanded", "true");
-
-    await page.keyboard.press("Escape");
-
-    await expect(search).toHaveCount(0);
-    await expect(dialog).toBeVisible();
-    await expect(iconButton).toHaveAttribute("aria-expanded", "false");
-    await expect(dialog.getByPlaceholder("예: 다람쥐길")).toHaveValue(
-      "Escape 시험 명소",
-    );
-
-    // 피커가 닫힌 뒤의 Escape는 다시 모달을 닫는다.
-    await page.keyboard.press("Escape");
-    await expect(dialog).toHaveCount(0);
-  });
-
-  test("관리자 설정과 명소 모달도 Escape 후 실행 버튼으로 복귀한다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/landmarks");
-
-    const landmarkTrigger = page.getByRole("button", { name: "+ 명소 추가" });
-    await landmarkTrigger.focus();
-    await landmarkTrigger.click();
-    const landmarkDialog = page.getByRole("dialog", { name: "명소 추가" });
-    await expect(landmarkDialog.getByPlaceholder("예: 다람쥐길")).toBeFocused();
-    await page.keyboard.press("Escape");
-    await expect(landmarkDialog).toHaveCount(0);
-    await expect(landmarkTrigger).toBeFocused();
 
     const settingsTrigger = page.getByRole("button", { name: "설정" });
     await settingsTrigger.focus();
@@ -92,6 +51,60 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     await page.keyboard.press("Escape");
     await expect(settingsDialog).toHaveCount(0);
     await expect(settingsTrigger).toBeFocused();
+  });
+
+  // 패널은 모달이 아니다. 피커는 useModalFocus의 dialogStack에 자기를 얹어 Escape를 맡고,
+  // 패널에는 Escape로 닫히는 동작이 없다.
+  test("명소 패널의 이모지 피커 Escape는 피커만 닫고 입력과 초점을 남긴다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+
+    await page.getByRole("button", { name: "＋ 명소 추가" }).click();
+    const panel = page.getByRole("region", { name: "명소 추가", exact: true });
+    await panel.getByPlaceholder("예: 다람쥐길").fill("Escape 시험 명소");
+
+    const iconButton = panel.getByRole("button", { name: /이모지/ });
+    await iconButton.click();
+    const search = panel.getByLabel("이모지 검색");
+    await expect(search).toBeFocused();
+    await expect(iconButton).toHaveAttribute("aria-expanded", "true");
+
+    await page.keyboard.press("Escape");
+
+    await expect(search).toHaveCount(0);
+    await expect(panel).toBeVisible();
+    await expect(iconButton).toHaveAttribute("aria-expanded", "false");
+    await expect(iconButton).toBeFocused();
+    await expect(panel.getByPlaceholder("예: 다람쥐길")).toHaveValue(
+      "Escape 시험 명소",
+    );
+
+    // 피커가 닫힌 뒤의 Escape는 패널을 닫지 않는다.
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeVisible();
+  });
+
+  test("명소 패널 입력의 레이블이 프로그램적으로 연결된다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    await page
+      .getByRole("region", { name: "명소", exact: true })
+      .getByRole("button", { name: /다람쥐길/ })
+      .click();
+    const panel = page.getByRole("region", { name: "다람쥐길", exact: true });
+
+    await expect(panel.getByLabel("이름 *")).toBeEditable();
+    await expect(panel.getByLabel("설명", { exact: true })).toBeEditable();
+    await expect(panel.getByRole("button", { name: /이모지/ })).toBeVisible();
+    await panel.getByRole("button", { name: "직접 고치기" }).click();
+    await expect(panel.getByLabel("영문 이름")).toBeEditable();
+    await expect(panel.getByLabel("중문 이름")).toBeEditable();
+    await expect(panel.getByLabel("영문 설명")).toBeEditable();
+    await expect(panel.getByLabel("중문 설명")).toBeEditable();
   });
 
   test("공개 피드백 모달이 초점을 관리하고 실행 버튼으로 복귀한다", async ({
@@ -267,23 +280,6 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     ).toBeEditable();
     await expect(settingsDialog.getByLabel("제목")).toBeEditable();
     await page.keyboard.press("Escape");
-
-    await page.goto("/admin/dashboard/landmarks");
-    await page.getByRole("button", { name: "+ 명소 추가" }).click();
-    const landmarkDialog = page.getByRole("dialog", { name: "명소 추가" });
-    await expect(
-      landmarkDialog.getByLabel("이름 *", { exact: true }),
-    ).toBeEditable();
-    await expect(landmarkDialog.getByLabel("영문 이름")).toBeEditable();
-    // 이모지는 자유 입력이 아니라 피커 펼침 버튼이다.
-    await expect(landmarkDialog.getByLabel(/이모지 \*/)).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-    await expect(landmarkDialog.getByLabel("사진")).toHaveAttribute(
-      "type",
-      "file",
-    );
   });
 
   test("모바일 독립 시설 상세의 버튼이 44px 터치 영역을 확보한다", async ({
@@ -319,6 +315,42 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
       expect(box, name).not.toBeNull();
       expect(box!.width, name).toBeGreaterThanOrEqual(44);
       expect(box!.height, name).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test("모바일 명소 상세의 버튼이 44px 터치 영역을 확보한다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(
+      "/admin/dashboard/landmarks?id=11111111-1111-1111-1111-111111111111",
+    );
+
+    const detail = page.getByRole("region", { name: "다람쥐길", exact: true });
+    for (const name of [
+      "목록으로",
+      /^이모지 .+ 바꾸기$/,
+      "사진 변경",
+      "사진 삭제",
+      "자동번역 채우기",
+      "설명 보기",
+      "직접 고치기",
+      "지도에서 위치 고르기",
+      "삭제",
+      "취소",
+      "저장",
+    ]) {
+      const label = String(name);
+      const button = detail.getByRole("button", {
+        name,
+        exact: typeof name === "string",
+      });
+      await expect(button, label).toBeVisible();
+      const box = await button.boundingBox();
+      expect(box, label).not.toBeNull();
+      expect(box!.width, label).toBeGreaterThanOrEqual(44);
+      expect(box!.height, label).toBeGreaterThanOrEqual(44);
     }
   });
 });

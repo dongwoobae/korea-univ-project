@@ -1029,7 +1029,18 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     return json(route, { status: "translated" });
   }
   if (path === "/api/upload-landmark-photo") {
-    const landmark = state.landmarks.at(-1);
+    state.buildingPhotoUploadAttempts += 1;
+    if (state.buildingPhotoFailuresRemaining > 0) {
+      state.buildingPhotoFailuresRemaining -= 1;
+      return json(route, { error: "테스트 업로드 실패" }, 500);
+    }
+    const rawBody = route.request().postData() ?? "";
+    const landmarkId = rawBody.match(
+      /name="landmarkId"\r?\n\r?\n([^\r\n]+)/,
+    )?.[1];
+    const landmark = landmarkId
+      ? state.landmarks.find((row) => row.id === landmarkId)
+      : state.landmarks.at(-1);
     if (landmark)
       landmark.photo_url = "https://cdn.test/uploaded-landmark.webp";
     return json(route, { photoUrl: "https://cdn.test/uploaded-landmark.webp" });

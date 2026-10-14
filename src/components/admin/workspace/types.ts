@@ -44,6 +44,8 @@ export interface DetailDraftPin {
   position: LatLngTuple | null;
   setPosition: (position: LatLngTuple) => void;
   saving: boolean;
+  /** 초안·선택 핀이 보일 글자(이모지 마커). 없으면 지도가 정한 기본 모양을 쓴다 */
+  emoji?: string;
 }
 
 export const ADMIN_MOBILE_QUERY = "(max-width: 767px)";
@@ -53,12 +55,19 @@ export const DEFAULT_WORKSPACE_VIEWPORT: WorkspaceViewport = {
   zoom: 17,
 };
 
-// admin-ui.css의 .ku-float-panel·.ku-detail-panel·줌 버튼 폭·여백과 모바일 .ku-detail-panel-bar 높이에 맞춘다.
+// admin-ui.css의 .ku-float-panel·.ku-detail-panel·줌 버튼 폭·여백과 모바일 .ku-detail-panel-bar·.ku-landmark-pick-bar 높이에 맞춘다.
 const PANEL_GAP = 16;
 const LIST_PANEL_WIDTH = 404;
 const DETAIL_PANEL_WIDTH = 460;
 const ZOOM_CONTROL_WIDTH = 36;
 const MOBILE_DETAIL_BAR = 52;
+const MOBILE_PICK_GAP = 12;
+/** 모바일 목록 상태에서 지도 위에 뜨는 검색 칸과 칩 줄이 차지하는 위쪽 높이(.ku-workspace-mobile-bar) */
+export const MOBILE_LIST_TOP = 118;
+/** 모바일 목록 바텀시트를 접었을 때의 높이(.ku-bottom-sheet) */
+export const MOBILE_SHEET_COLLAPSED = 150;
+/** 모바일에서 위치를 고르는 동안 지도 아래에 붙는 확인 바의 높이 */
+export const MOBILE_PICK_BAR = 124;
 const SIDE_BY_SIDE_WIDTH =
   PANEL_GAP +
   LIST_PANEL_WIDTH +
@@ -81,7 +90,28 @@ export function workspaceInsets(options: {
   detailOpen: boolean;
   height: number;
   mapStrip: number;
+  /** 모바일 상세를 접고 지도에서 위치를 고르는 중(설계 2026-10-14 2.5) */
+  picking: boolean;
 }): WorkspaceInsets {
+  if (options.mobile && options.picking) {
+    // 상세가 접혀 지도 전체가 보이고 아래 확인 바만 지도를 가린다
+    return {
+      top: MOBILE_PICK_GAP,
+      right: 0,
+      bottom: MOBILE_PICK_BAR,
+      left: 0,
+    };
+  }
+  if (options.mobile && options.mapStrip === 0) {
+    // 지도 띠가 없으면 상세가 지도를 모두 덮는다. 목록으로 돌아왔을 때 위쪽 검색·칩과 접힌 시트 밑에
+    // 점이 가리지 않게, 덮여 있는 동안에도 목록 상태의 여백으로 모은다
+    return {
+      top: MOBILE_LIST_TOP,
+      right: 0,
+      bottom: MOBILE_SHEET_COLLAPSED,
+      left: 0,
+    };
+  }
   if (options.mobile) {
     // 모바일에서 선택하면 상세가 위쪽 띠만 남기고 덮는다(설계 2026-10-14 2.5)
     return {
