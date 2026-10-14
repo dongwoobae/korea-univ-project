@@ -590,6 +590,53 @@ test.describe("독립 시설 작업 화면 — 상세 패널", () => {
     ).toBe(false);
   });
 
+  test("삭제를 기다리다 다른 화면으로 떠나도 끝난 삭제가 그 화면의 선택과 입력을 건드리지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseDelete = () => {};
+    const deleteHeld = new Promise<void>(
+      (resolve) => (releaseDelete = resolve),
+    );
+    await page.route(deletePhotosRequest, async (route) => {
+      await deleteHeld;
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "공사 중 주차구역").click();
+    const deleting = detailPanel(page, "공사 중 주차구역");
+    await deleting.getByRole("button", { name: "삭제", exact: true }).click();
+    await deleting
+      .getByRole("group", { name: "삭제 확인" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+    await expect(
+      deleting.getByRole("button", { name: "삭제 중..." }),
+    ).toBeDisabled();
+
+    await page
+      .getByRole("navigation", { name: "관리자 메뉴" })
+      .getByRole("link", { name: "명소" })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
+    await page
+      .getByRole("region", { name: "명소", exact: true })
+      .getByRole("button", { name: /다람쥐길/ })
+      .click();
+    const landmark = detailPanel(page, "다람쥐길");
+    const name = landmark.getByLabel("이름 *");
+    await name.fill("입력 중인 명소");
+    releaseDelete();
+
+    // 삭제 요청이 실제로 끝난 뒤를 본다
+    await page.waitForTimeout(500);
+    await expect(page).toHaveURL(
+      /\/landmarks\?id=11111111-1111-1111-1111-111111111111$/,
+    );
+    await expect(landmark).toBeVisible();
+    await expect(name).toHaveValue("입력 중인 명소");
+  });
+
   test("시설 동영상을 업로드하고 캡션 저장 후 삭제한다", async ({ page }) => {
     const state = await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/facilities");

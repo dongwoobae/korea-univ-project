@@ -754,6 +754,53 @@ test.describe("명소 작업 화면 — 상세 패널 편집", () => {
     await expect(page).toHaveURL(/\?id=l-no-translation$/);
   });
 
+  test("삭제를 기다리다 다른 화면으로 떠나도 끝난 삭제가 그 화면의 선택과 입력을 건드리지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseDelete = () => {};
+    const deleteHeld = new Promise<void>(
+      (resolve) => (releaseDelete = resolve),
+    );
+    await page.route(
+      (url) => url.pathname === "/api/delete-landmark-photo",
+      async (route) => {
+        await deleteHeld;
+        return route.fallback();
+      },
+    );
+    await page.goto("/admin/dashboard/landmarks");
+    const deleting = await openSquirrel(page);
+    await deleting.getByRole("button", { name: "삭제", exact: true }).click();
+    await deleting
+      .getByRole("group", { name: "삭제 확인" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+    await expect(
+      deleting.getByRole("button", { name: "삭제 중..." }),
+    ).toBeDisabled();
+
+    await page
+      .getByRole("navigation", { name: "관리자 메뉴" })
+      .getByRole("link", { name: "독립 시설" })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
+    await page
+      .getByRole("region", { name: "독립 시설", exact: true })
+      .getByRole("button", { name: /공사 중 주차구역/ })
+      .click();
+    const facility = detailPanel(page, "공사 중 주차구역");
+    const name = facility.getByLabel("시설 이름 (선택)");
+    await name.fill("입력 중인 시설");
+    releaseDelete();
+
+    // 삭제 요청이 실제로 끝난 뒤를 본다
+    await page.waitForTimeout(500);
+    await expect(page).toHaveURL(/\/facilities\?id=f-uninstalled$/);
+    await expect(facility).toBeVisible();
+    await expect(name).toHaveValue("입력 중인 시설");
+  });
+
   test("삭제가 실패하면 반환된 메시지를 오류로 알리고 행을 남긴다", async ({
     page,
   }) => {
