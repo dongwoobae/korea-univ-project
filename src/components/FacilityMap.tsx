@@ -19,6 +19,9 @@ import {
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 
+// 공개 등록 요청 모달의 색. 관리자 화면은 크림슨을 넘긴다(설계 2026-10-14 3.6)
+const PUBLIC_HIGHLIGHT_COLOR = "#2563EB";
+
 const markerIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   iconRetinaUrl:
@@ -54,11 +57,13 @@ export default function FacilityMap({
   markerPosition,
   onMapClick,
   highlightId,
+  highlightColor = PUBLIC_HIGHLIGHT_COLOR,
 }: {
   center: [number, number];
   markerPosition: [number, number] | null;
   onMapClick: (lat: number, lng: number) => void;
   highlightId?: number;
+  highlightColor?: string;
 }) {
   const prefersDarkMode = usePrefersDarkMode();
   const [map, setMap] = useState<L.Map | null>(null);
@@ -121,9 +126,9 @@ export default function FacilityMap({
             style={(f) =>
               String(f?.properties?.bid) === String(highlightId ?? "")
                 ? {
-                    color: "#2563EB",
+                    color: highlightColor,
                     weight: 2,
-                    fillColor: "#2563EB",
+                    fillColor: highlightColor,
                     fillOpacity: 0.15,
                   }
                 : NEIGHBOR_STYLE

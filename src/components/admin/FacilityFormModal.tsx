@@ -8,6 +8,7 @@ import { inferCampusFromPoint } from "@/lib/campusGeometry";
 import { translateFacility } from "@/lib/facilityTranslation";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
 import { useModalFocus } from "@/lib/useModalFocus";
+import { color } from "@/lib/theme";
 import FacilityFields, {
   ADMIN_FACILITY_FIELD_LABELS,
 } from "@/components/facility/FacilityFields";
@@ -193,6 +194,7 @@ export default function FacilityFormModal({
           labels={ADMIN_FACILITY_FIELD_LABELS}
           mapCenter={center}
           highlightBuildingId={buildingId ?? undefined}
+          highlightColor={color.crimson600}
           showFloor={!standalone}
           showInstalled
           locationRequired={standalone}
@@ -207,7 +209,7 @@ export default function FacilityFormModal({
               </button>
               {form.lat && form.lng && (
                 <div aria-live="polite" style={{ fontSize: 12, marginTop: 8 }}>
-                  <div style={{ color: "#2563EB" }}>
+                  <div style={{ color: "var(--ku-primary-text)" }}>
                     선택된 위치: {form.lat}, {form.lng}
                   </div>
                   <div

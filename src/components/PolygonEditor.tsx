@@ -219,7 +219,7 @@ export default function PolygonEditor({
               style={{
                 flex: 1,
                 padding: "10px",
-                background: "#2563EB",
+                background: "var(--ku-primary)",
                 color: "#fff",
                 border: "none",
                 borderRadius: 8,

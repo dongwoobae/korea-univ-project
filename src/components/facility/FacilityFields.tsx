@@ -62,6 +62,8 @@ interface FacilityFieldsProps {
   labels: FacilityFieldLabels;
   mapCenter: [number, number];
   highlightBuildingId?: number;
+  /** 위치 지도의 건물 강조색. 비우면 FacilityMap의 기본값 */
+  highlightColor?: string;
   showFloor: boolean;
   showInstalled: boolean;
   locationRequired?: boolean;
@@ -78,6 +80,7 @@ export default function FacilityFields({
   labels,
   mapCenter,
   highlightBuildingId,
+  highlightColor,
   showFloor,
   showInstalled,
   locationRequired = false,
@@ -166,6 +169,7 @@ export default function FacilityFields({
         <FacilityMap
           center={mapCenter}
           highlightId={highlightBuildingId}
+          highlightColor={highlightColor}
           markerPosition={
             value.lat && value.lng
               ? [parseFloat(value.lat), parseFloat(value.lng)]

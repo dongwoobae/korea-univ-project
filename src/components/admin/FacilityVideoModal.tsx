@@ -356,7 +356,7 @@ export default function FacilityVideoModal({
                       style={{
                         height: "100%",
                         width: `${progress}%`,
-                        background: "#2563EB",
+                        background: "var(--ku-primary)",
                         borderRadius: 99,
                         transition: "width 0.2s",
                       }}
