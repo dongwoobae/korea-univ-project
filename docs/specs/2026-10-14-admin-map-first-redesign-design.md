@@ -181,9 +181,12 @@ PR마다 main에서 브랜치를 따고, 앞 PR이 병합된 뒤 다음을 시�
 - 지도 작업 화면은 `height: calc(100dvh - 헤더)`로 잡는다. 셸 전체를 고정 높이 flex로 바꾸면 스크롤 주체가 창에서
   안쪽 요소로 바뀌어, 범위 밖인 건물 화면의 스크롤 동작(sticky 헤더 등)까지 같이 바뀐다. 모바일은 아래 nav와
   safe area까지 뺀다.
-- `.ku-admin-content > div { background … !important }`와 `.ku-admin-content` 아래 입력·버튼 전역 덮어쓰기는 지도
-  위 패널의 배경·반경을 덮어쓴다. 이 규칙이 필요한 건물 화면 클래스로 범위를 좁힌다. ① 계획에서 건물 화면 중 이
-  규칙에 기대는 곳을 먼저 찾는다.
+- `.ku-admin-content > div { background … !important }`는 셸(`.ku-admin-shell`)이 같은 배경을 이미 줘서 지운다.
+  `.ku-admin-content` 아래 입력·버튼 전역 덮어쓰기는 지도 위 패널의 배경·반경·포커스 테두리를 덮어쓰므로 지도
+  작업 화면(`.ku-map-workspace`)을 범위에서 뺀다. 2026-10-14에 따져 보니 건물 화면이 기대는 것은 카드 버튼의
+  반경(`button.ku-admin-overview-item`, `.ku-admin-mobile-card`)뿐이라 그 값을 각 클래스로 옮겼다. 남는 의존은
+  아직 옮기지 않은 명소·경사도·제보함 화면(명소 폼·이모지 피커 입력의 색, 각 화면 버튼의 반경)이고, 마지막 탭을
+  옮기는 PR(④)이 규칙을 지운다.
 - 토스트 모양은 2.12대로 `.ku-admin-shell` 범위에서만 바꾼다.
 
 ### 3.2 공통 단위
@@ -526,6 +529,5 @@ Playwright)로 확인하고, 화면은 Vercel 프리뷰에서 본다.
 - Next 16 App Router가 `window.history.pushState`로 쌓은 기록을 라우터 상태와 맞추는지, 그 기록에서 뒤로가기를 했을
   때 페이지가 다시 마운트되지 않는지(3.4 뒤로가기 확인의 전제). 안 되면 뒤로가기 확인은 빼고 사용자에게 알린다.
 - 헤더 링크가 가드를 거치게 하는 방식 — `Link`의 `onClick`에서 막을지, 레이아웃이 가드 문맥을 읽어 이동할지.
-- `.ku-admin-content` 전역 덮어쓰기에 기대는 건물 화면(3.1)
 - geoman 기본 툴바를 숨기고 같은 동작을 밖에서 부르는 API(`map.pm.enableDraw`, `toggleGlobalDragMode` 등)
 - 바텀시트·상세 전체 화면에서 아래 nav와 safe area 높이

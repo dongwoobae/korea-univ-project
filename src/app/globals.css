@@ -207,6 +207,58 @@ a {
   display: none;
 }
 
+/* Toast 기본(공개 지도) 모양. 관리자 화면은 admin-ui.css가 .ku-admin-shell 범위에서 덮는다. */
+.ku-toast {
+  position: fixed;
+  z-index: 9999;
+  top: 24px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+  max-width: 700px;
+  padding: 14px 24px;
+  border: 1px solid;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-size: 15px;
+  white-space: normal;
+  word-break: keep-all;
+  transform: translateX(-50%);
+}
+.ku-toast[data-tone="success"] {
+  border-color: #86efac;
+  color: #166534;
+  background: #f0fdf4;
+}
+.ku-toast[data-tone="error"] {
+  border-color: #fca5a5;
+  color: #991b1b;
+  background: #fef2f2;
+}
+.ku-toast[data-tone="warning"] {
+  border-color: #fcd34d;
+  color: #92400e;
+  background: #fffbeb;
+}
+.ku-toast-icon {
+  flex-shrink: 0;
+}
+.ku-toast-message {
+  flex: 1;
+}
+.ku-toast-close {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+  opacity: 0.6;
+}
+
 @keyframes shimmer {
   0% {
     transform: translateX(-150%);

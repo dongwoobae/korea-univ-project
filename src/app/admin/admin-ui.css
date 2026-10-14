@@ -1,4 +1,7 @@
 .ku-admin-shell {
+  /* 지도 작업 화면이 창 높이에서 이 둘을 뺀다 */
+  --ku-admin-header-height: 60px;
+  --ku-admin-nav-height: 0px;
   min-height: 100dvh;
   color: var(--ku-text-1);
   background: var(--ku-bg);
@@ -9,7 +12,7 @@
   top: 0;
   display: flex;
   align-items: center;
-  height: 64px;
+  height: var(--ku-admin-header-height);
   padding: 0 24px;
   border-bottom: 1px solid var(--ku-border);
   background: var(--ku-surface);
@@ -56,6 +59,10 @@
 .ku-admin-email {
   color: var(--ku-text-3);
   font-size: 12px;
+}
+.ku-admin-account .ku-admin-button {
+  min-height: 34px;
+  padding: 0 12px;
 }
 .ku-admin-menu {
   position: relative;
@@ -248,6 +255,7 @@
   background: var(--ku-surface);
 }
 button.ku-admin-overview-item {
+  border-radius: 8px;
   cursor: pointer;
 }
 .ku-admin-overview-item[aria-pressed="true"] {
@@ -766,25 +774,26 @@ button.ku-admin-overview-item {
   margin-top: 20px;
 }
 
-/* Existing admin forms inherit the same surface system while their data behavior stays intact. */
-.ku-admin-content > div {
-  color: var(--ku-text-1);
-  background: var(--ku-bg) !important;
-}
-.ku-admin-content input,
-.ku-admin-content textarea,
-.ku-admin-content select {
+/* 지도 작업 화면으로 아직 옮기지 않은 탭(명소·경사도·제보함)의 입력 색과 버튼 반경을 맞춘다.
+   작업 화면은 자기 클래스가 값을 정하므로 뺀다. 마지막 탭을 옮기는 PR이 이 규칙을 지운다
+   (설계 2026-10-14 3.1). */
+.ku-admin-content > :not(.ku-map-workspace) input,
+.ku-admin-content > :not(.ku-map-workspace) textarea,
+.ku-admin-content > :not(.ku-map-workspace) select {
   color: var(--ku-text-1) !important;
   border-color: var(--ku-border-input) !important;
   background: var(--ku-surface) !important;
 }
-.ku-admin-content button {
+.ku-admin-content > :not(.ku-map-workspace) button {
   border-radius: 8px !important;
 }
 
 @media (max-width: 767px) {
+  .ku-admin-shell {
+    --ku-admin-header-height: 54px;
+    --ku-admin-nav-height: 58px;
+  }
   .ku-admin-header {
-    height: 58px;
     padding: 0 14px;
   }
   .ku-admin-brand {
@@ -792,8 +801,8 @@ button.ku-admin-overview-item {
     margin-right: auto;
   }
   .ku-admin-brand img {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
   }
   .ku-admin-brand span {
     font-size: 14px;
@@ -827,7 +836,7 @@ button.ku-admin-overview-item {
     bottom: 0;
     left: 0;
     justify-content: space-around;
-    height: calc(58px + env(safe-area-inset-bottom));
+    height: calc(var(--ku-admin-nav-height) + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
     border-top: 1px solid var(--ku-border);
     background: var(--ku-surface);
@@ -929,7 +938,7 @@ button.ku-admin-overview-item {
     min-height: 82px;
     padding: 13px 14px;
     border: 1px solid var(--ku-border);
-    border-radius: 12px;
+    border-radius: 8px;
     text-align: left;
     color: var(--ku-text-1);
     background: var(--ku-surface);
@@ -1485,4 +1494,25 @@ button.ku-admin-overview-item {
   font-size: 12px;
   font-weight: 600;
   text-decoration: none;
+}
+
+/* 관리자 토스트 — 아래 가운데, 토큰을 반전한 색. 종류는 아이콘 모양이 가른다(설계 2026-10-14 2.12).
+   [data-tone]까지 붙여 globals.css의 종류별 색보다 특이도를 높인다 — 두 파일의 불러오는 순서에 기대지 않는다. */
+.ku-admin-shell .ku-toast[data-tone] {
+  top: auto;
+  bottom: 28px;
+  min-width: 0;
+  max-width: min(560px, calc(100vw - 32px));
+  padding: 11px 12px 11px 16px;
+  border: 0;
+  color: var(--ku-surface);
+  background: var(--ku-text-1);
+  box-shadow: var(--ku-shadow-floating);
+  font-size: 13px;
+  font-weight: 600;
+}
+@media (max-width: 767px) {
+  .ku-admin-shell .ku-toast[data-tone] {
+    bottom: calc(140px + env(safe-area-inset-bottom));
+  }
 }
