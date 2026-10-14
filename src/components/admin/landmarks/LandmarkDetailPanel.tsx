@@ -14,7 +14,11 @@ import {
   type CampusBoundaryCollection,
 } from "@/lib/campusGeometry";
 import { deleteLandmark } from "@/lib/landmarkDelete";
-import { saveLandmark } from "@/lib/landmarkSave";
+import {
+  deleteLandmarkPhoto,
+  saveLandmark,
+  uploadLandmarkPhoto,
+} from "@/lib/landmarkSave";
 import {
   buildLandmarkPayload,
   landmarkCampusLabel,
@@ -24,6 +28,14 @@ import {
   validateLandmarkForm,
 } from "@/lib/landmarkWorkspace";
 import type { Landmark } from "@/types/domain";
+
+const PHOTO_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
+
+/** 새 명소에서 고른 사진. 미리보기 주소는 고를 때 만들고 바꾸거나 닫을 때 해제한다 */
+interface PendingPhoto {
+  file: File;
+  previewUrl: string;
+}
 
 /** 588KB짜리 이모지 목록이 피커를 열기 전까지 따라오지 않게 한다. */
 const EmojiPicker = dynamic(() => import("@/components/admin/EmojiPicker"), {
@@ -58,9 +70,24 @@ export default function LandmarkDetailPanel({
   const [form, setForm] = useState(() => landmarkFormFromRow(landmark));
   const [saving, setSaving] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [photoBusy, setPhotoBusy] = useState<"upload" | "delete" | null>(null);
+  const [pendingPhoto, setPendingPhoto] = useState<PendingPhoto | null>(null);
+  const pendingUrlRef = useRef<string | null>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const busy = saving || photoBusy !== null;
   const onDraftChangeRef = useRef(onDraftChange);
   const fieldId = useId();
-  useUnsavedChanges(landmarkFormDirty(form, landmark, null));
+  useUnsavedChanges(
+    landmarkFormDirty(form, landmark, pendingPhoto?.file ?? null),
+  );
+
+  // 닫을 때(언마운트) 마지막 미리보기 주소를 해제한다
+  useEffect(
+    () => () => {
+      if (pendingUrlRef.current) URL.revokeObjectURL(pendingUrlRef.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     onDraftChangeRef.current = onDraftChange;
@@ -80,10 +107,10 @@ export default function LandmarkDetailPanel({
           lat: nextLat.toFixed(7),
           lng: nextLng.toFixed(7),
         })),
-      saving,
+      saving: busy,
       emoji: form.icon,
     });
-  }, [owner, form.lat, form.lng, form.icon, saving]);
+  }, [owner, form.lat, form.lng, form.icon, busy]);
 
   const lat = parseFloat(form.lat);
   const lng = parseFloat(form.lng);
@@ -118,6 +145,53 @@ export default function LandmarkDetailPanel({
     showToast("명소가 삭제되었어요");
   }
 
+  function replacePendingPhoto(next: File | null) {
+    if (pendingUrlRef.current) URL.revokeObjectURL(pendingUrlRef.current);
+    const previewUrl = next ? URL.createObjectURL(next) : null;
+    pendingUrlRef.current = previewUrl;
+    setPendingPhoto(next && previewUrl ? { file: next, previewUrl } : null);
+  }
+
+  async function handlePhotoChosen(file: File) {
+    if (!landmark) {
+      replacePendingPhoto(file);
+      showToast("명소를 저장할 때 사진도 함께 업로드해요", "warning");
+      return;
+    }
+    setPhotoBusy("upload");
+    try {
+      await uploadLandmarkPhoto(landmark.id, file);
+    } catch (error) {
+      setPhotoBusy(null);
+      showToast(
+        error instanceof Error ? error.message : "사진 업로드 실패",
+        "error",
+      );
+      return;
+    }
+    await onSaved(landmark.id, false);
+    setPhotoBusy(null);
+    showToast("사진이 업로드되었어요");
+  }
+
+  async function handlePhotoDelete() {
+    if (!landmark) {
+      replacePendingPhoto(null);
+      return;
+    }
+    if (!landmark.photo_url) return;
+    setPhotoBusy("delete");
+    const deleted = await deleteLandmarkPhoto(landmark.id, landmark.photo_url);
+    if (!deleted) {
+      setPhotoBusy(null);
+      showToast("사진 삭제에 실패했어요", "error");
+      return;
+    }
+    await onSaved(landmark.id, false);
+    setPhotoBusy(null);
+    showToast("사진이 삭제되었어요");
+  }
+
   async function handleSave() {
     const invalid = validateLandmarkForm(form);
     if (invalid) {
@@ -128,7 +202,7 @@ export default function LandmarkDetailPanel({
     const result = await saveLandmark(
       landmark?.id ?? null,
       buildLandmarkPayload(form),
-      null,
+      landmark ? null : (pendingPhoto?.file ?? null),
     );
     if (!result.ok) {
       setSaving(false);
@@ -144,6 +218,7 @@ export default function LandmarkDetailPanel({
     showToast(result.created ? "명소가 추가되었어요" : "명소가 수정되었어요");
   }
 
+  const photoSrc = landmark ? landmark.photo_url : pendingPhoto?.previewUrl;
   const label = landmark ? landmarkDisplayName(landmark) : "명소 추가";
   const campusLabel = landmark ? landmarkCampusLabel(landmark, boundaries) : "";
   const date = landmark ? formatAdminUpdatedAt(landmark.updated_at) : "";
@@ -159,7 +234,7 @@ export default function LandmarkDetailPanel({
             aria-label={`이모지 ${form.icon} 바꾸기`}
             aria-haspopup="listbox"
             aria-expanded={pickerOpen}
-            disabled={saving}
+            disabled={busy}
             onClick={() => setPickerOpen((open) => !open)}
           >
             <span aria-hidden="true">{form.icon}</span>
@@ -177,18 +252,19 @@ export default function LandmarkDetailPanel({
         </div>
       }
       onClose={onClose}
-      closeDisabled={saving}
+      closeDisabled={busy}
       remove={
         landmark
           ? {
               confirmMessage: "명소와 사진은 복구할 수 없어요.",
-              disabled: saving,
+              disabled: busy,
               onConfirm: remove,
             }
           : undefined
       }
       save={{
         pending: saving,
+        disabled: busy,
         onClick: () => void handleSave(),
       }}
       mapStrip={false}
@@ -232,21 +308,64 @@ export default function LandmarkDetailPanel({
         </div>
         <div className="ku-landmark-photo">
           <span className="ku-detail-label">사진</span>
-          {landmark?.photo_url ? (
+          <input
+            ref={photoInputRef}
+            id={`${fieldId}-photo`}
+            type="file"
+            accept={PHOTO_ACCEPT}
+            className="ku-sr-only"
+            disabled={busy}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (file) void handlePhotoChosen(file);
+            }}
+          />
+          {photoSrc ? (
             <div className="ku-landmark-photo-frame">
               <Image
-                src={landmark.photo_url}
+                src={photoSrc}
                 alt="명소 사진"
                 fill
                 sizes="200px"
                 unoptimized
                 style={{ objectFit: "cover" }}
               />
+              {photoBusy === "upload" && (
+                <span className="ku-landmark-photo-busy">업로드 중...</span>
+              )}
+              <div className="ku-landmark-photo-actions">
+                <button
+                  type="button"
+                  aria-label="사진 변경"
+                  disabled={busy}
+                  onClick={() => photoInputRef.current?.click()}
+                >
+                  변경
+                </button>
+                <button
+                  type="button"
+                  aria-label="사진 삭제"
+                  disabled={busy}
+                  onClick={() => void handlePhotoDelete()}
+                >
+                  삭제
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="ku-landmark-photo-frame ku-landmark-photo-empty">
-              사진 없음
-            </div>
+            <label
+              htmlFor={`${fieldId}-photo`}
+              className="ku-landmark-photo-frame ku-landmark-photo-empty"
+              aria-disabled={busy}
+            >
+              {photoBusy === "upload" ? "업로드 중..." : "＋ 사진 선택"}
+            </label>
+          )}
+          {pendingPhoto && (
+            <p className="ku-landmark-photo-hint">
+              저장 시 업로드: {pendingPhoto.file.name}
+            </p>
           )}
         </div>
       </div>
@@ -255,7 +374,7 @@ export default function LandmarkDetailPanel({
         form={form}
         setForm={setForm}
         landmark={landmark}
-        disabled={saving}
+        disabled={busy}
         showToast={showToast}
       />
 

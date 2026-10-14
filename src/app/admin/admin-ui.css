@@ -2260,6 +2260,50 @@ button.ku-admin-overview-item {
   background: transparent;
   font-size: 12.5px;
 }
+.ku-landmark-photo-empty {
+  min-height: 120px;
+  cursor: pointer;
+}
+.ku-landmark-photo-empty[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.ku-landmark-photo-busy {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ku-text-1);
+  background: color-mix(in srgb, var(--ku-surface) 70%, transparent);
+  font-size: 12.5px;
+}
+.ku-landmark-photo-actions {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  gap: 6px;
+}
+.ku-landmark-photo-actions button {
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font-size: 12px;
+  cursor: pointer;
+}
+.ku-landmark-photo-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.ku-landmark-photo-hint {
+  margin: 6px 0 0;
+  color: var(--ku-text-3);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
 .ku-landmark-translation {
   display: flex;
   flex-direction: column;
@@ -2560,6 +2604,7 @@ button.ku-admin-overview-item {
   .ku-landmark-body {
     grid-template-columns: minmax(0, 1fr);
   }
+  .ku-landmark-photo-actions button,
   .ku-landmark-translation-actions button,
   .ku-landmark-translation-fill {
     min-height: 44px;
