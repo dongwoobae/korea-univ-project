@@ -212,9 +212,10 @@ export default function LandmarkDetailPanel({
       );
       return;
     }
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
+    showToast("사진이 업로드되었어요");
     await onSaved(landmark.id, false);
     setPhotoBusy(null);
-    showToast("사진이 업로드되었어요");
   }
 
   async function handlePhotoDelete() {
@@ -230,9 +231,9 @@ export default function LandmarkDetailPanel({
       showToast("사진 삭제에 실패했어요", "error");
       return;
     }
+    showToast("사진이 삭제되었어요");
     await onSaved(landmark.id, false);
     setPhotoBusy(null);
-    showToast("사진이 삭제되었어요");
   }
 
   async function handleSave() {
