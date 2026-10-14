@@ -352,3 +352,370 @@ test.describe("명소 작업 화면 — 모바일", () => {
     await expect(sheet).toBeVisible();
   });
 });
+
+async function openSquirrel(page: Page) {
+  await listRow(page, "다람쥐길").click();
+  return detailPanel(page, "다람쥐길");
+}
+
+function toast(page: Page, text: string) {
+  return page
+    .locator(".ku-toast[role='status'], .ku-toast[role='alert']")
+    .filter({ hasText: text });
+}
+
+test.describe("명소 작업 화면 — 상세 패널 편집", () => {
+  test("헤더에 이모지 버튼·이름·캠퍼스와 수정일을 보인다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+
+    const emojiButton = detail.getByRole("button", { name: /이모지.*🐿️/ });
+    await expect(emojiButton).toHaveAttribute("aria-haspopup", "listbox");
+    await expect(emojiButton).toHaveAttribute("aria-expanded", "false");
+    const box = await emojiButton.boundingBox();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+    await expect(
+      detail.getByRole("heading", { name: "다람쥐길" }),
+    ).toBeVisible();
+    await expect(detail.locator(".ku-detail-title p")).toContainText(
+      / · 수정 /,
+    );
+    await expect(detail.getByLabel("이름 *")).toHaveValue("다람쥐길");
+    await expect(detail.getByLabel("설명", { exact: true })).toHaveValue(
+      "학생들이 쉬어가는 길",
+    );
+    await expect(detail.locator(".ku-detail-coords")).toHaveText(
+      "37.58955, 127.03225",
+    );
+  });
+
+  test("이름을 고쳐 저장하면 목록과 패널이 새 값이고, 이름이 비면 저장하지 않는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+
+    await detail.getByLabel("이름 *").fill("");
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(toast(page, "명소 이름을 입력해주세요")).toBeVisible();
+    expect(state.landmarks[0].name).toBe("다람쥐길");
+
+    await detail.getByLabel("이름 *").fill("도토리길");
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
+    await expect(detailPanel(page, "도토리길")).toBeVisible();
+    await expect(listRow(page, "도토리길")).toBeVisible();
+    expect(state.landmarks[0]).toMatchObject({
+      name: "도토리길",
+      icon: "🐿️",
+      photo_url: "https://cdn.test/landmark.webp",
+    });
+  });
+
+  test("번역 카드가 값을 보이고 빈 값은 번역 없음으로 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    await listRow(page, "번역 빈 정자").click();
+    const card = detailPanel(page, "번역 빈 정자").locator(
+      ".ku-landmark-translation",
+    );
+
+    await expect(card.getByText("번역 없음")).toBeVisible();
+    await expect(card).toContainText("English");
+    await expect(card).toContainText("中文");
+    await expect(card).toContainText("ZH");
+
+    await listRow(page, "다람쥐길").click();
+    await expect(
+      detailPanel(page, "다람쥐길").locator(".ku-landmark-translation"),
+    ).toContainText("Squirrel Trail");
+  });
+
+  test("자동번역 채우기는 빈 칸만 채워 직접 고친 영문 이름을 남긴다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.landmarks.push(
+      landmark({
+        id: "l-empty-translation",
+        name: "빈 번역 연못",
+        name_en: "",
+        name_zh: "",
+        description: "물가 쉼터",
+        lat: 37.5905,
+        lng: 127.0345,
+      }),
+    );
+    await page.goto("/admin/dashboard/landmarks");
+    await listRow(page, "빈 번역 연못").click();
+    const detail = detailPanel(page, "빈 번역 연못");
+
+    await detail.getByRole("button", { name: "직접 고치기" }).click();
+    await detail.getByLabel("영문 이름").fill("My Pond");
+    await detail.getByRole("button", { name: "자동번역 채우기" }).click();
+
+    await expect(detail.getByLabel("중문 이름")).toHaveValue("ZH 빈 번역 연못");
+    await expect(detail.getByLabel("영문 설명")).toHaveValue("EN 물가 쉼터");
+    await expect(detail.getByLabel("영문 이름")).toHaveValue("My Pond");
+    // 채우기는 초안일 뿐 저장하지 않는다
+    expect(
+      state.landmarks.find((row) => row.id === "l-empty-translation")?.name_zh,
+    ).toBe("");
+
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
+    expect(
+      state.landmarks.find((row) => row.id === "l-empty-translation"),
+    ).toMatchObject({ name_en: "My Pond", name_zh: "ZH 빈 번역 연못" });
+  });
+
+  test("번역 칸을 고친 채에는 직접 고치기가 접히지 않고, 번역이 실패하면 경고한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, {
+      authenticated: true,
+      failTranslations: 1,
+    });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    await listRow(page, "번역 빈 정자").click();
+    const detail = detailPanel(page, "번역 빈 정자");
+    const toggle = detail.getByRole("button", { name: "직접 고치기" });
+
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await toggle.click();
+    await detail.getByLabel("영문 이름").fill("Pavilion");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(detail.getByLabel("영문 이름")).toHaveValue("Pavilion");
+
+    await detail.getByRole("button", { name: "자동번역 채우기" }).click();
+    await expect(toast(page, "자동번역에 실패했어요")).toBeVisible();
+  });
+
+  test("지도를 누르거나 선택 핀을 끌어 위치를 옮기고 저장한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+    const coords = detail.locator(".ku-detail-coords");
+    await expect(coords).toHaveText("37.58955, 127.03225");
+    await expect(detail.locator(".ku-detail-campus")).toContainText(
+      "영역 · 지도를 클릭해 위치 변경",
+    );
+
+    const map = page.locator(".ku-map-workspace-map .leaflet-container");
+    await map.click({ position: { x: 600, y: 150 } });
+    await expect(coords).not.toHaveText("37.58955, 127.03225");
+    const clicked = await coords.textContent();
+
+    const pin = page.locator(".ku-landmark-marker--selected");
+    const box = await pin.boundingBox();
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box!.x + 60, box!.y + 90, { steps: 8 });
+    await page.mouse.up();
+    await expect(coords).not.toHaveText(clicked!);
+    const dragged = await coords.textContent();
+
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
+    const [lat, lng] = dragged!.split(", ").map(Number);
+    expect(state.landmarks[0].lat).toBeCloseTo(lat, 6);
+    expect(state.landmarks[0].lng).toBeCloseTo(lng, 6);
+  });
+
+  test("캠퍼스 밖 위치는 경고 문구를 보이되 저장된다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+
+    for (let step = 0; step < 4; step += 1) {
+      await page.getByRole("button", { name: "Zoom out" }).click();
+    }
+    await page
+      .locator(".ku-map-workspace-map .leaflet-container")
+      .click({ position: { x: 600, y: 150 } });
+    await expect(
+      detail.getByText(
+        "캠퍼스 영역 밖입니다. 인접 지역 명소라면 그대로 저장할 수 있습니다.",
+      ),
+    ).toBeVisible();
+    await expect(detail.locator(".ku-detail-campus")).toHaveAttribute(
+      "data-tone",
+      "warn",
+    );
+
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
+    expect(state.landmarks[0].lat).not.toBe(37.58955);
+  });
+
+  test("새 명소는 지도 첫 클릭이 위치이고 저장하면 그 명소의 상세로 바뀐다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    await listPanel(page).getByRole("button", { name: "＋ 명소 추가" }).click();
+    const detail = detailPanel(page, "명소 추가");
+
+    await expect(detail.getByText("지도를 눌러 위치를 찍어요")).toBeVisible();
+    await expect(
+      detail.getByText("지도를 눌러 위치를 찍어 주세요"),
+    ).toBeVisible();
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(toast(page, "명소 이름을 입력해주세요")).toBeVisible();
+
+    await detail.getByPlaceholder("예: 다람쥐길").fill("새 쉼터");
+    await detail.getByRole("button", { name: /이모지/ }).click();
+    await detail.getByLabel("이모지 검색").fill("나무");
+    await detail.getByRole("option").first().click();
+    await page
+      .locator(".ku-map-workspace-map .leaflet-container")
+      .click({ position: { x: 600, y: 150 } });
+    await expect(page.getByTestId("admin-landmark-marker-new")).toBeVisible();
+
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("명소가 추가되었어요")).toBeVisible();
+    await expect(detailPanel(page, "새 쉼터")).toBeVisible();
+    await expect(page).toHaveURL(/\?id=22222222-2222-2222-2222-222222222222$/);
+    expect(state.landmarks.at(-1)).toMatchObject({ name: "새 쉼터" });
+  });
+
+  test("저장하는 동안에는 다른 항목 선택·지도 클릭·닫기·삭제가 잠긴다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    let releaseSave = () => {};
+    const saveHeld = new Promise<void>((resolve) => (releaseSave = resolve));
+    await page.route(landmarksRequest, async (route) => {
+      if (route.request().method() === "PATCH") await saveHeld;
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+    const coords = detail.locator(".ku-detail-coords");
+
+    await detail.getByLabel("이름 *").fill("도토리길");
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(
+      detail.getByRole("button", { name: "저장 중..." }),
+    ).toBeDisabled();
+    await expect(
+      detail.getByRole("button", { name: "상세 닫기" }),
+    ).toBeDisabled();
+    await expect(
+      detail.getByRole("button", { name: "삭제", exact: true }),
+    ).toBeDisabled();
+
+    await listRow(page, "사진 없는 연못").click({ force: true });
+    await page
+      .locator(".ku-map-workspace-map .leaflet-container")
+      .click({ position: { x: 600, y: 150 } });
+    await expect(page).toHaveURL(new RegExp(`\\?id=${SQUIRREL_ID}$`));
+    await expect(coords).toHaveText("37.58955, 127.03225");
+
+    releaseSave();
+    await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`\\?id=${SQUIRREL_ID}$`));
+    await expect(detailPanel(page, "도토리길")).toBeVisible();
+  });
+
+  test("인라인 확인을 거쳐 명소를 지우면 행이 사라지고 패널이 닫힌다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    await listRow(page, "사진 없는 연못").click();
+    const detail = detailPanel(page, "사진 없는 연못");
+
+    await detail.getByRole("button", { name: "삭제", exact: true }).click();
+    await expect(
+      detail.getByText("명소와 사진은 복구할 수 없어요."),
+    ).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await detail
+      .getByRole("group", { name: "삭제 확인" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+
+    await expect(page.getByText("명소가 삭제되었어요")).toBeVisible();
+    await expect(detail).toHaveCount(0);
+    await expect(listRow(page, "사진 없는 연못")).toHaveCount(0);
+    expect(state.landmarks.some((row) => row.id === "l-no-photo")).toBe(false);
+  });
+
+  test("삭제를 기다리는 사이 연 다른 명소의 상세는 삭제가 끝나도 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    let releaseDelete = () => {};
+    const deleteHeld = new Promise<void>(
+      (resolve) => (releaseDelete = resolve),
+    );
+    await page.route(
+      (url) => url.pathname === "/api/delete-landmark-photo",
+      async (route) => {
+        await deleteHeld;
+        return route.fallback();
+      },
+    );
+    await page.goto("/admin/dashboard/landmarks");
+    const deleting = await openSquirrel(page);
+    await deleting.getByRole("button", { name: "삭제", exact: true }).click();
+    await deleting
+      .getByRole("group", { name: "삭제 확인" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+    await expect(
+      deleting.getByRole("button", { name: "삭제 중..." }),
+    ).toBeDisabled();
+
+    await listRow(page, "번역 빈 정자").click();
+    const other = detailPanel(page, "번역 빈 정자");
+    await expect(other).toBeVisible();
+    releaseDelete();
+
+    await expect(page.getByText("명소가 삭제되었어요")).toBeVisible();
+    await expect(listRow(page, "다람쥐길")).toHaveCount(0);
+    await expect(other).toBeVisible();
+    await expect(page).toHaveURL(/\?id=l-no-translation$/);
+  });
+
+  test("삭제가 실패하면 반환된 메시지를 오류로 알리고 행을 남긴다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.route(
+      (url) => url.pathname === "/api/delete-landmark-photo",
+      (route) => serverError(route),
+    );
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+    await detail.getByRole("button", { name: "삭제", exact: true }).click();
+    await detail
+      .getByRole("group", { name: "삭제 확인" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "사진 삭제에 실패해 명소를 지우지 못했어요" }),
+    ).toBeVisible();
+    await expect(listRow(page, "다람쥐길")).toBeVisible();
+  });
+});

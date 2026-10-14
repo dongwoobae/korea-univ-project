@@ -53,6 +53,57 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     await expect(settingsTrigger).toBeFocused();
   });
 
+  // 패널은 모달이 아니다. 피커는 useModalFocus의 dialogStack에 자기를 얹어 Escape를 맡고,
+  // 패널에는 Escape로 닫히는 동작이 없다.
+  test("명소 패널의 이모지 피커 Escape는 피커만 닫고 입력과 초점을 남긴다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+
+    await page.getByRole("button", { name: "＋ 명소 추가" }).click();
+    const panel = page.getByRole("region", { name: "명소 추가", exact: true });
+    await panel.getByPlaceholder("예: 다람쥐길").fill("Escape 시험 명소");
+
+    const iconButton = panel.getByRole("button", { name: /이모지/ });
+    await iconButton.click();
+    const search = panel.getByLabel("이모지 검색");
+    await expect(search).toBeFocused();
+    await expect(iconButton).toHaveAttribute("aria-expanded", "true");
+
+    await page.keyboard.press("Escape");
+
+    await expect(search).toHaveCount(0);
+    await expect(panel).toBeVisible();
+    await expect(iconButton).toHaveAttribute("aria-expanded", "false");
+    await expect(iconButton).toBeFocused();
+    await expect(panel.getByPlaceholder("예: 다람쥐길")).toHaveValue(
+      "Escape 시험 명소",
+    );
+
+    // 피커가 닫힌 뒤의 Escape는 패널을 닫지 않는다.
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeVisible();
+  });
+
+  test("명소 패널 입력의 레이블이 프로그램적으로 연결된다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    await page.getByRole("button", { name: /다람쥐길/ }).click();
+    const panel = page.getByRole("region", { name: "다람쥐길", exact: true });
+
+    await expect(panel.getByLabel("이름 *")).toBeEditable();
+    await expect(panel.getByLabel("설명", { exact: true })).toBeEditable();
+    await expect(panel.getByRole("button", { name: /이모지/ })).toBeVisible();
+    await panel.getByRole("button", { name: "직접 고치기" }).click();
+    await expect(panel.getByLabel("영문 이름")).toBeEditable();
+    await expect(panel.getByLabel("중문 이름")).toBeEditable();
+    await expect(panel.getByLabel("영문 설명")).toBeEditable();
+    await expect(panel.getByLabel("중문 설명")).toBeEditable();
+  });
+
   test("공개 피드백 모달이 초점을 관리하고 실행 버튼으로 복귀한다", async ({
     page,
   }) => {

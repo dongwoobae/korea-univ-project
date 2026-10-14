@@ -173,4 +173,35 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
       ).toHaveLength(0);
     }
   });
+  test("명소 상세 패널에 하드코딩 밝은 색이 남지 않는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto(
+      "/admin/dashboard/landmarks?id=11111111-1111-1111-1111-111111111111",
+    );
+    await expect(
+      page.getByRole("region", { name: "다람쥐길", exact: true }),
+    ).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    for (const step of ["보기", "직접 고치기", "새로 만들기"]) {
+      if (step === "직접 고치기") {
+        await page.getByRole("button", { name: "직접 고치기" }).click();
+      }
+      if (step === "새로 만들기") {
+        await page.getByRole("button", { name: "＋ 명소 추가" }).click();
+        await expect(
+          page.getByRole("region", { name: "명소 추가", exact: true }),
+        ).toBeVisible();
+      }
+      const result = await scanContrast(page);
+      expect(
+        result.nearWhiteBg,
+        `${step} — 미이관 흰 배경: ${result.nearWhiteBg.join(", ")}`,
+      ).toHaveLength(0);
+      expect(
+        result.nearBlackText,
+        `${step} — 미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
+      ).toHaveLength(0);
+    }
+  });
 });
