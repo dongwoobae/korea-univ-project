@@ -20,8 +20,8 @@
 - 확인 창 문구는 `저장하지 않은 변경사항이 있어요` / `지금 나가면 입력한 값이 사라져요` / `나가기`다(설계 3.4).
 - 새 CSS 클래스는 핸드오버 "Files"의 `ku-map-workspace`·`ku-float-panel`·`ku-detail-panel`·`ku-chip`을 쓰고, 그 밖은 `ku-workspace-*`·`ku-detail-*`·`ku-bottom-sheet*`로 짓는다.
 - 다크 대응이 필요한 값은 `globals.css` 토큰으로 쓴다. 토큰이 없는 핸드오버 값(`#FBFAF9` 등)은 `color-mix()`로 토큰에서 만든다.
-- 로컬에 `node_modules`를 두지 않는다(설계 8.4). 검증은 PR CI(lint·format:check·typecheck·vitest·Playwright)와 Vercel 프리뷰로 한다 — 아래 "검증 방법".
-- Next 16 문서는 로컬에 없다. 필요하면 `https://raw.githubusercontent.com/vercel/next.js/v16.2.4/docs/...`를 읽는다(AGENTS.md).
+- 검증은 로컬에서 lint·format:check·typecheck·vitest·Playwright를 돌려서 하고, PR CI는 PR ①을 마칠 때 한 번 푸시해 최종 확인한다. 화면은 Vercel 프리뷰로 본다(설계 8.4) — 아래 "검증 방법".
+- Next 16 문서는 `node_modules/next/dist/docs/`에 있다(AGENTS.md).
 - vitest는 `environment: "node"`라 컴포넌트를 렌더하지 못한다. 순수 함수만 단위 테스트하고 화면은 Playwright로 본다.
 - React Compiler와 `eslint-config-next`가 켜져 있다. 렌더 중에 ref를 읽거나 쓰지 않는다. effect 안의 동기 `setState`는 경고(`react-hooks/set-state-in-effect`)라 새로 만들지 않는다.
 - 주석은 이유·외부 제약·위험만 적는다. 다른 파일의 줄 번호·개수·상수 값을 적지 않고 심볼 이름으로 가리킨다.
@@ -30,18 +30,22 @@
 
 ## 검증 방법
 
-로컬에서 테스트를 돌리지 않는다. "실패를 확인한다"·"통과를 확인한다" 단계는 푸시한 뒤 PR CI 결과를 읽는 것이다.
+2026-10-14 Task 9부터 로컬에서 확인한다(설계 8.4). 그 전 태스크(0~8)는 푸시한 뒤 PR CI 결과로 확인했다. 각 태스크의 "커밋·푸시하고 실패를 확인한다"·"커밋·푸시하고 통과를 확인한다" 단계는 커밋한 뒤 아래 명령을 돌리는 것으로 읽고, 푸시는 PR ①을 마칠 때(Task 11) 한 번 한다.
 
 ```bash
-gh pr checks --watch                     # 현재 브랜치 PR의 잡 상태
-gh run list --branch feat/admin-map-first --limit 1
-gh run view <run-id> --log-failed        # 실패한 잡의 로그만
+npm ci                                    # 처음 한 번
+npm run lint
+npm run format:check
+npm run typecheck
+npm run test                              # vitest
+npx playwright test e2e/<바꾼 spec>.ts    # 고치는 동안
+npm run test:e2e                          # 태스크를 마치기 전에 전체
 ```
 
-- 형식(`Format (Prettier)` 잡)은 커밋 전에 `npx --yes prettier@3.9.4 --write <바꾼 파일>`로 맞춰도 된다. prettier 하나만 저장소 밖 npm 캐시에 받는다(작은 패키지라 설계 8.4의 디스크 여유를 해치지 않는다). 계획 문서 자체도 이 방법으로 맞췄다.
-- 테스트만 넣은 커밋을 푸시하면 CI가 도는 동안 구현을 써도 된다. 구현을 푸시하기 전에 앞 실행이 **기대한 이유로** 실패했는지 로그에서 확인한다. 모듈이 아직 없어서 `Typecheck`와 `Test (unit)`이 함께 실패하는 것은 기대한 실패다.
+- Playwright 설정은 로컬에서 이미 떠 있는 서버(포트 3100)를 다시 쓴다. 앞 실행에서 남은 `next dev`가 있으면 끄고 돌린다.
+- 테스트만 커밋한 상태에서 새 시나리오를 돌려 **기대한 이유로** 실패하는지 본 뒤 구현한다. 모듈이 아직 없어서 typecheck와 vitest가 함께 실패하는 것은 기대한 실패다.
 - 기대와 다른 이유로 실패하면 구현으로 넘어가지 말고 테스트를 고친다.
-- 화면 확인은 PR의 Vercel 프리뷰에서 한다. 모바일은 실제 휴대폰으로 연다(Task 10).
+- 화면 확인은 PR의 Vercel 프리뷰에서 한다. 프리뷰는 푸시해야 갱신되므로 PR ①을 마칠 때 한꺼번에 본다. 모바일은 실제 휴대폰으로 연다(Task 10).
 
 ## 브랜치와 PR
 

@@ -514,8 +514,11 @@ Next 16 App Router가 `window.history.pushState`를 라우터와 맞추는지 �
 
 ### 8.4 검증 방식
 
-로컬에 `node_modules`를 두지 않는다(2026-10-14 C 드라이브 여유 2.8GB). PR CI(lint·format:check·typecheck·vitest·
-Playwright)로 확인하고, 화면은 Vercel 프리뷰에서 본다.
+lint·format:check·typecheck·vitest·Playwright를 로컬에서 돌려 확인하고, PR CI는 PR을 마칠 때 최종 확인으로 쓴다.
+화면은 Vercel 프리뷰에서 본다.
+
+처음에는 C 드라이브 여유(2026-10-14 2.8GB) 때문에 로컬에 `node_modules`를 두지 않고 PR CI로만 확인했다. 같은 날
+PR ① 도중(Task 9부터) 로컬 검증으로 바꿨다.
 
 ---
 
