@@ -533,6 +533,43 @@ test.describe("명소 작업 화면 — 상세 패널 편집", () => {
     ).toMatchObject({ name_en: "My Pond", name_zh: "ZH 빈 번역 연못" });
   });
 
+  test("원문 설명이 비면 설명 보기는 번역 없음 대신 원문 설명 없음을 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    await listRow(page, "번역 빈 정자").click();
+    const card = detailPanel(page, "번역 빈 정자").locator(
+      ".ku-landmark-translation",
+    );
+
+    await card.getByRole("button", { name: "설명 보기" }).click();
+    await expect(card.getByText("원문 설명 없음")).toHaveCount(2);
+    // 이름 쪽 번역 없음(영문 이름이 빔)은 그대로 하나만 남는다
+    await expect(card.getByText("번역 없음")).toHaveCount(1);
+  });
+
+  test("자동번역으로 펼친 직접 고치기는 값을 되돌려도 접히지 않는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    await listRow(page, "번역 빈 정자").click();
+    const detail = detailPanel(page, "번역 빈 정자");
+    const toggle = detail.getByRole("button", { name: "직접 고치기" });
+
+    await detail.getByRole("button", { name: "자동번역 채우기" }).click();
+    const nameEn = detail.getByLabel("영문 이름");
+    await expect(nameEn).toHaveValue("EN 번역 빈 정자");
+    await nameEn.fill("");
+
+    await expect(toggle).toHaveAttribute("aria-expanded", "true");
+    await expect(nameEn).toBeVisible();
+    await expect(nameEn).toBeFocused();
+  });
+
   test("번역 칸을 고친 채에는 직접 고치기가 접히지 않고, 번역이 실패하면 경고한다", async ({
     page,
   }) => {
