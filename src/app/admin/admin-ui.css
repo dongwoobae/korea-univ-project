@@ -1851,3 +1851,317 @@ button.ku-admin-overview-item {
 .leaflet-tooltip-top.ku-workspace-marker-tooltip::before {
   border-top-color: var(--ku-text-1);
 }
+
+.ku-detail-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  width: 460px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--ku-surface);
+  box-shadow: 0 4px 20px rgba(28, 25, 23, 0.14);
+}
+.ku-detail-panel-head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 20px 0;
+}
+.ku-detail-panel-head > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+.ku-detail-panel-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ku-text-3);
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
+}
+.ku-detail-panel-close:hover:not(:disabled) {
+  background: var(--ku-bg);
+}
+.ku-detail-panel-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 18px 20px;
+  overflow: auto;
+}
+.ku-detail-panel-foot {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--ku-divider);
+}
+.ku-detail-panel-spacer {
+  flex: 1;
+}
+.ku-detail-panel-foot .ku-workspace-primary {
+  height: 36px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.ku-detail-remove {
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ku-danger);
+  background: none;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-detail-remove:hover:not(:disabled) {
+  background: var(--ku-status-missing-bg);
+}
+.ku-detail-remove-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--ku-status-missing-fg);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+/* 다크에서도 흰 글자 대비를 지키려고 토큰(--ku-danger)이 아닌 값으로 채운다(설계 2026-10-14 2.4와 같은 이유) */
+.ku-workspace-button--danger {
+  border-color: #dc2626;
+  color: #fff;
+  background: #dc2626;
+}
+.ku-detail-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.ku-detail-title-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  color: #fff;
+}
+.ku-detail-title h2 {
+  font-size: 17px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.ku-detail-title p {
+  margin-top: 3px;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-detail-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.ku-segment {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--ku-divider);
+}
+.ku-segment button {
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ku-text-3);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.ku-segment button[aria-pressed="true"] {
+  background: var(--ku-surface);
+  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.12);
+}
+.ku-segment button[aria-pressed="true"][data-tone="installed"] {
+  color: var(--ku-success-fg);
+}
+.ku-segment button[aria-pressed="true"][data-tone="missing"] {
+  color: var(--ku-status-missing-fg);
+}
+.ku-segment button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.ku-translation-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid
+    color-mix(in srgb, var(--ku-status-warn-fg) 35%, transparent);
+  border-radius: 999px;
+  color: var(--ku-status-warn-fg);
+  background: var(--ku-status-warn-bg);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ku-translation-pill button {
+  height: 24px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--ku-surface);
+  background: var(--ku-status-warn-fg);
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+.ku-translation-pill button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+.ku-translation-done {
+  margin-left: auto;
+  color: var(--ku-success-fg);
+  font-size: 12px;
+  font-weight: 600;
+}
+/* FacilityFields는 공개 등록 요청 모달·검토 모달과 같이 쓰는 인라인 스타일이라 패널 값으로 덮는다.
+   포커스 테두리는 덮기 규칙과 특이도가 같아 따로 되살린다. */
+.ku-detail-form label {
+  color: var(--ku-text-2) !important;
+  font-weight: 600;
+}
+.ku-detail-form input,
+.ku-detail-form select,
+.ku-detail-form textarea {
+  min-height: 40px;
+  padding: 0 11px !important;
+  border: 1px solid var(--ku-border-input) !important;
+  border-radius: 8px !important;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font-size: 14px !important;
+}
+.ku-detail-form input:focus-visible,
+.ku-detail-form select:focus-visible,
+.ku-detail-form textarea:focus-visible {
+  border-color: var(--ku-crimson-700) !important;
+}
+.ku-detail-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ku-text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ku-detail-location {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.ku-detail-location .ku-detail-label {
+  margin-bottom: 0;
+}
+.ku-detail-coords {
+  color: var(--ku-text-2);
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12.5px;
+}
+.ku-detail-campus {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-detail-campus[data-tone="ok"] {
+  color: var(--ku-success-fg);
+}
+.ku-detail-campus[data-tone="warn"] {
+  color: var(--ku-status-warn-fg);
+}
+.ku-detail-location .ku-workspace-button {
+  margin-top: 6px;
+}
+.ku-detail-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.ku-detail-panel .ku-facility-photo-manager {
+  justify-content: flex-start;
+}
+.ku-detail-panel .ku-facility-photo-manager-item img,
+.ku-detail-panel .ku-facility-photo-manager-add {
+  width: 58px;
+  height: 58px;
+  border-radius: 7px;
+}
+.ku-detail-dashed {
+  width: 100%;
+  height: 58px;
+  border: 1.5px dashed var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-text-2);
+  background: var(--ku-surface);
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.ku-detail-dashed:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.ku-detail-video {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 58px;
+  padding: 0 12px;
+  border: 1px solid var(--ku-border);
+  border-radius: 8px;
+  color: var(--ku-text-1);
+  font-size: 12.5px;
+}
+.ku-detail-video > span:nth-child(2) {
+  flex: 1;
+}
+.ku-detail-video-thumb {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 28px;
+  border-radius: 5px;
+  color: #fff;
+  background: #1c1917;
+  font-size: 10px;
+}
+.ku-detail-video button {
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 7px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.ku-detail-hint {
+  color: var(--ku-text-3);
+  font-size: 12px;
+}

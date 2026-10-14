@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
+import FacilityDetailPanel from "@/components/admin/facilities/FacilityDetailPanel";
 import FacilityListRow from "@/components/admin/facilities/FacilityListRow";
 import AdminMapWorkspace from "@/components/admin/workspace/AdminMapWorkspace";
 import WorkspaceListPanel from "@/components/admin/workspace/WorkspaceListPanel";
 import {
   ADMIN_MOBILE_QUERY,
+  type DetailDraftPin,
   type WorkspaceFocus,
 } from "@/components/admin/workspace/types";
 import { useAdminCollection } from "@/components/admin/workspace/useAdminCollection";
@@ -28,6 +30,7 @@ import {
   type FacilityChip,
 } from "@/lib/facilityWorkspace";
 import { supabase } from "@/lib/supabaseClient";
+import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { readWorkspaceState, type WorkspaceState } from "@/lib/workspaceUrl";
 import type { FacilityType, FacilityWithType } from "@/types/domain";
@@ -54,12 +57,14 @@ export default function StandaloneFacilitiesPage() {
   );
   const [typesFailed, setTypesFailed] = useState(false);
   const [typeFilter, setTypeFilter] = useState("all");
+  const [draft, setDraft] = useState<DetailDraftPin | null>(null);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
   const loadRequestRef = useRef(0);
   const loadedRef = useRef(false);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
+  const { boundaries, error: boundariesError } = useCampusBoundaries();
   const { state, request } = useWorkspaceSelection({ allowEdit: false });
   const collection = useAdminCollection(
     facilities,
@@ -73,6 +78,14 @@ export default function StandaloneFacilitiesPage() {
     state.mode === "view"
       ? (facilities.find((facility) => facility.id === state.id) ?? null)
       : null;
+  const panelKey =
+    state.mode === "view" ? state.id : state.mode === "new" ? "new" : null;
+  const activeDraft = draft && draft.owner === panelKey ? draft : null;
+  const saving = activeDraft?.saving ?? false;
+
+  function showToast(message: string, type = "success") {
+    setToast({ message, type });
+  }
 
   const loadTypes = useCallback(async () => {
     const { data, error } = await supabase.from("facility_types").select("*");
@@ -141,7 +154,9 @@ export default function StandaloneFacilitiesPage() {
     };
   }, [loadFacilities, loadTypes]);
 
+  // 저장 중에는 선택을 바꾸지 않는다 — 행·마커·닫기·칩을 막는다(설계 2026-10-14 3.4)
   function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
+    if (saving) return;
     request(next, alsoApply);
   }
 
@@ -160,6 +175,23 @@ export default function StandaloneFacilitiesPage() {
     requestSelection({ mode: "view", id }, () => {
       if (page !== null) setPage(page);
     });
+  }
+
+  async function handleChanged() {
+    await loadFacilities();
+  }
+
+  async function handleSaved(facilityId: string, created: boolean) {
+    await loadFacilities();
+    // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 새로 만들기 패널일 때만 바꾼다(설계 2026-10-14 3.4)
+    if (created && currentSelection().mode === "new") {
+      applyWorkspaceState({ mode: "view", id: facilityId });
+    }
+  }
+
+  async function handleDeleted() {
+    applyWorkspaceState({ mode: "closed" });
+    await loadFacilities();
   }
 
   function retry() {
@@ -186,6 +218,28 @@ export default function StandaloneFacilitiesPage() {
     })),
   ];
 
+  const panelProps = {
+    facilityTypes,
+    boundaries,
+    boundariesError,
+    onDraftChange: setDraft,
+    onSaved: handleSaved,
+    onChanged: handleChanged,
+    onDeleted: handleDeleted,
+    onClose: () => requestSelection({ mode: "closed" }),
+    showToast,
+  };
+  const detail =
+    state.mode === "new" ? (
+      <FacilityDetailPanel key="new" facility={null} {...panelProps} />
+    ) : selected ? (
+      <FacilityDetailPanel
+        key={selected.id}
+        facility={selected}
+        {...panelProps}
+      />
+    ) : null;
+
   return (
     <>
       <AdminMapWorkspace
@@ -196,7 +250,7 @@ export default function StandaloneFacilitiesPage() {
             facilities={view.matched}
             selected={selected}
             creating={state.mode === "new"}
-            draft={null}
+            draft={activeDraft}
             onSelect={select}
           />
         )}
@@ -265,7 +319,7 @@ export default function StandaloneFacilitiesPage() {
             ))}
           </WorkspaceListPanel>
         }
-        detail={null}
+        detail={detail}
       />
       {toast && (
         <Toast
