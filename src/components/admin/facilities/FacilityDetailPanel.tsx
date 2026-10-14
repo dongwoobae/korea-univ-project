@@ -10,6 +10,7 @@ import DetailPanel from "@/components/admin/workspace/DetailPanel";
 import {
   DEFAULT_WORKSPACE_VIEWPORT,
   type DetailDraftPin,
+  type LatLngTuple,
 } from "@/components/admin/workspace/types";
 import { getFacilityMarkerColor } from "@/components/map/facilityColors";
 import { FacilityTypeIcon } from "@/components/map/iconography";
@@ -38,6 +39,8 @@ interface FacilityDetailPanelProps {
   boundaries: CampusBoundaryCollection | null;
   boundariesError: boolean;
   onDraftChange: (draft: DetailDraftPin) => void;
+  /** `현 위치로 찍기`가 찍은 점. 패널이 사라질 때 null로 거둔다 */
+  onLocated: (position: LatLngTuple | null) => void;
   /** 다시 받기가 끝난 뒤 돌아온다 */
   onSaved: (facilityId: string, created: boolean) => Promise<void>;
   onChanged: () => Promise<void>;
@@ -52,6 +55,7 @@ export default function FacilityDetailPanel({
   boundaries,
   boundariesError,
   onDraftChange,
+  onLocated,
   onSaved,
   onChanged,
   onDeleted,
@@ -67,12 +71,14 @@ export default function FacilityDetailPanel({
   const [videoOpen, setVideoOpen] = useState(false);
   const locateRequestRef = useRef(0);
   const onDraftChangeRef = useRef(onDraftChange);
+  const onLocatedRef = useRef(onLocated);
   const fieldId = useId();
   const busy = saving || installing;
 
   useEffect(() => {
     onDraftChangeRef.current = onDraftChange;
-  }, [onDraftChange]);
+    onLocatedRef.current = onLocated;
+  }, [onDraftChange, onLocated]);
 
   // 지도(형제 컴포넌트)가 초안 핀을 그리고 옮기도록 맡긴다
   useEffect(() => {
@@ -92,10 +98,11 @@ export default function FacilityDetailPanel({
     });
   }, [owner, form.lat, form.lng, saving]);
 
-  // 패널이 바뀐 뒤 도착한 현재 위치는 버린다(설계 2026-10-14 3.5)
+  // 패널이 바뀐 뒤 도착한 현재 위치는 버린다(설계 2026-10-14 3.5). 다시 연 같은 항목에 지난 이동이 남지 않게 거둔다
   useEffect(
     () => () => {
       locateRequestRef.current += 1;
+      onLocatedRef.current(null);
     },
     [],
   );
@@ -132,12 +139,11 @@ export default function FacilityDetailPanel({
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         if (request !== locateRequestRef.current) return;
+        const nextLat = coords.latitude.toFixed(7);
+        const nextLng = coords.longitude.toFixed(7);
         setLocating(false);
-        setForm((previous) => ({
-          ...previous,
-          lat: coords.latitude.toFixed(7),
-          lng: coords.longitude.toFixed(7),
-        }));
+        setForm((previous) => ({ ...previous, lat: nextLat, lng: nextLng }));
+        onLocatedRef.current([parseFloat(nextLat), parseFloat(nextLng)]);
         showToast("현재 위치를 지도에 표시했어요.");
       },
       () => {

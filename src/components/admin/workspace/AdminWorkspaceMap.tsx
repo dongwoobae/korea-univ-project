@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   GeoJSON,
   MapContainer,
+  Pane,
   TileLayer,
   ZoomControl,
   useMap,
@@ -23,6 +24,8 @@ import type { WorkspaceMapCommands, WorkspaceMapSlotProps } from "./types";
 const MAX_ZOOM = 19;
 /** 멀리서 고른 항목은 이만큼은 당겨서 보인다 */
 const FOCUS_MIN_ZOOM = 17;
+// 기본 tooltipPane은 markerPane 위라 이름표가 시설 마커를 가린다. 폴리곤과 마커 사이에 둔다(설계 2026-10-14 3.5)
+const BUILDING_LABEL_PANE = "workspaceBuildingLabels";
 
 function NeighborBuildings() {
   const [features, setFeatures] = useState<Feature[] | null>(null);
@@ -54,6 +57,7 @@ function NeighborBuildings() {
             permanent: true,
             direction: "center",
             className: "bldg-label",
+            pane: BUILDING_LABEL_PANE,
           });
         }
       }}
@@ -155,6 +159,10 @@ export default function AdminWorkspaceMap({
         attribution={CARTO_ATTRIBUTION}
         subdomains="abcd"
         maxZoom={MAX_ZOOM}
+      />
+      <Pane
+        name={BUILDING_LABEL_PANE}
+        style={{ zIndex: 450, pointerEvents: "none" }}
       />
       <NeighborBuildings />
       <ZoomControl position="topleft" zoomInTitle="확대" zoomOutTitle="축소" />

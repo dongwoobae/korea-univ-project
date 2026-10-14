@@ -1851,6 +1851,11 @@ button.ku-admin-overview-item {
 .leaflet-tooltip-top.ku-workspace-marker-tooltip::before {
   border-top-color: var(--ku-text-1);
 }
+/* .bldg-label은 다른 지도(FacilityMap, neighborLayer)와 같이 쓴다. 이름표가 마커와 다투지 않게 작업 화면에서만 옅게 한다 */
+.ku-map-workspace .bldg-label {
+  color: var(--ku-text-3);
+  font-weight: 500;
+}
 
 .ku-detail-panel {
   position: absolute;

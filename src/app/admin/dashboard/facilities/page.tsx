@@ -10,6 +10,7 @@ import WorkspaceListPanel from "@/components/admin/workspace/WorkspaceListPanel"
 import {
   ADMIN_MOBILE_QUERY,
   type DetailDraftPin,
+  type LatLngTuple,
   type WorkspaceFocus,
 } from "@/components/admin/workspace/types";
 import { useAdminCollection } from "@/components/admin/workspace/useAdminCollection";
@@ -58,11 +59,16 @@ export default function StandaloneFacilitiesPage() {
   const [typesFailed, setTypesFailed] = useState(false);
   const [typeFilter, setTypeFilter] = useState("all");
   const [draft, setDraft] = useState<DetailDraftPin | null>(null);
+  const [locateFocus, setLocateFocus] = useState<{
+    owner: string;
+    focus: WorkspaceFocus;
+  } | null>(null);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
   const loadRequestRef = useRef(0);
   const loadedRef = useRef(false);
+  const locateSeqRef = useRef(0);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const { boundaries, error: boundariesError } = useCampusBoundaries();
   const { state, request } = useWorkspaceSelection({ allowEdit: false });
@@ -181,6 +187,23 @@ export default function StandaloneFacilitiesPage() {
     await loadFacilities();
   }
 
+  // 지도는 선택이 바뀔 때만 옮기지만 현 위치로 찍은 점은 예외다. 화면 밖에 찍힌 핀을 "표시했어요"로 알리지 않게,
+  // 요청마다 새 key로 옮긴다(설계 2026-10-14 3.5)
+  function handleLocated(position: LatLngTuple | null) {
+    if (!position || panelKey === null) {
+      setLocateFocus(null);
+      return;
+    }
+    locateSeqRef.current += 1;
+    setLocateFocus({
+      owner: panelKey,
+      focus: {
+        key: `locate:${locateSeqRef.current}`,
+        target: { point: position },
+      },
+    });
+  }
+
   async function handleSaved(facilityId: string, created: boolean) {
     await loadFacilities();
     // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 새로 만들기 패널일 때만 바꾼다(설계 2026-10-14 3.4)
@@ -207,12 +230,14 @@ export default function StandaloneFacilitiesPage() {
   }
 
   const focus: WorkspaceFocus | null =
-    selected && selected.lat != null && selected.lng != null
-      ? {
-          key: selected.id,
-          target: { point: [selected.lat, selected.lng] },
-        }
-      : null;
+    locateFocus && locateFocus.owner === panelKey
+      ? locateFocus.focus
+      : selected && selected.lat != null && selected.lng != null
+        ? {
+            key: selected.id,
+            target: { point: [selected.lat, selected.lng] },
+          }
+        : null;
 
   const chips = [
     { key: "all", label: "전체", count: view.chipCounts.all },
@@ -227,6 +252,7 @@ export default function StandaloneFacilitiesPage() {
     boundaries,
     boundariesError,
     onDraftChange: setDraft,
+    onLocated: handleLocated,
     onSaved: handleSaved,
     onChanged: handleChanged,
     onDeleted: handleDeleted,

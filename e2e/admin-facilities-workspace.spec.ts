@@ -344,6 +344,35 @@ test.describe("독립 시설 작업 화면 — 목록과 지도", () => {
     ).toBeVisible();
     await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
   });
+
+  test("주변 건물 이름표는 시설 마커 아래 층에 옅게 그린다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    const label = page.locator(
+      ".ku-map-workspace .leaflet-tooltip.bldg-label",
+      { hasText: "중앙도서관" },
+    );
+    await expect(label).toBeVisible();
+    await expect(label).toHaveCSS("color", "rgb(138, 131, 125)");
+
+    const paneZ = (selector: string) =>
+      page
+        .locator(`.ku-map-workspace ${selector}`)
+        .evaluate((element) => Number(getComputedStyle(element).zIndex));
+    const labelZ = await label.evaluate((element) =>
+      Number(getComputedStyle(element.parentElement!).zIndex),
+    );
+    expect(labelZ).toBeGreaterThan(await paneZ(".leaflet-overlay-pane"));
+    expect(labelZ).toBeLessThan(await paneZ(".leaflet-marker-pane"));
+
+    // 선택 마커의 이름 툴팁은 마커 위(기본 tooltip pane)에 남는다
+    await listRow(page, "중앙광장 경사로").click();
+    await expect(
+      page.locator(".leaflet-tooltip-pane .ku-workspace-marker-tooltip"),
+    ).toHaveText("중앙광장 경사로");
+  });
 });
 
 test.describe("독립 시설 작업 화면 — 상세 패널", () => {
@@ -754,6 +783,46 @@ test.describe("독립 시설 작업 화면 — 상세 패널", () => {
       lat: 37.61,
       lng: 127.06,
     });
+  });
+
+  test("현 위치로 찍으면 지도가 그 핀으로 옮겨 두 패널 사이에 보인다", async ({
+    page,
+  }) => {
+    // 첫 화면(캠퍼스 중심)에서 멀리 떨어진 점이라 지도가 옮기지 않으면 핀이 화면 밖에 찍힌다
+    await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: { latitude: 37.61, longitude: 127.06 },
+    });
+    await page.goto("/admin/dashboard/facilities");
+    const detail = await openNewFacility(page);
+    await detail.getByRole("button", { name: "현 위치로 찍기" }).click();
+    await expect(
+      page.getByText("현재 위치를 지도에 표시했어요."),
+    ).toBeVisible();
+
+    const pin = page.getByTestId("admin-facility-marker-new");
+    // 지도가 움직이는 동안에는 자리가 바뀌므로 멈출 때까지 다시 잰다
+    await expect
+      .poll(async () => {
+        const [pinBox, mapBox, listBox, detailBox] = await Promise.all([
+          pin.boundingBox(),
+          page.locator(".ku-map-workspace-map").boundingBox(),
+          listPanel(page).boundingBox(),
+          detail.boundingBox(),
+        ]);
+        if (!pinBox || !mapBox || !listBox || !detailBox) return "잴 수 없음";
+        const x = pinBox.x + pinBox.width / 2;
+        const y = pinBox.y + pinBox.height / 2;
+        const between =
+          x > listBox.x + listBox.width &&
+          x < detailBox.x &&
+          y > mapBox.y &&
+          y < mapBox.y + mapBox.height;
+        return between
+          ? "두 패널 사이"
+          : `밖 (${Math.round(x)}, ${Math.round(y)})`;
+      })
+      .toBe("두 패널 사이");
   });
 
   test("설치 상태를 바꾼 뒤 이름을 고쳐 저장해도 설치 상태가 남는다", async ({
