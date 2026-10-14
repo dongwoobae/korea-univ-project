@@ -1543,7 +1543,9 @@ button.ku-admin-overview-item {
   top: 16px;
   left: 436px;
 }
-.ku-map-workspace .leaflet-control-zoom {
+/* leaflet.css는 지도 청크와 함께 늦게 불려 와, 특이도가 같으면 그쪽 여백(.leaflet-top .leaflet-control 등)이
+   이긴다. .leaflet-control을 하나 더 붙여 불러오는 순서에 기대지 않는다. */
+.ku-map-workspace .leaflet-control-zoom.leaflet-control {
   margin: 0;
   overflow: hidden;
   border-radius: 8px;
@@ -1840,12 +1842,12 @@ button.ku-admin-overview-item {
   padding: 5px 9px;
   border: 0;
   border-radius: 7px;
-  color: #fff;
-  background: #1c1917;
+  color: var(--ku-surface);
+  background: var(--ku-text-1);
   box-shadow: none;
   font-size: 12px;
   font-weight: 600;
 }
 .leaflet-tooltip-top.ku-workspace-marker-tooltip::before {
-  border-top-color: #1c1917;
+  border-top-color: var(--ku-text-1);
 }

@@ -89,7 +89,7 @@ export default function StandaloneFacilitiesPage() {
       .is("building_id", null)
       .order("id", { ascending: true });
     // 저장·설치 변경 뒤의 다시 받기가 겹치면 마지막 요청만 그린다
-    if (ticket !== loadRequestRef.current) return null;
+    if (ticket !== loadRequestRef.current) return;
     if (error) {
       if (loadedRef.current) {
         setToast({
@@ -99,30 +99,23 @@ export default function StandaloneFacilitiesPage() {
       } else {
         setStatus("error");
       }
-      return null;
+      return;
     }
     const rows: FacilityWithType[] = data ?? [];
+    const firstLoad = !loadedRef.current;
     loadedRef.current = true;
     setFacilities(rows);
     setStatus("ready");
     // 존재 검사는 조회가 끝난 뒤에만 한다. 조회 전 빈 목록으로 판정하면 맞는 링크도 닫힌다(설계 2026-10-14 3.4)
     const selection = currentSelection();
-    if (
-      selection.mode === "view" &&
-      !rows.some((row) => row.id === selection.id)
-    ) {
+    if (selection.mode !== "view") return;
+    if (!rows.some((row) => row.id === selection.id)) {
       applyWorkspaceState({ mode: "closed" });
       setToast({ message: NOT_FOUND_MESSAGE, type: "warning" });
+      return;
     }
-    return rows;
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setTimeout(async () => {
-      void loadTypes();
-      const rows = await loadFacilities();
-      const selection = currentSelection();
-      if (!rows || selection.mode !== "view") return;
+    // 페이지는 첫 성공에서만 맞춘다. 저장 뒤 다시 받기는 보던 페이지를 두고, 첫 조회가 실패했으면 다시 시도가 첫 성공이다
+    if (firstLoad) {
       const page = pageOfItem(
         viewAdminCollection(
           rows,
@@ -133,15 +126,27 @@ export default function StandaloneFacilitiesPage() {
         FACILITY_COLLECTION_POLICY.id,
       );
       if (page !== null) setPage(page);
+    }
+  }, [setPage]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void loadTypes();
+      void loadFacilities();
     }, 0);
-    return () => window.clearTimeout(timer);
-  }, [loadFacilities, loadTypes, setPage]);
+    return () => {
+      window.clearTimeout(timer);
+      // 떠난 뒤에 끝난 조회가 그때의 주소(다른 화면)에서 ?id=를 지우지 않게 진행 중인 요청을 버린다
+      loadRequestRef.current += 1;
+    };
+  }, [loadFacilities, loadTypes]);
 
   function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
     request(next, alsoApply);
   }
 
-  // 칩·검색·정렬·유형·페이지를 바꾸면 선택을 푼다(설계 2026-10-14 3.3)
+  // 칩·검색·정렬은 설계 2026-10-14 3.3대로 선택을 푼다. 페이지는 3.4 표가 이동 확인 대상으로 두어(선택이 남으면
+  // 확인할 까닭이 없다), 유형 드롭다운은 칩과 같은 목록 조건이라 같이 푼다.
   function clearSelectionThen(change: () => void) {
     requestSelection({ mode: "closed" }, change);
   }
@@ -158,7 +163,9 @@ export default function StandaloneFacilitiesPage() {
   }
 
   function retry() {
-    setStatus("loading");
+    // 목록을 받은 뒤에 "loading"으로 가면, 이번 조회가 실패할 때 loadFacilities가 토스트만 띄워 패널이 거기 멈춘다
+    if (!loadedRef.current) setStatus("loading");
+    setTypesFailed(false);
     void loadTypes();
     void loadFacilities();
   }

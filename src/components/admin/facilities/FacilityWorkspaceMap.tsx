@@ -11,7 +11,6 @@ import type {
 import { getFacilityMarkerColor } from "@/components/map/facilityColors";
 import { facilityDisplayName } from "@/lib/facilityWorkspace";
 import { facilityIconSvg } from "@/lib/mapIcons";
-import { color } from "@/lib/theme";
 import type { FacilityWithType } from "@/types/domain";
 
 // 렌더마다 새 아이콘을 만들면 react-leaflet이 마커 DOM을 매번 갈아 끼운다(FacilityMarkers와 같은 이유).
@@ -100,7 +99,7 @@ export default function FacilityWorkspaceMap({
                   getFacilityMarkerColor(pinCode ?? ""),
                   true,
                 )
-              : markerIcon("new", null, color.crimson700, true)
+              : markerIcon("new", null, "var(--ku-primary)", true)
           }
           draggable={editor !== null}
           zIndexOffset={1000}
