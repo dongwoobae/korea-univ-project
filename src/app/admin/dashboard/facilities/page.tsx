@@ -189,8 +189,12 @@ export default function StandaloneFacilitiesPage() {
     }
   }
 
-  async function handleDeleted() {
-    applyWorkspaceState({ mode: "closed" });
+  async function handleDeleted(facilityId: string) {
+    // 삭제는 선택을 잠그지 않는다. 기다리는 사이 다른 항목이나 새로 만들기로 옮겼으면 그 패널을 닫지 않는다(설계 2026-10-14 3.4)
+    const selection = currentSelection();
+    if (selection.mode === "view" && selection.id === facilityId) {
+      applyWorkspaceState({ mode: "closed" });
+    }
     await loadFacilities();
   }
 

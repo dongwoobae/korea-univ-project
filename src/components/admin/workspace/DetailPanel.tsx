@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { ADMIN_MOBILE_QUERY } from "./types";
 
@@ -33,11 +33,27 @@ export default function DetailPanel({
   const [confirming, setConfirming] = useState(false);
   const [removing, setRemoving] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef(false);
+  const messageId = useId();
 
-  // 삭제 버튼이 확인으로 바뀌면 초점이 갈 곳을 잃는다
+  // 삭제 버튼과 확인 칸은 서로 자리를 바꾼다. 사라진 쪽에 있던 초점은 body로 떨어지므로 나타난 쪽으로 옮긴다
   useEffect(() => {
-    if (confirming) cancelRef.current?.focus();
+    if (confirming) {
+      cancelRef.current?.focus();
+      return;
+    }
+    if (!returnFocusRef.current) return;
+    returnFocusRef.current = false;
+    // 삭제를 기다리는 사이 사용자가 옮긴 초점은 빼앗지 않는다
+    const active = document.activeElement;
+    if (!active || active === document.body) triggerRef.current?.focus();
   }, [confirming]);
+
+  function closeConfirm() {
+    returnFocusRef.current = true;
+    setConfirming(false);
+  }
 
   async function confirmRemove() {
     if (!remove) return;
@@ -46,7 +62,7 @@ export default function DetailPanel({
       await remove.onConfirm();
     } finally {
       setRemoving(false);
-      setConfirming(false);
+      closeConfirm();
     }
   }
 
@@ -57,13 +73,19 @@ export default function DetailPanel({
         className="ku-detail-remove-confirm"
         role="group"
         aria-label="삭제 확인"
+        aria-describedby={messageId}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || removing) return;
+          event.stopPropagation();
+          closeConfirm();
+        }}
       >
-        <span>{remove.confirmMessage}</span>
+        <span id={messageId}>{remove.confirmMessage}</span>
         <button
           ref={cancelRef}
           type="button"
           className="ku-workspace-button"
-          onClick={() => setConfirming(false)}
+          onClick={closeConfirm}
           disabled={removing}
         >
           취소
@@ -72,13 +94,14 @@ export default function DetailPanel({
           type="button"
           className="ku-workspace-button ku-workspace-button--danger"
           onClick={() => void confirmRemove()}
-          disabled={removing}
+          disabled={removing || remove.disabled}
         >
           {removing ? "삭제 중..." : "삭제"}
         </button>
       </div>
     ) : (
       <button
+        ref={triggerRef}
         type="button"
         className="ku-detail-remove"
         onClick={() => setConfirming(true)}

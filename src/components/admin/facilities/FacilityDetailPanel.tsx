@@ -41,7 +41,7 @@ interface FacilityDetailPanelProps {
   /** 다시 받기가 끝난 뒤 돌아온다 */
   onSaved: (facilityId: string, created: boolean) => Promise<void>;
   onChanged: () => Promise<void>;
-  onDeleted: () => Promise<void>;
+  onDeleted: (facilityId: string) => Promise<void>;
   onClose: () => void;
   showToast: (message: string, type?: string) => void;
 }
@@ -191,12 +191,15 @@ export default function FacilityDetailPanel({
 
   async function remove() {
     if (!facility) return;
-    const error = await deleteFacility(facility);
+    // deleteFacility는 네트워크 오류면 메시지를 돌려주지 않고 던진다
+    const error = await deleteFacility(facility).catch(
+      () => "시설 삭제에 실패했어요",
+    );
     if (error) {
       showToast(error, "error");
       return;
     }
-    await onDeleted();
+    await onDeleted(facility.id);
     showToast("시설이 삭제되었어요");
   }
 
@@ -275,7 +278,7 @@ export default function FacilityDetailPanel({
       }}
     >
       <div className="ku-detail-status-row">
-        <div className="ku-segment" role="group" aria-label="설치 상태">
+        <div className="ku-detail-segment" role="group" aria-label="설치 상태">
           <button
             type="button"
             data-tone="installed"
@@ -297,7 +300,7 @@ export default function FacilityDetailPanel({
         </div>
         {facility &&
           (facilityNeedsTranslation(facility) ? (
-            <span className="ku-translation-pill">
+            <span className="ku-detail-translation-pill">
               {facility.translation_status === "pending"
                 ? "영문·중문 번역 대기"
                 : "영문·중문 번역 필요"}
@@ -310,7 +313,9 @@ export default function FacilityDetailPanel({
               </button>
             </span>
           ) : (
-            <span className="ku-translation-done">✓ 영문·중문 번역 완료</span>
+            <span className="ku-detail-translation-done">
+              ✓ 영문·중문 번역 완료
+            </span>
           ))}
       </div>
 
