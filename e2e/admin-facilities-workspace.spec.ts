@@ -14,6 +14,10 @@ function facilitiesRequest(url: URL) {
   return url.pathname.endsWith("/rest/v1/building_facilities");
 }
 
+function deletePhotosRequest(url: URL) {
+  return url.pathname === "/api/delete-facility-photos";
+}
+
 function detailPanel(page: Page, name: string) {
   return page.getByRole("region", { name, exact: true });
 }
@@ -435,6 +439,117 @@ test.describe("독립 시설 작업 화면 — 상세 패널", () => {
     await expect(page.getByText("시설이 삭제되었어요")).toBeVisible();
     await expect(detail).toHaveCount(0);
     await expect(listRow(page, "공사 중 주차구역")).toHaveCount(0);
+    expect(
+      state.facilities.some((facility) => facility.id === "f-uninstalled"),
+    ).toBe(false);
+  });
+
+  test("삭제 확인을 닫으면 초점이 삭제 버튼으로 돌아오고 실패를 알린다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let failure: "status" | "network" = "status";
+    await page.route(deletePhotosRequest, (route) =>
+      failure === "status" ? serverError(route) : route.abort(),
+    );
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "공사 중 주차구역").click();
+    const detail = detailPanel(page, "공사 중 주차구역");
+    const trigger = detail.getByRole("button", { name: "삭제", exact: true });
+    const confirm = detail.getByRole("group", { name: "삭제 확인" });
+
+    await trigger.click();
+    await expect(confirm).toHaveAccessibleDescription(
+      "삭제한 시설은 복구할 수 없어요.",
+    );
+    await expect(confirm.getByRole("button", { name: "취소" })).toBeFocused();
+    await page.keyboard.press("Escape");
+    await expect(confirm).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+
+    await trigger.click();
+    await confirm.getByRole("button", { name: "취소" }).click();
+    await expect(confirm).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+
+    await trigger.click();
+    await confirm.getByRole("button", { name: "삭제" }).click();
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "사진 삭제에 실패해 시설을 지우지 못했어요" }),
+    ).toBeVisible();
+    await expect(trigger).toBeFocused();
+
+    failure = "network";
+    await trigger.click();
+    await confirm.getByRole("button", { name: "삭제" }).click();
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "시설 삭제에 실패했어요" }),
+    ).toBeVisible();
+    await expect(trigger).toBeFocused();
+    await expect(listRow(page, "공사 중 주차구역")).toBeVisible();
+  });
+
+  test("저장하는 동안에는 삭제 확인의 삭제를 누를 수 없다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseSave = () => {};
+    const saveHeld = new Promise<void>((resolve) => (releaseSave = resolve));
+    await page.route(facilitiesRequest, async (route) => {
+      if (route.request().method() === "PATCH") await saveHeld;
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "중앙광장 경사로").click();
+    const detail = detailPanel(page, "중앙광장 경사로");
+    const confirm = detail.getByRole("group", { name: "삭제 확인" });
+
+    await detail.getByRole("button", { name: "삭제", exact: true }).click();
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(confirm.getByRole("button", { name: "삭제" })).toBeDisabled();
+
+    releaseSave();
+    await expect(page.getByText("시설이 수정되었어요!")).toBeVisible();
+    await expect(confirm.getByRole("button", { name: "삭제" })).toBeEnabled();
+  });
+
+  test("삭제를 기다리는 사이 연 다른 시설의 상세는 삭제가 끝나도 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    let releaseDelete = () => {};
+    const deleteHeld = new Promise<void>(
+      (resolve) => (releaseDelete = resolve),
+    );
+    await page.route(deletePhotosRequest, async (route) => {
+      await deleteHeld;
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "공사 중 주차구역").click();
+    const deleting = detailPanel(page, "공사 중 주차구역");
+    await deleting.getByRole("button", { name: "삭제", exact: true }).click();
+    await deleting
+      .getByRole("group", { name: "삭제 확인" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+    await expect(
+      deleting.getByRole("button", { name: "삭제 중..." }),
+    ).toBeDisabled();
+
+    await listRow(page, "중앙광장 경사로").click();
+    const other = detailPanel(page, "중앙광장 경사로");
+    await expect(other).toBeVisible();
+    releaseDelete();
+
+    await expect(page.getByText("시설이 삭제되었어요")).toBeVisible();
+    await expect(listRow(page, "공사 중 주차구역")).toHaveCount(0);
+    await expect(other).toBeVisible();
+    await expect(page).toHaveURL(/\?id=f-installed$/);
     expect(
       state.facilities.some((facility) => facility.id === "f-uninstalled"),
     ).toBe(false);
