@@ -18,6 +18,7 @@
 
 - 가드의 다른 사이트에서 들어온 탭 `나가기`: `canGoBack()`을 지우고 뒤로 가 본 뒤 `BACK_SETTLE_MS` 안에 popstate나 `beforeunload`가 오는지로 판정한다. bfcache 복귀(`pageshow`)에서 떠나던 상태를 푼다. 설계 3.4를 고쳤다. 뒤로 갈 기록이 없는 탭의 시나리오를 더했다(README 218 시나리오).
 - 태블릿 CSS 경계: `min-width: 768px`를 뺐다.
+- 모바일 "상세 위쪽 지도 띠를 누르면 핀이 옮겨진다"가 첫 컴파일에서 지도가 붙기 전에 누르던 경합: 선택 마커가 뜬 뒤에 누른다.
 - PR 본문에 계획과 달라진 것·역추적·확인 목록·알려진 것을 적었다.
 
 ### 검증 메모
@@ -25,7 +26,8 @@
 - `npm run lint`가 `.claude/worktrees/agent-*`(지난 세션의 에이전트 worktree)까지 읽어 오류를 낸다. 그런 폴더가 있으면 `npx eslint --ignore-pattern ".claude/**" .`로 본다.
 - 작업 사본이 CRLF(`core.autocrlf=true`)라 `npm run format:check`가 모든 파일을 걸린다. `npx prettier --check --end-of-line auto --ignore-path .prettierignore --ignore-path .gitignore . "!.claude/**"`로 본다.
 - `public-map.spec.ts`의 "건물명 라벨은 가까이 확대하면…"이 전체 병렬 실행에서 한 번 실패한 적이 있다(단독 10/10 통과).
-- 2026-10-14 마지막 로컬 결과: vitest 68파일·494개 통과, Playwright 218개 통과(첫 전체 실행에서 `admin-buildings-campus-filter.spec.ts`의 "캠퍼스와 경고 카드 필터는 함께 걸린다"가 병렬 부하로 한 번 시간 초과 — 단독 10/10, 다시 돌린 전체 218/218 통과).
+- 검증은 GitHub CI를 기다리지 않고 로컬에서 CI 잡을 그대로 돌린다. 작업 사본과 조건(CRLF·`.env.local`·`.claude/worktrees`)이 달라, `core.autocrlf=false`로 스크래치에 클론해 `CI=true`로 돌린다.
+- 2026-10-14 마지막 결과(위 방식): migration-safety 변경 없음, lint 오류 0, format:check·typecheck 통과, vitest 68파일·494개, Playwright 218개 통과(`.next`를 비운 첫 컴파일, 재시도 없이).
 
 ### 프리뷰·기기 확인 (Task 2·7·8·9·10의 프리뷰 단계)
 
