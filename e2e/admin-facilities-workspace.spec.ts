@@ -970,4 +970,28 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
       .click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
   });
+
+  test("같은 화면의 헤더 메뉴는 선택을 풀고, 저장 안 한 변경이 있으면 먼저 묻는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    const facilities = page
+      .getByRole("navigation", { name: "관리자 메뉴" })
+      .getByRole("link", { name: "독립 시설" });
+
+    await listRow(page, "공사 중 주차구역").click();
+    await facilities.click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
+    await expect(detailPanel(page, "공사 중 주차구역")).toHaveCount(0);
+
+    const detail = await editName(page);
+    await facilities.click();
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
+    await expect(detail).toHaveCount(0);
+  });
 });
