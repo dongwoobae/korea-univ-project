@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { MOBILE_PICK_BAR, workspaceInsets } from "./types";
+import {
+  MOBILE_LIST_TOP,
+  MOBILE_PICK_BAR,
+  MOBILE_SHEET_COLLAPSED,
+  workspaceInsets,
+} from "./types";
 
 const base = {
   mobile: false,
@@ -20,11 +25,11 @@ describe("workspaceInsets", () => {
     });
   });
 
-  it("지도 띠가 없는 모바일 상세는 위쪽 바 바로 아래로 모은다", () => {
+  it("지도 띠가 없는 모바일 상세는 목록으로 돌아와도 보이게 목록 상태의 여백으로 모은다", () => {
     expect(workspaceInsets({ ...base, mobile: true, mapStrip: 0 })).toEqual({
-      top: 52,
+      top: MOBILE_LIST_TOP,
       right: 0,
-      bottom: 700 - 52,
+      bottom: MOBILE_SHEET_COLLAPSED,
       left: 0,
     });
   });
