@@ -55,12 +55,15 @@ export const DEFAULT_WORKSPACE_VIEWPORT: WorkspaceViewport = {
   zoom: 17,
 };
 
-// admin-ui.css의 .ku-float-panel·.ku-detail-panel·줌 버튼 폭·여백과 모바일 .ku-detail-panel-bar 높이에 맞춘다.
+// admin-ui.css의 .ku-float-panel·.ku-detail-panel·줌 버튼 폭·여백과 모바일 .ku-detail-panel-bar·.ku-landmark-pick-bar 높이에 맞춘다.
 const PANEL_GAP = 16;
 const LIST_PANEL_WIDTH = 404;
 const DETAIL_PANEL_WIDTH = 460;
 const ZOOM_CONTROL_WIDTH = 36;
 const MOBILE_DETAIL_BAR = 52;
+const MOBILE_PICK_GAP = 12;
+/** 모바일에서 위치를 고르는 동안 지도 아래에 붙는 확인 바의 높이 */
+export const MOBILE_PICK_BAR = 124;
 const SIDE_BY_SIDE_WIDTH =
   PANEL_GAP +
   LIST_PANEL_WIDTH +
@@ -83,7 +86,18 @@ export function workspaceInsets(options: {
   detailOpen: boolean;
   height: number;
   mapStrip: number;
+  /** 모바일 상세를 접고 지도에서 위치를 고르는 중(설계 2026-10-14 2.5) */
+  picking: boolean;
 }): WorkspaceInsets {
+  if (options.mobile && options.picking) {
+    // 상세가 접혀 지도 전체가 보이고 아래 확인 바만 지도를 가린다
+    return {
+      top: MOBILE_PICK_GAP,
+      right: 0,
+      bottom: MOBILE_PICK_BAR,
+      left: 0,
+    };
+  }
   if (options.mobile) {
     // 모바일에서 선택하면 상세가 위쪽 띠만 남기고 덮는다(설계 2026-10-14 2.5)
     return {

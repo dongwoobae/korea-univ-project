@@ -1897,6 +1897,10 @@ button.ku-admin-overview-item {
   background: var(--ku-surface);
   box-shadow: 0 4px 20px rgba(28, 25, 23, 0.14);
 }
+/* 위의 display: flex가 브라우저 기본 [hidden]을 이기므로 다시 숨긴다 */
+.ku-detail-panel[hidden] {
+  display: none;
+}
 .ku-detail-panel-head {
   display: flex;
   flex: none;

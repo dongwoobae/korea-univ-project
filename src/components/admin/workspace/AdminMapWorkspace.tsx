@@ -27,6 +27,8 @@ interface AdminMapWorkspaceProps {
   focus: WorkspaceFocus | null;
   /** 모바일 상세가 위쪽에 비워 두는 지도 띠의 높이(설계 2026-10-14 2.5) */
   mobileMapStrip?: number;
+  /** 모바일 상세를 접고 지도에서 위치를 고르는 중. 지도를 옮길 때 확인 바만 비킨다 */
+  mobilePicking?: boolean;
 }
 
 export default function AdminMapWorkspace({
@@ -35,6 +37,7 @@ export default function AdminMapWorkspace({
   detail,
   focus,
   mobileMapStrip = 190,
+  mobilePicking = false,
 }: AdminMapWorkspaceProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   // 지도를 바꿔 끼울 때(경사도 편집, 설계 2026-10-14 2.6) 새 지도가 이어받을 마지막 화면
@@ -62,9 +65,18 @@ export default function AdminMapWorkspace({
         detailOpen,
         height: rootRef.current?.clientHeight ?? 0,
         mapStrip: mobileMapStrip,
+        picking: mobilePicking,
       }),
     );
-  }, [commands, focus, mobile, narrow, detailOpen, mobileMapStrip]);
+  }, [
+    commands,
+    focus,
+    mobile,
+    narrow,
+    detailOpen,
+    mobileMapStrip,
+    mobilePicking,
+  ]);
 
   return (
     <div
