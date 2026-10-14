@@ -867,3 +867,107 @@ test.describe("독립 시설 작업 화면 — 상세 패널", () => {
     expect(saved?.lng).not.toBe(127.0325);
   });
 });
+
+test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
+  const LEAVE_TITLE = "저장하지 않은 변경사항이 있어요";
+
+  async function editName(page: Page) {
+    await listRow(page, "중앙광장 경사로").click();
+    const detail = detailPanel(page, "중앙광장 경사로");
+    await detail.getByLabel("시설 이름 (선택)").fill("고치는 중");
+    return detail;
+  }
+
+  test("다른 항목을 고르기 전에 묻고, 취소하면 입력이 남는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    const detail = await editName(page);
+
+    await listRow(page, "공사 중 주차구역").click();
+    const confirm = page.getByRole("dialog", { name: LEAVE_TITLE });
+    await expect(confirm).toContainText("지금 나가면 입력한 값이 사라져요");
+    await confirm.getByRole("button", { name: "취소" }).click();
+    await expect(detail.getByLabel("시설 이름 (선택)")).toHaveValue(
+      "고치는 중",
+    );
+    await expect(page).toHaveURL(/\?id=f-installed$/);
+
+    await listRow(page, "공사 중 주차구역").click();
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(detailPanel(page, "공사 중 주차구역")).toBeVisible();
+    await expect(page).toHaveURL(/\?id=f-uninstalled$/);
+  });
+
+  test("칩을 바꾸기 전에도 묻는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await editName(page);
+    const chip = listPanel(page).getByRole("button", { name: "미설치 1개" });
+
+    await chip.click();
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(chip).toHaveAttribute("aria-pressed", "true");
+    await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
+  });
+
+  test("헤더 메뉴로 나가기 전에 묻는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await editName(page);
+    const landmarks = page
+      .getByRole("navigation", { name: "관리자 메뉴" })
+      .getByRole("link", { name: "명소" });
+
+    await landmarks.click();
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "취소" })
+      .click();
+    await expect(page).toHaveURL(
+      /\/admin\/dashboard\/facilities\?id=f-installed$/,
+    );
+
+    await landmarks.click();
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
+  });
+
+  test("브라우저 뒤로가기 전에 묻는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/buildings");
+    await page
+      .getByRole("navigation", { name: "관리자 메뉴" })
+      .getByRole("link", { name: "독립 시설" })
+      .click();
+    const detail = await editName(page);
+
+    await page.evaluate(() => window.history.back());
+    const confirm = page.getByRole("dialog", { name: LEAVE_TITLE });
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(
+      /\/admin\/dashboard\/facilities\?id=f-installed$/,
+    );
+    await expect(detail.getByLabel("시설 이름 (선택)")).toHaveValue(
+      "고치는 중",
+    );
+
+    await page.evaluate(() => window.history.back());
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
+  });
+});
