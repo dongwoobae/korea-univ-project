@@ -217,3 +217,4 @@
 ## 후속 반영
 
 - 2026-10-06 — 건물 상세의 시설 모달에 `수정`을 달아 독립 시설과 같은 `FacilityFormModal`로 유형·이름·설명·층·좌표·설치 상태를 고친다. 저장 payload에 `video_url`이 없어 동영상은 유지된다. 같은 시설을 동시에 고칠 때의 문제는 `docs/TODO_list/admin/facility-concurrent-edit.md`.
+- 2026-10-14 — 독립 시설 대시보드를 지도 작업 화면으로 바꿔 행에는 이름·메타·배지만 남는다(후속 과제의 "같은 행 규칙"). 그래서 `FacilityInstallationControl`·`FacilityTranslationControl`을 쓰는 화면은 이 문서의 `FacilityDetailModal`뿐이다 — [`2026-10-14-admin-map-first-redesign-design.md`](./2026-10-14-admin-map-first-redesign-design.md) 4장.

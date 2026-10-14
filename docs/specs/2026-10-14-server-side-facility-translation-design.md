@@ -47,7 +47,7 @@
 
 ### 부르는 곳
 
-시설 저장(`FacilityFormModal`), 개별 재번역(`FacilityTranslationControl`), 일괄 재번역(`BulkRetranslateButton`), 제보 승인(`FacilityRequestReviewModal`)이 `translateFacility(facilityId)`로 이 라우트를 부른다.
+시설 저장(`saveFacility` — 건물 상세의 `FacilityFormModal`과 독립 시설 상세 패널이 쓴다), 개별 재번역(`FacilityTranslationControl`, 독립 시설 상세 패널의 `재번역`), 일괄 재번역(`BulkRetranslateButton`), 제보 승인(`FacilityRequestReviewModal`)이 `translateFacility(facilityId)`로 이 라우트를 부른다.
 
 재검증은 서버가 한다. 그래서 개별·일괄 재번역이 하던 재검증 호출은 지운다. 2026-08-04 설계의 "일괄은 재검증을 마지막에 한 번"을 이 문서가 대신한다. 시설 저장과 제보 승인은 저장 자체를 반영하려고 재검증 호출을 남긴다.
 

@@ -455,6 +455,9 @@ Next 16.2.4는 사용자가 부른 `pushState`·`replaceState`를 라우터와 �
 - `/admin/slopes/:id` → `/admin/dashboard/slopes?id=:id&edit=1`
 
 원래 쿼리가 목적지에 붙어 겹친 조합이 될 수 있다. 우선순위는 3.4가 정한다.
+Next 16.2.4는 요청 쿼리를 모두 목적지로 넘기고, 같은 키는 목적지 값(`id=:id`, `edit=1`)이 이긴다
+(`shared/lib/router/utils/prepare-destination.js`의 `{ ...args.query, ...parsedDestination.query }`와
+`next/dist/docs`의 `redirects.md`, 2026-10-14 확인). `permanent: false`는 307이다.
 
 목록의 `?redirected=missing|invalid` 안내는 3.4의 없는 `?id=` 처리와 6.2의 형식 오류 표시가 대신한다.
 
@@ -558,7 +561,5 @@ PR ① 도중(Task 9부터) 로컬 검증으로 바꿨다.
 
 ## 10. 구현 시 확인할 것
 
-- Next 16의 `redirects()` 문법과 쿼리 문자열이 붙은 목적지 처리 — 로컬 `node_modules`가 없어
-  `node_modules/next/dist/docs/`를 읽을 수 없다. 해당 버전 태그의 문서를 GitHub에서 읽는다.
 - geoman 기본 툴바를 숨기고 같은 동작을 밖에서 부르는 API(`map.pm.enableDraw`, `toggleGlobalDragMode` 등)
 - 바텀시트·상세 전체 화면에서 아래 nav와 safe area 높이
