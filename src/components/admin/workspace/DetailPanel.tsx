@@ -17,6 +17,8 @@ interface DetailPanelProps {
     onConfirm: () => Promise<void>;
   };
   save: { pending: boolean; disabled?: boolean; onClick: () => void } | null;
+  /** 모바일 상세 위쪽에 지도 띠를 비워 둘지. 명소처럼 미리보기가 지도가 아니면 끈다(설계 2026-10-14 2.5) */
+  mapStrip?: boolean;
   children: ReactNode;
 }
 
@@ -27,6 +29,7 @@ export default function DetailPanel({
   closeDisabled = false,
   remove,
   save,
+  mapStrip = true,
   children,
 }: DetailPanelProps) {
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
@@ -141,7 +144,9 @@ export default function DetailPanel({
         </div>
       )}
       {/* 모바일 상세는 이 띠로 작업 화면의 지도를 보인다(설계 2026-10-14 2.5) */}
-      {mobile && <div className="ku-detail-panel-strip" aria-hidden="true" />}
+      {mobile && mapStrip && (
+        <div className="ku-detail-panel-strip" aria-hidden="true" />
+      )}
       <div className="ku-detail-panel-body">
         {children}
         {mobile && removeControl}
