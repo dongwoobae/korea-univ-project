@@ -10,64 +10,34 @@
 
 **Spec:** `docs/specs/2026-10-14-admin-map-first-redesign-design.md`(이하 "설계 N.N"). 화면 값(색·간격·문구·반경·그림자)의 원본은 `docs/specs/2026-10-14-admin-map-first-handoff/README.md`(이하 "핸드오버")다. 계획과 설계가 다르면 설계가 맞다 — 멈추고 보고한다. 아래 "계획이 정한 것"은 설계가 이 계획에 맡긴 것이거나, 측정으로 설계 문장을 고치는 것이다.
 
-## 남은 일 (2026-10-14 저녁 기준)
+## 남은 일 (2026-10-14 밤 기준)
 
 아래 태스크 본문의 체크박스는 갱신하지 않았다. 이 절이 기준이다. Task 0~11의 구현·문서는 커밋돼 있고, 남은 것은 이것뿐이다. 진행 기록(`.superpowers/`)은 gitignore라 다른 PC에는 없다 — 필요한 내용은 여기 옮겼다.
 
-### 1. 가드 — 다른 사이트에서 들어온 탭의 `나가기` (지금 E2E 1건 실패)
+### 끝낸 것
 
-- 증상: Slack·메일처럼 다른 출처에서 같은 탭으로 관리자에 들어와 고친 뒤 뒤로가기 → `나가기`를 누르면 그 사이트로 돌아가지 않고 `/admin/dashboard/facilities?id=…`에 머문다. 그 뒤 뒤로가기마다 확인 창이 다시 떠 빠져나갈 수 없다.
-- 원인: `UnsavedChangesGuard.tsx`의 `canGoBack()`이 Navigation API `navigation.canGoBack`을 쓴다. 이 값은 같은 출처 기록만 세서 다른 출처 기록이 뒤에 있어도 false다. `confirmLeave`와 popstate의 같은 화면 반복이 그때 `arm()`으로 머문다.
-- RED: `e2e/admin-facilities-workspace.spec.ts`의 "다른 사이트에서 들어온 탭에서도 뒤로가기의 나가기는 그 사이트로 돌아간다"가 지금 기대한 이유로 실패한다(URL이 `…facilities?id=f-installed`에 남음).
-- 고칠 방향:
-  - `canGoBack()`을 지운다. `나가기`와 같은 화면 반복은 언제나 `history.back()`을 부른다.
-  - `back()` 뒤 짧은 대기(약 1초) 안에 popstate나 `beforeunload`가 오면 움직인 것으로 본다. `beforeunload` 처리기에서 `leavingRef`가 참이면 "떠나는 중" 표시를 남긴다. 둘 다 없으면 뒤로 갈 기록이 없던 것으로 보고 `leavingRef`를 풀고, dirty면 `arm()`한다. 이 대기는 같은 화면 반복(`history.back()`을 다시 부를 때)마다 새로 건다.
-  - `pageshow`(`event.persisted`)에서 떠나던 상태를 풀고 dirty면 `arm()`한다. bfcache로 돌아오면 경고와 덫이 꺼진 채 남는다(Playwright는 bfcache를 끄므로 E2E로는 못 본다).
-  - 설계 3.4 뒤로가기 둘째 bullet의 "뒤로 갈 기록이 없으면(Navigation API `canGoBack`, 없는 브라우저는 있다고 본다) 머물고 기록을 다시 쌓는다"를 새 판정으로 고치고, `canGoBack`을 쓰지 않는 이유(다른 출처 기록을 세지 않는다)를 적는다.
+- 가드의 다른 사이트에서 들어온 탭 `나가기`: `canGoBack()`을 지우고 뒤로 가 본 뒤 `BACK_SETTLE_MS` 안에 popstate나 `beforeunload`가 오는지로 판정한다. bfcache 복귀(`pageshow`)에서 떠나던 상태를 푼다. 설계 3.4를 고쳤다. 뒤로 갈 기록이 없는 탭의 시나리오를 더했다(README 218 시나리오).
+- 태블릿 CSS 경계: `min-width: 768px`를 뺐다.
+- PR 본문에 계획과 달라진 것·역추적·확인 목록·알려진 것을 적었다.
 
-### 2. 태블릿 CSS 경계
+### 검증 메모
 
-`src/app/admin/admin-ui.css`의 `@media (min-width: 768px) and (max-width: 963px)`에서 `min-width: 768px`를 뺀다. 브라우저 확대로 767~768px 사이 폭이 나오면 JS(`ADMIN_NARROW_QUERY`)는 좁다고 보고 지도 여백에서 목록을 빼는데, CSS는 목록을 그대로 둬 선택 마커가 목록 밑으로 간다. 모바일은 목록 패널을 그리지 않고 줌 버튼을 숨기므로 이 규칙이 닿지 않는다 — 그 이유를 그 위 주석에 한 줄 더한다.
+- `npm run lint`가 `.claude/worktrees/agent-*`(지난 세션의 에이전트 worktree)까지 읽어 오류를 낸다. 그런 폴더가 있으면 `npx eslint --ignore-pattern ".claude/**" .`로 본다.
+- 작업 사본이 CRLF(`core.autocrlf=true`)라 `npm run format:check`가 모든 파일을 걸린다. `npx prettier --check --end-of-line auto --ignore-path .prettierignore --ignore-path .gitignore . "!.claude/**"`로 본다.
+- `public-map.spec.ts`의 "건물명 라벨은 가까이 확대하면…"이 전체 병렬 실행에서 한 번 실패한 적이 있다(단독 10/10 통과).
+- 2026-10-14 마지막 로컬 결과: vitest 68파일·494개 통과, Playwright 218개 통과(첫 전체 실행에서 `admin-buildings-campus-filter.spec.ts`의 "캠퍼스와 경고 카드 필터는 함께 걸린다"가 병렬 부하로 한 번 시간 초과 — 단독 10/10, 다시 돌린 전체 218/218 통과).
 
-### 3. 검증
+### 프리뷰·기기 확인 (Task 2·7·8·9·10의 프리뷰 단계)
 
-검증 방법 절의 명령을 돌린다. 이 PC에서 겪은 것:
+PR 본문의 "프리뷰·기기" 체크 목록대로 Vercel 프리뷰에서 본다. 모바일 safe area가 확인되면 Task 10 Step 5대로 설계 10장의 safe area 항목을 옮기고, 못 했으면 남기고 PR 본문에 적는다.
 
-- `npm run lint`가 `.claude/.claude/worktrees/agent-*`(지난 세션의 에이전트 worktree)까지 읽어 오류를 낸다. 그런 폴더가 있으면 `npx eslint --ignore-pattern ".claude/**"`로 본다.
-- 작업 사본이 CRLF(`core.autocrlf=true`)라 `npm run format:check`가 모든 파일을 걸린다. `npx prettier --check --end-of-line auto --ignore-path .prettierignore --ignore-path .gitignore . "!.claude/**"`로 본다. `docs/review/`의 두 파일은 커밋 대상이 아니다.
-- `public-map.spec.ts`의 "건물명 라벨은 가까이 확대하면…"이 전체 병렬 실행에서 한 번 실패했다(단독 10/10 통과).
-- 2026-10-14 마지막 로컬 결과: vitest 68파일·494개 통과, Playwright 217개 중 위 1번의 RED 1건만 실패(목록 기준 `npx playwright test --list`).
-
-README의 개수(20 spec·217 시나리오, vitest 68파일·494개)는 1번을 고쳐도 그대로여야 한다. 테스트를 더하면 명령으로 다시 센다.
-
-### 4. PR 본문 갱신 (Task 11 Step 4·6)
-
-PR #28 본문에 다음을 더한다.
-
-- 계획과 달라진 것: 가드의 덫 기록 재사용·`나가기` 반복·확인 창 거두기·같은 화면 헤더 메뉴를 화면의 닫기로 넘김(설계 3.4), 태블릿 폭의 목록 숨김(설계 3.5, `ADMIN_NARROW_QUERY`), 모바일 `재번역`·`교체` 44px.
-- 역추적(Task 11 Step 4의 `rg` 명령) 분류:
-  - (a) 이 PR에서 고침: README, `2026-07-20-standalone-facilities-design.md` 머리 배너, `2026-10-14-server-side-facility-translation-design.md` "부르는 곳", `2026-08-04-facility-detail-modal-and-building-video-design.md` 후속 반영, 설계 6.5·10장.
-  - (b) 날짜가 붙은 당시 기록: `2026-07-20-standalone-…` 본문(배너 아래), `2026-07-20-landmarks-design.md`(PR ②가 대체 표시), `2026-07-22-ux-implementation-spec.md`, `docs/audits/2026-07-22-ux-audit.md`, `2026-08-04-…` 본문, `2026-09-03-landmark-emoji-picker-design.md`, `2026-10-08-facility-request-design.md`, 이 계획.
-  - (c) 상관없거나 지금도 맞음: src·e2e의 사용처(import·라우트·셀렉터·토큰 값), `2026-08-03-…`의 `AdminListControls`(건물 목록), `2026-10-06-slope-units-and-editor-design.md`의 건물 상세 모달, `docs/TODO_list/admin/facility-concurrent-edit.md`(상세 패널도 폼 전체를 싣는다).
-  - 저장소 밖: `gh issue list --state all --search "독립 시설"` 결과 없음, `gh pr list --state all --search "독립 시설"`의 #25·#19 본문은 병합 시점 기록.
-- 기기·프리뷰 확인 목록(아래 5)과 알려진 것(아래 6).
-
-### 5. 프리뷰·기기 확인 (Task 2·7·8·9·10의 프리뷰 단계)
-
-푸시 뒤 Vercel 프리뷰에서 본다.
-
-- 모바일 실기기(iPhone 홈 인디케이터 기종, Android): 바텀시트 접힘·펼침과 아래 nav가 겹치지 않는지, 상세의 지도 띠를 눌러 핀이 옮겨지는지, 하단 `취소`/`저장`이 홈 인디케이터에 가리지 않는지, 모바일 토스트 위치. 지금 `viewport-fit=cover`가 없어 `env(safe-area-inset-bottom)`은 0이다. 확인되면 Task 10 Step 5대로 설계 10장의 safe area 항목을 옮기고, 못 했으면 남기고 PR 본문에 적는다.
-- 데스크톱 라이트·다크: 목록 패널·칩·행·마커·상세 패널·하단 바를 핸드오버 `Admin B.dc.html`과 대조, 동영상·사진 삭제 확인 모달이 헤더 위까지 덮는지, 인라인 삭제 확인에서 하단 바가 한 줄에 들어가는지, 관리자·공개 토스트 모양.
-- 이름을 고친 채 새로고침·탭 닫기 → 브라우저 기본 경고, 저장한 뒤에는 뜨지 않는지(Task 9 Step 9).
-- 태블릿(768–963px): 상세를 열면 목록이 숨고 줌 버튼이 왼쪽으로, 닫으면 목록이 돌아오는지.
-
-### 6. 알려진 것 (정할 것)
+### 알려진 것 (정할 것)
 
 - 820px 폭에서 헤더 오른쪽 `로그아웃` 버튼이 화면 밖으로 잘린다. 셸 헤더 문제라 이 PR의 태블릿 규칙 밖이다 — 이 PR에서 고칠지 정한다.
 - 태블릿에서 목록이 숨을 때 눌렀던 행의 초점이 body로 떨어진다. 다음 Tab이 `상세 닫기`로 가서 쓰는 데는 문제없어 두었다.
 - 저장 뒤 목록 다시 받기가 실패하면 저장한 값도 "저장 안 한 변경"으로 남아 한 번 더 묻는다(안전한 쪽이라 두었다).
 
-### 7. 마무리
+### 마무리
 
 `gh pr ready`(초안 해제)는 사용자 확인 뒤에 한다. 병합할 때 Task 11 Step 7대로 이 계획을 `git rm`한다.
 
