@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { authedFetch } from "@/lib/authedFetch";
 import { translateFacility } from "@/lib/facilityTranslation";
 import { facilityNeedsTranslation } from "@/lib/facilityTranslationState";
 import type { FacilityWithType } from "@/types/domain";
@@ -23,11 +22,8 @@ export default function FacilityTranslationControl({
 
   async function handleRetry() {
     setRetrying(true);
-    const translated = await translateFacility(facility);
+    const translated = await translateFacility(facility.id);
     if (translated) {
-      await authedFetch("/api/revalidate-facilities", {
-        method: "POST",
-      }).catch(() => {});
       await onTranslated();
       showToast("시설 번역을 완료했어요");
     } else {
