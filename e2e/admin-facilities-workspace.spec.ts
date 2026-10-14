@@ -1073,7 +1073,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     const external = "https://external.test/";
     await page.route(external, (route) =>
       route.fulfill({
-        contentType: "text/html",
+        contentType: "text/html; charset=utf-8",
         body: `<a href="${baseURL}/admin/dashboard/facilities">관리자</a>`,
       }),
     );
