@@ -1,4 +1,10 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type Route,
+} from "@playwright/test";
 import { installMockBackend, type MockState } from "./support/mockBackend";
 
 const SQUIRREL_ID = "11111111-1111-1111-1111-111111111111";
@@ -956,5 +962,180 @@ test.describe("명소 작업 화면 — 사진", () => {
     expect(state.landmarks.at(-1)).toMatchObject({ name: "새 연못" });
     expect(state.landmarks.at(-1)?.photo_url ?? null).toBeNull();
     await expect(listRow(page, "새 연못")).toContainText("사진 없음");
+  });
+});
+
+test.describe("명소 작업 화면 — 저장 안 한 변경", () => {
+  const LEAVE_TITLE = "저장하지 않은 변경사항이 있어요";
+
+  function adminNav(page: Page) {
+    return page.getByRole("navigation", { name: "관리자 메뉴" });
+  }
+
+  async function editName(page: Page) {
+    const detail = await openSquirrel(page);
+    await detail.getByLabel("이름 *").fill("고치는 중");
+    return detail;
+  }
+
+  function leaveDialog(page: Page) {
+    return page.getByRole("dialog", { name: LEAVE_TITLE });
+  }
+
+  // E2E는 브라우저의 새로고침 경고를 보지 못한다. 같은 이벤트를 직접 내 가드가 막는지 본다
+  function unloadBlocked(page: Page) {
+    return page.evaluate(
+      () =>
+        !window.dispatchEvent(new Event("beforeunload", { cancelable: true })),
+    );
+  }
+
+  test("다른 행을 고르기 전에 묻고, 취소하면 입력이 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await editName(page);
+
+    await listRow(page, "사진 없는 연못").click();
+    const confirm = leaveDialog(page);
+    await expect(confirm).toContainText("지금 나가면 입력한 값이 사라져요");
+    await confirm.getByRole("button", { name: "취소" }).click();
+    await expect(detail.getByLabel("이름 *")).toHaveValue("고치는 중");
+    await expect(page).toHaveURL(new RegExp(`\\?id=${SQUIRREL_ID}$`));
+
+    await listRow(page, "사진 없는 연못").click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(detailPanel(page, "사진 없는 연못")).toBeVisible();
+    await expect(page).toHaveURL(/\?id=l-no-photo$/);
+  });
+
+  test("다른 마커를 누르기 전에도 묻는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await editName(page);
+
+    await page.getByTestId("admin-landmark-marker-l-no-photo").click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(detail.getByLabel("이름 *")).toHaveValue("고치는 중");
+    await expect(page).toHaveURL(new RegExp(`\\?id=${SQUIRREL_ID}$`));
+
+    await page.getByTestId("admin-landmark-marker-l-no-photo").click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(detailPanel(page, "사진 없는 연못")).toBeVisible();
+    await expect(page).toHaveURL(/\?id=l-no-photo$/);
+  });
+
+  test("칩을 바꾸기 전에도 묻는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await editName(page);
+    const chip = listPanel(page).getByRole("button", { name: "사진 없음 1개" });
+
+    await chip.click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(detail.getByLabel("이름 *")).toHaveValue("고치는 중");
+    await expect(chip).toHaveAttribute("aria-pressed", "false");
+
+    await chip.click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(chip).toHaveAttribute("aria-pressed", "true");
+    await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
+  });
+
+  test("헤더 메뉴로 나가기 전에 묻는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    await editName(page);
+    const facilities = adminNav(page).getByRole("link", { name: "독립 시설" });
+
+    await facilities.click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(new RegExp(`/landmarks\\?id=${SQUIRREL_ID}$`));
+
+    await facilities.click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
+  });
+
+  test("같은 화면의 헤더 메뉴는 선택을 풀고, 저장 안 한 변경이 있으면 먼저 묻는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const landmarks = adminNav(page).getByRole("link", { name: "명소" });
+
+    await openSquirrel(page);
+    await landmarks.click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
+    await expect(detailPanel(page, "다람쥐길")).toHaveCount(0);
+
+    const detail = await editName(page);
+    await landmarks.click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
+    await expect(detail).toHaveCount(0);
+  });
+
+  test("브라우저 뒤로가기 전에 묻는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/buildings");
+    await adminNav(page).getByRole("link", { name: "명소" }).click();
+    const detail = await editName(page);
+
+    await page.evaluate(() => window.history.back());
+    const confirm = leaveDialog(page);
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(new RegExp(`/landmarks\\?id=${SQUIRREL_ID}$`));
+    await expect(detail.getByLabel("이름 *")).toHaveValue("고치는 중");
+
+    await page.evaluate(() => window.history.back());
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
+  });
+
+  test("저장한 뒤에는 새로고침 경고를 풀고 다른 행을 고를 때 묻지 않는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    expect(await unloadBlocked(page)).toBe(false);
+    const detail: Locator = await editName(page);
+    expect(await unloadBlocked(page)).toBe(true);
+
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
+    await expect.poll(() => unloadBlocked(page)).toBe(false);
+
+    await listRow(page, "사진 없는 연못").click();
+    await expect(detailPanel(page, "사진 없는 연못")).toBeVisible();
+    await expect(leaveDialog(page)).toHaveCount(0);
+  });
+
+  test("새 명소는 사진만 골라도 저장 안 한 변경이라 다른 행을 고르기 전에 묻는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    await listPanel(page).getByRole("button", { name: "＋ 명소 추가" }).click();
+    const detail = detailPanel(page, "명소 추가");
+    expect(await unloadBlocked(page)).toBe(false);
+
+    await photoInput(detail).setInputFiles(PHOTO_FILE);
+    await expect(detail.getByText("저장 시 업로드: pond.png")).toBeVisible();
+    expect(await unloadBlocked(page)).toBe(true);
+
+    await listRow(page, "다람쥐길").click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(detail).toBeVisible();
+
+    await listRow(page, "다람쥐길").click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(detailPanel(page, "다람쥐길")).toBeVisible();
   });
 });
