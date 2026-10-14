@@ -168,12 +168,7 @@ export default function FacilityRequestReviewModal({
       facilityId: string;
       cleanupFailed: boolean;
     };
-    const translated = await translateFacility({
-      id: facilityId,
-      name: payload.name || null,
-      description: payload.description || null,
-      floor_info: payload.floor_info || null,
-    });
+    const translated = await translateFacility(facilityId);
     await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
       () => {},
     );

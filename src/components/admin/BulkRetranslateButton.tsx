@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { authedFetch } from "@/lib/authedFetch";
 import { translateFacility } from "@/lib/facilityTranslation";
 import { facilityNeedsTranslation } from "@/lib/facilityTranslationState";
 import type { FacilityWithType } from "@/types/domain";
@@ -28,13 +27,9 @@ export default function BulkRetranslateButton({
     // 번역 API를 병렬로 두들기지 않는다.
     for (const [index, facility] of batch.entries()) {
       setRun({ total: batch.length, done: index + 1 });
-      const ok = await translateFacility(facility);
+      const ok = await translateFacility(facility.id);
       if (!ok) failed += 1;
     }
-    // 재검증은 건마다가 아니라 마지막에 한 번.
-    await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
-      () => {},
-    );
     setRun(null);
     await onDone();
     showToast(

@@ -1009,6 +1009,25 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       ),
     });
   }
+  if (path === "/api/translate-facility") {
+    const { facilityId } = route.request().postDataJSON() as {
+      facilityId: string;
+    };
+    const facility = state.facilities.find((row) => row.id === facilityId);
+    if (!facility) return json(route, { error: "시설이 없어요" }, 404);
+    if (state.translationFailuresRemaining > 0) {
+      state.translationFailuresRemaining -= 1;
+      facility.translation_status = "failed";
+      return json(route, { error: "테스트 번역 실패" }, 502);
+    }
+    for (const field of ["name", "description", "floor_info"]) {
+      const text = String(facility[field] ?? "").trim();
+      facility[`${field}_en`] = text ? `EN ${text}` : null;
+      facility[`${field}_zh`] = text ? `ZH ${text}` : null;
+    }
+    facility.translation_status = "translated";
+    return json(route, { status: "translated" });
+  }
   if (path === "/api/upload-landmark-photo") {
     const landmark = state.landmarks.at(-1);
     if (landmark)

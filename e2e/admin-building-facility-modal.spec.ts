@@ -134,8 +134,8 @@ test.describe("건물 상세 시설 모달", () => {
   });
 
   test("번역이 다시 실패하면 배지가 그대로 남는다", async ({ page }) => {
-    await page.route("**/api/translate", (route) =>
-      route.fulfill({ status: 500, json: { error: "translate failed" } }),
+    await page.route("**/api/translate-facility", (route) =>
+      route.fulfill({ status: 502, json: { error: "translate failed" } }),
     );
 
     await page.getByRole("button", { name: /전부 재번역/ }).click();

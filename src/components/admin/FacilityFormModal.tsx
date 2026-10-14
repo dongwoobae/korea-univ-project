@@ -129,12 +129,7 @@ export default function FacilityFormModal({
       facilityId = inserted.id;
     }
 
-    const translated = await translateFacility({
-      id: facilityId,
-      name: payload.name,
-      description: payload.description,
-      floor_info: payload.floor_info,
-    });
+    const translated = await translateFacility(facilityId);
     await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
       () => {},
     );
