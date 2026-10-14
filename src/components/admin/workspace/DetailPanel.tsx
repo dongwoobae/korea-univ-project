@@ -1,0 +1,173 @@
+"use client";
+
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useMediaQuery } from "@/lib/useMediaQuery";
+import { ADMIN_MOBILE_QUERY } from "./types";
+
+interface DetailPanelProps {
+  /** region 이름이자 모바일 상단 바 제목 */
+  label: string;
+  /** 데스크톱 헤더(아이콘·이름·메타). ✕는 이 틀이 붙인다 */
+  header: ReactNode;
+  onClose: () => void;
+  closeDisabled?: boolean;
+  remove?: {
+    confirmMessage: string;
+    disabled?: boolean;
+    onConfirm: () => Promise<void>;
+  };
+  save: { pending: boolean; disabled?: boolean; onClick: () => void } | null;
+  children: ReactNode;
+}
+
+export default function DetailPanel({
+  label,
+  header,
+  onClose,
+  closeDisabled = false,
+  remove,
+  save,
+  children,
+}: DetailPanelProps) {
+  const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
+  const [confirming, setConfirming] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef(false);
+  const messageId = useId();
+
+  // 삭제 버튼과 확인 칸은 서로 자리를 바꾼다. 사라진 쪽에 있던 초점은 body로 떨어지므로 나타난 쪽으로 옮긴다
+  useEffect(() => {
+    if (confirming) {
+      cancelRef.current?.focus();
+      return;
+    }
+    if (!returnFocusRef.current) return;
+    returnFocusRef.current = false;
+    // 삭제를 기다리는 사이 사용자가 옮긴 초점은 빼앗지 않는다
+    const active = document.activeElement;
+    if (!active || active === document.body) triggerRef.current?.focus();
+  }, [confirming]);
+
+  function closeConfirm() {
+    returnFocusRef.current = true;
+    setConfirming(false);
+  }
+
+  async function confirmRemove() {
+    if (!remove) return;
+    setRemoving(true);
+    try {
+      await remove.onConfirm();
+    } finally {
+      setRemoving(false);
+      closeConfirm();
+    }
+  }
+
+  const removeControl =
+    remove &&
+    (confirming ? (
+      <div
+        className="ku-detail-remove-confirm"
+        role="group"
+        aria-label="삭제 확인"
+        aria-describedby={messageId}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape" || removing) return;
+          event.stopPropagation();
+          closeConfirm();
+        }}
+      >
+        <span id={messageId}>{remove.confirmMessage}</span>
+        <button
+          ref={cancelRef}
+          type="button"
+          className="ku-workspace-button"
+          onClick={closeConfirm}
+          disabled={removing}
+        >
+          취소
+        </button>
+        <button
+          type="button"
+          className="ku-workspace-button ku-workspace-button--danger"
+          onClick={() => void confirmRemove()}
+          disabled={removing || remove.disabled}
+        >
+          {removing ? "삭제 중..." : "삭제"}
+        </button>
+      </div>
+    ) : (
+      <button
+        ref={triggerRef}
+        type="button"
+        className="ku-detail-remove"
+        onClick={() => setConfirming(true)}
+        disabled={remove.disabled}
+      >
+        삭제
+      </button>
+    ));
+
+  return (
+    <section className="ku-detail-panel" aria-label={label}>
+      {mobile ? (
+        <div className="ku-detail-panel-bar">
+          <button
+            type="button"
+            className="ku-detail-panel-back"
+            aria-label="목록으로"
+            onClick={onClose}
+            disabled={closeDisabled}
+          >
+            ‹
+          </button>
+          <h2>{label}</h2>
+        </div>
+      ) : (
+        <div className="ku-detail-panel-head">
+          {header}
+          <button
+            type="button"
+            className="ku-detail-panel-close"
+            aria-label="상세 닫기"
+            onClick={onClose}
+            disabled={closeDisabled}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      {/* 모바일 상세는 이 띠로 작업 화면의 지도를 보인다(설계 2026-10-14 2.5) */}
+      {mobile && <div className="ku-detail-panel-strip" aria-hidden="true" />}
+      <div className="ku-detail-panel-body">
+        {children}
+        {mobile && removeControl}
+      </div>
+      <div className="ku-detail-panel-foot">
+        {!mobile && removeControl}
+        <span className="ku-detail-panel-spacer" />
+        <button
+          type="button"
+          className="ku-workspace-button"
+          onClick={onClose}
+          disabled={closeDisabled}
+        >
+          {mobile ? "취소" : "닫기"}
+        </button>
+        {save && (
+          <button
+            type="button"
+            className="ku-workspace-primary"
+            onClick={save.onClick}
+            disabled={save.pending || save.disabled}
+          >
+            {save.pending ? "저장 중..." : "저장"}
+          </button>
+        )}
+      </div>
+    </section>
+  );
+}

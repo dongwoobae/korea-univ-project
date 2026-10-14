@@ -62,9 +62,13 @@ interface FacilityFieldsProps {
   labels: FacilityFieldLabels;
   mapCenter: [number, number];
   highlightBuildingId?: number;
+  /** 위치 지도의 건물 강조색. 비우면 FacilityMap의 기본값 */
+  highlightColor?: string;
   showFloor: boolean;
   showInstalled: boolean;
   locationRequired?: boolean;
+  /** false면 위치 칸(라벨·지도·footer)을 그리지 않는다. 큰 지도에서 위치를 고르는 화면이 쓴다 */
+  showLocation?: boolean;
   /** 지도 아래에 붙는 내용 */
   locationFooter?: ReactNode;
   disabled?: boolean;
@@ -78,9 +82,11 @@ export default function FacilityFields({
   labels,
   mapCenter,
   highlightBuildingId,
+  highlightColor,
   showFloor,
   showInstalled,
   locationRequired = false,
+  showLocation = true,
   locationFooter,
   disabled = false,
 }: FacilityFieldsProps) {
@@ -150,33 +156,39 @@ export default function FacilityFields({
         </>
       )}
 
-      <div className="ku-facility-location-label" style={labelStyle}>
-        {labels.location}
-        {locationRequired ? " *" : ""}
-      </div>
-      <div
-        className="ku-facility-map-frame"
-        style={{
-          marginTop: 4,
-          borderRadius: 8,
-          overflow: "hidden",
-          border: "1px solid #ddd",
-        }}
-      >
-        <FacilityMap
-          center={mapCenter}
-          highlightId={highlightBuildingId}
-          markerPosition={
-            value.lat && value.lng
-              ? [parseFloat(value.lat), parseFloat(value.lng)]
-              : null
-          }
-          onMapClick={(lat, lng) => {
-            if (!disabled) set({ lat: lat.toFixed(7), lng: lng.toFixed(7) });
-          }}
-        />
-      </div>
-      {locationFooter}
+      {showLocation && (
+        <>
+          <div className="ku-facility-location-label" style={labelStyle}>
+            {labels.location}
+            {locationRequired ? " *" : ""}
+          </div>
+          <div
+            className="ku-facility-map-frame"
+            style={{
+              marginTop: 4,
+              borderRadius: 8,
+              overflow: "hidden",
+              border: "1px solid #ddd",
+            }}
+          >
+            <FacilityMap
+              center={mapCenter}
+              highlightId={highlightBuildingId}
+              highlightColor={highlightColor}
+              markerPosition={
+                value.lat && value.lng
+                  ? [parseFloat(value.lat), parseFloat(value.lng)]
+                  : null
+              }
+              onMapClick={(lat, lng) => {
+                if (!disabled)
+                  set({ lat: lat.toFixed(7), lng: lng.toFixed(7) });
+              }}
+            />
+          </div>
+          {locationFooter}
+        </>
+      )}
 
       {showInstalled && (
         <label

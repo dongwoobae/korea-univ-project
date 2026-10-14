@@ -8,3 +8,6 @@ skills-lock.json
 next-env.d.ts
 public/
 *.geojson
+
+# 2026-10-14 관리자 리디자인 핸드오버 원문. 내보낸 그대로 둔다.
+docs/specs/2026-10-14-admin-map-first-handoff/

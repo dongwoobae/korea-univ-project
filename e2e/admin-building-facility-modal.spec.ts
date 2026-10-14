@@ -149,3 +149,32 @@ test.describe("건물 상세 시설 모달", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("건물 상세 시설 추가", () => {
+  test("모달에서 시설을 추가하면 층 정보와 함께 목록에 오른다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/buildings/1");
+    await page.getByRole("button", { name: "+ 시설 추가" }).click();
+    const dialog = page.getByRole("dialog", { name: "시설 추가" });
+    await dialog.getByLabel("시설 유형 *").selectOption("elevator");
+    await dialog.getByLabel("시설 이름 (선택)").fill("서측 엘리베이터");
+    await dialog.getByLabel("층 정보 (선택)").fill("B1~3층");
+    await dialog.getByRole("button", { name: "저장" }).click();
+
+    await expect(page.getByText("시설이 추가되었어요!")).toBeVisible();
+    await expect(dialog).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /서측 엘리베이터/ }),
+    ).toBeVisible();
+    expect(
+      state.facilities.find((facility) => facility.name === "서측 엘리베이터"),
+    ).toMatchObject({
+      building_id: 1,
+      floor_info: "B1~3층",
+      is_installed: true,
+      translation_status: "translated",
+    });
+  });
+});

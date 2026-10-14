@@ -174,9 +174,9 @@ export default function FeedbackEmailModal({
             onClick={addCc}
             style={{
               fontSize: 12,
-              color: "#2563EB",
+              color: "var(--ku-primary-text)",
               background: "none",
-              border: "1px dashed #2563EB",
+              border: "1px dashed var(--ku-primary-text)",
               borderRadius: 6,
               padding: "5px 10px",
               cursor: "pointer",
@@ -231,7 +231,7 @@ export default function FeedbackEmailModal({
             style={{
               fontSize: 13,
               color: "#fff",
-              background: "#2563EB",
+              background: "var(--ku-primary)",
               border: "none",
               borderRadius: 6,
               padding: "8px 14px",

@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>html,body{height:100%;margin:0}body{background:#f7f5f3;-webkit-font-smoothing:antialiased}*{box-sizing:border-box}x-dc{display:block;height:100%}a{color:#a31c12;text-decoration:none}a:hover{color:#8c0000;text-decoration:underline}button,input,textarea,select{font:inherit}input:focus,textarea:focus{outline:0;border-color:#8c0000 !important;box-shadow:0 0 0 3px #f3ddda}</style>
+</helmet>
+<div style="position:relative;height:100%;min-height:720px;display:flex;flex-direction:column;background:#f7f5f3;color:#1c1917;font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;overflow:hidden">
+
+<sc-if value="{{ isDesktop }}" hint-placeholder-val="{{ true }}">
+<header style="flex:none;height:60px;display:flex;align-items:center;padding:0 24px;background:#fff;border-bottom:1px solid #e8e4e0">
+  <div style="display:flex;align-items:center;gap:10px;margin-right:30px;font-size:15px;font-weight:700"><img src="public/favicon.png" alt="" style="width:28px;height:28px;object-fit:contain"><span>관리자 콘솔</span></div>
+  <nav style="display:flex;align-self:stretch">
+    <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+      <button onClick="{{ n.onClick }}" style="display:flex;align-items:center;gap:6px;height:100%;padding:0 16px;border:0;background:none;cursor:pointer;font-size:13.5px;color:{{ n.color }};font-weight:{{ n.weight }};box-shadow:{{ n.shadow }}">{{ n.label }}<sc-if value="{{ n.hasBadge }}"><span style="min-width:18px;padding:0 5px;border-radius:9px;background:#8c0000;color:#fff;font-size:11px;font-weight:700;line-height:18px;text-align:center">{{ n.badge }}</span></sc-if></button>
+    </sc-for>
+  </nav>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
+    <span style="font-size:12px;color:#8a837d;margin-right:4px">admin@korea.ac.kr</span>
+    <button style="height:34px;padding:0 12px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;color:#1c1917;cursor:pointer">설정</button>
+    <button style="height:34px;padding:0 12px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;color:#1c1917;cursor:pointer">지도 보기</button>
+    <button style="height:34px;padding:0 12px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;color:#1c1917;cursor:pointer">로그아웃</button>
+  </div>
+</header>
+
+
+<sc-if value="{{ bMapPage }}" hint-placeholder-val="{{ true }}">
+<div style="position:relative;flex:1;min-height:0;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 14px);overflow:hidden">
+  <span style="position:absolute;left:436px;bottom:16px;z-index:5;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.9);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8a837d">캠퍼스 지도 (Leaflet) · 전체 화면</span>
+  <div style="position:absolute;top:24px;bottom:24px;left:476px;right:{{ mapRight }}">
+  <sc-if value="{{ tabS }}"><sc-if value="{{ notEditing }}">{{ routeSvg }}<sc-for list="{{ segLabels }}" as="l"><span style="position:absolute;left:{{ l.left }};top:{{ l.top }};transform:translate(-50%,-50%);z-index:4;width:22px;height:22px;display:grid;place-items:center;border:2px solid #1c1917;border-radius:50%;background:#fff;font-size:11px;font-weight:700">{{ l.n }}</span></sc-for></sc-if>
+    <sc-if value="{{ editing }}">{{ edSvg }}<sc-for list="{{ edVerts }}" as="v"><span style="position:absolute;left:{{ v.left }};top:{{ v.top }};z-index:3;transform:translate(-50%,-50%);width:14px;height:14px;border:3px solid #1c1917;border-radius:50%;background:#fff;cursor:grab"></span></sc-for><sc-for list="{{ edLabels }}" as="l"><span style="position:absolute;left:{{ l.left }};top:{{ l.top }};transform:translate(-50%,-50%);z-index:4;width:24px;height:24px;display:grid;place-items:center;border:2px solid #1c1917;border-radius:50%;background:#fff;font-size:12px;font-weight:700">{{ l.n }}</span></sc-for>
+      <div style="position:absolute;top:16px;left:50%;z-index:5;transform:translateX(-50%);display:flex;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 4px 16px rgba(28,25,23,.14)"><button style="height:38px;padding:0 14px;border:0;border-right:1px solid #f0edea;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer">✎ 이어 그리기</button><button style="height:38px;padding:0 14px;border:0;border-right:1px solid #f0edea;background:#faf0ef;color:#8c0000;font-size:12.5px;font-weight:700;cursor:pointer">◇ 꼭짓점 편집</button><button style="height:38px;padding:0 14px;border:0;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer">⌫ 지우기</button></div>
+    </sc-if>
+  </sc-if>
+  <sc-for list="{{ pins }}" as="p">
+    <button onClick="{{ p.onClick }}" title="{{ p.title }}" style="position:absolute;left:{{ p.left }};top:{{ p.top }};z-index:{{ p.z }};transform:translate(-50%,-50%);width:{{ p.size }};height:{{ p.size }};display:grid;place-items:center;padding:0;border:2px solid {{ p.bd }};border-radius:50%;background:{{ p.bg }};color:{{ p.fg }};box-shadow:{{ p.ring }};font-size:{{ p.fs }};font-weight:700;cursor:pointer">{{ p.text }}</button>
+  </sc-for>
+  <sc-if value="{{ hasSelPin }}"><span style="position:absolute;left:{{ selPin.left }};top:{{ selPin.top }};z-index:6;transform:translate(-50%,calc(-100% - 20px));padding:5px 9px;border-radius:7px;background:#1c1917;color:#fff;font-size:12px;font-weight:600;white-space:nowrap">{{ selPin.label }}</span></sc-if>
+  </div>
+  <div style="position:absolute;left:436px;top:16px;z-index:5;display:flex;flex-direction:column;border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(28,25,23,.12)"><button style="width:36px;height:36px;border:0;border-bottom:1px solid #f0edea;background:#fff;font-size:16px;cursor:pointer">+</button><button style="width:36px;height:36px;border:0;background:#fff;font-size:16px;cursor:pointer">−</button></div>
+
+  <section style="position:absolute;top:16px;left:16px;bottom:16px;z-index:8;width:404px;display:flex;flex-direction:column;border-radius:14px;background:#fff;box-shadow:0 4px 20px rgba(28,25,23,.14);overflow:hidden">
+    <div style="flex:none;display:flex;flex-direction:column;gap:12px;padding:18px 18px 12px;border-bottom:1px solid #f0edea">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px"><div><h1 style="margin:0;font-size:20px;font-weight:700;letter-spacing:-0.01em">{{ page.title }}</h1><p style="margin:4px 0 0;font-size:12px;line-height:1.45;color:#8a837d">{{ page.caption }}</p></div><button onClick="{{ page.onAdd }}" style="flex:none;height:34px;padding:0 12px;border:0;border-radius:8px;background:#8c0000;color:#fff;font-size:12.5px;font-weight:600;cursor:pointer">＋ {{ page.addLabel }}</button></div>
+      <label style="position:relative"><span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#8a837d">⌕</span><input type="search" value="{{ q }}" onChange="{{ onQ }}" placeholder="{{ page.searchPh }}" style="width:100%;height:38px;padding:0 12px 0 32px;border:1px solid #d6d1cc;border-radius:8px;font-size:13px;color:#1c1917"></label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ chips }}" as="c"><button onClick="{{ c.onClick }}" style="display:flex;align-items:center;gap:5px;height:30px;padding:0 11px;border:1px solid {{ c.bd }};border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};font-size:12px;font-weight:600;cursor:pointer">{{ c.label }}<span style="opacity:.75">{{ c.count }}</span></button></sc-for></div>
+    </div>
+    <div style="flex:none;display:flex;justify-content:space-between;padding:8px 18px;font-size:11.5px;font-weight:600;color:#8a837d"><span>{{ listCount }}</span><span>최근 수정순 ▾</span></div>
+    <div style="flex:1;min-height:0;overflow:auto">
+      <sc-if value="{{ isFL }}" hint-placeholder-val="{{ true }}"><sc-for list="{{ rows }}" as="r" hint-placeholder-count="6"><button onClick="{{ r.onClick }}" style="display:flex;align-items:center;gap:11px;width:100%;padding:11px 18px;border:0;border-top:1px solid #f0edea;background:{{ r.rowBg }};text-align:left;cursor:pointer;color:#1c1917" style-hover="background:#faf8f6">
+        <sc-if value="{{ r.isEmoji }}"><span style="flex:none;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#f7f5f3;font-size:17px">{{ r.emoji }}</span></sc-if>
+        <sc-if value="{{ r.isIcon }}"><span style="flex:none;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:{{ r.iconBg }};color:#fff;font-size:12px;font-weight:700">{{ r.iconText }}</span></sc-if>
+        <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600;color:{{ r.nameColor }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div><div style="margin-top:2px;font-size:11.5px;color:#8a837d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.meta }}</div></div>
+        <div style="flex:none;display:flex;gap:4px"><sc-for list="{{ r.badges }}" as="b"><span style="padding:2px 7px;border-radius:999px;background:{{ b.bg }};color:{{ b.fg }};font-size:11px;font-weight:700;white-space:nowrap">{{ b.label }}</span></sc-for></div>
+      </button></sc-for></sc-if>
+      <sc-if value="{{ tabS }}"><sc-for list="{{ srows }}" as="r"><button onClick="{{ r.onClick }}" style="display:flex;flex-direction:column;gap:8px;width:100%;padding:12px 18px;border:0;border-top:1px solid #f0edea;background:{{ r.rowBg }};text-align:left;cursor:pointer;color:#1c1917" style-hover="background:#faf8f6">
+        <div style="display:flex;align-items:center;gap:8px;width:100%"><span style="flex:1;min-width:0;font-size:13.5px;font-weight:600;color:{{ r.nameColor }}">{{ r.name }}</span><span style="flex:none;padding:2px 7px;border-radius:999px;background:{{ r.badge.bg }};color:{{ r.badge.fg }};font-size:11px;font-weight:700">{{ r.badge.label }}</span></div>
+        <div style="display:flex;gap:2px;width:100%;height:6px"><sc-for list="{{ r.profile }}" as="p"><span style="flex:{{ p.flex }};border-radius:3px;background:{{ p.color }}"></span></sc-for></div>
+        <span style="font-size:11.5px;color:#8a837d">{{ r.meta }}</span>
+      </button></sc-for></sc-if>
+      <sc-if value="{{ noRows }}"><div style="padding:40px 20px;text-align:center;font-size:13px;color:#8a837d">조건에 맞는 항목이 없어요</div></sc-if>
+    </div>
+    <div style="flex:none;display:flex;flex-wrap:wrap;gap:10px;padding:10px 18px;border-top:1px solid #f0edea;background:#fbfaf9"><sc-for list="{{ legend }}" as="g"><span style="display:flex;align-items:center;gap:5px;font-size:11px;color:#5c5652"><span style="width:8px;height:8px;border-radius:50%;background:{{ g.color }}"></span>{{ g.label }}</span></sc-for></div>
+  </section>
+
+  <sc-if value="{{ bDrawer }}">
+  <section style="position:absolute;top:16px;right:16px;bottom:16px;z-index:8;width:460px;display:flex;flex-direction:column;border-radius:14px;background:#fff;box-shadow:0 4px 20px rgba(28,25,23,.14);overflow:hidden">
+    <sc-if value="{{ selIsF }}">
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;border-top:1px solid #e8e4e0">
+          <div style="flex:1;min-height:0;overflow:auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <span style="flex:none;width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:{{ sf.iconBg }};color:#fff;font-size:14px;font-weight:700">{{ sf.iconText }}</span>
+              <div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:700">{{ sf.name }}</div><div style="margin-top:3px;font-size:12px;color:#8a837d">{{ sf.typeLabel }} · {{ sf.updated }} 수정</div></div>
+              <button onClick="{{ onClose }}" aria-label="닫기" style="width:32px;height:32px;border:0;border-radius:8px;background:none;color:#8a837d;font-size:18px;cursor:pointer" style-hover="background:#f7f5f3">✕</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div style="display:inline-flex;padding:3px;border-radius:9px;background:#f0edea">
+                <button onClick="{{ sf.onInstalled }}" style="height:30px;padding:0 14px;border:0;border-radius:7px;background:{{ sf.inBg }};color:{{ sf.inFg }};box-shadow:{{ sf.inSh }};font-size:12.5px;font-weight:700;cursor:pointer">설치</button>
+                <button onClick="{{ sf.onMissing }}" style="height:30px;padding:0 14px;border:0;border-radius:7px;background:{{ sf.miBg }};color:{{ sf.miFg }};box-shadow:{{ sf.miSh }};font-size:12.5px;font-weight:700;cursor:pointer">미설치</button>
+              </div>
+              <sc-if value="{{ sf.trPending }}"><span style="display:flex;align-items:center;gap:8px;margin-left:auto;padding:4px 4px 4px 10px;border:1px solid #f5d48a;border-radius:999px;background:#fffbeb;font-size:12px;color:#92400e;font-weight:600">영문·중문 번역 대기<button onClick="{{ sf.onTranslate }}" style="height:24px;padding:0 9px;border:0;border-radius:999px;background:#92400e;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer">재번역</button></span></sc-if>
+              <sc-if value="{{ sf.trDone }}"><span style="margin-left:auto;font-size:12px;color:#2f7a4f;font-weight:600">✓ 영문·중문 번역 완료</span></sc-if>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 14px">
+              <label style="grid-column:1/-1;display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">시설 이름<input value="{{ sf.name }}" onChange="{{ sf.onName }}" style="height:40px;padding:0 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;color:#1c1917;font-weight:400"></label>
+              <label style="grid-column:1/-1;display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">설명<textarea value="{{ sf.desc }}" onChange="{{ sf.onDesc }}" rows="2" style="padding:9px 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;color:#1c1917;font-weight:400;resize:vertical"></textarea></label>
+              <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">유형<div style="display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;color:#1c1917;font-weight:400">{{ sf.typeLabel }}<span style="color:#8a837d">▾</span></div></div>
+              <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">위치<div style="display:flex;flex-direction:column;justify-content:center;height:40px;font-size:12.5px;font-weight:400;color:#5c5652"><span style="font-family:ui-monospace,Menlo,monospace">{{ sf.lat }}, {{ sf.lng }}</span><span style="color:#2f7a4f;font-weight:600">{{ sf.campus }} 영역 · 지도에서 핀 이동</span></div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+              <div>
+                <div style="margin-bottom:6px;font-size:12px;font-weight:600;color:#5c5652">사진 {{ sf.photoCount }}장</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <sc-for list="{{ sf.photos }}" as="ph"><span style="width:58px;height:58px;display:grid;place-items:center;border-radius:7px;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 7px);font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#8a837d">사진 {{ ph.n }}</span></sc-for>
+                  <span style="width:58px;height:58px;display:grid;place-items:center;border:1.5px dashed #d6d1cc;border-radius:7px;font-size:11px;color:#5c5652;cursor:pointer">＋ 추가</span>
+                </div>
+              </div>
+              <div>
+                <div style="margin-bottom:6px;font-size:12px;font-weight:600;color:#5c5652">동영상</div>
+                <sc-if value="{{ sf.video }}"><div style="display:flex;align-items:center;gap:10px;height:58px;padding:0 12px;border:1px solid #e8e4e0;border-radius:8px"><span style="width:38px;height:28px;display:grid;place-items:center;border-radius:5px;background:#1c1917;color:#fff;font-size:10px">▶</span><span style="flex:1;font-size:12.5px;color:#1c1917">연결됨</span><button style="height:28px;padding:0 10px;border:1px solid #d6d1cc;border-radius:7px;background:#fff;font-size:12px;font-weight:600;cursor:pointer">교체</button></div></sc-if>
+                <sc-if value="{{ sf.noVideo }}"><button style="width:100%;height:58px;border:1.5px dashed #d6d1cc;border-radius:8px;background:#fff;font-size:12.5px;color:#5c5652;cursor:pointer">＋ 동영상 연결</button></sc-if>
+              </div>
+            </div>
+          </div>
+          <div style="flex:none;display:flex;align-items:center;gap:8px;padding:12px 20px;border-top:1px solid #f0edea">
+            <sc-if value="{{ confirmDel }}"><span style="font-size:12.5px;color:#a32d2d;font-weight:600">삭제한 시설은 복구할 수 없어요.</span><button onClick="{{ onDeleteNo }}" style="height:34px;padding:0 12px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer">취소</button><button onClick="{{ onDeleteYes }}" style="height:34px;padding:0 12px;border:0;border-radius:8px;background:#dc2626;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer">삭제</button></sc-if>
+            <sc-if value="{{ noConfirmDel }}"><button onClick="{{ onDelete }}" style="height:34px;padding:0 10px;border:0;border-radius:8px;background:none;color:#dc2626;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#fcebeb">삭제</button></sc-if>
+            <span style="flex:1"></span>
+            <button onClick="{{ onClose }}" style="height:36px;padding:0 14px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer">닫기</button>
+            <button onClick="{{ onSave }}" style="height:36px;padding:0 18px;border:0;border-radius:8px;background:#8c0000;color:#fff;font-size:13px;font-weight:700;cursor:pointer">저장</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ selIsL }}">
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;border-top:1px solid #e8e4e0">
+          <div style="flex:1;min-height:0;overflow:auto;padding:18px 20px;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <button style="flex:none;width:44px;height:44px;display:grid;place-items:center;border:1px solid #d6d1cc;border-radius:10px;background:#fff;font-size:22px;cursor:pointer" title="이모지 바꾸기">{{ sl.icon }}</button>
+              <div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:700">{{ sl.name }}</div><div style="margin-top:3px;font-size:12px;color:#8a837d">{{ sl.campus }} · {{ sl.updated }} 수정</div></div>
+              <button onClick="{{ onClose }}" aria-label="닫기" style="width:32px;height:32px;border:0;border-radius:8px;background:none;color:#8a837d;font-size:18px;cursor:pointer" style-hover="background:#f7f5f3">✕</button>
+            </div>
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 200px;gap:14px">
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">이름<input value="{{ sl.name }}" onChange="{{ sl.onName }}" style="height:40px;padding:0 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;color:#1c1917;font-weight:400"></label>
+                <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">설명<textarea value="{{ sl.desc }}" onChange="{{ sl.onDesc }}" rows="3" style="padding:9px 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;color:#1c1917;font-weight:400;resize:vertical"></textarea></label>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">사진
+                <sc-if value="{{ sl.photo }}"><div style="position:relative;flex:1;min-height:120px;display:grid;place-items:center;border-radius:8px;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 8px);font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:400;color:#8a837d">명소 사진<span style="position:absolute;right:6px;bottom:6px;display:flex;gap:4px"><button style="height:26px;padding:0 8px;border:0;border-radius:6px;background:rgba(255,255,255,.95);font-size:11.5px;font-weight:600;cursor:pointer">변경</button><button style="height:26px;padding:0 8px;border:0;border-radius:6px;background:rgba(255,255,255,.95);color:#dc2626;font-size:11.5px;font-weight:600;cursor:pointer">삭제</button></span></div></sc-if>
+                <sc-if value="{{ sl.noPhoto }}"><button style="flex:1;min-height:120px;border:1.5px dashed #d6d1cc;border-radius:8px;background:#fff;font-size:12.5px;font-weight:500;color:#5c5652;cursor:pointer">＋ 사진 선택</button></sc-if>
+              </div>
+            </div>
+            <div style="border:1px solid #e8e4e0;border-radius:10px;overflow:hidden">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#fbfaf9;border-bottom:1px solid #f0edea"><span style="font-size:12.5px;font-weight:700">번역</span><button onClick="{{ sl.onTranslate }}" style="height:28px;padding:0 10px;border:1px solid #d6d1cc;border-radius:7px;background:#fff;font-size:12px;font-weight:600;color:#a31c12;cursor:pointer">자동번역 채우기</button></div>
+              <div style="display:grid;grid-template-columns:52px 1fr;gap:8px 10px;padding:10px 12px;font-size:12.5px">
+                <span style="color:#8a837d;font-weight:600">English</span><span style="color:{{ sl.enColor }}">{{ sl.nameEn }}</span>
+                <span style="color:#8a837d;font-weight:600">中文</span><span style="color:{{ sl.zhColor }}">{{ sl.nameZh }}</span>
+              </div>
+            </div>
+            <div style="font-size:12px;color:#5c5652"><span style="font-family:ui-monospace,Menlo,monospace">{{ sl.lat }}, {{ sl.lng }}</span> · <span style="color:#2f7a4f;font-weight:600">{{ sl.campus }} 영역</span> · 지도를 클릭해 위치 변경</div>
+          </div>
+          <div style="flex:none;display:flex;align-items:center;gap:8px;padding:12px 20px;border-top:1px solid #f0edea">
+            <sc-if value="{{ confirmDel }}"><span style="font-size:12.5px;color:#a32d2d;font-weight:600">명소와 사진은 복구할 수 없어요.</span><button onClick="{{ onDeleteNo }}" style="height:34px;padding:0 12px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer">취소</button><button onClick="{{ onDeleteYes }}" style="height:34px;padding:0 12px;border:0;border-radius:8px;background:#dc2626;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer">삭제</button></sc-if>
+            <sc-if value="{{ noConfirmDel }}"><button onClick="{{ onDelete }}" style="height:34px;padding:0 10px;border:0;border-radius:8px;background:none;color:#dc2626;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#fcebeb">삭제</button></sc-if>
+            <span style="flex:1"></span>
+            <button onClick="{{ onClose }}" style="height:36px;padding:0 14px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer">닫기</button>
+            <button onClick="{{ onSave }}" style="height:36px;padding:0 18px;border:0;border-radius:8px;background:#8c0000;color:#fff;font-size:13px;font-weight:700;cursor:pointer">저장</button>
+          </div>
+        </div>
+      </sc-if>
+
+      
+    <sc-if value="{{ notEditing }}"><sc-if value="{{ selIsS }}">
+        <div style="flex:1;min-height:0;display:flex;flex-direction:column;border-top:1px solid #e8e4e0">
+          <div style="flex:none;display:flex;align-items:center;gap:12px;padding:16px 20px 12px">
+            <div style="flex:1;min-width:0"><div style="font-size:17px;font-weight:700">{{ ss.name }}</div><div style="margin-top:3px;font-size:12px;color:#8a837d">{{ ss.meta }}</div></div>
+            <button onClick="{{ onDeleteYes }}" style="height:34px;padding:0 10px;border:0;border-radius:8px;background:none;color:#dc2626;font-size:12.5px;font-weight:600;cursor:pointer">삭제</button>
+            <button onClick="{{ ss.onEdit }}" style="height:36px;padding:0 16px;border:0;border-radius:8px;background:#8c0000;color:#fff;font-size:13px;font-weight:700;cursor:pointer">경로 편집</button>
+          </div>
+          <div style="flex:1;min-height:0;overflow:auto;padding:0 20px 16px">
+            <div style="display:grid;grid-template-columns:56px 1fr 1fr 1fr;align-items:center;height:34px;padding:0 10px;border-radius:8px;background:#f7f5f3;font-size:11.5px;font-weight:600;color:#8a837d"><span>구간</span><span>거리</span><span>경사</span><span>판정</span></div>
+            <sc-for list="{{ ss.segs }}" as="g">
+              <div style="display:grid;grid-template-columns:56px 1fr 1fr 1fr;align-items:center;height:40px;padding:0 10px;border-bottom:1px solid #f0edea;font-size:13px">
+                <span style="display:flex;align-items:center;gap:7px;font-weight:700"><span style="width:8px;height:8px;border-radius:50%;background:{{ g.color }}"></span>{{ g.n }}</span>
+                <span style="color:#5c5652">{{ g.dist }}m</span>
+                <span style="font-weight:600">{{ g.val }}</span>
+                <span><span style="padding:3px 8px;border-radius:999px;background:{{ g.gBg }};color:{{ g.gFg }};font-size:11px;font-weight:700">{{ g.gradeLabel }}</span></span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+    </sc-if>
+    <sc-if value="{{ editing }}">
+      <div style="flex:none;display:flex;flex-direction:column;gap:10px;padding:16px 18px 12px;border-bottom:1px solid #f0edea">
+        <div style="display:flex;align-items:center;gap:8px"><span style="padding:4px 9px;border-radius:999px;background:{{ ed.stBg }};color:{{ ed.stFg }};font-size:11.5px;font-weight:700">{{ ed.statusLabel }}</span><span style="flex:1;font-size:12px;color:#8a837d">{{ ed.count }}개 구간 · 총 {{ ed.total }}m</span>
+          <div style="display:inline-flex;padding:3px;border-radius:9px;background:#f0edea"><button onClick="{{ ed.onDeg }}" style="height:28px;padding:0 11px;border:0;border-radius:7px;background:{{ ed.degBg }};color:{{ ed.degFg }};font-size:12px;font-weight:700;cursor:pointer">°</button><button onClick="{{ ed.onPct }}" style="height:28px;padding:0 11px;border:0;border-radius:7px;background:{{ ed.pctBg }};color:{{ ed.pctFg }};font-size:12px;font-weight:700;cursor:pointer">%</button></div></div>
+        <input value="{{ ed.name }}" onChange="{{ ed.onName }}" style="height:42px;padding:0 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:16px;font-weight:700;color:#1c1917">
+      </div>
+      <div style="flex:1;min-height:0;overflow:auto;padding:12px 18px;display:flex;flex-direction:column;gap:8px">
+        <sc-for list="{{ ed.segs }}" as="g"><div style="display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:10px;padding:10px 12px;border:1px solid #e8e4e0;border-radius:10px">
+          <span style="width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:{{ g.color }};color:#fff;font-size:12px;font-weight:700">{{ g.n }}</span>
+          <div style="min-width:0"><div style="font-size:13px;font-weight:600">구간 {{ g.n }} <span style="font-weight:400;color:#8a837d">· {{ g.dist }}m · = {{ g.conv }}</span></div><sc-if value="{{ g.hasWarn }}"><div style="margin-top:3px;font-size:11.5px;line-height:1.4;color:{{ g.warnColor }}">{{ g.warn }}</div></sc-if></div>
+          <div style="display:flex;align-items:center;gap:5px"><input type="number" step="any" value="{{ g.raw }}" onChange="{{ g.onChange }}" style="width:72px;height:36px;padding:0 8px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;font-weight:600;text-align:right;color:#1c1917"><span style="width:12px;font-size:13px;color:#5c5652">{{ g.sym }}</span></div>
+        </div></sc-for>
+      </div>
+      <div style="flex:none;display:flex;gap:8px;padding:12px 18px;border-top:1px solid #f0edea"><span style="flex:1;align-self:center;font-size:11.5px;color:#8a837d">지도에서 꼭짓점을 끌어 경로를 고쳐요</span><button onClick="{{ ed.onCancel }}" style="height:36px;padding:0 14px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer">취소</button><button onClick="{{ ed.onSave }}" style="height:36px;padding:0 18px;border:0;border-radius:8px;background:#8c0000;color:#fff;font-size:13px;font-weight:700;cursor:pointer">저장</button></div>
+    </sc-if>
+  </section>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ tabI }}">
+<div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding:22px 24px 20px">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px">
+    <div><h1 style="margin:0;font-size:22px;font-weight:700;letter-spacing:-0.01em">제보함</h1><p style="margin:5px 0 0;font-size:12.5px;color:#8a837d">처리 전 {{ inboxOpen }}건 · 카드를 눌러 검토해요</p></div>
+    <div style="display:inline-flex;padding:3px;border-radius:9px;background:#ebe7e2"><sc-for list="{{ boardKinds }}" as="k"><button onClick="{{ k.onClick }}" style="height:32px;padding:0 14px;border:0;border-radius:7px;background:{{ k.bg }};color:{{ k.fg }};box-shadow:{{ k.sh }};font-size:12.5px;font-weight:700;cursor:pointer">{{ k.label }}</button></sc-for></div>
+  </div>
+  <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px">
+    <sc-for list="{{ board }}" as="col" hint-placeholder-count="3">
+      <div style="min-height:0;display:flex;flex-direction:column;border-radius:12px;background:#efebe7">
+        <div style="flex:none;display:flex;align-items:center;gap:8px;padding:12px 14px"><span style="width:8px;height:8px;border-radius:50%;background:{{ col.dot }}"></span><span style="font-size:13.5px;font-weight:700">{{ col.label }}</span><span style="font-size:12.5px;color:#8a837d;font-weight:600">{{ col.count }}</span></div>
+        <div style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:8px;padding:0 10px 10px">
+          <sc-for list="{{ col.cards }}" as="i"><button onClick="{{ i.onClick }}" style="display:flex;flex-direction:column;gap:8px;width:100%;padding:12px;border:1px solid #e8e4e0;border-radius:10px;background:{{ i.rowBg }};text-align:left;cursor:pointer;color:#1c1917;box-shadow:0 1px 2px rgba(28,25,23,.06)" style-hover="border-color:#d6d1cc">
+            <div style="display:flex;align-items:center;gap:6px;width:100%"><span style="padding:2px 7px;border-radius:5px;background:#f0edea;color:#5c5652;font-size:11px;font-weight:700">{{ i.kindLabel }}</span><sc-if value="{{ i.unread }}"><span style="width:6px;height:6px;border-radius:50%;background:#8c0000"></span></sc-if><span style="flex:1"></span><span style="font-size:11.5px;color:#8a837d">{{ i.at }}</span></div>
+            <div style="display:flex;gap:10px;width:100%"><sc-if value="{{ i.isReq }}"><span style="flex:none;width:44px;height:44px;display:grid;place-items:center;border-radius:7px;background:{{ i.thumbBg }};font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#8a837d">{{ i.thumbLabel }}</span></sc-if>
+              <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:{{ i.weight }}">{{ i.title }}</div><div style="margin-top:3px;font-size:12.5px;line-height:1.45;color:#5c5652;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ i.sub }}</div></div></div>
+            <div style="display:flex;align-items:center;gap:6px"><span style="padding:2px 7px;border-radius:999px;background:{{ i.stBg }};color:{{ i.stFg }};font-size:11px;font-weight:700">{{ i.stLabel }}</span><span style="font-size:11.5px;color:#8a837d">{{ i.meta }}</span></div>
+          </button></sc-for>
+          <sc-if value="{{ col.empty }}"><div style="padding:24px 10px;border:1.5px dashed #d6d1cc;border-radius:10px;text-align:center;font-size:12.5px;color:#8a837d">비어 있어요</div></sc-if>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ drawerOpen }}">
+    <div onClick="{{ onCloseInbox }}" style="position:absolute;inset:0;z-index:20;background:rgba(28,25,23,.22)"></div>
+    <section style="position:absolute;top:0;right:0;bottom:0;z-index:21;width:600px;display:flex;flex-direction:column;background:#fff;box-shadow:-12px 0 32px rgba(28,25,23,.16)">
+      <div style="flex:none;display:flex;justify-content:flex-end;padding:10px 12px 0"><button onClick="{{ onCloseInbox }}" aria-label="닫기" style="width:34px;height:34px;border:0;border-radius:8px;background:none;color:#8a837d;font-size:18px;cursor:pointer" style-hover="background:#f7f5f3">✕</button></div>
+      <sc-if value="{{ hasRd }}">
+      <div style="flex:1;min-height:0;overflow:auto;padding:24px 28px;display:flex;flex-direction:column;gap:20px">
+        <div style="display:flex;align-items:flex-start;gap:14px">
+          <span style="flex:none;width:42px;height:42px;display:grid;place-items:center;border-radius:11px;background:{{ rd.typeColor }};color:#fff;font-size:15px;font-weight:700">{{ rd.typeShort }}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:19px;font-weight:700">{{ rd.title }}</div>
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:5px;font-size:12.5px;color:#8a837d"><span style="padding:2px 8px;border-radius:999px;background:{{ rd.stBg }};color:{{ rd.stFg }};font-size:11.5px;font-weight:700">{{ rd.stLabel }}</span><a href="#">{{ rd.building }}</a><span>· {{ rd.at }} 접수</span></div>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px"><span style="font-size:13px;font-weight:700">제보 사진</span><span style="font-size:12px;color:#8a837d">{{ rd.photoHint }}</span></div>
+          <sc-if value="{{ rd.hasPhotos }}"><div style="display:flex;gap:10px;flex-wrap:wrap">
+            <sc-for list="{{ rd.photos }}" as="p"><button onClick="{{ p.onToggle }}" style="position:relative;width:132px;height:132px;padding:0;border:2px solid {{ p.bd }};border-radius:10px;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 9px);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8a837d;cursor:pointer;opacity:{{ p.op }}">요청 사진 {{ p.n }}<span style="position:absolute;top:7px;right:7px;width:22px;height:22px;display:grid;place-items:center;border-radius:6px;background:{{ p.chkBg }};border:1.5px solid {{ p.chkBd }};color:#fff;font-family:'Pretendard Variable',Pretendard,sans-serif;font-size:13px;font-weight:700">{{ p.mark }}</span></button></sc-for>
+          </div></sc-if>
+          <sc-if value="{{ rd.noPhotos }}"><div style="padding:18px;border:1.5px dashed #d6d1cc;border-radius:10px;font-size:12.5px;color:#8a837d;text-align:center">첨부된 사진이 없어요</div></sc-if>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px">
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">시설 유형<div style="display:flex;align-items:center;justify-content:space-between;height:40px;padding:0 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;color:#1c1917;font-weight:400">{{ rd.typeLabel }}<span style="color:#8a837d">▾</span></div></div>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">이름<input value="{{ rd.name }}" placeholder="비워두면 유형 이름으로 표시" style="height:40px;padding:0 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;color:#1c1917;font-weight:400" readonly></label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">층 정보<input value="{{ rd.floor }}" style="height:40px;padding:0 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;color:#1c1917;font-weight:400" readonly></label>
+            <label style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">설명<textarea rows="3" value="{{ rd.desc }}" style="padding:9px 11px;border:1px solid #d6d1cc;border-radius:8px;font-size:14px;color:#1c1917;font-weight:400;resize:vertical" readonly></textarea></label>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:#5c5652">위치
+            <div style="position:relative;flex:1;min-height:200px;border:1px solid #e8e4e0;border-radius:10px;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 12px);overflow:hidden">
+              <span style="position:absolute;top:8px;left:8px;padding:3px 7px;border-radius:5px;background:rgba(255,255,255,.9);font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:400;color:#8a837d">{{ rd.building }} 주변</span>
+              <span style="position:absolute;left:30%;top:28%;width:40%;height:44%;border:2px solid #a31c12;border-radius:4px;background:rgba(163,28,18,.08)"></span>
+              <sc-if value="{{ rd.loc }}"><span style="position:absolute;left:46%;top:46%;width:20px;height:20px;transform:translate(-50%,-50%);border:3px solid #fff;border-radius:50%;background:{{ rd.typeColor }};box-shadow:0 2px 6px rgba(0,0,0,.25)"></span></sc-if>
+            </div>
+            <span style="font-weight:500;color:{{ rd.locColor }}">{{ rd.locText }}</span>
+          </div>
+        </div>
+      </div>
+      <div style="flex:none;display:flex;align-items:center;gap:8px;padding:14px 28px;border-top:1px solid #e8e4e0;background:#fff">
+        <sc-if value="{{ rd.confirmReject }}"><span style="flex:1;font-size:13px;color:#a32d2d;font-weight:600">거절할까요? 요청 사진은 지워지고 거절됨으로 남아요.</span><button onClick="{{ rd.onRejectNo }}" style="height:38px;padding:0 14px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer">취소</button><button onClick="{{ rd.onRejectYes }}" style="height:38px;padding:0 16px;border:0;border-radius:8px;background:#dc2626;color:#fff;font-size:13px;font-weight:700;cursor:pointer">거절</button></sc-if>
+        <sc-if value="{{ rd.showActions }}">
+          <button onClick="{{ rd.onReject }}" style="height:38px;padding:0 14px;border:1px solid #f0a6a1;border-radius:8px;background:#fff;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer">거절</button>
+          <button onClick="{{ rd.onReview }}" style="height:38px;padding:0 14px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer">{{ rd.reviewLabel }}</button>
+          <span style="flex:1"></span>
+          <span style="font-size:12px;color:#8a837d">{{ rd.publishText }}</span>
+          <button onClick="{{ rd.onApprove }}" style="height:38px;padding:0 18px;border:0;border-radius:8px;background:#8c0000;color:#fff;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#6e0000">승인하고 등록</button>
+        </sc-if>
+        <sc-if value="{{ rd.ended }}"><span style="flex:1;font-size:13px;font-weight:600;color:{{ rd.stFg }}">{{ rd.endNote }}</span><sc-if value="{{ rd.approved }}"><a href="#" style="font-size:13px;font-weight:600">만들어진 시설 보기 →</a></sc-if></sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{ hasFd }}">
+      <div style="flex:1;min-height:0;overflow:auto;padding:24px 28px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#8a837d"><span style="padding:3px 9px;border-radius:6px;background:#f0edea;color:#5c5652;font-size:12px;font-weight:700">{{ fd.typeLabel }}</span><span>{{ fd.at }} 접수</span></div>
+        <p style="margin:0;max-width:640px;font-size:16px;line-height:1.7;white-space:pre-wrap;text-wrap:pretty">{{ fd.content }}</p>
+        <sc-if value="{{ fd.hasPage }}"><div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#5c5652">보낸 화면 <a href="#" style="font-family:ui-monospace,Menlo,monospace;font-size:12px">{{ fd.page }}</a></div></sc-if>
+      </div>
+      <div style="flex:none;display:flex;align-items:center;gap:10px;padding:14px 28px;border-top:1px solid #e8e4e0">
+        <span style="font-size:12.5px;font-weight:600;color:#5c5652">처리 상태</span>
+        <div style="display:inline-flex;padding:3px;border-radius:9px;background:#f0edea">
+          <sc-for list="{{ fd.statusOpts }}" as="o"><button onClick="{{ o.onClick }}" style="height:32px;padding:0 14px;border:0;border-radius:7px;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.sh }};font-size:12.5px;font-weight:700;cursor:pointer">{{ o.label }}</button></sc-for>
+        </div>
+        <span style="flex:1"></span>
+        <sc-if value="{{ fd.hasNext }}"><button onClick="{{ fd.onNext }}" style="height:36px;padding:0 14px;border:1px solid #d6d1cc;border-radius:8px;background:#fff;font-size:13px;font-weight:600;cursor:pointer">다음 항목 →</button></sc-if>
+      </div>
+    </sc-if>
+
+    </section>
+  </sc-if>
+</div>
+</sc-if>
+</sc-if>
+
+<sc-if value="{{ isMobile }}">
+<header style="flex:none;display:flex;align-items:center;gap:8px;height:54px;padding:0 14px;background:#fff;border-bottom:1px solid #e8e4e0">
+  <sc-if value="{{ mBack }}"><button onClick="{{ mBackFn }}" aria-label="뒤로" style="width:40px;height:44px;margin-left:-8px;border:0;background:none;font-size:24px;cursor:pointer">‹</button><span style="flex:1;min-width:0;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ mBackTitle }}</span></sc-if>
+  <sc-if value="{{ mNoBack }}"><img src="public/favicon.png" alt="" style="width:28px;height:28px"><span style="flex:1;font-size:14px;font-weight:700">관리자 콘솔</span></sc-if>
+  <button aria-label="계정 메뉴" style="width:44px;height:44px;margin-right:-8px;border:0;background:none;font-size:20px;color:#5c5652;cursor:pointer">⋮</button>
+</header>
+<div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:auto">
+
+  <sc-if value="{{ mListScreen }}">
+  <div style="position:relative;flex:1;min-height:560px;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 14px);overflow:hidden">
+    <sc-if value="{{ tabS }}">{{ routeSvg }}</sc-if>
+    <sc-for list="{{ pins }}" as="p"><button onClick="{{ p.onClick }}" style="position:absolute;left:{{ p.left }};top:{{ p.top }};z-index:2;transform:translate(-50%,-50%);width:32px;height:32px;display:grid;place-items:center;padding:0;border:2px solid {{ p.bd }};border-radius:50%;background:{{ p.bg }};color:{{ p.fg }};box-shadow:0 1px 4px rgba(0,0,0,.25);font-size:12px;font-weight:700">{{ p.text }}</button></sc-for>
+    <div style="position:absolute;top:12px;left:12px;right:12px;z-index:5;display:flex;flex-direction:column;gap:8px">
+      <input type="search" value="{{ q }}" onChange="{{ onQ }}" placeholder="{{ page.searchPh }}" style="width:100%;height:46px;padding:0 14px;border:0;border-radius:12px;background:#fff;box-shadow:0 4px 16px rgba(28,25,23,.14);font-size:16px">
+      <div style="display:flex;gap:6px;overflow-x:auto;margin:0 -12px;padding:0 12px 4px"><sc-for list="{{ chips }}" as="c"><button onClick="{{ c.onClick }}" style="flex:none;display:flex;align-items:center;gap:5px;height:34px;padding:0 12px;border:1px solid {{ c.bd }};border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};box-shadow:0 1px 3px rgba(28,25,23,.1);font-size:12.5px;font-weight:600">{{ c.label }}<span style="opacity:.75">{{ c.count }}</span></button></sc-for></div>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;height:{{ sheetH }};display:flex;flex-direction:column;border-radius:18px 18px 0 0;background:#fff;box-shadow:0 -6px 24px rgba(28,25,23,.14);transition:height .25s">
+      <button onClick="{{ onSheetToggle }}" aria-label="목록 펼치기/접기" style="flex:none;display:grid;place-items:center;height:22px;border:0;background:none"><span style="width:40px;height:4px;border-radius:2px;background:#d6d1cc"></span></button>
+      <div style="flex:none;display:flex;align-items:center;justify-content:space-between;padding:2px 16px 10px"><div><div style="font-size:18px;font-weight:700">{{ page.title }}</div><div style="margin-top:2px;font-size:12px;color:#8a837d">{{ listCount }}</div></div><button onClick="{{ page.onAdd }}" style="height:40px;padding:0 13px;border:0;border-radius:8px;background:#8c0000;color:#fff;font-size:13px;font-weight:600">＋ 추가</button></div>
+      <div style="flex:1;min-height:0;overflow:auto;border-top:1px solid #f0edea">
+        <sc-if value="{{ isFL }}"><sc-for list="{{ rows }}" as="r"><button onClick="{{ r.onClick }}" style="display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 16px;border:0;border-bottom:1px solid #f0edea;background:#fff;text-align:left;color:#1c1917">
+          <sc-if value="{{ r.isEmoji }}"><span style="flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:#f7f5f3;font-size:19px">{{ r.emoji }}</span></sc-if>
+          <sc-if value="{{ r.isIcon }}"><span style="flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:{{ r.iconBg }};color:#fff;font-size:13px;font-weight:700">{{ r.iconText }}</span></sc-if>
+          <div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div><div style="display:flex;gap:5px;margin-top:4px;font-size:12px;color:#8a837d">{{ r.meta }}</div></div>
+          <sc-for list="{{ r.badges }}" as="b"><span style="flex:none;padding:2px 7px;border-radius:999px;background:{{ b.bg }};color:{{ b.fg }};font-size:11px;font-weight:700">{{ b.label }}</span></sc-for>
+        </button></sc-for></sc-if>
+        <sc-if value="{{ tabS }}"><sc-for list="{{ srows }}" as="r"><button onClick="{{ r.onClick }}" style="display:flex;flex-direction:column;gap:8px;width:100%;padding:12px 16px;border:0;border-bottom:1px solid #f0edea;background:#fff;text-align:left;color:#1c1917">
+          <div style="display:flex;align-items:center;gap:8px;width:100%"><span style="flex:1;font-size:14.5px;font-weight:600">{{ r.name }}</span><span style="padding:2px 7px;border-radius:999px;background:{{ r.badge.bg }};color:{{ r.badge.fg }};font-size:11px;font-weight:700">{{ r.badge.label }}</span></div>
+          <div style="display:flex;gap:2px;width:100%;height:6px"><sc-for list="{{ r.profile }}" as="p"><span style="flex:{{ p.flex }};border-radius:3px;background:{{ p.color }}"></span></sc-for></div>
+        </button></sc-for></sc-if>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ mDetailF }}">
+    <div style="position:relative;flex:none;height:190px;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 14px)"><span style="position:absolute;left:50%;top:50%;width:26px;height:26px;transform:translate(-50%,-50%);border:3px solid #fff;border-radius:50%;background:{{ sf.iconBg }};box-shadow:0 0 0 4px rgba(140,0,0,.25)"></span><span style="position:absolute;top:10px;left:10px;padding:4px 8px;border-radius:6px;background:rgba(255,255,255,.9);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8a837d">지도를 눌러 위치 변경</span></div>
+    <div style="display:flex;flex-direction:column;gap:16px;padding:16px 14px 100px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#8a837d"><span style="width:26px;height:26px;display:grid;place-items:center;border-radius:7px;background:{{ sf.iconBg }};color:#fff;font-size:11px;font-weight:700">{{ sf.iconText }}</span>{{ sf.typeLabel }} · {{ sf.updated }} 수정</div>
+      <div style="display:flex;padding:3px;border-radius:10px;background:#ebe7e2">
+        <button onClick="{{ sf.onInstalled }}" style="flex:1;height:40px;border:0;border-radius:8px;background:{{ sf.inBg }};color:{{ sf.inFg }};font-size:14px;font-weight:700">설치</button>
+        <button onClick="{{ sf.onMissing }}" style="flex:1;height:40px;border:0;border-radius:8px;background:{{ sf.miBg }};color:{{ sf.miFg }};font-size:14px;font-weight:700">미설치</button>
+      </div>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#5c5652">시설 이름<input value="{{ sf.name }}" onChange="{{ sf.onName }}" style="height:46px;padding:0 12px;border:1px solid #d6d1cc;border-radius:8px;font-size:16px;color:#1c1917;font-weight:400;background:#fff"></label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#5c5652">설명<textarea value="{{ sf.desc }}" onChange="{{ sf.onDesc }}" rows="2" style="padding:10px 12px;border:1px solid #d6d1cc;border-radius:8px;font-size:16px;color:#1c1917;font-weight:400;background:#fff"></textarea></label>
+      <sc-if value="{{ sf.trPending }}"><div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #f5d48a;border-radius:10px;background:#fffbeb;font-size:13px;color:#92400e;font-weight:600"><span style="flex:1">영문·중문 번역 대기</span><button onClick="{{ sf.onTranslate }}" style="height:36px;padding:0 12px;border:0;border-radius:8px;background:#92400e;color:#fff;font-size:13px;font-weight:700">재번역</button></div></sc-if>
+      <div style="display:flex;gap:8px"><button style="flex:1;height:48px;border:1px solid #d6d1cc;border-radius:10px;background:#fff;font-size:13.5px;font-weight:600">사진 {{ sf.photoCount }}장 관리</button><button style="flex:1;height:48px;border:1px solid #d6d1cc;border-radius:10px;background:#fff;font-size:13.5px;font-weight:600">{{ sf.videoLabel }}</button></div>
+      <button onClick="{{ onDeleteYes }}" style="height:46px;border:0;background:none;color:#dc2626;font-size:14px;font-weight:600">이 시설 삭제</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ mDetailL }}">
+    <div style="position:relative;flex:none;height:190px;display:grid;place-items:center;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 9px);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8a837d">{{ sl.photoLabel }}</div>
+    <div style="display:flex;flex-direction:column;gap:16px;padding:16px 14px 100px">
+      <div style="display:flex;align-items:center;gap:10px"><button style="width:48px;height:48px;border:1px solid #d6d1cc;border-radius:10px;background:#fff;font-size:24px">{{ sl.icon }}</button><span style="font-size:12.5px;color:#8a837d">{{ sl.campus }} · {{ sl.updated }} 수정</span></div>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#5c5652">이름<input value="{{ sl.name }}" onChange="{{ sl.onName }}" style="height:46px;padding:0 12px;border:1px solid #d6d1cc;border-radius:8px;font-size:16px;color:#1c1917;font-weight:400;background:#fff"></label>
+      <label style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:#5c5652">설명<textarea value="{{ sl.desc }}" onChange="{{ sl.onDesc }}" rows="3" style="padding:10px 12px;border:1px solid #d6d1cc;border-radius:8px;font-size:16px;color:#1c1917;font-weight:400;background:#fff"></textarea></label>
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:8px;padding:12px;border:1px solid #e8e4e0;border-radius:10px;background:#fff;font-size:13px"><span style="color:#8a837d;font-weight:600">English</span><span style="color:{{ sl.enColor }}">{{ sl.nameEn }}</span><span style="color:#8a837d;font-weight:600">中文</span><span style="color:{{ sl.zhColor }}">{{ sl.nameZh }}</span></div>
+      <button onClick="{{ sl.onTranslate }}" style="height:46px;border:1px solid #d6d1cc;border-radius:10px;background:#fff;color:#a31c12;font-size:14px;font-weight:600">자동번역 채우기</button>
+      <button onClick="{{ onDeleteYes }}" style="height:46px;border:0;background:none;color:#dc2626;font-size:14px;font-weight:600">이 명소 삭제</button>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ mDetailS }}">
+    <div style="position:relative;flex:none;height:230px;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 14px);overflow:hidden">{{ edSvg }}<sc-for list="{{ edLabels }}" as="l"><span style="position:absolute;left:{{ l.left }};top:{{ l.top }};transform:translate(-50%,-50%);width:22px;height:22px;display:grid;place-items:center;border:2px solid #1c1917;border-radius:50%;background:#fff;font-size:11px;font-weight:700">{{ l.n }}</span></sc-for></div>
+    <div style="display:flex;flex-direction:column;gap:10px;padding:14px 14px 100px">
+      <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:13px;color:#8a837d">{{ ed.count }}개 구간 · 총 {{ ed.total }}m</span>
+        <div style="display:inline-flex;padding:3px;border-radius:9px;background:#ebe7e2"><button onClick="{{ ed.onDeg }}" style="height:34px;padding:0 12px;border:0;border-radius:7px;background:{{ ed.degBg }};color:{{ ed.degFg }};font-size:13px;font-weight:700">°</button><button onClick="{{ ed.onPct }}" style="height:34px;padding:0 12px;border:0;border-radius:7px;background:{{ ed.pctBg }};color:{{ ed.pctFg }};font-size:13px;font-weight:700">%</button></div>
+      </div>
+      <sc-for list="{{ ed.segs }}" as="g">
+        <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid #e8e4e0;border-radius:12px;background:#fff">
+          <div style="display:flex;align-items:center;gap:10px"><span style="width:26px;height:26px;display:grid;place-items:center;border-radius:50%;background:{{ g.color }};color:#fff;font-size:12px;font-weight:700">{{ g.n }}</span><span style="flex:1;font-size:14px;font-weight:600">구간 {{ g.n }} <span style="font-weight:400;color:#8a837d">· {{ g.dist }}m</span></span><input type="number" step="any" value="{{ g.raw }}" onChange="{{ g.onChange }}" style="width:80px;height:44px;padding:0 8px;border:1px solid #d6d1cc;border-radius:8px;font-size:16px;font-weight:600;text-align:right"><span style="font-size:14px;color:#5c5652">{{ g.sym }}</span></div>
+          <sc-if value="{{ g.hasWarn }}"><div style="font-size:12px;line-height:1.4;color:{{ g.warnColor }}">{{ g.warn }}</div></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ mInboxList }}">
+    <div style="flex:none;display:flex;flex-direction:column;gap:12px;padding:16px 14px 10px">
+      <h1 style="margin:0;font-size:20px;font-weight:700">제보함</h1>
+      <div style="display:flex;padding:3px;border-radius:10px;background:#ebe7e2"><sc-for list="{{ kindTabs }}" as="k"><button onClick="{{ k.onClick }}" style="flex:1;height:38px;border:0;border-radius:8px;background:{{ k.segBg }};font-size:13.5px;font-weight:700;color:#1c1917">{{ k.label }} {{ k.count }}</button></sc-for></div>
+      <div style="display:flex;gap:6px;overflow-x:auto;margin:0 -14px;padding:0 14px"><sc-for list="{{ filters }}" as="f"><button onClick="{{ f.onClick }}" style="flex:none;height:34px;padding:0 12px;border:1px solid {{ f.bd }};border-radius:999px;background:{{ f.chipBg }};color:{{ f.chipFg }};font-size:12.5px;font-weight:600">{{ f.label }} {{ f.count }}</button></sc-for></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;padding:0 14px 16px">
+      <sc-for list="{{ ilist }}" as="i">
+        <button onClick="{{ i.onClick }}" style="position:relative;display:flex;gap:12px;padding:13px 14px;border:1px solid #e8e4e0;border-radius:12px;background:#fff;text-align:left;color:#1c1917">
+          <sc-if value="{{ i.isReq }}"><span style="flex:none;width:48px;height:48px;display:grid;place-items:center;border-radius:8px;background:{{ i.thumbBg }};font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#8a837d">{{ i.thumbLabel }}</span></sc-if>
+          <div style="flex:1;min-width:0"><div style="display:flex;gap:8px"><span style="flex:1;font-size:14px;font-weight:{{ i.weight }}">{{ i.title }}</span><span style="font-size:11.5px;color:#8a837d">{{ i.at }}</span></div><div style="margin-top:3px;font-size:12.5px;color:#5c5652;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ i.sub }}</div><div style="margin-top:6px"><span style="padding:2px 7px;border-radius:999px;background:{{ i.stBg }};color:{{ i.stFg }};font-size:11px;font-weight:700">{{ i.stLabel }}</span></div></div>
+        </button>
+      </sc-for>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ mInboxRd }}">
+    <div style="display:flex;flex-direction:column;gap:16px;padding:16px 14px 110px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#8a837d"><span style="padding:2px 8px;border-radius:999px;background:{{ rd.stBg }};color:{{ rd.stFg }};font-size:11.5px;font-weight:700">{{ rd.stLabel }}</span>{{ rd.building }} · {{ rd.at }}</div>
+      <sc-if value="{{ rd.hasPhotos }}"><div style="display:flex;gap:8px;overflow-x:auto;margin:0 -14px;padding:0 14px"><sc-for list="{{ rd.photos }}" as="p"><button onClick="{{ p.onToggle }}" style="position:relative;flex:none;width:120px;height:120px;padding:0;border:2px solid {{ p.bd }};border-radius:10px;background:repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 9px);font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8a837d;opacity:{{ p.op }}">사진 {{ p.n }}<span style="position:absolute;top:7px;right:7px;width:24px;height:24px;display:grid;place-items:center;border-radius:6px;background:{{ p.chkBg }};border:1.5px solid {{ p.chkBd }};color:#fff;font-size:13px">{{ p.mark }}</span></button></sc-for></div></sc-if>
+      <div style="display:grid;grid-template-columns:72px 1fr;gap:10px;padding:14px;border:1px solid #e8e4e0;border-radius:12px;background:#fff;font-size:14px"><span style="color:#8a837d">유형</span><span>{{ rd.typeLabel }}</span><span style="color:#8a837d">층</span><span>{{ rd.floor }}</span><span style="color:#8a837d">설명</span><span style="line-height:1.5">{{ rd.desc }}</span><span style="color:#8a837d">위치</span><span style="color:{{ rd.locColor }}">{{ rd.locText }}</span></div>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:58px;display:flex;gap:8px;padding:12px 14px;border-top:1px solid #e8e4e0;background:#fff">
+      <sc-if value="{{ rd.showActions }}"><button onClick="{{ rd.onRejectYes }}" style="flex:1;height:50px;border:1px solid #f0a6a1;border-radius:10px;background:#fff;color:#dc2626;font-size:14px;font-weight:700">거절</button><button onClick="{{ rd.onApprove }}" style="flex:2;height:50px;border:0;border-radius:10px;background:#8c0000;color:#fff;font-size:14px;font-weight:700">승인하고 등록</button></sc-if>
+      <sc-if value="{{ rd.ended }}"><span style="flex:1;display:flex;align-items:center;justify-content:center;height:50px;font-size:14px;font-weight:600;color:{{ rd.stFg }}">{{ rd.endNote }}</span></sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ mInboxFd }}">
+    <div style="display:flex;flex-direction:column;gap:16px;padding:18px 14px 110px">
+      <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:#8a837d"><span style="padding:3px 9px;border-radius:6px;background:#ebe7e2;color:#5c5652;font-size:12px;font-weight:700">{{ fd.typeLabel }}</span>{{ fd.at }}</div>
+      <p style="margin:0;font-size:16px;line-height:1.7">{{ fd.content }}</p>
+      <sc-if value="{{ fd.hasPage }}"><a href="#" style="font-family:ui-monospace,Menlo,monospace;font-size:12px">{{ fd.page }}</a></sc-if>
+    </div>
+    <div style="position:absolute;left:0;right:0;bottom:58px;display:flex;padding:12px 14px;border-top:1px solid #e8e4e0;background:#fff"><div style="flex:1;display:flex;padding:3px;border-radius:10px;background:#ebe7e2"><sc-for list="{{ fd.statusOpts }}" as="o"><button onClick="{{ o.onClick }}" style="flex:1;height:44px;border:0;border-radius:8px;background:{{ o.bg }};color:{{ o.fg }};font-size:13.5px;font-weight:700">{{ o.label }}</button></sc-for></div></div>
+  </sc-if>
+</div>
+<sc-if value="{{ mSaveBar }}"><div style="position:absolute;left:0;right:0;bottom:58px;display:flex;gap:8px;padding:12px 14px;border-top:1px solid #e8e4e0;background:#fff"><button onClick="{{ mBackFn }}" style="flex:1;height:50px;border:1px solid #d6d1cc;border-radius:10px;background:#fff;font-size:14px;font-weight:700">취소</button><button onClick="{{ mSaveFn }}" style="flex:2;height:50px;border:0;border-radius:10px;background:#8c0000;color:#fff;font-size:14px;font-weight:700">저장</button></div></sc-if>
+<nav style="flex:none;display:flex;height:58px;border-top:1px solid #e8e4e0;background:#fff">
+  <sc-for list="{{ nav }}" as="n"><button onClick="{{ n.onClick }}" style="position:relative;flex:1;display:flex;align-items:center;justify-content:center;gap:3px;border:0;background:none;font-size:12px;color:{{ n.color }};font-weight:{{ n.weight }};box-shadow:{{ n.mShadow }}">{{ n.label }}<sc-if value="{{ n.hasBadge }}"><span style="min-width:16px;padding:0 4px;border-radius:8px;background:#8c0000;color:#fff;font-size:10px;font-weight:700;line-height:16px">{{ n.badge }}</span></sc-if></button></sc-for>
+</nav>
+</sc-if>
+
+<sc-if value="{{ hasToast }}"><div style="position:absolute;left:50%;bottom:{{ toastBottom }};z-index:50;transform:translateX(-50%);padding:11px 18px;border-radius:10px;background:#1c1917;color:#fff;font-size:13px;font-weight:600;box-shadow:0 12px 32px rgba(28,25,23,.16);white-space:nowrap">{{ toast }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;device&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;desktop&quot;,&quot;mobile&quot;],&quot;default&quot;:&quot;desktop&quot;,&quot;tsType&quot;:&quot;'desktop'|'mobile'&quot;},&quot;initialTab&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;facilities&quot;,&quot;landmarks&quot;,&quot;slopes&quot;,&quot;inbox&quot;],&quot;default&quot;:&quot;facilities&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;initialSel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;initialInboxSel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;initialSlopeEdit&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = this.seed();
+
+  seed() {
+    const p = this.props || {};
+    const mobile = p.device === 'mobile';
+    const ib = p.initialInboxSel === 'none' ? null : (p.initialInboxSel || (mobile ? null : 'r1'));
+    return {
+      tab: p.initialTab || 'facilities', sel: p.initialSel || null, chip: 'all', q: '', mView: 'list',
+      inboxKind: (ib && ib[0] === 'b') ? 'feedback' : 'requests', inboxFilter: 'open', inboxSel: ib,
+      boardKind: 'all', confirmReject: false, confirmDel: false,
+      slopeEdit: null, unit: 'deg', edRaw: [], edName: '', edDirty: false, drafts: {}, toast: null,
+      facilities: [
+        { id: 'f1', code: 'parking', name: '중앙광장 지하주차장 장애인 주차구역', desc: 'B1 엘리베이터 홀 옆 3면', installed: true, video: true, tr: 'done', photos: 2, lat: '37.5891204', lng: '127.0331850', campus: '인문사회계', updated: '10월 12일 14:20', x: 38, y: 48 },
+        { id: 'f2', code: 'ramp', name: '정경관 앞 야외 경사로', desc: '정경관 정문 계단 옆, 폭 1.5m', installed: true, video: false, tr: 'pending', photos: 1, lat: '37.5869733', lng: '127.0294016', campus: '인문사회계', updated: '10월 11일 09:05', x: 24, y: 60 },
+        { id: 'f3', code: 'ramp', name: '하나스퀘어 진입 경사로', desc: '공사 중. 11월 설치 예정', installed: false, video: false, tr: 'done', photos: 0, lat: '37.5903317', lng: '127.0341129', campus: '인문사회계', updated: '10월 10일 17:42', x: 46, y: 36 },
+        { id: 'f4', code: 'parking', name: '이공계 주차장 장애인 주차구역', desc: '과학도서관 뒤편 2면', installed: true, video: false, tr: 'done', photos: 3, lat: '37.5847760', lng: '127.0270913', campus: '자연계', updated: '10월 8일 11:30', x: 72, y: 28 },
+        { id: 'f5', code: 'restroom', name: '녹지운동장 공중화장실', desc: '운동장 북측 관리동 1층', installed: true, video: true, tr: 'pending', photos: 2, lat: '37.5855012', lng: '127.0233581', campus: '녹지캠퍼스', updated: '10월 6일 16:12', x: 84, y: 64 },
+        { id: 'f6', code: 'braille', name: '안암역 연결 점자블록', desc: '안암역 3번 출구에서 정문까지', installed: true, video: false, tr: 'done', photos: 0, lat: '37.5862418', lng: '127.0290377', campus: '인문사회계', updated: '9월 30일 10:48', x: 14, y: 80 },
+        { id: 'f7', code: 'elevator', name: '애기능 생활관 외부 엘리베이터', desc: '언덕 하단 진입로와 연결', installed: false, video: false, tr: 'done', photos: 1, lat: '37.5918201', lng: '127.0318442', campus: '인문사회계', updated: '9월 27일 13:03', x: 58, y: 16 },
+        { id: 'f8', code: 'ramp', name: '자연계 셔틀 정류장 경사로', desc: '정류장 승하차 구역', installed: true, video: true, tr: 'done', photos: 2, lat: '37.5841135', lng: '127.0261770', campus: '자연계', updated: '9월 22일 08:55', x: 66, y: 48 }
+      ],
+      landmarks: [
+        { id: 'l1', icon: '🐯', name: '호랑이상', desc: '중앙광장 북쪽. 단체사진을 많이 찍는 곳', nameEn: 'Tiger Statue', nameZh: '老虎雕像', photo: true, lat: '37.5895311', lng: '127.0329410', campus: '인문사회계', updated: '10월 13일 10:12', x: 40, y: 42 },
+        { id: 'l2', icon: '🐿️', name: '다람쥐길', desc: '본관 뒤편 산책로', nameEn: 'Squirrel Path', nameZh: '松鼠小路', photo: true, lat: '37.5904870', lng: '127.0318223', campus: '인문사회계', updated: '10월 9일 15:40', x: 30, y: 30 },
+        { id: 'l3', icon: '🌳', name: '중앙광장', desc: '잔디 광장. 지하에 열람실과 주차장', nameEn: 'Central Plaza', nameZh: '中央广场', photo: false, lat: '37.5889120', lng: '127.0332512', campus: '인문사회계', updated: '10월 2일 09:18', x: 38, y: 52 },
+        { id: 'l4', icon: '🍂', name: '인촌로 은행나무길', desc: '가을 단풍 명소', nameEn: 'Ginkgo Road', nameZh: '银杏路', photo: false, lat: '37.5873300', lng: '127.0301170', campus: '인문사회계', updated: '9월 28일 11:05', x: 18, y: 66 },
+        { id: 'l5', icon: '🏺', name: '고려대학교 박물관', desc: '백주년기념관 상설 전시', nameEn: 'Korea University Museum', nameZh: '高丽大学博物馆', photo: true, lat: '37.5880942', lng: '127.0343128', campus: '인문사회계', updated: '9월 20일 17:30', x: 52, y: 62 },
+        { id: 'l6', icon: '⛲', name: '하나스퀘어 분수', desc: '', nameEn: '', nameZh: '', photo: false, lat: '37.5901212', lng: '127.0345522', campus: '인문사회계', updated: '9월 14일 13:22', x: 47, y: 34 }
+      ],
+      slopes: [
+        { id: 's1', name: '정문 → 본관 오르막', updated: '10월 10일 15:30', pts: [[18, 82], [26, 70], [33, 58], [38, 47], [42, 36]], segs: [2.1, 3.8, 5.6, 4.2], dists: [42, 35, 28, 20] },
+        { id: 's2', name: '중앙광장 → 하나스퀘어', updated: '10월 9일 11:02', pts: [[38, 54], [42, 47], [45, 40], [49, 33]], segs: [1.2, 2.0, 1.5], dists: [30, 25, 18] },
+        { id: 's3', name: '이공계 셔틀 정류장 → 공학관', updated: '10월 3일 09:41', pts: [[66, 52], [70, 43], [74, 35], [78, 28], [85, 23]], segs: [3.1, 6.4, 7.8, 3.0], dists: [50, 40, 22, 30] },
+        { id: 's4', name: '애기능 생활관 오르막', updated: '9월 29일 18:20', pts: [[54, 31], [57, 23], [60, 16], [64, 9]], segs: [5.2, 8.9, 17.5], dists: [35, 30, 25] },
+        { id: 's5', name: '녹지운동장 둘레길', updated: '9월 18일 14:07', pts: [[76, 68], [84, 63], [91, 71]], segs: [0.8, 1.1], dists: [60, 55] }
+      ],
+      requests: [
+        { id: 'r1', code: 'elevator', building: '법학관 신관', floor: '지하 1층', name: '법학관 신관 B1 엘리베이터', desc: '주차장 쪽 출입문 바로 안쪽에 있어요. 휠체어 2대 탑승 가능.', photos: 3, loc: true, status: 'new', at: '10분 전' },
+        { id: 'r2', code: 'restroom', building: '하나스퀘어', floor: '1층', name: '', desc: '동편 복도 끝. 자동문이에요.', photos: 2, loc: true, status: 'new', at: '2시간 전' },
+        { id: 'r3', code: 'ramp', building: '국제관', floor: '정문', name: '국제관 정문 경사로', desc: '정문 왼쪽, 난간 있음', photos: 1, loc: false, status: 'reviewing', at: '어제' },
+        { id: 'r4', code: 'braille', building: '중앙도서관', floor: '1층 출입구', name: '', desc: '회전문 앞까지 이어져요', photos: 0, loc: false, status: 'new', at: '어제' },
+        { id: 'r5', code: 'parking', building: '우당교양관', floor: '', name: '우당교양관 장애인 주차구역', desc: '건물 뒤 1면', photos: 1, loc: true, status: 'approved', at: '10월 9일' },
+        { id: 'r6', code: 'restroom', building: '정경관', floor: '2층', name: '', desc: '이미 등록된 화장실과 같은 곳', photos: 2, loc: false, status: 'rejected', at: '10월 7일' }
+      ],
+      feedback: [
+        { id: 'b1', type: '오류 제보', content: '자연계 셔틀 정류장 경사로가 지도에 두 번 표시돼요. 하나는 정류장 앞, 하나는 길 건너편이에요.', page: '/?facility=f8', status: 'new', at: '30분 전' },
+        { id: 'b2', type: '시설 정보 수정', content: '법학관 신관 엘리베이터가 10월 둘째 주부터 점검 중이라 운행하지 않습니다. 1층 안내문에 10월 말까지라고 적혀 있어요.', page: '/?building=112', status: 'new', at: '3시간 전' },
+        { id: 'b3', type: '기능 제안', content: '경사도 경로에 계단 없는 우회로를 같이 보여주면 좋겠어요.', page: null, status: 'reviewing', at: '어제' },
+        { id: 'b4', type: '기타', content: '휠체어로 다니는데 경사로 위치를 미리 알 수 있어서 훨씬 편해졌어요. 감사합니다.', page: null, status: 'resolved', at: '10월 8일' }
+      ],
+      publish: { r1: [true, true, true], r2: [true, false], r3: [true], r5: [true], r6: [true, true] }
+    };
+  }
+
+  componentDidMount() { if (this.props.initialSlopeEdit) this.openEditor(this.props.initialSlopeEdit); }
+
+  FT = {
+    elevator: { label: '엘리베이터', short: '엘', color: '#2D5FB0' },
+    restroom: { label: '장애인 화장실', short: '화', color: '#2F7A4F' },
+    ramp: { label: '경사로', short: '경', color: '#B25617' },
+    parking: { label: '장애인 주차구역', short: '주', color: '#6D4AB0' },
+    braille: { label: '점자블록', short: '점', color: '#8A6A00' }
+  };
+  ST = {
+    new: { label: '신규', bg: '#fef3c7', fg: '#92400e' },
+    reviewing: { label: '확인 중', bg: '#e9e5f5', fg: '#4f3f86' },
+    approved: { label: '승인됨', bg: '#eaf3ed', fg: '#2f7a4f' },
+    rejected: { label: '거절됨', bg: '#fcebeb', fg: '#a32d2d' },
+    resolved: { label: '처리 완료', bg: '#eaf3ed', fg: '#2f7a4f' }
+  };
+  GC = { ok: '#3E7A46', over: '#C27A12', extreme: '#A31C12' };
+  grade(d) { return d >= 16.7 ? 'extreme' : d > 4.76 ? 'over' : 'ok'; }
+  toPct(d) { return Math.tan(d * Math.PI / 180) * 100; }
+  toDeg(p) { return Math.atan(p / 100) * 180 / Math.PI; }
+
+  flash(msg) {
+    clearTimeout(this._t);
+    this.setState({ toast: msg });
+    this._t = setTimeout(() => this.setState({ toast: null }), 2200);
+  }
+  listKey() { return { facilities: 'facilities', landmarks: 'landmarks', slopes: 'slopes' }[this.state.tab]; }
+  patch(key, id, p) { this.setState(s => ({ [key]: s[key].map(x => x.id === id ? { ...x, ...p } : x) })); }
+  select(id) {
+    const mobile = this.props.device === 'mobile';
+    this.setState(s => ({ sel: (!mobile && s.sel === id) ? null : id, confirmDel: false }));
+    if (mobile && this.state.tab === 'slopes') this.openEditor(id, true);
+  }
+  switchTab(tab) {
+    if (tab === 'buildings') { this.flash('건물 탭은 이번 시안 범위 밖이에요'); return; }
+    const mobile = this.props.device === 'mobile';
+    this.setState(s => ({ tab, sel: null, chip: 'all', q: '', slopeEdit: null, mView: 'list', confirmReject: false, confirmDel: false,
+      inboxSel: null }));
+  }
+  openEditor(id, keepSel) {
+    const r = this.state.slopes.find(x => x.id === id);
+    if (!r) return;
+    const u = this.state.unit;
+    this.setState({ slopeEdit: keepSel ? null : id, sel: keepSel ? id : this.state.sel, edName: r.name, edDirty: false,
+      edRaw: r.segs.map(d => (u === 'deg' ? d : this.toPct(d)).toFixed(1)) });
+  }
+  edDegs() {
+    const u = this.state.unit;
+    return this.state.edRaw.map(v => { const n = parseFloat(v); return isNaN(n) ? null : (u === 'deg' ? n : this.toDeg(n)); });
+  }
+  setUnit(u) {
+    if (u === this.state.unit) return;
+    const degs = this.edDegs();
+    this.setState({ unit: u, edRaw: degs.map(d => d == null ? '' : (u === 'deg' ? d : this.toPct(d)).toFixed(1)) });
+  }
+  saveEditor() {
+    const id = this.state.slopeEdit || this.state.sel;
+    const degs = this.edDegs();
+    this.setState(s => ({ slopes: s.slopes.map(r => r.id === id ? { ...r, name: s.edName, segs: r.segs.map((d, i) => degs[i] ?? d), updated: '방금' } : r), slopeEdit: null, edDirty: false }));
+    this.flash('경로를 저장했어요');
+  }
+  saveSel() {
+    const key = this.listKey(), id = this.state.sel, d = this.state.drafts[id];
+    if (d) this.patch(key, id, { ...d, updated: '방금' });
+    this.setState(s => { const drafts = { ...s.drafts }; delete drafts[id]; return { drafts, sel: this.props.device === 'mobile' ? null : s.sel }; });
+    this.flash('저장했어요');
+  }
+  deleteSel() {
+    const key = this.listKey(), id = this.state.sel;
+    this.setState(s => ({ [key]: s[key].filter(x => x.id !== id), sel: null, confirmDel: false }));
+    this.flash('삭제했어요');
+  }
+  setDraft(id, field, v) { this.setState(s => ({ drafts: { ...s.drafts, [id]: { ...(s.drafts[id] || {}), [field]: v } } })); }
+
+  inboxItems(kind, filter) {
+    const s = this.state;
+    const src = kind === 'feedback' ? s.feedback : s.requests;
+    const done = kind === 'feedback' ? ['resolved'] : ['approved', 'rejected'];
+    const ok = st => filter === 'all' ? true : filter === 'open' ? (st === 'new' || st === 'reviewing') : filter === 'done' ? done.includes(st) : st === filter;
+    return src.filter(x => ok(x.status));
+  }
+  setReq(id, p) { this.patch('requests', id, p); window.dispatchEvent && 0; }
+
+  renderVals() {
+    const s = this.state, mobile = this.props.device === 'mobile', h = React.createElement;
+    const FT = this.FT, ST = this.ST, GC = this.GC;
+    const q = s.q.trim().toLowerCase();
+    const match = (...xs) => !q || xs.some(x => (x || '').toLowerCase().includes(q));
+    const openOf = arr => arr.filter(x => x.status === 'new' || x.status === 'reviewing').length;
+    const inboxCount = openOf(s.requests) + openOf(s.feedback);
+    const tab = s.tab, tabF = tab === 'facilities', tabL = tab === 'landmarks', tabS = tab === 'slopes', tabI = tab === 'inbox';
+    const editing = tabS && !!s.slopeEdit && !mobile;
+
+    const nav = [['buildings', '건물'], ['facilities', '독립 시설'], ['landmarks', '명소'], ['slopes', '경사도'], ['inbox', '제보함']].map(([k, label]) => {
+      const on = k === tab;
+      return { label, onClick: () => this.switchTab(k), color: on ? '#a31c12' : '#5c5652', weight: on ? 700 : 500,
+        shadow: on ? 'inset 0 -2px 0 #8c0000' : 'none', mShadow: on ? 'inset 0 2px 0 #8c0000' : 'none', hasBadge: k === 'inbox' && inboxCount > 0, badge: inboxCount };
+    });
+
+    const chipSt = on => on ? { bg: '#8c0000', fg: '#fff', bd: '#8c0000' } : { bg: '#fff', fg: '#5c5652', bd: '#d6d1cc' };
+    const mkChips = defs => defs.map(([k, label, count]) => ({ label, count, onClick: () => this.setState({ chip: k, sel: null }), ...chipSt(s.chip === k) }));
+    const B = { missing: { label: '미설치', bg: '#fcebeb', fg: '#a32d2d' }, tr: { label: '번역 필요', bg: '#fef3c7', fg: '#92400e' }, nophoto: { label: '사진 없음', bg: '#f0edea', fg: '#5c5652' } };
+
+    let page = {}, chips = [], rows = [], pins = [], legend = [], srows = [], filtered = [];
+    const d = s.drafts[s.sel] || {};
+    if (tabF) {
+      const all = s.facilities;
+      const cf = { missing: f => !f.installed, tr: f => f.tr === 'pending', novideo: f => !f.video };
+      filtered = all.filter(f => (s.chip === 'all' || cf[s.chip](f)) && match(f.name, f.desc));
+      page = { title: '독립 시설', caption: `건물에 속하지 않는 야외 경사로, 주차구역 등 · 총 ${all.length}개`, addLabel: '시설 추가', searchPh: '시설명 또는 설명 검색', onAdd: () => this.flash('시설 추가 화면이 열려요') };
+      chips = mkChips([['all', '전체', all.length], ['missing', '미설치', all.filter(cf.missing).length], ['tr', '번역 필요', all.filter(cf.tr).length], ['novideo', '동영상 없음', all.filter(cf.novideo).length]]);
+      rows = filtered.map(f => { const t = FT[f.code], on = s.sel === f.id, b = []; if (!f.installed) b.push(B.missing); if (f.tr === 'pending') b.push(B.tr);
+        return { id: f.id, name: f.name, sub: f.desc, meta: `${t.label} · ${f.updated}`, isIcon: true, isEmoji: false, iconBg: t.color, iconText: t.short, badges: b, rowBg: on ? '#faf0ef' : 'transparent', nameColor: on ? '#8c0000' : '#1c1917', onClick: () => this.select(f.id) }; });
+      pins = filtered.map(f => { const t = FT[f.code], on = s.sel === f.id; return { left: f.x + '%', top: f.y + '%', size: on ? '30px' : '24px', bg: t.color, fg: '#fff', bd: '#fff', ring: on ? '0 0 0 4px rgba(140,0,0,.3), 0 2px 6px rgba(0,0,0,.2)' : '0 1px 4px rgba(0,0,0,.25)', fs: on ? '12px' : '10px', text: t.short, z: on ? 3 : 2, title: f.name, onClick: () => this.select(f.id), label: f.name, on, op: f.installed ? 1 : .55 }; });
+      legend = Object.values(FT).map(t => ({ label: t.label, color: t.color }));
+    } else if (tabL) {
+      const all = s.landmarks;
+      const cf = { nophoto: l => !l.photo, notr: l => !l.nameEn };
+      filtered = all.filter(l => (s.chip === 'all' || cf[s.chip](l)) && match(l.name, l.desc));
+      page = { title: '명소', caption: `지도에 표시하는 캠퍼스 명소 · 총 ${all.length}개`, addLabel: '명소 추가', searchPh: '명소명 또는 설명 검색', onAdd: () => this.flash('명소 추가 화면이 열려요') };
+      chips = mkChips([['all', '전체', all.length], ['nophoto', '사진 없음', all.filter(cf.nophoto).length], ['notr', '번역 없음', all.filter(cf.notr).length]]);
+      rows = filtered.map(l => { const on = s.sel === l.id, b = []; if (!l.photo) b.push(B.nophoto); if (!l.nameEn) b.push({ ...B.tr, label: '번역 없음' });
+        return { id: l.id, name: l.name, sub: l.desc || '설명 없음', meta: `${l.campus} · ${l.updated}`, isIcon: false, isEmoji: true, emoji: l.icon, badges: b, rowBg: on ? '#faf0ef' : 'transparent', nameColor: on ? '#8c0000' : '#1c1917', onClick: () => this.select(l.id) }; });
+      pins = filtered.map(l => { const on = s.sel === l.id; return { left: l.x + '%', top: l.y + '%', size: on ? '38px' : '30px', bg: '#fff', fg: '#1c1917', bd: on ? '#8c0000' : '#fff', ring: on ? '0 0 0 4px rgba(140,0,0,.25), 0 2px 6px rgba(0,0,0,.2)' : '0 1px 4px rgba(0,0,0,.25)', fs: on ? '19px' : '15px', text: l.icon, z: on ? 3 : 2, title: l.name, onClick: () => this.select(l.id), label: l.name, on }; });
+      legend = [{ label: '사진 있음 ' + all.filter(l => l.photo).length, color: '#2f7a4f' }, { label: '사진 없음 ' + all.filter(l => !l.photo).length, color: '#d6d1cc' }];
+    } else if (tabS) {
+      const all = s.slopes;
+      const info = r => { const g = r.segs.map(x => this.grade(x)); return { over: g.filter(x => x === 'over').length, ext: g.filter(x => x === 'extreme').length, total: r.dists.reduce((a, b) => a + b, 0) }; };
+      const cf = { over: r => info(r).over + info(r).ext > 0, extreme: r => info(r).ext > 0 };
+      filtered = all.filter(r => (s.chip === 'all' || cf[s.chip](r)) && match(r.name));
+      page = { title: '경사도 경로', caption: `구간별 경사를 기록한 보행 경로 · 총 ${all.length}개`, addLabel: '경로 그리기', searchPh: '경로명 검색', onAdd: () => this.flash('지도에서 새 경로를 그려요') };
+      chips = mkChips([['all', '전체', all.length], ['over', '1/12 초과 포함', all.filter(cf.over).length], ['extreme', '확인 필요', all.filter(cf.extreme).length]]);
+      srows = filtered.map(r => { const i = info(r), on = s.sel === r.id;
+        const badge = i.ext ? { label: `확인 필요 ${i.ext}구간`, bg: '#fcebeb', fg: '#a32d2d' } : i.over ? { label: `1/12 초과 ${i.over}구간`, bg: '#fef3c7', fg: '#92400e' } : { label: '기준 이내', bg: '#eaf3ed', fg: '#2f7a4f' };
+        return { id: r.id, name: r.name, meta: `${r.segs.length}개 구간 · ${i.total}m · 최대 ${Math.max(...r.segs).toFixed(1)}° · ${r.updated}`, profile: r.segs.map((x, k) => ({ flex: r.dists[k], color: GC[this.grade(x)] })), badge, rowBg: on ? '#faf0ef' : 'transparent', nameColor: on ? '#8c0000' : '#1c1917', onClick: () => this.select(r.id) }; });
+      legend = [{ label: '1/12 이내', color: GC.ok }, { label: '1/12 초과', color: GC.over }, { label: '16.7° 이상', color: GC.extreme }];
+    }
+
+    const lineSvg = (routes, selId, bold) => h('svg', { viewBox: '0 0 100 100', preserveAspectRatio: 'none', style: { position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 1 } },
+      routes.flatMap(r => r.segs.map((x, i) => h('line', { key: r.id + i, x1: r.pts[i][0], y1: r.pts[i][1], x2: r.pts[i + 1][0], y2: r.pts[i + 1][1], stroke: GC[this.grade(x)], strokeWidth: r.id === selId ? (bold ? 9 : 7) : 5, strokeLinecap: 'round', vectorEffect: 'non-scaling-stroke', opacity: selId && r.id !== selId ? 0.28 : 1, style: { cursor: 'pointer' }, onClick: () => this.select(r.id) }))));
+    const mids = r => r ? r.segs.map((x, i) => ({ n: i + 1, left: (r.pts[i][0] + r.pts[i + 1][0]) / 2 + '%', top: (r.pts[i][1] + r.pts[i + 1][1]) / 2 + '%' })) : [];
+
+    const selS = tabS ? s.slopes.find(r => r.id === s.sel) : null;
+    const routeSvg = tabS ? lineSvg(filtered, s.sel, false) : null;
+    const segLabels = mids(selS);
+
+    const selPinObj = pins.find(p => p.on);
+    const fObj = tabF ? s.facilities.find(f => f.id === s.sel) : null;
+    const lObj = tabL ? s.landmarks.find(l => l.id === s.sel) : null;
+    const seg = on => on ? { bg: '#fff', fg: '#1c1917', sh: '0 1px 3px rgba(28,25,23,.12)' } : { bg: 'transparent', fg: '#8a837d', sh: 'none' };
+    let sf = {}, sl = {}, ss = {};
+    if (fObj) {
+      const t = FT[fObj.code], a = seg(fObj.installed), b = seg(!fObj.installed);
+      sf = { ...fObj, name: d.name ?? fObj.name, desc: d.desc ?? fObj.desc, typeLabel: t.label, iconBg: t.color, iconText: t.short,
+        inBg: a.bg, inFg: fObj.installed ? '#2f7a4f' : a.fg, inSh: a.sh, miBg: b.bg, miFg: !fObj.installed ? '#a32d2d' : b.fg, miSh: b.sh,
+        onInstalled: () => { this.patch('facilities', fObj.id, { installed: true }); this.flash('설치로 변경했어요'); },
+        onMissing: () => { this.patch('facilities', fObj.id, { installed: false }); this.flash('미설치로 변경했어요'); },
+        trPending: fObj.tr === 'pending', trDone: fObj.tr !== 'pending', onTranslate: () => { this.patch('facilities', fObj.id, { tr: 'done' }); this.flash('번역을 다시 채웠어요'); },
+        onName: e => this.setDraft(fObj.id, 'name', e.target.value), onDesc: e => this.setDraft(fObj.id, 'desc', e.target.value),
+        photoCount: fObj.photos, photos: Array.from({ length: fObj.photos }, (_, i) => ({ n: i + 1 })), noVideo: !fObj.video, videoLabel: fObj.video ? '동영상 교체' : '동영상 연결' };
+    }
+    if (lObj) {
+      sl = { ...lObj, name: d.name ?? lObj.name, desc: d.desc ?? lObj.desc, noPhoto: !lObj.photo, photoLabel: lObj.photo ? '명소 사진 · 눌러서 변경' : '＋ 사진 선택',
+        nameEn: lObj.nameEn || '번역 없음', nameZh: lObj.nameZh || '번역 없음', enColor: lObj.nameEn ? '#1c1917' : '#b45309', zhColor: lObj.nameZh ? '#1c1917' : '#b45309',
+        onName: e => this.setDraft(lObj.id, 'name', e.target.value), onDesc: e => this.setDraft(lObj.id, 'desc', e.target.value),
+        onTranslate: () => { if (!lObj.nameEn) this.patch('landmarks', lObj.id, { nameEn: 'Hana Square Fountain', nameZh: '韩亚广场喷泉' }); this.flash('비어 있는 번역을 채웠어요'); } };
+    }
+    if (selS) {
+      const tot = selS.dists.reduce((a, b) => a + b, 0);
+      const GL = { ok: ['기준 이내', '#eaf3ed', '#2f7a4f'], over: ['1/12 초과', '#fef3c7', '#92400e'], extreme: ['확인 필요', '#fcebeb', '#a32d2d'] };
+      ss = { name: selS.name, meta: `${selS.segs.length}개 구간 · 총 ${tot}m · ${selS.updated} 수정`, onEdit: () => this.openEditor(selS.id),
+        segs: selS.segs.map((x, i) => { const g = this.grade(x); return { n: i + 1, dist: selS.dists[i], val: `${x.toFixed(1)}° · ${this.toPct(x).toFixed(1)}%`, color: GC[g], gradeLabel: GL[g][0], gBg: GL[g][1], gFg: GL[g][2] }; }) };
+    }
+
+    const edId = s.slopeEdit || (mobile && tabS ? s.sel : null);
+    const edR = edId ? s.slopes.find(r => r.id === edId) : null;
+    let ed = {}, edSvg = null, edLabels = [], edVerts = [];
+    if (edR) {
+      const degs = this.edDegs(), u = s.unit;
+      const tmp = { ...edR, segs: edR.segs.map((x, i) => degs[i] ?? x) };
+      edSvg = lineSvg([tmp], edR.id, true);
+      edLabels = mids(tmp);
+      edVerts = edR.pts.map(p => ({ left: p[0] + '%', top: p[1] + '%' }));
+      const a = seg(u === 'deg'), b = seg(u === 'percent');
+      ed = { name: s.edName, onName: e => this.setState({ edName: e.target.value, edDirty: true }), count: edR.segs.length, total: edR.dists.reduce((x, y) => x + y, 0),
+        statusLabel: s.edDirty ? '저장 안 됨' : '저장됨', stBg: s.edDirty ? '#fef3c7' : '#eaf3de', stFg: s.edDirty ? '#92400e' : '#3b6d11',
+        degBg: a.bg, degFg: a.fg, pctBg: b.bg, pctFg: b.fg, onDeg: () => this.setUnit('deg'), onPct: () => this.setUnit('percent'),
+        onSave: () => this.saveEditor(), onCancel: () => this.setState({ slopeEdit: null }),
+        segs: edR.segs.map((x, i) => { const dv = degs[i]; const g = dv == null ? 'ok' : this.grade(dv);
+          return { n: i + 1, dist: edR.dists[i], raw: s.edRaw[i] ?? '', sym: u === 'deg' ? '°' : '%', conv: dv == null ? '—' : (u === 'deg' ? this.toPct(dv).toFixed(1) + '%' : dv.toFixed(1) + '°'),
+            color: GC[g], hasWarn: g !== 'ok', warn: g === 'extreme' ? '이 값이 맞나요? 30%(약 16.7°)를 넘는 보행 경사로는 매우 드뭅니다' : '1/12 완화 한도 초과', warnColor: g === 'extreme' ? '#dc2626' : '#92400e',
+            onChange: e => { const v = e.target.value; this.setState(st => { const r2 = [...st.edRaw]; r2[i] = v; return { edRaw: r2, edDirty: true }; }); } }; }) };
+    }
+
+    // inbox
+    const kinds = [['requests', '등록 요청'], ['feedback', '피드백']];
+    const kindTabs = kinds.map(([k, label]) => { const on = s.inboxKind === k;
+      return { label, count: openOf(k === 'feedback' ? s.feedback : s.requests), onClick: () => { const first = this.inboxItems(k, s.inboxFilter)[0]; this.setState({ inboxKind: k, inboxSel: mobile ? null : (first ? first.id : null), confirmReject: false }); },
+        bg: on ? '#fff' : 'transparent', fg: on ? '#8c0000' : '#1c1917', weight: on ? 700 : 500, cBg: on ? '#8c0000' : '#e8e4e0', cFg: on ? '#fff' : '#5c5652', segBg: on ? '#fff' : 'transparent' }; });
+    const fdefs = [['open', '처리 전'], ['new', '신규'], ['reviewing', '확인 중'], ['done', '처리 완료'], ['all', '전체']];
+    const filters = fdefs.map(([k, label]) => { const on = s.inboxFilter === k;
+      return { label, count: this.inboxItems(s.inboxKind, k).length, onClick: () => this.setState({ inboxFilter: k }), bg: on ? '#f3ddda' : 'transparent', fg: on ? '#8c0000' : '#1c1917', weight: on ? 700 : 500,
+        chipBg: on ? '#8c0000' : '#fff', chipFg: on ? '#fff' : '#5c5652', bd: on ? '#8c0000' : '#d6d1cc' }; });
+    const mkItem = x => { const isReq = x.id[0] === 'r', st = ST[x.status], on = s.inboxSel === x.id;
+      if (isReq) { const t = FT[x.code];
+        return { id: x.id, isReq: true, kindLabel: '등록 요청', title: `${t.label} · ${x.building}${x.floor ? ' ' + x.floor : ''}`, sub: x.desc || '설명 없음', meta: `사진 ${x.photos} · ${x.loc ? '위치 있음' : '위치 없음'}`, at: x.at,
+          thumbBg: x.photos ? 'repeating-linear-gradient(135deg,#ebe7e2 0 1px,#f3f0ec 1px 6px)' : '#f0edea', thumbLabel: x.photos ? '사진' : '—', stLabel: st.label, stBg: st.bg, stFg: st.fg,
+          unread: x.status === 'new', weight: x.status === 'new' ? 700 : 500, rowBg: on ? '#faf0ef' : '#fff', onClick: () => this.setState({ inboxSel: x.id, confirmReject: false }), typeColor: t.color, typeShort: t.short }; }
+      return { id: x.id, isReq: false, kindLabel: '피드백', title: x.type, sub: x.content, meta: x.page ? '화면 링크 있음' : '', at: x.at, stLabel: st.label, stBg: st.bg, stFg: st.fg,
+        unread: x.status === 'new', weight: x.status === 'new' ? 700 : 500, rowBg: on ? '#faf0ef' : '#fff', onClick: () => this.setState({ inboxSel: x.id, confirmReject: false }) }; };
+    const ilist = this.inboxItems(s.inboxKind, s.inboxFilter).map(mkItem);
+
+    const bk = s.boardKind;
+    const srcAll = [...(bk !== 'feedback' ? s.requests : []), ...(bk !== 'requests' ? s.feedback : [])];
+    const board = [['new', '신규', x => x.status === 'new', '#c27a12'], ['reviewing', '확인 중', x => x.status === 'reviewing', '#4f3f86'], ['done', '처리 완료', x => ['approved', 'rejected', 'resolved'].includes(x.status), '#2f7a4f']]
+      .map(([k, label, fn, dot]) => { const cards = srcAll.filter(fn).map(mkItem); return { key: k, label, dot, count: cards.length, cards, empty: cards.length === 0 }; });
+    const boardKinds = [['all', '전체'], ['requests', '등록 요청'], ['feedback', '피드백']].map(([k, label]) => { const on = bk === k; return { label, onClick: () => this.setState({ boardKind: k }), bg: on ? '#fff' : 'transparent', fg: on ? '#1c1917' : '#8a837d', sh: on ? '0 1px 3px rgba(28,25,23,.12)' : 'none' }; });
+
+    const rObj = s.inboxSel && s.inboxSel[0] === 'r' ? s.requests.find(x => x.id === s.inboxSel) : null;
+    const bObj = s.inboxSel && s.inboxSel[0] === 'b' ? s.feedback.find(x => x.id === s.inboxSel) : null;
+    let rd = {}, fd = {};
+    if (rObj) {
+      const t = FT[rObj.code], st = ST[rObj.status], ended = rObj.status === 'approved' || rObj.status === 'rejected';
+      const pub = s.publish[rObj.id] || [];
+      rd = { title: `${t.label} 등록 요청`, typeLabel: t.label, typeColor: t.color, typeShort: t.short, stLabel: st.label, stBg: st.bg, stFg: st.fg, building: rObj.building, at: rObj.at,
+        name: rObj.name, floor: rObj.floor || '—', desc: rObj.desc || '—', loc: rObj.loc, locText: rObj.loc ? '제보자가 찍은 위치가 있어요' : '위치 없음 · 지도에서 찍어 주세요', locColor: rObj.loc ? '#2f7a4f' : '#b45309',
+        hasPhotos: rObj.photos > 0, noPhotos: rObj.photos === 0, photoHint: ended ? '' : '체크한 사진만 공개돼요',
+        photos: Array.from({ length: rObj.photos }, (_, i) => { const c = !!pub[i];
+          return { n: i + 1, chkBg: c ? '#8c0000' : 'rgba(255,255,255,.9)', chkBd: c ? '#8c0000' : '#d6d1cc', mark: c ? '✓' : '', bd: c ? '#8c0000' : '#e8e4e0', op: c ? 1 : .6,
+            onToggle: () => { if (ended) return; this.setState(st2 => { const arr = [...(st2.publish[rObj.id] || [])]; arr[i] = !arr[i]; return { publish: { ...st2.publish, [rObj.id]: arr } }; }); } }; }),
+        publishText: rObj.photos ? `사진 ${pub.filter(Boolean).length}/${rObj.photos}장 공개` : '',
+        showActions: !ended && !s.confirmReject, confirmReject: !ended && s.confirmReject, ended, approved: rObj.status === 'approved',
+        endNote: rObj.status === 'approved' ? '승인되어 시설로 등록됐어요' : '거절된 요청이에요',
+        reviewLabel: rObj.status === 'reviewing' ? '신규로 되돌리기' : '확인 중으로 표시',
+        onReview: () => this.patch('requests', rObj.id, { status: rObj.status === 'reviewing' ? 'new' : 'reviewing' }),
+        onReject: () => this.setState({ confirmReject: true }), onRejectNo: () => this.setState({ confirmReject: false }),
+        onRejectYes: () => { this.patch('requests', rObj.id, { status: 'rejected' }); this.setState({ confirmReject: false }); this.flash('거절했어요'); },
+        onApprove: () => { this.patch('requests', rObj.id, { status: 'approved' }); this.flash('등록했어요!'); } };
+    }
+    if (bObj) {
+      const list = this.inboxItems('feedback', s.inboxFilter), idx = list.findIndex(x => x.id === bObj.id), next = list[idx + 1];
+      fd = { typeLabel: bObj.type, at: bObj.at, content: bObj.content, page: bObj.page, hasPage: !!bObj.page, hasNext: !!next, onNext: () => next && this.setState({ inboxSel: next.id }),
+        statusOpts: ['new', 'reviewing', 'resolved'].map(k => { const on = bObj.status === k, a = seg(on); return { label: ST[k].label, bg: a.bg, fg: on ? ST[k].fg : a.fg, sh: a.sh, onClick: () => { this.patch('feedback', bObj.id, { status: k }); this.flash(`‘${ST[k].label}’로 바꿨어요`); } }; }) };
+    }
+
+    const hasSel = !!(fObj || lObj || selS);
+    const isFL = tabF || tabL;
+    const mDetail = mobile && hasSel;
+    const mInboxDetail = mobile && tabI && !!(rObj || bObj);
+    return {
+      isDesktop: !mobile, isMobile: mobile, nav, tabF, tabL, tabS, tabI, isFL, editing, showListPage: !mobile && (isFL || (tabS && !s.slopeEdit)),
+      page, chips, rows, srows, pins, legend, q: s.q, onQ: e => this.setState({ q: e.target.value, sel: null }),
+      noRows: (isFL && rows.length === 0) || (tabS && srows.length === 0), listCount: `${isFL ? rows.length : srows.length}개 표시`,
+      mapFlex: hasSel ? '0 0 250px' : '1 1 auto', hasSelPin: !!selPinObj, selPin: selPinObj || {},
+      routeSvg, segLabels, gradeLegend: [{ label: '1/12 이내', color: GC.ok }, { label: '1/12 초과', color: GC.over }, { label: '16.7° 이상', color: GC.extreme }],
+      hasSel, selIsF: !!fObj && !mobile, selIsL: !!lObj && !mobile, selIsS: !!selS && !mobile, sf, sl, ss, sfRaw: !!fObj, slRaw: !!lObj, ssRaw: !!selS,
+      onClose: () => this.setState({ sel: null, confirmDel: false }), onSave: () => this.saveSel(),
+      confirmDel: s.confirmDel, noConfirmDel: !s.confirmDel, onDelete: () => this.setState({ confirmDel: true }), onDeleteNo: () => this.setState({ confirmDel: false }), onDeleteYes: () => this.deleteSel(),
+      ed, edSvg, edLabels, edVerts,
+      kindTabs, filters, ilist, inboxEmptyList: ilist.length === 0, inboxTitle: `${s.inboxKind === 'feedback' ? '피드백' : '등록 요청'} · ${fdefs.find(f => f[0] === s.inboxFilter)[1]}`,
+      board, boardKinds, drawerOpen: tabI && !!(rObj || bObj), onCloseInbox: () => this.setState({ inboxSel: null, confirmReject: false }),
+      hasRd: !!rObj && !mobile, hasFd: !!bObj && !mobile, rdRaw: !!rObj, fdRaw: !!bObj, noInboxSel: !rObj && !bObj && !mobile, rd, fd,
+      mList: s.mView === 'list', mListBg: s.mView === 'list' ? '#fff' : 'transparent', mMapBg: s.mView === 'map' ? '#fff' : 'transparent',
+      onMList: () => this.setState({ mView: 'list' }), onMMap: () => this.setState({ mView: 'map' }),
+      mListScreen: mobile && !tabI && !hasSel, mShowList: s.mView === 'list', mShowMap: s.mView === 'map',
+      mDetailF: mobile && !!fObj, mDetailL: mobile && !!lObj, mDetailS: mobile && !!selS && !!edR,
+      mInboxList: mobile && tabI && !rObj && !bObj, mInboxRd: mobile && !!rObj && tabI, mInboxFd: mobile && !!bObj && tabI,
+      mBack: mDetail || mInboxDetail, mNoBack: !(mDetail || mInboxDetail),
+      mBackTitle: fObj ? sf.name : lObj ? sl.name : selS ? s.edName : rObj ? rd.title : bObj ? '피드백' : '',
+      mBackFn: () => this.setState({ sel: null, inboxSel: tabI ? null : s.inboxSel, confirmReject: false }),
+      mSaveBar: mDetail, mSaveFn: () => (selS ? (this.saveEditor(), this.setState({ sel: null })) : this.saveSel()),
+      notEditing: !s.slopeEdit, mapRight: (!mobile && !tabI && (hasSel || !!s.slopeEdit)) ? '500px' : '40px', bMapPage: !mobile && !tabI, bDrawer: !mobile && !tabI && (hasSel || !!s.slopeEdit), sheetH: s.mView === 'list' ? '58%' : '150px', onSheetToggle: () => this.setState({ mView: s.mView === 'list' ? 'map' : 'list' }), inboxOpen: inboxCount,
+      hasToast: !!s.toast, toast: s.toast, toastBottom: mobile ? '140px' : '28px'
+    };
+  }
+}
+</script>
+</body>
+</html>

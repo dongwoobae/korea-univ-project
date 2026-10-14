@@ -304,10 +304,10 @@ export default function LandmarkFormModal({
           style={{
             marginTop: 10,
             padding: "7px 10px",
-            border: "1px solid #2563EB",
+            border: "1px solid var(--ku-primary-text)",
             borderRadius: 6,
-            background: "#fff",
-            color: "#2563EB",
+            background: "var(--ku-surface)",
+            color: "var(--ku-primary-text)",
             fontSize: 12,
             cursor: "pointer",
           }}
@@ -414,7 +414,7 @@ export default function LandmarkFormModal({
 
         {form.lat && form.lng && (
           <div aria-live="polite" style={{ fontSize: 12, marginTop: 8 }}>
-            <div style={{ color: "#2563EB" }}>
+            <div style={{ color: "var(--ku-primary-text)" }}>
               선택된 위치: {form.lat}, {form.lng}
             </div>
             <div
@@ -520,7 +520,7 @@ export default function LandmarkFormModal({
             style={{
               flex: 1,
               padding: "10px",
-              background: "#2563EB",
+              background: "var(--ku-primary)",
               color: "#fff",
               border: "none",
               borderRadius: 8,

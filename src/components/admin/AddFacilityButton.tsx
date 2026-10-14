@@ -32,7 +32,7 @@ export default function AddFacilityButton({
         style={{
           fontSize: 13,
           padding: "8px 16px",
-          background: "#2563EB",
+          background: "var(--ku-primary)",
           color: "#fff",
           border: "none",
           borderRadius: 8,

@@ -25,10 +25,11 @@
   --ku-shadow-raised: 0 1px 3px rgba(28, 25, 23, 0.1);
   --ku-shadow-floating: 0 4px 16px rgba(28, 25, 23, 0.12);
   --ku-shadow-overlay: 0 12px 32px rgba(28, 25, 23, 0.16);
-  --ku-primary: #2563eb;
-  --ku-primary-text: #2563eb;
-  --ku-primary-disabled: #93c5fd;
-  --ku-primary-soft-bg: #eff6ff;
+  --ku-primary: #8c0000;
+  --ku-primary-hover: #6e0000;
+  --ku-primary-text: var(--ku-crimson-600);
+  --ku-primary-disabled: #d8a39d;
+  --ku-primary-soft-bg: var(--ku-crimson-50);
   --ku-danger: #dc2626;
   --ku-status-installed-bg: #eaf3de;
   --ku-status-installed-fg: #3b6d11;
@@ -36,6 +37,8 @@
   --ku-status-missing-fg: #a32d2d;
   --ku-status-warn-bg: #fef3c7;
   --ku-status-warn-fg: #92400e;
+  --ku-status-review-bg: #e9e5f5;
+  --ku-status-review-fg: #4f3f86;
   --ku-overlay: rgba(0, 0, 0, 0.55);
 }
 
@@ -65,10 +68,11 @@
     --ku-shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.35);
     --ku-shadow-floating: 0 4px 18px rgba(0, 0, 0, 0.42);
     --ku-shadow-overlay: 0 14px 36px rgba(0, 0, 0, 0.58);
-    --ku-primary: #2563eb;
-    --ku-primary-text: #6ba5ff;
-    --ku-primary-disabled: #2f4368;
-    --ku-primary-soft-bg: #1a2a44;
+    /* 채움은 흰 글자(4.5:1)와 다크 표면(3:1) 대비를 함께 지키는 값이다(설계 2026-10-14 2.4).
+       -text·-soft-bg는 :root의 크림슨 참조가 이 블록의 크림슨 값을 따라간다. */
+    --ku-primary: #cc2936;
+    --ku-primary-hover: #b0202e;
+    --ku-primary-disabled: #4d2926;
     --ku-danger: #f4756e;
     --ku-status-installed-bg: #24331c;
     --ku-status-installed-fg: #a4d977;
@@ -76,6 +80,8 @@
     --ku-status-missing-fg: #f0a6a1;
     --ku-status-warn-bg: #3a2f14;
     --ku-status-warn-fg: #f1cb77;
+    --ku-status-review-bg: #2a2540;
+    --ku-status-review-fg: #c3b6f0;
     --ku-overlay: rgba(0, 0, 0, 0.62);
   }
 }
@@ -199,6 +205,58 @@ a {
 
 .bldg-label::before {
   display: none;
+}
+
+/* Toast 기본(공개 지도) 모양. 관리자 화면은 admin-ui.css가 .ku-admin-shell 범위에서 덮는다. */
+.ku-toast {
+  position: fixed;
+  z-index: 9999;
+  top: 24px;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+  max-width: 700px;
+  padding: 14px 24px;
+  border: 1px solid;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font-size: 15px;
+  white-space: normal;
+  word-break: keep-all;
+  transform: translateX(-50%);
+}
+.ku-toast[data-tone="success"] {
+  border-color: #86efac;
+  color: #166534;
+  background: #f0fdf4;
+}
+.ku-toast[data-tone="error"] {
+  border-color: #fca5a5;
+  color: #991b1b;
+  background: #fef2f2;
+}
+.ku-toast[data-tone="warning"] {
+  border-color: #fcd34d;
+  color: #92400e;
+  background: #fffbeb;
+}
+.ku-toast-icon {
+  flex-shrink: 0;
+}
+.ku-toast-message {
+  flex: 1;
+}
+.ku-toast-close {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: none;
+  color: inherit;
+  background: none;
+  cursor: pointer;
+  opacity: 0.6;
 }
 
 @keyframes shimmer {

@@ -110,7 +110,7 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
 
   test("시설 폼 모달에 하드코딩 밝은 색이 남지 않는다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/facilities");
+    await page.goto("/admin/buildings/1");
     await page.getByRole("button", { name: "+ 시설 추가" }).click();
     await expect(page.getByRole("dialog")).toBeVisible();
 
@@ -123,5 +123,54 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
       result.nearBlackText,
       `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
     ).toHaveLength(0);
+  });
+
+  test("크림슨 채움은 모드마다 흰 글자 대비를 지키는 값이다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    // 메뉴 배지는 신규 요청이 있을 때만 그려진다.
+    state.facilityRequests.push({ id: "dark-badge-request", status: "new" });
+    await page.goto("/admin/dashboard/buildings");
+    const badge = page.locator(".ku-admin-nav-badge");
+    await expect(badge).toHaveCSS("background-color", "rgb(204, 41, 54)");
+    await expect(badge).toHaveCSS("color", "rgb(255, 255, 255)");
+
+    await page.goto("/admin/buildings/1");
+    const add = page.getByRole("button", { name: "+ 시설 추가" });
+    await expect(add).toHaveCSS("background-color", "rgb(204, 41, 54)");
+    await expect(add).toHaveCSS("color", "rgb(255, 255, 255)");
+
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(add).toHaveCSS("background-color", "rgb(140, 0, 0)");
+  });
+
+  test("독립 시설 상세 패널에 하드코딩 밝은 색이 남지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities?id=f-installed");
+    await expect(
+      page.getByRole("region", { name: "중앙광장 경사로", exact: true }),
+    ).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    for (const step of ["보기", "새로 만들기"]) {
+      if (step === "새로 만들기") {
+        await page.getByRole("button", { name: "＋ 시설 추가" }).click();
+        await expect(
+          page.getByRole("region", { name: "시설 추가", exact: true }),
+        ).toBeVisible();
+      }
+      const result = await scanContrast(page);
+      expect(
+        result.nearWhiteBg,
+        `${step} — 미이관 흰 배경: ${result.nearWhiteBg.join(", ")}`,
+      ).toHaveLength(0);
+      expect(
+        result.nearBlackText,
+        `${step} — 미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
+      ).toHaveLength(0);
+    }
   });
 });

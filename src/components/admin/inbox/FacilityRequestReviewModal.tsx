@@ -20,6 +20,7 @@ import {
 import { getPolygonRingCenter } from "@/lib/polygonCenter";
 import { readErrorMessage } from "@/lib/responseError";
 import { useModalFocus } from "@/lib/useModalFocus";
+import { color } from "@/lib/theme";
 
 interface FacilityRequestReviewModalProps {
   requestId: string;
@@ -330,6 +331,7 @@ export default function FacilityRequestReviewModal({
               labels={ADMIN_FACILITY_FIELD_LABELS}
               mapCenter={center}
               highlightBuildingId={detail.building_id}
+              highlightColor={color.crimson600}
               showFloor
               showInstalled
               disabled={ended || busy}
