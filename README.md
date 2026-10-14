@@ -31,7 +31,7 @@
 - **JavaScript → TypeScript 전면 이관** — 설계 문서를 먼저 작성한 뒤 `src/` 전체(138개 파일)를 `strict` 모드로 이관하고, 우회로 남아 있던 암묵적 `any` 162건까지 걷어 `no-explicit-any`를 error로 유지
 - **결정론적 E2E 환경 구축** — 1325줄 목 백엔드(PostgREST·Next 라우트·Auth·저장소·브라우저 API 스텁)로 외부 의존 없이 19개 spec·173개 시나리오를 실행
 - **마이그레이션 안전장치** — 적용된 마이그레이션의 수정·삭제를 CI에서 차단하고, 적용 후 로컬↔원격 이력 일치를 별도 잡에서 검증
-- **다국어 자동화** — Papago NMT 연동으로 시설·명소 정보를 자동 번역하고, 번역 실패를 관리자 화면에 드러내 개별·일괄 재번역 가능
+- **다국어 자동화** — Google Cloud Translation 연동으로 시설·명소 정보를 자동 번역하고, 번역 실패를 관리자 화면에 드러내 개별·일괄 재번역 가능
 
 ---
 
@@ -100,7 +100,7 @@
 | Backend          | Next.js Route Handlers                                                                                |
 | DB / Auth        | Supabase (PostgreSQL, Auth, RLS)                                                                      |
 | Storage          | Supabase Storage(건물 사진) + Cloudflare R2(명소 사진·시설 영상)                                      |
-| 번역             | Papago NMT API                                                                                        |
+| 번역             | Google Cloud Translation API (Basic v2)                                                               |
 | 영상 처리        | ffmpeg.wasm (모든 업로드를 720p H.264로 변환, 실패 시 원본)                                           |
 | 스타일           | CSS 파일 + CSS 변수 디자인 토큰(`--ku-*`), 라이트/다크 정의 (Tailwind 미사용)                         |
 | Font             | Pretendard                                                                                            |
@@ -144,7 +144,7 @@ src/
       landmarks/route.ts             # 명소 데이터
       slopes/route.ts                # 경사도 구간 데이터 (id·name·segments만)
       feedback/route.ts              # 피드백 접수 (service_role 경유)
-      translate/route.ts             # Papago 번역 프록시 (requireAdmin)
+      translate/route.ts             # Google 번역 프록시 (requireAdmin)
       revalidate-facilities/route.ts # 시설 ISR 캐시 무효화
       revalidate-landmarks/route.ts  # 명소 ISR 캐시 무효화
       upload-building-photo/route.ts # 건물 사진 → Supabase Storage
@@ -475,9 +475,8 @@ SUPABASE_SERVICE_ROLE_KEY=
 # 건물 동기화 보호
 SYNC_SECRET=
 
-# Papago NMT (시설·명소 자동 번역)
-PAPAGO_CLIENT_ID=
-PAPAGO_CLIENT_SECRET=
+# Google Cloud Translation (시설·명소 자동 번역). Cloud Translation API만 호출하도록 제한한 API 키
+GOOGLE_TRANSLATE_API_KEY=
 
 # CARTO 베이스맵 (없으면 타일에 워터마크가 찍힌다)
 NEXT_PUBLIC_CARTO_API_KEY=
@@ -544,7 +543,7 @@ npm run test:e2e:ui   # Playwright UI 모드
 
 ### 테스트 범위
 
-**Vitest 단위 테스트 (62개 파일, 445개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 동영상 상한·재생 가능 판정, WebP 바이트 판정·Safari 대체 인코딩, 영상 변환 인자·포스터 캡처·업로드 순서, 일괄 변환 대상 판정·journal, 피드백 입력 검증, 피드백·명소 삭제·사진 업로드·영상 presign/confirm/삭제 API 라우트, 시설 필드 서버 파서·사진 표시 순서, 업로드 토큰·IP 해시·Turnstile 검증, 요청 생성·사진 업로드·상세·상태·거절·정리·승인·제보함 개수·관리자 피드백·시설 사진 API 라우트(`src/test/queryStub.ts`의 쿼리 체인 대역).
+**Vitest 단위 테스트 (63개 파일, 450개 테스트)** — 목록 검색·정렬·페이지 계산(`adminList`), 보완 현황 집계·플래그 필터(`adminBuildingSummary`), 캠퍼스 자동 판정(`campusGeometry`), 폴리곤 중심(`polygonCenter`), 주변 건물 캐시(`neighborBuildings`), 마커 군집(`mapMarkerLayout`), 아이콘 매핑(`mapIcons`·`iconography`), 시설 색·배지(`facilityColors`·`facilityBadges`), 경사 경로 계산·검증·저장 포맷(`slopeRoute`), 타일 전환(`mapTiles`), 관리자 가드(`requireAdmin`), 인증 fetch(`authedFetch`), 시설·명소 폼/삭제/번역 로직, 번역 API 라우트(실패를 원문으로 덮지 않음), 동영상 상한·재생 가능 판정, WebP 바이트 판정·Safari 대체 인코딩, 영상 변환 인자·포스터 캡처·업로드 순서, 일괄 변환 대상 판정·journal, 피드백 입력 검증, 피드백·명소 삭제·사진 업로드·영상 presign/confirm/삭제 API 라우트, 시설 필드 서버 파서·사진 표시 순서, 업로드 토큰·IP 해시·Turnstile 검증, 요청 생성·사진 업로드·상세·상태·거절·정리·승인·제보함 개수·관리자 피드백·시설 사진 API 라우트(`src/test/queryStub.ts`의 쿼리 체인 대역).
 
 경사 경로 판단 로직은 `src/lib/slopeRoute.ts`(경로·저장 포맷)와 `src/lib/slopeScale.ts`(단위·색·기준선)의 순수 함수로 빼 두었습니다. Vitest가 `environment: "node"`로 돌기 때문에, Leaflet에 묶인 채로는 단위 테스트가 닿지 않습니다.
 
@@ -638,7 +637,7 @@ E2E는 `e2e/support/mockBackend.ts`(1325줄)가 PostgREST·Next 라우트·Auth�
 
 UI 고정 문자열은 `src/lib/translations.ts`(언어당 키 72개)에서 관리합니다. 선택한 언어는 localStorage `ku_map_lang`에 유지됩니다.
 
-콘텐츠 다국어는 DB 컬럼으로 지원합니다 — `facility_types.label_en/zh`, `building_facilities`와 `landmarks`의 `name/description/floor_info`별 `_en`·`_zh`, `building_photos.caption_en/zh`. 시설·명소 저장 시 Papago NMT로 자동 번역하며, 실패하면 `translation_status`를 통해 관리자 화면에 "번역 필요"로 노출됩니다.
+콘텐츠 다국어는 DB 컬럼으로 지원합니다 — `facility_types.label_en/zh`, `building_facilities`와 `landmarks`의 `name/description/floor_info`별 `_en`·`_zh`, `building_photos.caption_en/zh`. 시설·명소 저장 시 Google Cloud Translation으로 자동 번역하며, 실패하면 `translation_status`를 통해 관리자 화면에 "번역 필요"로 노출됩니다.
 
 새 언어 추가 시 `translations.ts`에 키를 추가하고 `LanguageContext.tsx`의 `SUPPORTED` 배열에 등록합니다.
 

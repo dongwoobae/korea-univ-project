@@ -1,31 +1,38 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 
-const CLIENT_ID = process.env.PAPAGO_CLIENT_ID ?? "";
-const CLIENT_SECRET = process.env.PAPAGO_CLIENT_SECRET ?? "";
-
-async function translateOne(text: string, target: string): Promise<string> {
-  if (!text?.trim()) return text;
-  try {
-    const res = await fetch(
-      "https://papago.apigw.ntruss.com/nmt/v1/translation",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-NCP-APIGW-API-KEY-ID": CLIENT_ID,
-          "X-NCP-APIGW-API-KEY": CLIENT_SECRET,
-        },
-        body: JSON.stringify({ source: "ko", target, text }),
-        cache: "no-store",
+async function translateAll(
+  texts: string[],
+  target: string,
+  apiKey: string,
+): Promise<string[]> {
+  const res = await fetch(
+    "https://translation.googleapis.com/language/translate/v2",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": apiKey,
       },
-    );
-    if (!res.ok) return text;
-    const data = await res.json();
-    return data.message?.result?.translatedText ?? text;
-  } catch {
-    return text;
+      // 기본값 html이면 따옴표·꺾쇠가 &#39; 같은 엔티티로 돌아온다.
+      body: JSON.stringify({ q: texts, source: "ko", target, format: "text" }),
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) {
+    throw new Error(`google translate ${res.status}: ${await res.text()}`);
   }
+  const data = await res.json();
+  const translations: unknown = data?.data?.translations;
+  if (!Array.isArray(translations) || translations.length !== texts.length) {
+    throw new Error("google translate: translation count mismatch");
+  }
+  return translations.map((item) => {
+    if (typeof item?.translatedText !== "string") {
+      throw new Error("google translate: missing translatedText");
+    }
+    return item.translatedText;
+  });
 }
 
 export async function POST(request: Request) {
@@ -37,18 +44,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const en: Record<string, string> = {};
-  const zh: Record<string, string> = {};
+  const entries = Object.entries(body.texts as Record<string, unknown>).filter(
+    (entry): entry is [string, string] =>
+      typeof entry[1] === "string" && entry[1].trim() !== "",
+  );
+  if (entries.length === 0) return NextResponse.json({ en: {}, zh: {} });
 
-  for (const [key, value] of Object.entries(
-    body.texts as Record<string, string>,
-  )) {
-    if (!value?.trim()) continue;
-    [en[key], zh[key]] = await Promise.all([
-      translateOne(value, "en"),
-      translateOne(value, "zh-CN"),
-    ]);
+  const apiKey = process.env.GOOGLE_TRANSLATE_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json(
+      { error: "번역 키가 설정되지 않았어요" },
+      { status: 503 },
+    );
   }
 
-  return NextResponse.json({ en, zh });
+  const sources = entries.map(([, value]) => value);
+  try {
+    const [en, zh] = await Promise.all([
+      translateAll(sources, "en", apiKey),
+      translateAll(sources, "zh-CN", apiKey),
+    ]);
+    return NextResponse.json({
+      en: Object.fromEntries(entries.map(([key], i) => [key, en[i]])),
+      zh: Object.fromEntries(entries.map(([key], i) => [key, zh[i]])),
+    });
+  } catch (error) {
+    console.error("[translate] google translate failed", error);
+    return NextResponse.json({ error: "번역에 실패했어요" }, { status: 502 });
+  }
 }
