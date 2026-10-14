@@ -29,9 +29,9 @@
 - **현장 실측 기반 경사도 입력** — 배포된 경로를 감사해 표시 구간 137개 중 31개(23%)가 GPS 고도 노이즈 탓에 0.0% 평지로 그려지는 것을 확인하고, 관리자가 지도에 경로를 그린 뒤 구간별 실측값을 직접 넣는 방식으로 전환
 - **접근성 전수 감사 기반 개선** — UX 감사 문서(`docs/audits/`)로 P0~P3 항목을 분류하고, 모달 초점 트랩·라이브 리전·터치 타겟·폼 라벨을 순차 구현하며 E2E로 회귀를 고정
 - **JavaScript → TypeScript 전면 이관** — 설계 문서를 먼저 작성한 뒤 `src/` 전체(138개 파일)를 `strict` 모드로 이관하고, 우회로 남아 있던 암묵적 `any` 162건까지 걷어 `no-explicit-any`를 error로 유지
-- **결정론적 E2E 환경 구축** — 1344줄 목 백엔드(PostgREST·Next 라우트·Auth·저장소·브라우저 API 스텁)로 외부 의존 없이 20개 spec·267개 시나리오를 실행
+- **결정론적 E2E 환경 구축** — 1355줄 목 백엔드(PostgREST·Next 라우트·Auth·저장소·브라우저 API 스텁)로 외부 의존 없이 20개 spec·267개 시나리오를 실행
 - **마이그레이션 안전장치** — 적용된 마이그레이션의 수정·삭제를 CI에서 차단하고, 적용 후 로컬↔원격 이력 일치를 별도 잡에서 검증
-- **다국어 자동화** — Google Cloud Translation 연동으로 시설·명소 정보를 자동 번역하고, 번역 실패를 관리자 화면에 드러내 개별·일괄 재번역 가능
+- **다국어 자동화** — Google Cloud Translation 연동으로 시설 정보를 자동 번역하고, 번역 실패를 관리자 화면에 드러내 개별·일괄 재번역 가능. 명소는 저장과 분리해 상세 패널의 `자동번역 채우기`가 빈 칸만 채우며 번역 상태 컬럼은 없음
 
 ---
 
@@ -487,7 +487,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 # 건물 동기화 보호
 SYNC_SECRET=
 
-# Google Cloud Translation (시설·명소 자동 번역). Cloud Translation API만 호출하도록 제한한 API 키
+# Google Cloud Translation (시설 자동 번역·명소 자동번역 채우기). Cloud Translation API만 호출하도록 제한한 API 키
 GOOGLE_TRANSLATE_API_KEY=
 
 # CARTO 베이스맵 (없으면 타일에 워터마크가 찍힌다)
@@ -584,7 +584,7 @@ npm run test:e2e:ui   # Playwright UI 모드
 | `admin-inbox.spec.ts`                   | 메뉴 신규 수 배지, 상태 필터·건물 필터, **검토 모달에서 고쳐 승인하면 고친 값과 고른 사진으로 시설 생성**, 확인 중 표시·되돌리기, 확인을 거친 거절과 읽기 전용, 다른 관리자가 먼저 처리(409), 볼 수 없는 사진 공개 차단, 피드백 상세 모달·상태 변경·목록 오류 표시                                                                                                                                                                                                                                 |
 | `facility-photos.spec.ts`               | 공개 사이드패널 시설 사진 썸네일 → 라이트박스(업로드 순서), 관리자 시설 사진 추가·삭제, 사진 칸 순서와 3장 상한, 시설 삭제가 사진도 지움, 건물 상세의 검토 대기 요청 수 → 제보함                                                                                                                                                                                                                                                                                                                   |
 
-E2E는 `e2e/support/mockBackend.ts`(1344줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다. 쓰기 요청의 `id` 외 필터(`is.null`, `eq.`)도 실제 PostgREST처럼 적용하므로, 저장 조건에 건 잠금이 목 위에서만 통과하는 일이 없습니다.
+E2E는 `e2e/support/mockBackend.ts`(1355줄)가 PostgREST·Next 라우트·Auth를 네트워크 레벨에서 흉내 내고 브라우저 API(geolocation·SpeechRecognition·speechSynthesis)를 스텁하므로, **실제 Supabase 없이 결정론적으로 실행**됩니다. 업로드·번역 실패도 카운터로 주입해 검증합니다. 쓰기 요청의 `id` 외 필터(`is.null`, `eq.`)도 실제 PostgREST처럼 적용하므로, 저장 조건에 건 잠금이 목 위에서만 통과하는 일이 없습니다.
 
 ---
 
