@@ -2256,6 +2256,11 @@ button.ku-admin-overview-item {
   border-radius: 10px;
   background: var(--ku-divider);
 }
+/* 사진 파일 칸은 화면 밖에 있어 Tab 초점이 보이지 않는다. 초점이 오면 사진 틀에 고리를 건다 */
+.ku-landmark-photo:has(input:focus-visible) .ku-landmark-photo-frame {
+  outline: 2px solid var(--ku-primary-text);
+  outline-offset: 2px;
+}
 .ku-landmark-photo-empty {
   display: grid;
   place-items: center;
