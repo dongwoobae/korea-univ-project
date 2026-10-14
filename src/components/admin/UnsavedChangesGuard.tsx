@@ -26,6 +26,20 @@ const UnsavedChangesContext = createContext<UnsavedChangesContextValue>({
 
 type PendingLeave = { kind: "action"; action: () => void } | { kind: "back" };
 
+const TRAP_STATE_KEY = "kuUnsavedTrap";
+
+function onTrapEntry() {
+  const state = window.history.state as Record<string, unknown> | null;
+  return state?.[TRAP_STATE_KEY] === true;
+}
+
+function canGoBack() {
+  const { navigation } = window as Window & {
+    navigation?: { canGoBack: boolean };
+  };
+  return navigation?.canGoBack ?? true;
+}
+
 /** 동작과 이유는 docs/specs/2026-10-14-admin-map-first-redesign-design.md 3.4 */
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const [dirtyKeys, setDirtyKeys] = useState<ReadonlySet<symbol>>(
@@ -33,9 +47,26 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   );
   const [pending, setPending] = useState<PendingLeave | null>(null);
   const dirty = dirtyKeys.size > 0;
+  if (pending !== null && !dirty) setPending(null);
   const dirtyRef = useRef(dirty);
-  const trapRef = useRef(false);
+  // 쌓은 기록과 그 바로 아래 기록의 주소
+  const trapHrefRef = useRef<string | null>(null);
+  const stillOnTrapRef = useRef(false);
+  const armedRef = useRef(false);
   const leavingRef = useRef(false);
+
+  const arm = useCallback(() => {
+    if (!stillOnTrapRef.current || !onTrapEntry()) {
+      window.history.pushState(
+        { [TRAP_STATE_KEY]: true },
+        "",
+        window.location.href,
+      );
+      trapHrefRef.current = window.location.href;
+      stillOnTrapRef.current = true;
+    }
+    armedRef.current = true;
+  }, []);
 
   const setDirty = useCallback((key: symbol, next: boolean) => {
     setDirtyKeys((previous) => {
@@ -50,16 +81,11 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     dirtyRef.current = dirty;
     if (!dirty) {
-      // 쌓은 기록은 걷어내지 않는다. 다음에 dirty가 되면 새로 쌓는다.
-      trapRef.current = false;
+      armedRef.current = false;
       leavingRef.current = false;
       return;
     }
-    if (!trapRef.current) {
-      // 뒤로가기를 이 기록만 빼는 것으로 바꿔, 화면을 그대로 둔 채 확인 창을 띄운다
-      window.history.pushState(null, "", window.location.href);
-      trapRef.current = true;
-    }
+    arm();
     const warn = (event: BeforeUnloadEvent) => {
       if (leavingRef.current) return;
       event.preventDefault();
@@ -67,17 +93,36 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
-  }, [dirty]);
+  }, [dirty, arm]);
 
   useEffect(() => {
     function handlePopState() {
-      if (!trapRef.current || !dirtyRef.current) return;
-      trapRef.current = false;
-      setPending({ kind: "back" });
+      const armed = armedRef.current;
+      const sameScreen = window.location.href === trapHrefRef.current;
+      stillOnTrapRef.current = false;
+      armedRef.current = false;
+      if (leavingRef.current) {
+        if (!sameScreen || !dirtyRef.current) {
+          leavingRef.current = false;
+          return;
+        }
+        if (canGoBack()) {
+          window.history.back();
+          return;
+        }
+        leavingRef.current = false;
+        arm();
+        return;
+      }
+      if (!sameScreen) {
+        setPending(null);
+        return;
+      }
+      if (armed && dirtyRef.current) setPending({ kind: "back" });
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [arm]);
 
   const guard = useCallback((action: () => void) => {
     if (!dirtyRef.current) {
@@ -91,6 +136,10 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     const current = pending;
     setPending(null);
     if (current?.kind === "back") {
+      if (!canGoBack()) {
+        arm();
+        return;
+      }
       // 사이트 밖으로 나가는 뒤로가기라면 beforeunload가 한 번 더 묻지 않게 한다
       leavingRef.current = true;
       window.history.back();
@@ -100,10 +149,7 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   }
 
   function cancelLeave() {
-    if (pending?.kind === "back") {
-      window.history.pushState(null, "", window.location.href);
-      trapRef.current = true;
-    }
+    if (pending?.kind === "back") arm();
     setPending(null);
   }
 

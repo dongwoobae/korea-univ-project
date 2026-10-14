@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useEffectEvent, useSyncExternalStore } from "react";
 import { useUnsavedChangesGuard } from "@/components/admin/UnsavedChangesGuard";
 import {
   readWorkspaceState,
@@ -9,6 +9,7 @@ import {
 } from "@/lib/workspaceUrl";
 
 const URL_CHANGED = "ku:workspace-url";
+const CLOSE_REQUESTED = "ku:workspace-close";
 
 function subscribe(onChange: () => void) {
   window.addEventListener("popstate", onChange);
@@ -60,4 +61,29 @@ export function useWorkspaceSelection(options: { allowEdit: boolean }) {
   }
 
   return { state, request };
+}
+
+/**
+ * 헤더의 같은 화면 링크가 부른다. 화면이 자기 닫기로 받아 저장 잠금과 가드를 거친다(설계 2026-10-14 3.4).
+ * 받은 화면이 있으면 true
+ */
+export function requestWorkspaceClose() {
+  return !window.dispatchEvent(
+    new Event(CLOSE_REQUESTED, { cancelable: true }),
+  );
+}
+
+/** 선택이 열려 있는 동안 requestWorkspaceClose를 받아 close를 부른다 */
+export function useWorkspaceCloseRequest(open: boolean, close: () => void) {
+  const onClose = useEffectEvent(close);
+
+  useEffect(() => {
+    if (!open) return;
+    function handle(event: Event) {
+      event.preventDefault();
+      onClose();
+    }
+    window.addEventListener(CLOSE_REQUESTED, handle);
+    return () => window.removeEventListener(CLOSE_REQUESTED, handle);
+  }, [open]);
 }

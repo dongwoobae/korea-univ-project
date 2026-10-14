@@ -16,6 +16,7 @@ import {
 import { useAdminCollection } from "@/components/admin/workspace/useAdminCollection";
 import {
   applyWorkspaceState,
+  useWorkspaceCloseRequest,
   useWorkspaceSelection,
 } from "@/components/admin/workspace/useWorkspaceSelection";
 import { getFacilityMarkerColor } from "@/components/map/facilityColors";
@@ -165,6 +166,10 @@ export default function StandaloneFacilitiesPage() {
     if (saving) return;
     request(next, alsoApply);
   }
+
+  useWorkspaceCloseRequest(state.mode !== "closed", () =>
+    requestSelection({ mode: "closed" }),
+  );
 
   // 칩·검색·정렬은 설계 2026-10-14 3.3대로 선택을 푼다. 페이지는 3.4 표가 이동 확인 대상으로 두어(선택이 남으면
   // 확인할 까닭이 없다), 유형 드롭다운은 칩과 같은 목록 조건이라 같이 푼다.

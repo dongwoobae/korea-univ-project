@@ -17,8 +17,7 @@ import {
   UnsavedChangesProvider,
   useUnsavedChangesGuard,
 } from "@/components/admin/UnsavedChangesGuard";
-import { applyWorkspaceState } from "@/components/admin/workspace/useWorkspaceSelection";
-import { readWorkspaceState } from "@/lib/workspaceUrl";
+import { requestWorkspaceClose } from "@/components/admin/workspace/useWorkspaceSelection";
 import "../admin-ui.css";
 
 const INBOX_HREF = "/admin/dashboard/inbox";
@@ -135,12 +134,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   // onNavigate가 불리지 않는 클릭과 지금 페이지를 가리키는 링크는 설계 2026-10-14 3.4
   function confirmBeforeLink(href: string) {
     return (event: { preventDefault: () => void }) => {
-      const { mode } = readWorkspaceState(window.location.search, {
-        allowEdit: true,
-      });
-      if (href === pathname && mode !== "closed") {
+      if (href === pathname && requestWorkspaceClose()) {
         event.preventDefault();
-        guard(() => applyWorkspaceState({ mode: "closed" }));
         return;
       }
       if (!dirty) return;
