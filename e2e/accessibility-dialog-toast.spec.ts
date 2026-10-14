@@ -119,6 +119,77 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     await expect(trigger).toBeFocused();
   });
 
+  test("중첩 확인 모달만 먼저 닫고 바깥 영상 모달의 초점을 복원한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    const facility = state.facilities.find((item) => item.id === "f-installed");
+    if (facility) facility.video_url = "https://cdn.test/video.mp4";
+    await page.goto("/admin/dashboard/facilities?id=f-installed");
+
+    const trigger = page
+      .getByRole("region", { name: "중앙광장 경사로", exact: true })
+      .getByRole("button", { name: "교체" });
+    await trigger.focus();
+    await trigger.click();
+
+    const videoDialog = page.getByRole("dialog", { name: "동영상 관리" });
+    const deleteButton = videoDialog.getByRole("button", {
+      name: "동영상 삭제",
+    });
+    await deleteButton.click();
+
+    const confirmDialog = page.getByRole("dialog", {
+      name: "동영상을 삭제할까요?",
+    });
+    await expect(
+      confirmDialog.getByRole("button", { name: "취소" }),
+    ).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(confirmDialog).toHaveCount(0);
+    await expect(videoDialog).toBeVisible();
+    await expect(deleteButton).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(videoDialog).toHaveCount(0);
+    await expect(trigger).toBeFocused();
+  });
+
+  test("동영상 삭제 성공 시 실행 버튼이 사라져도 초점이 남은 모달 안으로 복귀한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    const facility = state.facilities.find((item) => item.id === "f-installed");
+    if (facility) facility.video_url = "https://cdn.test/video.mp4";
+    await page.goto("/admin/dashboard/facilities?id=f-installed");
+
+    await page
+      .getByRole("region", { name: "중앙광장 경사로", exact: true })
+      .getByRole("button", { name: "교체" })
+      .click();
+
+    const videoDialog = page.getByRole("dialog", { name: "동영상 관리" });
+    const deleteButton = videoDialog.getByRole("button", {
+      name: "동영상 삭제",
+    });
+    await deleteButton.click();
+
+    const confirmDialog = page.getByRole("dialog", {
+      name: "동영상을 삭제할까요?",
+    });
+    await confirmDialog.getByRole("button", { name: "삭제" }).click();
+
+    await expect(confirmDialog).toHaveCount(0);
+    await expect(deleteButton).toHaveCount(0);
+    await expect(videoDialog).toBeVisible();
+    await expect
+      .poll(() =>
+        videoDialog.evaluate((el) => el.contains(document.activeElement)),
+      )
+      .toBe(true);
+  });
+
   test("오류와 성공 토스트를 각각 alert와 status로 전달한다", async ({
     page,
   }) => {

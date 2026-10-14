@@ -1,3 +1,4 @@
+import path from "node:path";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { installMockBackend, type MockState } from "./support/mockBackend";
 
@@ -11,6 +12,19 @@ function listRow(page: Page, name: string) {
 
 function facilitiesRequest(url: URL) {
   return url.pathname.endsWith("/rest/v1/building_facilities");
+}
+
+function detailPanel(page: Page, name: string) {
+  return page.getByRole("region", { name, exact: true });
+}
+
+// 목업이 unpkg(ffmpeg 코어)를 끊어 변환은 항상 실패한다. 재생 가능한 원본으로
+// 대체되는 경로를 타려면 더미 바이트가 아닌 실제 H.264 파일이 필요하다.
+const PLAYABLE_VIDEO = path.join(__dirname, "fixtures/tiny-h264.mp4");
+
+async function openNewFacility(page: Page) {
+  await listPanel(page).getByRole("button", { name: "＋ 시설 추가" }).click();
+  return detailPanel(page, "시설 추가");
 }
 
 function typesRequest(url: URL) {
@@ -325,5 +339,347 @@ test.describe("독립 시설 작업 화면 — 목록과 지도", () => {
       page.getByText("시설을 찾지 못했어요. 삭제됐거나 주소가 틀렸어요."),
     ).toBeVisible();
     await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
+  });
+});
+
+test.describe("독립 시설 작업 화면 — 상세 패널", () => {
+  test("행을 누르면 상세 패널이 열리고 ✕로 닫는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "중앙광장 경사로").click();
+    const detail = detailPanel(page, "중앙광장 경사로");
+
+    await expect(
+      detail.getByRole("heading", { name: "중앙광장 경사로" }),
+    ).toBeVisible();
+    await expect(detail.getByText(/^경사로 · 수정 /)).toBeVisible();
+    await expect(detail.getByLabel("시설 이름 (선택)")).toHaveValue(
+      "중앙광장 경사로",
+    );
+    await detail.getByRole("button", { name: "상세 닫기" }).click();
+    await expect(detail).toHaveCount(0);
+    await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
+  });
+
+  test("?id= 링크는 그 시설의 상세 패널을 연다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities?id=f-uninstalled");
+    await expect(detailPanel(page, "공사 중 주차구역")).toBeVisible();
+  });
+
+  test("설치 상태를 누르면 바로 저장하고 status 토스트로 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "중앙광장 경사로").click();
+    const detail = detailPanel(page, "중앙광장 경사로");
+    const installed = detail.getByRole("button", { name: "설치", exact: true });
+    const missing = detail.getByRole("button", { name: "미설치", exact: true });
+
+    await expect(installed).toHaveAttribute("aria-pressed", "true");
+    await missing.click();
+    await expect(
+      page
+        .locator(".ku-toast[role='status']")
+        .filter({ hasText: "미설치로 변경되었어요" }),
+    ).toBeVisible();
+    await expect(missing).toHaveAttribute("aria-pressed", "true");
+    await expect(listRow(page, "중앙광장 경사로")).toContainText("미설치");
+    expect(
+      state.facilities.find((facility) => facility.id === "f-installed")
+        ?.is_installed,
+    ).toBe(false);
+  });
+
+  test("번역이 필요한 시설을 상세에서 재번역한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    const target = state.facilities.find(
+      (facility) => facility.id === "f-installed",
+    );
+    if (target) target.translation_status = "failed";
+    await page.goto("/admin/dashboard/facilities");
+    await expect(listRow(page, "중앙광장 경사로")).toContainText("번역 필요");
+    await listRow(page, "중앙광장 경사로").click();
+    const detail = detailPanel(page, "중앙광장 경사로");
+
+    await expect(detail.getByText("영문·중문 번역 필요")).toBeVisible();
+    await detail.getByRole("button", { name: "재번역" }).click();
+    await expect(page.getByText("시설 번역을 완료했어요")).toBeVisible();
+    await expect(detail.getByText("✓ 영문·중문 번역 완료")).toBeVisible();
+    expect(target?.translation_status).toBe("translated");
+  });
+
+  test("인라인 확인을 거쳐 시설을 삭제한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "공사 중 주차구역").click();
+    const detail = detailPanel(page, "공사 중 주차구역");
+
+    await detail.getByRole("button", { name: "삭제", exact: true }).click();
+    await expect(
+      detail.getByText("삭제한 시설은 복구할 수 없어요."),
+    ).toBeVisible();
+    // ConfirmModal을 띄우지 않는다(설계 2026-10-14 4.2)
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await detail.getByRole("button", { name: "취소" }).click();
+    await expect(
+      detail.getByText("삭제한 시설은 복구할 수 없어요."),
+    ).toHaveCount(0);
+
+    await detail.getByRole("button", { name: "삭제", exact: true }).click();
+    await detail
+      .getByRole("group", { name: "삭제 확인" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+    await expect(page.getByText("시설이 삭제되었어요")).toBeVisible();
+    await expect(detail).toHaveCount(0);
+    await expect(listRow(page, "공사 중 주차구역")).toHaveCount(0);
+    expect(
+      state.facilities.some((facility) => facility.id === "f-uninstalled"),
+    ).toBe(false);
+  });
+
+  test("시설 동영상을 업로드하고 캡션 저장 후 삭제한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "중앙광장 경사로").click();
+    await detailPanel(page, "중앙광장 경사로")
+      .getByRole("button", { name: "＋ 동영상 연결" })
+      .click();
+    await expect(page.getByText("동영상 관리")).toBeVisible();
+
+    await expect(page.getByText("가로 영상을 추천드려요")).toBeVisible();
+    await page
+      .locator('input[type="file"][accept^="video/"]')
+      .setInputFiles(PLAYABLE_VIDEO);
+    await expect(
+      page.getByText("용량을 줄이지 못해 원본을 올렸어요"),
+    ).toBeVisible();
+    await expect(page.locator("video")).toBeVisible();
+    expect(
+      state.facilities.find((facility) => facility.id === "f-installed")
+        ?.video_poster_url,
+    ).toBe("https://cdn.test/video.jpg");
+
+    const caption = page.getByPlaceholder("동영상 설명 추가...");
+    await caption.fill("정문 방향 경사로 영상");
+    await caption.blur();
+    await expect
+      .poll(
+        () =>
+          state.facilities.find((facility) => facility.id === "f-installed")
+            ?.video_caption,
+      )
+      .toBe("정문 방향 경사로 영상");
+
+    await page.getByRole("button", { name: "동영상 삭제" }).click();
+    await page.getByText("동영상을 삭제할까요?").waitFor();
+    await page
+      .getByRole("dialog", { name: "동영상을 삭제할까요?" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+    await expect(page.getByText(/동영상 추가/)).toBeVisible();
+  });
+
+  test("변환 도구를 불러오는 중에 나가면 업로드 요청이 나가지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseCore = () => {};
+    await page.route("https://unpkg.com/**", async (route) => {
+      await new Promise<void>((resolve) => (releaseCore = resolve));
+      await route.abort();
+    });
+    const uploadCalls: string[] = [];
+    page.on("request", (request) => {
+      const { pathname } = new URL(request.url());
+      if (pathname.startsWith("/api/facility-video"))
+        uploadCalls.push(pathname);
+    });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "중앙광장 경사로").click();
+    await detailPanel(page, "중앙광장 경사로")
+      .getByRole("button", { name: "＋ 동영상 연결" })
+      .click();
+
+    await page
+      .locator('input[type="file"][accept^="video/"]')
+      .setInputFiles(PLAYABLE_VIDEO);
+    // 진행 영역과 업로드 버튼 라벨에 같은 문구가 두 번 나온다.
+    await expect(
+      page.getByText("변환 도구 불러오는 중...").first(),
+    ).toBeVisible();
+    await page
+      .getByRole("dialog", { name: "동영상 관리" })
+      .getByRole("button", { name: "닫기" })
+      .click();
+    await page.getByRole("button", { name: "중단하고 나가기" }).click();
+    await expect(page.getByText("동영상 관리")).toHaveCount(0);
+    releaseCore();
+
+    // 취소 플래그가 없으면 이 사이에 재생 검사를 거쳐 presign이 나간다.
+    await page.waitForTimeout(1500);
+    expect(uploadCalls).toEqual([]);
+  });
+
+  test("포스터 업로드가 실패하면 포스터 없이 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.route("https://upload.test/poster", (route) =>
+      route.fulfill({
+        status: 500,
+        headers: { "access-control-allow-origin": "*" },
+        body: "",
+      }),
+    );
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "중앙광장 경사로").click();
+    await detailPanel(page, "중앙광장 경사로")
+      .getByRole("button", { name: "＋ 동영상 연결" })
+      .click();
+
+    await page
+      .locator('input[type="file"][accept^="video/"]')
+      .setInputFiles(PLAYABLE_VIDEO);
+
+    await expect(page.locator("video")).toBeVisible();
+    const facility = state.facilities.find((item) => item.id === "f-installed");
+    expect(facility?.video_url).toBe("https://cdn.test/video.mp4");
+    expect(facility?.video_poster_url).toBeNull();
+  });
+
+  test("새 시설을 현 위치에 만들어 저장하면 그 시설의 상세로 바뀐다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    const detail = await openNewFacility(page);
+    await expect(page).toHaveURL(/\?new=1$/);
+
+    // 저장 전에는 사진·동영상을 올릴 수 없다(설계 2026-10-14 4.2)
+    await expect(
+      detail.getByRole("button", { name: "＋ 동영상 연결" }),
+    ).toBeDisabled();
+    await detail.getByLabel("시설 유형 *").selectOption("ramp");
+    await detail.getByLabel("시설 이름 (선택)").fill("E2E 경사로");
+    await detail.getByRole("button", { name: "현 위치로 찍기" }).click();
+    await expect(
+      page.getByText("현재 위치를 지도에 표시했어요."),
+    ).toBeVisible();
+    await detail.getByRole("button", { name: "저장" }).click();
+
+    await expect(page.getByText("시설이 추가되었어요!")).toBeVisible();
+    await expect(detailPanel(page, "E2E 경사로")).toBeVisible();
+    await expect(page).toHaveURL(/\?id=f-created$/);
+    expect(
+      state.facilities.find((facility) => facility.name === "E2E 경사로"),
+    ).toMatchObject({
+      building_id: null,
+      facility_code: "ramp",
+      is_installed: true,
+      floor_info: null,
+    });
+  });
+
+  test("저장과 자동 번역 실패를 나누어 알리고 재번역한다", async ({ page }) => {
+    const state = await installMockBackend(page, {
+      authenticated: true,
+      failTranslations: 1,
+    });
+    await page.goto("/admin/dashboard/facilities");
+    const draft = await openNewFacility(page);
+    await draft.getByLabel("시설 유형 *").selectOption("ramp");
+    await draft.getByLabel("시설 이름 (선택)").fill("번역 실패 경사로");
+    await draft.getByRole("button", { name: "현 위치로 찍기" }).click();
+    await draft.getByRole("button", { name: "저장" }).click();
+
+    await expect(
+      page.getByText(
+        "시설은 저장했지만 자동 번역에 실패했어요. 상세에서 재번역해 주세요.",
+      ),
+    ).toBeVisible();
+    const detail = detailPanel(page, "번역 실패 경사로");
+    await expect(detail.getByText("영문·중문 번역 필요")).toBeVisible();
+    expect(
+      state.facilities.find((facility) => facility.name === "번역 실패 경사로")
+        ?.translation_status,
+    ).toBe("failed");
+
+    await detail.getByRole("button", { name: "재번역" }).click();
+    await expect(page.getByText("시설 번역을 완료했어요")).toBeVisible();
+    await expect(detail.getByText("✓ 영문·중문 번역 완료")).toBeVisible();
+    expect(
+      state.facilities.find((facility) => facility.name === "번역 실패 경사로")
+        ?.name_en,
+    ).toBe("EN 번역 실패 경사로");
+  });
+
+  test("캠퍼스 밖 위치는 경고하되 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, {
+      authenticated: true,
+      currentLocation: { latitude: 37.61, longitude: 127.06 },
+    });
+    await page.goto("/admin/dashboard/facilities");
+    const detail = await openNewFacility(page);
+    await detail.getByLabel("시설 유형 *").selectOption("ramp");
+    await detail.getByLabel("시설 이름 (선택)").fill("인접 지역 경사로");
+    await detail.getByRole("button", { name: "현 위치로 찍기" }).click();
+    await expect(
+      detail.getByText(
+        "캠퍼스 영역 밖입니다. 인접 지역 시설이라면 그대로 저장할 수 있습니다.",
+      ),
+    ).toBeVisible();
+
+    const before = state.facilities.length;
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("시설이 추가되었어요!")).toBeVisible();
+    expect(state.facilities).toHaveLength(before + 1);
+    expect(state.facilities.at(-1)).toMatchObject({
+      name: "인접 지역 경사로",
+      lat: 37.61,
+      lng: 127.06,
+    });
+  });
+
+  test("설치 상태를 바꾼 뒤 이름을 고쳐 저장해도 설치 상태가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "중앙광장 경사로").click();
+    const detail = detailPanel(page, "중앙광장 경사로");
+
+    await detail.getByRole("button", { name: "미설치", exact: true }).click();
+    await expect(page.getByText("미설치로 변경되었어요")).toBeVisible();
+    await detail.getByLabel("시설 이름 (선택)").fill("고친 경사로");
+    await detail.getByRole("button", { name: "저장" }).click();
+
+    await expect(page.getByText("시설이 수정되었어요!")).toBeVisible();
+    expect(
+      state.facilities.find((facility) => facility.id === "f-installed"),
+    ).toMatchObject({ name: "고친 경사로", is_installed: false });
+  });
+
+  test("지도를 눌러 위치를 옮기고 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "중앙광장 경사로").click();
+    const detail = detailPanel(page, "중앙광장 경사로");
+    const coords = detail.locator(".ku-detail-coords");
+    await expect(coords).toHaveText("37.5894, 127.0325");
+
+    // 목록 패널(왼쪽)과 상세 패널(오른쪽) 사이의 빈 지도
+    await page
+      .locator(".ku-map-workspace-map .leaflet-container")
+      .click({ position: { x: 600, y: 150 } });
+    await expect(coords).not.toHaveText("37.5894, 127.0325");
+    await detail.getByRole("button", { name: "저장" }).click();
+
+    await expect(page.getByText("시설이 수정되었어요!")).toBeVisible();
+    const saved = state.facilities.find(
+      (facility) => facility.id === "f-installed",
+    );
+    expect(saved?.lat).not.toBe(37.5894);
+    expect(saved?.lng).not.toBe(127.0325);
   });
 });
