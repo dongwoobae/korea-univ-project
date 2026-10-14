@@ -1251,6 +1251,8 @@ test.describe("독립 시설 작업 화면 — 모바일", () => {
     const coords = detail.locator(".ku-detail-coords");
     await expect(coords).toHaveText(/\d/);
     const before = await coords.textContent();
+    // 지도는 패널보다 늦게 붙는다. 좌표 클릭은 기다려 주지 않으므로 마커가 뜬 뒤에 누른다
+    await expect(page.locator(".ku-workspace-marker--selected")).toBeVisible();
 
     const strip = await detail.locator(".ku-detail-panel-strip").boundingBox();
     await page.mouse.click(strip!.x + 40, strip!.y + strip!.height - 30);
