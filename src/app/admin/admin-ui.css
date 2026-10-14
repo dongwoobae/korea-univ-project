@@ -2172,8 +2172,9 @@ button.ku-admin-overview-item {
 }
 
 /* 목록·줌 버튼·상세 패널이 나란히 들어가지 않는 폭(설계 2026-10-14 3.5). 경계는 types.ts의 ADMIN_NARROW_QUERY와 같다.
-   visibility로 숨겨 상세를 닫았을 때 목록의 스크롤 위치가 남는다. */
-@media (min-width: 768px) and (max-width: 963px) {
+   visibility로 숨겨 상세를 닫았을 때 목록의 스크롤 위치가 남는다.
+   아래 끝을 두지 않는다 — 확대로 767~768px 사이 폭이 나와도 JS와 같이 판정한다. 모바일은 목록 패널을 그리지 않고 줌 버튼을 숨겨 이 규칙이 닿지 않는다. */
+@media (max-width: 963px) {
   .ku-map-workspace[data-detail-open] .ku-float-panel {
     visibility: hidden;
   }
