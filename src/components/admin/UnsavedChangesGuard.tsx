@@ -33,12 +33,8 @@ function onTrapEntry() {
   return state?.[TRAP_STATE_KEY] === true;
 }
 
-function canGoBack() {
-  const { navigation } = window as Window & {
-    navigation?: { canGoBack: boolean };
-  };
-  return navigation?.canGoBack ?? true;
-}
+// 뒤로 간 뒤 이 안에 popstate도 beforeunload도 없으면 뒤로 갈 기록이 없던 것으로 본다
+const BACK_SETTLE_MS = 1000;
 
 /** 동작과 이유는 docs/specs/2026-10-14-admin-map-first-redesign-design.md 3.4 */
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
@@ -54,6 +50,8 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const stillOnTrapRef = useRef(false);
   const armedRef = useRef(false);
   const leavingRef = useRef(false);
+  const unloadingRef = useRef(false);
+  const backTimerRef = useRef<number | null>(null);
 
   const arm = useCallback(() => {
     if (!stillOnTrapRef.current || !onTrapEntry()) {
@@ -67,6 +65,28 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     }
     armedRef.current = true;
   }, []);
+
+  const stopBackWait = useCallback(() => {
+    if (backTimerRef.current === null) return;
+    window.clearTimeout(backTimerRef.current);
+    backTimerRef.current = null;
+  }, []);
+
+  // Navigation API canGoBack은 같은 출처 기록만 세서, 다른 사이트에서 들어온 탭에서도 false다.
+  // 그래서 뒤로 가 보고 움직였는지로 판정한다
+  const leaveBack = useCallback(() => {
+    stopBackWait();
+    // 사이트 밖으로 나가는 뒤로가기라면 beforeunload가 한 번 더 묻지 않게 한다
+    leavingRef.current = true;
+    unloadingRef.current = false;
+    window.history.back();
+    backTimerRef.current = window.setTimeout(() => {
+      backTimerRef.current = null;
+      if (unloadingRef.current) return;
+      leavingRef.current = false;
+      if (dirtyRef.current) arm();
+    }, BACK_SETTLE_MS);
+  }, [arm, stopBackWait]);
 
   const setDirty = useCallback((key: symbol, next: boolean) => {
     setDirtyKeys((previous) => {
@@ -87,7 +107,10 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     }
     arm();
     const warn = (event: BeforeUnloadEvent) => {
-      if (leavingRef.current) return;
+      if (leavingRef.current) {
+        unloadingRef.current = true;
+        return;
+      }
       event.preventDefault();
       event.returnValue = "";
     };
@@ -102,16 +125,12 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
       stillOnTrapRef.current = false;
       armedRef.current = false;
       if (leavingRef.current) {
+        stopBackWait();
         if (!sameScreen || !dirtyRef.current) {
           leavingRef.current = false;
           return;
         }
-        if (canGoBack()) {
-          window.history.back();
-          return;
-        }
-        leavingRef.current = false;
-        arm();
+        leaveBack();
         return;
       }
       if (!sameScreen) {
@@ -122,7 +141,24 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [arm]);
+  }, [leaveBack, stopBackWait]);
+
+  // bfcache로 돌아오면 떠나던 상태가 남아 경고와 기록이 꺼져 있다
+  useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (!event.persisted) return;
+      stopBackWait();
+      leavingRef.current = false;
+      unloadingRef.current = false;
+      stillOnTrapRef.current = false;
+      if (dirtyRef.current) arm();
+    }
+    window.addEventListener("pageshow", handlePageShow);
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow);
+      stopBackWait();
+    };
+  }, [arm, stopBackWait]);
 
   const guard = useCallback((action: () => void) => {
     if (!dirtyRef.current) {
@@ -136,13 +172,7 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
     const current = pending;
     setPending(null);
     if (current?.kind === "back") {
-      if (!canGoBack()) {
-        arm();
-        return;
-      }
-      // 사이트 밖으로 나가는 뒤로가기라면 beforeunload가 한 번 더 묻지 않게 한다
-      leavingRef.current = true;
-      window.history.back();
+      leaveBack();
       return;
     }
     current?.action();
