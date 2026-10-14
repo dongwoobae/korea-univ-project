@@ -357,6 +357,48 @@ test.describe("명소 작업 화면 — 모바일", () => {
     await expect(detail).toHaveCount(0);
     await expect(sheet).toBeVisible();
   });
+
+  test("바텀시트를 펼치고 접으며 위쪽 검색·칩으로 목록을 좁힌다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks");
+    const sheet = listPanel(page);
+
+    const handle = sheet.getByRole("button", { name: "목록 펼치기" });
+    await expect(handle).toHaveAttribute("aria-expanded", "false");
+    const collapsed = await sheet.boundingBox();
+    await handle.click();
+    const collapse = sheet.getByRole("button", { name: "목록 접기" });
+    await expect(collapse).toHaveAttribute("aria-expanded", "true");
+    await expect
+      .poll(async () => (await sheet.boundingBox())?.height ?? 0)
+      .toBeGreaterThan(collapsed!.height);
+
+    // 칩과 검색은 바텀시트가 아니라 지도 위쪽 막대에 있다
+    const photoChip = page.getByRole("button", { name: "사진 없음 1개" });
+    const chipBox = await photoChip.boundingBox();
+    expect(chipBox!.height).toBeGreaterThanOrEqual(44);
+    await photoChip.click();
+    await expect(sheet.getByTestId("admin-list-item-name")).toHaveText([
+      "사진 없는 연못",
+    ]);
+    await expect(sheet.getByRole("status")).toHaveText("1개 표시");
+
+    await page.getByRole("button", { name: "전체 3개" }).click();
+    await page.getByRole("searchbox", { name: "명소 검색" }).fill("정자");
+    await expect(sheet.getByTestId("admin-list-item-name")).toHaveText([
+      "번역 빈 정자",
+    ]);
+    const rowBox = await listRow(page, "번역 빈 정자").boundingBox();
+    expect(rowBox!.height).toBeGreaterThanOrEqual(64);
+
+    await collapse.click();
+    await expect(
+      sheet.getByRole("button", { name: "목록 펼치기" }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
 });
 
 async function openSquirrel(page: Page) {
@@ -377,6 +419,16 @@ test.describe("명소 작업 화면 — 상세 패널 편집", () => {
     const detail = await openSquirrel(page);
 
     const emojiButton = detail.getByRole("button", { name: /이모지.*🐿️/ });
+    await expect(detail.getByRole("button", { name: /이모지/ })).toHaveCount(1);
+    await expect(
+      detail.locator(".ku-detail-panel-head").getByRole("button", {
+        name: /이모지/,
+      }),
+    ).toBeVisible();
+    // 지도를 바로 누를 수 있는 데스크톱에는 위치 고르기가 없다
+    await expect(
+      detail.getByRole("button", { name: "지도에서 위치 고르기" }),
+    ).toHaveCount(0);
     await expect(emojiButton).toHaveAttribute("aria-haspopup", "listbox");
     await expect(emojiButton).toHaveAttribute("aria-expanded", "false");
     const box = await emojiButton.boundingBox();
@@ -1137,5 +1189,241 @@ test.describe("명소 작업 화면 — 저장 안 한 변경", () => {
     await listRow(page, "다람쥐길").click();
     await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(detailPanel(page, "다람쥐길")).toBeVisible();
+  });
+});
+
+function pickBar(page: Page) {
+  return page.getByRole("region", { name: "위치 고르기", exact: true });
+}
+
+/** 지도 영역의 왼쪽 위에서 잰 점을 누른다. 지도는 패널보다 늦게 붙으니 부르기 전에 마커가 뜬 것을 본다 */
+async function tapMap(page: Page, x: number, y: number) {
+  const box = await page.locator(".ku-map-workspace-map").boundingBox();
+  await page.mouse.click(box!.x + x, box!.y + y);
+}
+
+test.describe("명소 작업 화면 — 모바일 상세", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("본문 맨 위에 사진 미리보기를 190px로 그리고 하단 취소·저장은 50px이다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto(`/admin/dashboard/landmarks?id=${SQUIRREL_ID}`);
+    const detail = detailPanel(page, "다람쥐길");
+    const body = detail.locator(".ku-detail-panel-body");
+    const frame = body.locator(".ku-landmark-photo-frame");
+    await expect(frame.locator("img")).toBeVisible();
+
+    const [bodyBox, frameBox, nameBox] = await Promise.all([
+      body.boundingBox(),
+      frame.boundingBox(),
+      detail.getByLabel("이름 *").boundingBox(),
+    ]);
+    expect(frameBox!.height).toBe(190);
+    // 본문의 첫 요소이고, 이름 칸과 같은 폭으로 본문을 채운다
+    expect(frameBox!.y - bodyBox!.y).toBeLessThanOrEqual(16);
+    expect(frameBox!.y + frameBox!.height).toBeLessThan(nameBox!.y);
+    expect(Math.abs(frameBox!.width - nameBox!.width)).toBeLessThanOrEqual(1);
+    await expect(
+      frame.getByRole("button", { name: "사진 변경" }),
+    ).toBeVisible();
+    await expect(
+      frame.getByRole("button", { name: "사진 삭제" }),
+    ).toBeVisible();
+
+    for (const name of ["취소", "저장"]) {
+      const box = await detail
+        .getByRole("button", { name, exact: true })
+        .boundingBox();
+      expect(box!.height, name).toBe(50);
+    }
+  });
+
+  test("사진이 없으면 같은 자리에 점선 ＋ 사진 선택을 두고, 새 명소는 고른 사진을 미리 본다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipLandmarks(state);
+    await page.goto("/admin/dashboard/landmarks?id=l-no-photo");
+    const detail = detailPanel(page, "사진 없는 연못");
+    const empty = detail.getByText("＋ 사진 선택");
+    await expect(empty).toBeVisible();
+    expect((await empty.boundingBox())!.height).toBe(190);
+
+    await detail.getByRole("button", { name: "목록으로" }).click();
+    await listPanel(page).getByRole("button", { name: "＋ 추가" }).click();
+    const created = detailPanel(page, "명소 추가");
+    await photoInput(created).setInputFiles(PHOTO_FILE);
+    await expect(created.getByText("저장 시 업로드: pond.png")).toBeVisible();
+    const frame = created.locator(".ku-landmark-photo-frame");
+    await expect(frame.locator("img")).toHaveAttribute("src", /^blob:/);
+    expect((await frame.boundingBox())!.height).toBe(190);
+  });
+
+  test("이모지 버튼은 본문 이름 칸 위에 하나만 두고 피커로 바꾼다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto(`/admin/dashboard/landmarks?id=${SQUIRREL_ID}`);
+    const detail = detailPanel(page, "다람쥐길");
+    const emoji = detail.getByRole("button", { name: /이모지/ });
+
+    await expect(
+      detail
+        .locator(".ku-detail-panel-body")
+        .getByRole("button", { name: /이모지.*🐿️/ }),
+    ).toBeVisible();
+    await expect(emoji).toHaveCount(1);
+    await expect(emoji).toHaveAttribute("aria-haspopup", "listbox");
+    const [emojiBox, nameBox] = await Promise.all([
+      emoji.boundingBox(),
+      detail.getByLabel("이름 *").boundingBox(),
+    ]);
+    expect(emojiBox!.width).toBeGreaterThanOrEqual(44);
+    expect(emojiBox!.height).toBeGreaterThanOrEqual(44);
+    expect(emojiBox!.y).toBeLessThan(nameBox!.y);
+    // 모바일에는 헤더가 없어 캠퍼스·수정일을 이모지 옆에 둔다
+    await expect(detail.locator(".ku-landmark-mobile-head")).toContainText(
+      / · 수정 /,
+    );
+
+    await emoji.click();
+    await expect(emoji).toHaveAttribute("aria-expanded", "true");
+    await detail.getByLabel("이모지 검색").fill("나무");
+    await detail.getByRole("option").first().click();
+    await expect(emoji).toHaveAttribute("aria-expanded", "false");
+    await expect(emoji).not.toHaveAccessibleName(/🐿️/);
+  });
+});
+
+test.describe("명소 작업 화면 — 모바일 위치 고르기", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("상세를 접고 지도에서 누른 위치를 이 위치로 초안 좌표로 삼아 저장한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto(`/admin/dashboard/landmarks?id=${SQUIRREL_ID}`);
+    const detail = detailPanel(page, "다람쥐길");
+    const coords = detail.locator(".ku-detail-coords");
+    await expect(coords).toHaveText("37.58955, 127.03225");
+    await detail
+      .getByLabel("설명", { exact: true })
+      .fill("고르는 동안 남는 설명");
+    // 지도는 패널보다 늦게 붙는다. 좌표 클릭은 기다려 주지 않으므로 마커가 뜬 뒤에 누른다
+    const pin = page.locator(".ku-landmark-marker--selected");
+    await expect(pin).toBeVisible();
+
+    const start = detail.getByRole("button", { name: "지도에서 위치 고르기" });
+    await start.click();
+    const bar = pickBar(page);
+    await expect(bar).toBeVisible();
+    await expect(bar).toContainText("지도를 눌러 위치를 고르세요");
+    const barCoords = bar.locator(".ku-landmark-pick-coords");
+    await expect(barCoords).toHaveText("37.58955, 127.03225");
+    await expect(detail).toBeHidden();
+
+    // 핀은 확인 바 위에 남은 지도의 가운데로 옮겨진다
+    const map = page.locator(".ku-map-workspace-map");
+    await expect
+      .poll(async () => {
+        const [mapBox, pinBox, barBox] = await Promise.all([
+          map.boundingBox(),
+          pin.boundingBox(),
+          bar.boundingBox(),
+        ]);
+        if (!mapBox || !pinBox || !barBox) return "잴 수 없음";
+        const pinY = pinBox.y + pinBox.height / 2;
+        const middle = (mapBox.y + 12 + barBox.y) / 2;
+        return Math.abs(pinY - middle) <= 24
+          ? "가운데"
+          : `벗어남 (핀 ${Math.round(pinY)}, 가운데 ${Math.round(middle)})`;
+      })
+      .toBe("가운데");
+    for (const name of ["취소", "이 위치로"]) {
+      const box = await bar.getByRole("button", { name }).boundingBox();
+      expect(box!.height, name).toBeGreaterThanOrEqual(44);
+    }
+
+    await tapMap(page, 80, 120);
+    await expect(barCoords).not.toHaveText("37.58955, 127.03225");
+    const picked = await barCoords.textContent();
+
+    await bar.getByRole("button", { name: "이 위치로" }).click();
+    await expect(bar).toHaveCount(0);
+    await expect(detail).toBeVisible();
+    await expect(start).toBeFocused();
+    await expect(coords).toHaveText(picked!);
+    await expect(detail.getByLabel("설명", { exact: true })).toHaveValue(
+      "고르는 동안 남는 설명",
+    );
+
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
+    const [lat, lng] = picked!.split(", ").map(Number);
+    expect(state.landmarks[0].lat).toBeCloseTo(lat, 6);
+    expect(state.landmarks[0].lng).toBeCloseTo(lng, 6);
+  });
+
+  test("취소하면 고르기 전 좌표로 돌아가고 저장 안 한 변경이 남지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto(`/admin/dashboard/landmarks?id=${SQUIRREL_ID}`);
+    const detail = detailPanel(page, "다람쥐길");
+    const coords = detail.locator(".ku-detail-coords");
+    await expect(coords).toHaveText("37.58955, 127.03225");
+    await expect(page.locator(".ku-landmark-marker--selected")).toBeVisible();
+
+    await detail.getByRole("button", { name: "지도에서 위치 고르기" }).click();
+    const bar = pickBar(page);
+    await expect(bar).toBeVisible();
+    await tapMap(page, 80, 120);
+    await expect(bar.locator(".ku-landmark-pick-coords")).not.toHaveText(
+      "37.58955, 127.03225",
+    );
+    await bar.getByRole("button", { name: "취소" }).click();
+
+    await expect(bar).toHaveCount(0);
+    await expect(detail).toBeVisible();
+    await expect(coords).toHaveText("37.58955, 127.03225");
+    await detail.getByRole("button", { name: "목록으로" }).click();
+    await expect(detail).toHaveCount(0);
+    await expect(
+      page.getByRole("dialog", { name: "저장하지 않은 변경사항이 있어요" }),
+    ).toHaveCount(0);
+  });
+
+  test("새 명소도 위치 고르기로 위치를 찍고 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    await expect(
+      page.getByTestId(`admin-landmark-marker-${SQUIRREL_ID}`),
+    ).toBeVisible();
+    await listPanel(page).getByRole("button", { name: "＋ 추가" }).click();
+    const detail = detailPanel(page, "명소 추가");
+    await expect(detail.locator(".ku-detail-coords")).toHaveCount(0);
+
+    await detail.getByRole("button", { name: "지도에서 위치 고르기" }).click();
+    const bar = pickBar(page);
+    await expect(bar).toBeVisible();
+    const barCoords = bar.locator(".ku-landmark-pick-coords");
+    await expect(barCoords).toHaveCount(0);
+    await tapMap(page, 80, 120);
+    await expect(page.getByTestId("admin-landmark-marker-new")).toBeVisible();
+    await expect(barCoords).toHaveText(/^\d+\.\d+, \d+\.\d+$/);
+    const picked = await barCoords.textContent();
+    await bar.getByRole("button", { name: "이 위치로" }).click();
+
+    await expect(detail.locator(".ku-detail-coords")).toHaveText(picked!);
+    await detail.getByLabel("이름 *").fill("모바일 쉼터");
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("명소가 추가되었어요")).toBeVisible();
+    const [lat, lng] = picked!.split(", ").map(Number);
+    const created = state.landmarks.at(-1)!;
+    expect(created).toMatchObject({ name: "모바일 쉼터" });
+    expect(created.lat).toBeCloseTo(lat, 6);
+    expect(created.lng).toBeCloseTo(lng, 6);
   });
 });

@@ -317,4 +317,40 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
       expect(box!.height, name).toBeGreaterThanOrEqual(44);
     }
   });
+
+  test("모바일 명소 상세의 버튼이 44px 터치 영역을 확보한다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(
+      "/admin/dashboard/landmarks?id=11111111-1111-1111-1111-111111111111",
+    );
+
+    const detail = page.getByRole("region", { name: "다람쥐길", exact: true });
+    for (const name of [
+      "목록으로",
+      /^이모지 .+ 바꾸기$/,
+      "사진 변경",
+      "사진 삭제",
+      "자동번역 채우기",
+      "설명 보기",
+      "직접 고치기",
+      "지도에서 위치 고르기",
+      "삭제",
+      "취소",
+      "저장",
+    ]) {
+      const label = String(name);
+      const button = detail.getByRole("button", {
+        name,
+        exact: typeof name === "string",
+      });
+      await expect(button, label).toBeVisible();
+      const box = await button.boundingBox();
+      expect(box, label).not.toBeNull();
+      expect(box!.width, label).toBeGreaterThanOrEqual(44);
+      expect(box!.height, label).toBeGreaterThanOrEqual(44);
+    }
+  });
 });
