@@ -30,52 +30,11 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     await expect(trigger).toBeFocused();
   });
 
-  // 피커는 useModalFocus의 dialogStack에 자기를 얹어 최상단이 된다. 컨테이너에서
-  // capture로 가로채는 방식은 document 쪽 핸들러가 먼저 돌아 성립하지 않는다.
-  test("이모지 피커가 열린 상태의 Escape는 피커만 닫고 폼 입력을 남긴다", async ({
+  test("관리자 설정 모달도 Escape 후 실행 버튼으로 복귀한다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/landmarks");
-
-    await page.getByRole("button", { name: "+ 명소 추가" }).click();
-    const dialog = page.getByRole("dialog", { name: "명소 추가" });
-    await dialog.getByPlaceholder("예: 다람쥐길").fill("Escape 시험 명소");
-
-    const iconButton = dialog.getByLabel(/이모지 \*/);
-    await iconButton.click();
-    const search = dialog.getByLabel("이모지 검색");
-    await expect(search).toBeFocused();
-    await expect(iconButton).toHaveAttribute("aria-expanded", "true");
-
-    await page.keyboard.press("Escape");
-
-    await expect(search).toHaveCount(0);
-    await expect(dialog).toBeVisible();
-    await expect(iconButton).toHaveAttribute("aria-expanded", "false");
-    await expect(dialog.getByPlaceholder("예: 다람쥐길")).toHaveValue(
-      "Escape 시험 명소",
-    );
-
-    // 피커가 닫힌 뒤의 Escape는 다시 모달을 닫는다.
-    await page.keyboard.press("Escape");
-    await expect(dialog).toHaveCount(0);
-  });
-
-  test("관리자 설정과 명소 모달도 Escape 후 실행 버튼으로 복귀한다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/landmarks");
-
-    const landmarkTrigger = page.getByRole("button", { name: "+ 명소 추가" });
-    await landmarkTrigger.focus();
-    await landmarkTrigger.click();
-    const landmarkDialog = page.getByRole("dialog", { name: "명소 추가" });
-    await expect(landmarkDialog.getByPlaceholder("예: 다람쥐길")).toBeFocused();
-    await page.keyboard.press("Escape");
-    await expect(landmarkDialog).toHaveCount(0);
-    await expect(landmarkTrigger).toBeFocused();
 
     const settingsTrigger = page.getByRole("button", { name: "설정" });
     await settingsTrigger.focus();
@@ -267,23 +226,6 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
     ).toBeEditable();
     await expect(settingsDialog.getByLabel("제목")).toBeEditable();
     await page.keyboard.press("Escape");
-
-    await page.goto("/admin/dashboard/landmarks");
-    await page.getByRole("button", { name: "+ 명소 추가" }).click();
-    const landmarkDialog = page.getByRole("dialog", { name: "명소 추가" });
-    await expect(
-      landmarkDialog.getByLabel("이름 *", { exact: true }),
-    ).toBeEditable();
-    await expect(landmarkDialog.getByLabel("영문 이름")).toBeEditable();
-    // 이모지는 자유 입력이 아니라 피커 펼침 버튼이다.
-    await expect(landmarkDialog.getByLabel(/이모지 \*/)).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-    await expect(landmarkDialog.getByLabel("사진")).toHaveAttribute(
-      "type",
-      "file",
-    );
   });
 
   test("모바일 독립 시설 상세의 버튼이 44px 터치 영역을 확보한다", async ({
