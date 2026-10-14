@@ -2368,6 +2368,9 @@ button.ku-admin-overview-item {
   color: var(--ku-status-warn-fg);
   font-weight: 600;
 }
+.ku-landmark-translation-none {
+  color: var(--ku-text-3);
+}
 .ku-landmark-translation-actions {
   display: flex;
   gap: 14px;

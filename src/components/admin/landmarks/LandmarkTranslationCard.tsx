@@ -28,9 +28,13 @@ interface LandmarkTranslationCardProps {
   showToast: (message: string, type?: string) => void;
 }
 
-function Value({ text }: { text: string }) {
-  return text.trim() ? (
-    <span className="ku-landmark-translation-text">{text}</span>
+function Value({ text, noSource }: { text: string; noSource?: boolean }) {
+  if (text.trim()) {
+    return <span className="ku-landmark-translation-text">{text}</span>;
+  }
+  // 옮길 원문이 없으면 비어 있는 게 맞다. 경고색의 번역 없음으로 알리지 않는다
+  return noSource ? (
+    <span className="ku-landmark-translation-none">원문 설명 없음</span>
   ) : (
     <span className="ku-landmark-translation-empty">번역 없음</span>
   );
@@ -53,6 +57,7 @@ export default function LandmarkTranslationCard({
   );
   // 고친 값이 있는데 접으면 저장 안 한 변경이 눈에 안 띈다
   const expanded = editing || dirty;
+  const noDescription = form.description.trim() === "";
 
   async function fill() {
     setPending(true);
@@ -65,6 +70,8 @@ export default function LandmarkTranslationCard({
     if (result.status === "empty") return;
     // 요청이 도는 사이 입력한 값을 덮지 않도록 지금 폼에 적용한다
     setForm((previous) => applyLandmarkTranslations(previous, result));
+    // 채움으로 펼쳐진 편집 칸은 값을 되돌려도 접히지 않게, 열린 채로 둔다(포커스가 칸 안에 있을 수 있다)
+    setEditing(true);
   }
 
   return (
@@ -99,13 +106,13 @@ export default function LandmarkTranslationCard({
             <div>
               <dt>English 설명</dt>
               <dd>
-                <Value text={form.description_en} />
+                <Value text={form.description_en} noSource={noDescription} />
               </dd>
             </div>
             <div>
               <dt>中文 설명</dt>
               <dd>
-                <Value text={form.description_zh} />
+                <Value text={form.description_zh} noSource={noDescription} />
               </dd>
             </div>
           </>
