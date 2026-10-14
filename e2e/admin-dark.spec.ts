@@ -124,4 +124,24 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
       `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
     ).toHaveLength(0);
   });
+
+  test("크림슨 채움은 모드마다 흰 글자 대비를 지키는 값이다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    // 메뉴 배지는 신규 요청이 있을 때만 그려진다.
+    state.facilityRequests.push({ id: "dark-badge-request", status: "new" });
+    await page.goto("/admin/dashboard/buildings");
+    const badge = page.locator(".ku-admin-nav-badge");
+    await expect(badge).toHaveCSS("background-color", "rgb(204, 41, 54)");
+    await expect(badge).toHaveCSS("color", "rgb(255, 255, 255)");
+
+    await page.goto("/admin/buildings/1");
+    const add = page.getByRole("button", { name: "+ 시설 추가" });
+    await expect(add).toHaveCSS("background-color", "rgb(204, 41, 54)");
+    await expect(add).toHaveCSS("color", "rgb(255, 255, 255)");
+
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(add).toHaveCSS("background-color", "rgb(140, 0, 0)");
+  });
 });
