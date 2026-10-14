@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { installMockBackend } from "./support/mockBackend";
+import { expect, test, type Page, type Route } from "@playwright/test";
+import { installMockBackend, type MockState } from "./support/mockBackend";
 
 function listPanel(page: Page) {
   return page.getByRole("region", { name: "독립 시설", exact: true });
@@ -11,6 +11,19 @@ function listRow(page: Page, name: string) {
 
 function facilitiesRequest(url: URL) {
   return url.pathname.endsWith("/rest/v1/building_facilities");
+}
+
+function typesRequest(url: URL) {
+  return url.pathname.endsWith("/rest/v1/facility_types");
+}
+
+function serverError(route: Route) {
+  return route.fulfill({
+    status: 500,
+    headers: { "access-control-allow-origin": "*" },
+    contentType: "application/json",
+    body: "{}",
+  });
 }
 
 /** 목 픽스처와 같은 모양의 독립 시설 행 */
@@ -40,6 +53,30 @@ function standaloneFacility(overrides: Record<string, unknown>) {
     created_at: "2026-07-01T00:00:00Z",
     ...overrides,
   };
+}
+
+/** 최근 수정순 첫 페이지를 채움 시설로 채워 `f-second-page`를 2페이지로 민다 */
+function addSecondPageFacility(state: MockState) {
+  for (let index = 0; index < 20; index += 1) {
+    state.facilities.push(
+      standaloneFacility({
+        id: `f-filler-${index}`,
+        name: `채움 시설 ${index}`,
+        lat: 37.6,
+        lng: 127.05,
+        updated_at: `2026-07-30T00:00:${String(index).padStart(2, "0")}Z`,
+      }),
+    );
+  }
+  state.facilities.push(
+    standaloneFacility({
+      id: "f-second-page",
+      name: "둘째 쪽 시설",
+      lat: 37.5899,
+      lng: 127.033,
+      updated_at: "2026-07-01T00:00:00Z",
+    }),
+  );
 }
 
 test.describe("독립 시설 작업 화면 — 목록과 지도", () => {
@@ -87,6 +124,8 @@ test.describe("독립 시설 작업 화면 — 목록과 지도", () => {
     await expect(
       list.getByRole("button", { name: "미설치 1개" }),
     ).toBeVisible();
+    // 거른 결과는 1개다. 전체 칩이 2를 유지해야 개수가 전체 기준임이 드러난다
+    await expect(list.getByRole("button", { name: "전체 2개" })).toBeVisible();
 
     await search.fill("없는 시설");
     await expect(list.getByText("조건에 맞는 항목이 없어요")).toBeVisible();
@@ -137,12 +176,7 @@ test.describe("독립 시설 작업 화면 — 목록과 지도", () => {
     await page.route(facilitiesRequest, async (route) => {
       if (failNext && route.request().method() === "GET") {
         failNext = false;
-        return route.fulfill({
-          status: 500,
-          headers: { "access-control-allow-origin": "*" },
-          contentType: "application/json",
-          body: "{}",
-        });
+        return serverError(route);
       }
       return route.fallback();
     });
@@ -154,6 +188,75 @@ test.describe("독립 시설 작업 화면 — 목록과 지도", () => {
     ).toBeVisible();
     await list.getByRole("button", { name: "다시 시도" }).click();
     await expect(list.getByTestId("admin-list-item-name")).toHaveCount(2);
+  });
+
+  test("받은 목록이 있으면 다시 시도의 목록 조회가 실패해도 패널이 멈추지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let failTypes = true;
+    await page.route(typesRequest, async (route) => {
+      if (failTypes && route.request().method() === "GET") {
+        failTypes = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+    let failFacilities = false;
+    await page.route(facilitiesRequest, async (route) => {
+      if (failFacilities && route.request().method() === "GET") {
+        failFacilities = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/facilities");
+    const list = listPanel(page);
+
+    // 유형 조회만 실패했다. 목록은 받았으므로 지도에는 마커가 있다
+    await expect(
+      list.getByText("시설 목록을 불러오지 못했어요."),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("admin-facility-marker-f-installed"),
+    ).toBeVisible();
+
+    failFacilities = true;
+    await list.getByRole("button", { name: "다시 시도" }).click();
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "시설 목록을 새로 불러오지 못했어요" }),
+    ).toBeVisible();
+    await expect(list.getByText("불러오는 중...")).toHaveCount(0);
+    await expect(list.getByTestId("admin-list-item-name")).toHaveCount(2);
+  });
+
+  test("첫 조회가 실패한 ?id= 링크도 다시 시도가 그 항목의 페이지를 연다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addSecondPageFacility(state);
+    let failNext = true;
+    await page.route(facilitiesRequest, async (route) => {
+      if (failNext && route.request().method() === "GET") {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/facilities?id=f-second-page");
+    const list = listPanel(page);
+
+    await list.getByRole("button", { name: "다시 시도" }).click();
+    await expect(
+      list.getByRole("button", { name: "2 페이지" }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(listRow(page, "둘째 쪽 시설")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(page).toHaveURL(/\?id=f-second-page$/);
   });
 
   test("행과 마커가 같은 선택이고 URL에 남는다", async ({ page }) => {
@@ -184,26 +287,7 @@ test.describe("독립 시설 작업 화면 — 목록과 지도", () => {
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
-    for (let index = 0; index < 20; index += 1) {
-      state.facilities.push(
-        standaloneFacility({
-          id: `f-filler-${index}`,
-          name: `채움 시설 ${index}`,
-          lat: 37.6,
-          lng: 127.05,
-          updated_at: `2026-07-30T00:00:${String(index).padStart(2, "0")}Z`,
-        }),
-      );
-    }
-    state.facilities.push(
-      standaloneFacility({
-        id: "f-second-page",
-        name: "둘째 쪽 시설",
-        lat: 37.5899,
-        lng: 127.033,
-        updated_at: "2026-07-01T00:00:00Z",
-      }),
-    );
+    addSecondPageFacility(state);
     await page.goto("/admin/dashboard/facilities");
 
     await page.getByTestId("admin-facility-marker-f-second-page").click();
