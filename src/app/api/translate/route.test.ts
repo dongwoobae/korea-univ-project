@@ -24,13 +24,16 @@ function sentBody(call: unknown[]) {
 }
 
 describe("POST /api/translate", () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
   beforeEach(() => {
     vi.clearAllMocks();
+    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.stubEnv("GOOGLE_TRANSLATE_API_KEY", "gk");
     vi.stubGlobal("fetch", fetchMock);
   });
 
   afterEach(() => {
+    errorSpy.mockRestore();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   });
@@ -77,13 +80,16 @@ describe("POST /api/translate", () => {
   });
 
   it("번역 API가 거절하면 원문을 번역문처럼 돌려주지 않고 502로 실패한다", async () => {
-    fetchMock.mockResolvedValue(new Response("quota", { status: 403 }));
+    fetchMock.mockImplementation(
+      async () => new Response("quota", { status: 403 }),
+    );
     const { POST } = await import("./route");
 
     const response = await POST(post({ name: "엘리베이터" }));
 
     expect(response.status).toBe(502);
     expect(await response.json()).not.toHaveProperty("en");
+    expect(errorSpy).toHaveBeenCalled();
   });
 
   it("번역 개수가 원문과 다르면 502로 실패한다", async () => {
