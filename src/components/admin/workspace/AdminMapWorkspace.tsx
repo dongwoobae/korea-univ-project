@@ -25,7 +25,10 @@ interface AdminMapWorkspaceProps {
   list: ReactNode;
   detail: ReactNode | null;
   focus: WorkspaceFocus | null;
-  /** 모바일 상세가 위쪽에 비워 두는 지도 띠의 높이(설계 2026-10-14 2.5) */
+  /**
+   * 모바일 상세가 위쪽에 비워 두는 지도 띠의 높이(설계 2026-10-14 2.5).
+   * DetailPanel의 `mapStrip`과 같은 사실이라 짝으로 맞춘다 — 상세가 띠를 끄면 0을 준다.
+   */
   mobileMapStrip?: number;
   /** 모바일 상세를 접고 지도에서 위치를 고르는 중. 지도를 옮길 때 확인 바만 비킨다 */
   mobilePicking?: boolean;

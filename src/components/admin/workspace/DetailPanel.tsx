@@ -17,7 +17,10 @@ interface DetailPanelProps {
     onConfirm: () => Promise<void>;
   };
   save: { pending: boolean; disabled?: boolean; onClick: () => void } | null;
-  /** 모바일 상세 위쪽에 지도 띠를 비워 둘지. 명소처럼 미리보기가 지도가 아니면 끈다(설계 2026-10-14 2.5) */
+  /**
+   * 모바일 상세 위쪽에 지도 띠를 비워 둘지. 명소처럼 미리보기가 지도가 아니면 끈다(설계 2026-10-14 2.5).
+   * AdminMapWorkspace의 `mobileMapStrip`과 같은 사실이라 짝으로 맞춘다 — 끄면 그쪽을 0으로 준다.
+   */
   mapStrip?: boolean;
   /** 패널을 마운트한 채 숨긴다. 모바일에서 상세를 접고 지도에서 위치를 고르는 동안 입력과 상태를 남긴다 */
   hidden?: boolean;
