@@ -1,5 +1,11 @@
 import path from "node:path";
-import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type Route,
+} from "@playwright/test";
 import { installMockBackend, type MockState } from "./support/mockBackend";
 
 function listPanel(page: Page) {
@@ -993,6 +999,138 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
       .click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
     await expect(detail).toHaveCount(0);
+  });
+
+  // E2E는 브라우저의 새로고침 경고를 보지 못한다. 같은 이벤트를 직접 내 가드가 막는지 본다
+  function unloadBlocked(page: Page) {
+    return page.evaluate(
+      () =>
+        !window.dispatchEvent(new Event("beforeunload", { cancelable: true })),
+    );
+  }
+
+  async function openFromBuildings(page: Page) {
+    await page.goto("/admin/dashboard/buildings");
+    await page
+      .getByRole("navigation", { name: "관리자 메뉴" })
+      .getByRole("link", { name: "독립 시설" })
+      .click();
+  }
+
+  async function saveAndSettle(page: Page, detail: Locator) {
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("시설이 수정되었어요!")).toBeVisible();
+    await expect.poll(() => unloadBlocked(page)).toBe(false);
+  }
+
+  test("저장한 뒤에는 새로고침 경고를 풀고 다른 항목을 고를 때 묻지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    expect(await unloadBlocked(page)).toBe(false);
+    const detail = await editName(page);
+    expect(await unloadBlocked(page)).toBe(true);
+
+    await saveAndSettle(page, detail);
+    await listRow(page, "공사 중 주차구역").click();
+    await expect(detailPanel(page, "공사 중 주차구역")).toBeVisible();
+    await expect(page.getByRole("dialog", { name: LEAVE_TITLE })).toHaveCount(
+      0,
+    );
+  });
+
+  test("저장한 뒤 다시 고친 채 뒤로가기를 해도 나가기면 이전 화면으로 간다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await openFromBuildings(page);
+    await saveAndSettle(page, await editName(page));
+
+    await detailPanel(page, "고치는 중")
+      .getByLabel("시설 이름 (선택)")
+      .fill("다시 고치는 중");
+    await page.evaluate(() => window.history.back());
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
+  });
+
+  test("앞으로 가기로 돌아온 기록에서 고친 뒤 나가기도 이전 화면으로 간다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await openFromBuildings(page);
+    await saveAndSettle(page, await editName(page));
+    // 저장해도 쌓은 기록은 남아, 이 뒤로가기는 같은 화면에 머문다(설계 2026-10-14 3.4)
+    await page.evaluate(() => window.history.back());
+    await expect(page).toHaveURL(/\?id=f-installed$/);
+    await page.evaluate(() => window.history.forward());
+    await expect(page).toHaveURL(/\?id=f-installed$/);
+
+    await detailPanel(page, "고치는 중")
+      .getByLabel("시설 이름 (선택)")
+      .fill("다시 고치는 중");
+    await page.evaluate(() => window.history.back());
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
+  });
+
+  test("뒤로가기 확인이 뜬 채 한 번 더 뒤로 가면 확인 창을 거둔다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await openFromBuildings(page);
+    await editName(page);
+
+    await page.evaluate(() => window.history.back());
+    const confirm = page.getByRole("dialog", { name: LEAVE_TITLE });
+    await expect(confirm).toBeVisible();
+    await page.evaluate(() => window.history.back());
+    await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
+    await expect(confirm).toHaveCount(0);
+  });
+
+  test("같은 화면의 헤더 메뉴는 취소하면 입력을 남기고, 저장하는 동안에는 선택을 닫지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseSave = () => {};
+    const saveHeld = new Promise<void>((resolve) => (releaseSave = resolve));
+    await page.route(facilitiesRequest, async (route) => {
+      if (route.request().method() === "PATCH") await saveHeld;
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/facilities");
+    const facilities = page
+      .getByRole("navigation", { name: "관리자 메뉴" })
+      .getByRole("link", { name: "독립 시설" });
+    const detail = await editName(page);
+
+    await facilities.click();
+    await page
+      .getByRole("dialog", { name: LEAVE_TITLE })
+      .getByRole("button", { name: "취소" })
+      .click();
+    await expect(page).toHaveURL(/\?id=f-installed$/);
+    await expect(detail.getByLabel("시설 이름 (선택)")).toHaveValue(
+      "고치는 중",
+    );
+
+    await detail.getByRole("button", { name: "저장" }).click();
+    await facilities.click();
+    releaseSave();
+    await expect(page.getByText("시설이 수정되었어요!")).toBeVisible();
+    await expect(page).toHaveURL(/\?id=f-installed$/);
+    await expect(detailPanel(page, "고치는 중")).toBeVisible();
+    await expect(page.getByRole("dialog", { name: LEAVE_TITLE })).toHaveCount(
+      0,
+    );
   });
 });
 
