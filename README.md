@@ -15,12 +15,12 @@ Next.js · React · TypeScript · Leaflet · Supabase · Cloudflare R2 · Vercel
 ## 프로젝트 구조
 
 ```text
-src/app/       페이지와 API 라우트
-src/components/화면 컴포넌트
-src/lib/        지도·데이터 처리 유틸리티
-supabase/       DB 설정과 마이그레이션
-docs/           설계·접근성 점검·로드맵
-e2e/            Playwright 테스트
+src/app/         페이지와 API 라우트
+src/components/  화면 컴포넌트
+src/lib/         지도·데이터 처리 유틸리티
+supabase/        DB 설정과 마이그레이션
+docs/            설계·접근성 점검·로드맵
+e2e/             Playwright 테스트
 ```
 
 ## 로컬 실행
