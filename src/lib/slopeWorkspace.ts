@@ -51,6 +51,9 @@ export function summarizeSlopeRoute(raw: unknown): SlopeRouteSummary | null {
   const points = readRoutePoints(raw);
   if (!points) return null;
   const vertices = readStoredVertices(points);
+  // 지금은 readRoutePoints가 두 점 미만을 먼저 거른다. 그 불변식이 바뀌어도 경계 없는 경로가 지도 focus까지 가지 않게 막는다.
+  const bounds = verticesBounds(vertices);
+  if (!bounds) return null;
   const slopes = readStoredSlopes(points);
   const [, ...measured] = points;
   const gradeCounts: Record<SlopeGrade, number> = {
@@ -80,7 +83,7 @@ export function summarizeSlopeRoute(raw: unknown): SlopeRouteSummary | null {
     totalDistance: Math.round(distanceSum * 10) / 10,
     maxSlope: Math.max(...slopes),
     gradeCounts,
-    bounds: verticesBounds(vertices)!,
+    bounds,
   };
 }
 
@@ -119,16 +122,29 @@ export const SLOPE_COLLECTION_POLICY: AdminCollectionPolicy<
 };
 
 /** 우선순위는 확인 필요 → 1/12 초과 → 기준 이내다 */
+export type SlopeBadgeTone = "missing" | "warn" | "ok";
+
+/** 판정의 관리자 배지 색(`.ku-row-badge[data-tone]`). 목록 행 배지와 보기 패널의 구간 표 배지가 같이 쓴다 */
+export const SLOPE_GRADE_TONES: Record<SlopeGrade, SlopeBadgeTone> = {
+  ok: "ok",
+  over: "warn",
+  extreme: "missing",
+};
+
 export function slopeRouteBadge(summary: SlopeRouteSummary | null): {
   label: string;
-  tone: "missing" | "warn" | "ok";
+  tone: SlopeBadgeTone;
 } {
   if (!summary) return { label: "형식 오류", tone: "missing" };
   const { extreme, over } = summary.gradeCounts;
   if (extreme > 0)
-    return { label: `확인 필요 ${extreme}구간`, tone: "missing" };
-  if (over > 0) return { label: `1/12 초과 ${over}구간`, tone: "warn" };
-  return { label: "기준 이내", tone: "ok" };
+    return {
+      label: `확인 필요 ${extreme}구간`,
+      tone: SLOPE_GRADE_TONES.extreme,
+    };
+  if (over > 0)
+    return { label: `1/12 초과 ${over}구간`, tone: SLOPE_GRADE_TONES.over };
+  return { label: "기준 이내", tone: SLOPE_GRADE_TONES.ok };
 }
 
 export function formatMeters(value: number): string {
