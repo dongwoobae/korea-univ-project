@@ -1310,13 +1310,69 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     await expect(page.locator(".leaflet-pm-toolbar")).toHaveCount(0);
 
     await tool(page, "그리기").click();
-    await expect(toolbar(page).getByRole("button")).toHaveText([
+    const buttons = toolbar(page).getByRole("button");
+    await expect(buttons).toHaveCount(3);
+    for (const [index, name] of [
       "끝내기",
       "마지막 꼭지점 제거",
       "취소",
-    ]);
+    ].entries()) {
+      await expect(buttons.nth(index)).toHaveAccessibleName(name);
+    }
     await expect(page.locator(".leaflet-pm-toolbar")).toHaveCount(0);
   });
+
+  for (const width of [1280, 1144, 1143, 1024, 964, 963, 800, 768]) {
+    test(`${width}px 폭에서 도구 바는 패널·줌 버튼과 겹치지 않고 버튼이 눌린다`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 720 });
+      await installMockBackend(page, { authenticated: true });
+      await page.goto("/admin/dashboard/slopes?id=2&edit=1");
+      await expect(toolbar(page)).toBeVisible();
+
+      async function expectClear() {
+        const bar = (await toolbar(page).boundingBox())!;
+        const others = [
+          detailPanel(page, "안암병원 정문 경사로 편집"),
+          editMap(page).locator(".leaflet-control-zoom"),
+        ];
+        // 좁은 폭에서는 목록이 visibility로 숨어 있어 자리만 차지하고 가리지 않는다
+        if (width >= 964) others.push(listPanel(page));
+        for (const other of others) {
+          const box = (await other.boundingBox())!;
+          const apart =
+            bar.x + bar.width <= box.x ||
+            box.x + box.width <= bar.x ||
+            bar.y + bar.height <= box.y ||
+            box.y + box.height <= bar.y;
+          expect(apart).toBe(true);
+        }
+        for (const button of await toolbar(page).getByRole("button").all()) {
+          const hit = await button.evaluate((element) => {
+            const rect = element.getBoundingClientRect();
+            const top = document.elementFromPoint(
+              rect.x + rect.width / 2,
+              rect.y + rect.height / 2,
+            );
+            return element.contains(top);
+          });
+          expect(hit).toBe(true);
+        }
+      }
+
+      await expectClear();
+      await tool(page, "통째로 옮기기").click();
+      await tool(page, "꼭짓점 편집").click();
+      await page.getByRole("button", { name: "지우기" }).click();
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "지우고 다시 그리기", exact: true })
+        .click();
+      await expect(tool(page, "끝내기")).toBeVisible();
+      await expectClear();
+    });
+  }
 
   test("마지막 꼭지점 제거는 찍은 점을 하나 빼고 취소는 선 없이 그리기를 끝낸다", async ({
     page,

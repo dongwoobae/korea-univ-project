@@ -33,57 +33,86 @@ export default function SlopeEditToolbar({
     >
       {state.drawing ? (
         <>
-          <button type="button" disabled={locked} onClick={commands.finishDraw}>
-            끝내기
-          </button>
-          <button
-            type="button"
+          <ToolButton
+            symbol="✓"
+            label="끝내기"
+            disabled={locked}
+            onClick={commands.finishDraw}
+          />
+          <ToolButton
+            symbol="↶"
+            label="마지막 꼭지점 제거"
             disabled={locked}
             onClick={commands.removeLastVertex}
-          >
-            마지막 꼭지점 제거
-          </button>
-          <button type="button" disabled={locked} onClick={commands.cancelDraw}>
-            취소
-          </button>
+          />
+          <ToolButton
+            symbol="✕"
+            label="취소"
+            disabled={locked}
+            onClick={commands.cancelDraw}
+          />
         </>
       ) : (
         <>
-          <button
-            type="button"
+          <ToolButton
+            symbol="✎"
+            label="그리기"
             disabled={locked || state.hasLine}
             onClick={commands.startDraw}
-          >
-            <span aria-hidden="true">✎</span> 그리기
-          </button>
+          />
           {MODE_TOOLS.map((tool) => (
-            <button
+            <ToolButton
               key={tool.mode}
-              type="button"
-              aria-pressed={state.mode === tool.mode}
+              symbol={tool.symbol}
+              label={tool.label}
+              pressed={state.mode === tool.mode}
               disabled={locked || !state.hasLine}
               onClick={() => commands.setMode(tool.mode)}
-            >
-              <span aria-hidden="true">{tool.symbol}</span> {tool.label}
-            </button>
+            />
           ))}
-          <button
-            type="button"
-            aria-pressed={state.snap}
+          <ToolButton
+            symbol="▦"
+            label="건물에 붙이기"
+            pressed={state.snap}
             disabled={locked}
             onClick={() => commands.setSnap(!state.snap)}
-          >
-            건물에 붙이기
-          </button>
-          <button
-            type="button"
+          />
+          <ToolButton
+            symbol="⌫"
+            label="지우기"
             disabled={locked || !state.hasLine}
             onClick={onResetRequest}
-          >
-            <span aria-hidden="true">⌫</span> 지우기
-          </button>
+          />
         </>
       )}
     </div>
+  );
+}
+
+// 지도 위 빈 폭이 좁으면 CSS가 글자를 시각적으로만 숨긴다. 접근 이름은 글자가 맡는다
+function ToolButton({
+  symbol,
+  label,
+  pressed,
+  disabled,
+  onClick,
+}: {
+  symbol: string;
+  label: string;
+  pressed?: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-pressed={pressed}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <span aria-hidden="true">{symbol}</span>
+      <span className="ku-slope-toolbar-text">{label}</span>
+    </button>
   );
 }

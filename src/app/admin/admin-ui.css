@@ -2555,22 +2555,24 @@ button.ku-admin-overview-item {
 .ku-slope-card-input input:focus-visible {
   border-color: var(--ku-crimson-700);
 }
-/* 도구 바는 목록·줌 버튼과 상세 패널 사이 지도의 가운데 위에 놓는다. 두 가장자리는 admin-ui.css의
-   .ku-float-panel·.ku-detail-panel·줌 버튼 폭에서 온다. 좁은 폭의 미디어 쿼리는 ADMIN_NARROW_QUERY와 같은 경계다 */
+/* 도구 바는 목록·줌 버튼과 상세 패널 사이 지도의 빈 자리에 가운데로 놓는다. 가로는 left·right로 그 자리에 묶어
+   패널을 덮지 않고(넘치면 줄바꿈), 좁은 폭의 미디어 쿼리는 ADMIN_NARROW_QUERY와 같은 경계다.
+   빈 자리가 글자 버튼 하나도 못 담는 폭에서는 글자를 시각적으로 숨기고 기호만 세로로 쌓아 줌 버튼 아래, 목록과
+   상세 사이 좁은 틈에 둔다 */
 .ku-slope-toolbar {
   position: absolute;
   top: 16px;
-  left: calc(488px + (100% - 964px) / 2);
+  right: 476px;
+  left: 488px;
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
-  min-width: 180px;
-  max-width: calc(100% - 964px);
+  width: fit-content;
+  margin-inline: auto;
   padding: 4px;
   border-radius: 10px;
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-floating);
-  transform: translateX(-50%);
 }
 .ku-slope-toolbar button {
   height: 38px;
@@ -2583,6 +2585,9 @@ button.ku-admin-overview-item {
   font-size: 12.5px;
   font-weight: 600;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .ku-slope-toolbar button[aria-pressed="true"] {
   color: var(--ku-primary-text);
@@ -2592,10 +2597,31 @@ button.ku-admin-overview-item {
   opacity: 0.45;
   cursor: not-allowed;
 }
+@media (min-width: 964px) and (max-width: 1143px) {
+  .ku-slope-toolbar {
+    top: 112px;
+    right: auto;
+    left: 431px;
+    flex-direction: column;
+    margin-inline: 0;
+  }
+  .ku-slope-toolbar button {
+    justify-content: center;
+    width: 38px;
+    padding: 0;
+  }
+  .ku-slope-toolbar-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
 @media (max-width: 963px) {
   .ku-slope-toolbar {
-    left: calc(68px + (100% - 544px) / 2);
-    max-width: calc(100% - 544px);
+    right: 476px;
+    left: 68px;
   }
 }
 .ku-slope-cards {
