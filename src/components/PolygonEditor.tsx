@@ -8,7 +8,7 @@ import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
 import { addNeighborLayer } from "@/lib/neighborLayer";
-import { getPolygonRingCenter } from "@/lib/polygonCenter";
+import { getBuildingViewCenter, getPointLatLng } from "@/lib/polygonCenter";
 import ConfirmModal from "@/components/ConfirmModal";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
@@ -37,7 +37,10 @@ export default function PolygonEditor({
   const onChangeRef = useRef(onChange);
   const initialGeojsonRef = useRef(geojson);
   const excludeIdRef = useRef(excludeId);
-  const [hasPolygon, setHasPolygon] = useState(Boolean(geojson));
+  // 점 데이터(지하철역)는 고칠 폴리곤이 없어 폴리곤이 없는 건물처럼 그리기부터 연다. 그려 저장하면 폴리곤이 점을 대신한다
+  const [hasPolygon, setHasPolygon] = useState(
+    () => Boolean(geojson) && !getPointLatLng(geojson),
+  );
   const [confirmReset, setConfirmReset] = useState(false);
   const prefersDarkMode = usePrefersDarkMode();
 
@@ -48,11 +51,14 @@ export default function PolygonEditor({
   useEffect(() => {
     if (mapRef.current) return;
     const initialGeojson = initialGeojsonRef.current;
+    const initialPolygon = getPointLatLng(initialGeojson)
+      ? null
+      : initialGeojson;
     const initialExcludeId = excludeIdRef.current;
 
     const map = L.map(containerRef.current!, {
       scrollWheelZoom: true,
-    }).setView(getPolygonRingCenter(initialGeojson), 18);
+    }).setView(getBuildingViewCenter(initialGeojson), 18);
     mapRef.current = map;
 
     tileLayerRef.current = L.tileLayer(getCartoTileUrl(false), {
@@ -86,8 +92,8 @@ export default function PolygonEditor({
         // 주변 건물은 보조 정보다. 실패해도 편집 자체는 계속할 수 있다.
       });
 
-    if (initialGeojson) {
-      const layer = L.geoJSON(initialGeojson, {
+    if (initialPolygon) {
+      const layer = L.geoJSON(initialPolygon, {
         style: { color: "#2563EB", weight: 2, fillOpacity: 0.3 },
       });
       layer.eachLayer((l) => {
@@ -112,7 +118,7 @@ export default function PolygonEditor({
       drawCircleMarker: false,
       rotateMode: false,
     });
-    if (initialGeojson) {
+    if (initialPolygon) {
       map.pm.Toolbar.setButtonDisabled("drawPolygon", true);
     }
 
