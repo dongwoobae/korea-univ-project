@@ -30,6 +30,8 @@ interface UseModalFocusOptions {
   active?: boolean;
   closeOnEscape?: boolean;
   initialFocusRef?: RefObject<HTMLElement | null>;
+  /** 돌아갈 요소가 사라졌고 남은 모달도 없을 때 초점을 둘 곳 */
+  restoreFallbackRef?: RefObject<HTMLElement | null>;
   onClose: () => void;
 }
 
@@ -37,6 +39,7 @@ export function useModalFocus<T extends HTMLElement>({
   active = true,
   closeOnEscape = true,
   initialFocusRef,
+  restoreFallbackRef,
   onClose,
 }: UseModalFocusOptions) {
   const dialogRef = useRef<T>(null);
@@ -56,6 +59,8 @@ export function useModalFocus<T extends HTMLElement>({
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
+    // 돌아갈 곳은 모달이 열릴 때 이미 있는 요소다. 닫을 때 ref를 다시 읽지 않는다.
+    const restoreFallback = restoreFallbackRef?.current ?? null;
     const addedTabIndex = !dialog.hasAttribute("tabindex");
     if (addedTabIndex) dialog.setAttribute("tabindex", "-1");
     dialogStack.push(dialog);
@@ -120,10 +125,12 @@ export function useModalFocus<T extends HTMLElement>({
         const nextDialog = dialogStack.at(-1);
         if (nextDialog?.isConnected) {
           (focusableElements(nextDialog)[0] ?? nextDialog).focus();
+        } else if (restoreFallback?.isConnected) {
+          restoreFallback.focus();
         }
       }
     };
-  }, [active, initialFocusRef]);
+  }, [active, initialFocusRef, restoreFallbackRef]);
 
   return dialogRef;
 }
