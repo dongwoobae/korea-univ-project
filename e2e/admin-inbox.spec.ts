@@ -216,9 +216,39 @@ test.describe("제보함 — 보드", () => {
 
     await page.getByRole("button", { name: "건물 필터 해제" }).click();
     await expect(page).not.toHaveURL(/building=/);
+    // 건물 필터가 강제한 종류는 주소에 남기지 않는다. tab이 없던 주소라 전체로 돌아간다.
+    await expect(page).not.toHaveURL(/tab=/);
+    await expect(kindButton(page, "전체")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     await expect(cards(page, "확인 중")).toHaveCount(1);
+    await expect(
+      cards(page, "신규").filter({ hasText: "피드백" }).first(),
+    ).toBeVisible();
     await expect(page.getByText("건물로 거름")).toHaveCount(0);
     await expect(kindButton(page, "피드백")).toBeEnabled();
+  });
+
+  test("B3: ?tab=feedback&building으로 열었다가 건물 필터를 풀면 피드백으로 돌아간다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    seedFeedback(state);
+    await openInbox(page, "?tab=feedback&building=1");
+    await expect(kindButton(page, "등록 요청")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await page.getByRole("button", { name: "건물 필터 해제" }).click();
+    await expect(page).toHaveURL(/tab=feedback/);
+    await expect(page).not.toHaveURL(/building=/);
+    await expect(kindButton(page, "피드백")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   test("B4: 피드백만 실패하면 등록 요청 카드는 그대로고 그 열에 안내와 다시 시도가 뜬다", async ({
@@ -983,6 +1013,9 @@ test.describe("제보함 — 피드백 드로어", () => {
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
     for (const n of [1, 2]) addNewFeedback(state, n);
+    // 같은 출처 주소라 링크로 걸린다. 저장하는 동안 이 링크로도 떠나지 않아야 한다.
+    state.feedbackSubmissions.find((row) => row.id === "fbm-1")!.page_url =
+      "http://127.0.0.1:3100/?from=feedback";
     await openInbox(page, "?tab=feedback");
 
     let release!: () => void;
@@ -1013,7 +1046,11 @@ test.describe("제보함 — 피드백 드로어", () => {
     await page.keyboard.press("Escape");
     await clickDim(page);
     await drawer.getByRole("button", { name: "닫기" }).click();
+    await drawer
+      .getByRole("link", { name: "http://127.0.0.1:3100/?from=feedback" })
+      .click();
     await page.waitForTimeout(200);
+    await expect(page).toHaveURL(/\/admin\/dashboard\/inbox/);
     await expect(drawer).toBeVisible();
 
     release();
