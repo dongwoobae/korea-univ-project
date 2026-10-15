@@ -173,9 +173,10 @@ export default function FacilityDetailPanel({
     await authedFetch("/api/revalidate-facilities", { method: "POST" }).catch(
       () => {},
     );
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
+    showToast(next ? "설치로 변경되었어요" : "미설치로 변경되었어요");
     await onChanged();
     setInstalling(false);
-    showToast(next ? "설치로 변경되었어요" : "미설치로 변경되었어요");
   }
 
   function chooseInstalled(next: boolean) {
@@ -190,8 +191,9 @@ export default function FacilityDetailPanel({
     setRetranslating(true);
     const translated = await translateFacility(facilityId);
     if (translated) {
-      await onChanged();
+      // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
       showToast("시설 번역을 완료했어요");
+      await onChanged();
     } else {
       showToast("자동 번역에 다시 실패했어요", "warning");
     }
@@ -208,8 +210,9 @@ export default function FacilityDetailPanel({
       showToast(error, "error");
       return;
     }
-    await onDeleted(facility.id);
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
     showToast("시설이 삭제되었어요");
+    await onDeleted(facility.id);
   }
 
   async function handleSave() {
@@ -235,16 +238,17 @@ export default function FacilityDetailPanel({
       showToast("저장에 실패했어요", "error");
       return;
     }
-    await onSaved(result.facilityId, created);
-    setSaving(false);
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
     if (!result.translated) {
       showToast(
         "시설은 저장했지만 자동 번역에 실패했어요. 상세에서 재번역해 주세요.",
         "warning",
       );
-      return;
+    } else {
+      showToast(created ? "시설이 추가되었어요!" : "시설이 수정되었어요!");
     }
-    showToast(created ? "시설이 추가되었어요!" : "시설이 수정되었어요!");
+    await onSaved(result.facilityId, created);
+    setSaving(false);
   }
 
   return (

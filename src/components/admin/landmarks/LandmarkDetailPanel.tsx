@@ -184,8 +184,9 @@ export default function LandmarkDetailPanel({
     authedFetch("/api/revalidate-landmarks", { method: "POST" }).catch(
       () => {},
     );
-    await onDeleted(landmark.id);
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
     showToast("명소가 삭제되었어요");
+    await onDeleted(landmark.id);
   }
 
   function replacePendingPhoto(next: File | null) {
@@ -253,13 +254,14 @@ export default function LandmarkDetailPanel({
       showToast("저장에 실패했어요", "error");
       return;
     }
-    await onSaved(result.landmarkId, result.created);
-    setSaving(false);
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
     if (result.photoFailed) {
       showToast("명소는 저장됐지만 사진 업로드에 실패했어요", "warning");
-      return;
+    } else {
+      showToast(result.created ? "명소가 추가되었어요" : "명소가 수정되었어요");
     }
-    showToast(result.created ? "명소가 추가되었어요" : "명소가 수정되었어요");
+    await onSaved(result.landmarkId, result.created);
+    setSaving(false);
   }
 
   function startPicking() {
