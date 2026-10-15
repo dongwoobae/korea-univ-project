@@ -95,9 +95,9 @@ describe("isReviewDraftDirty", () => {
 
   it("사진 선택이 달라지면 true다", () => {
     expect(isReviewDraftDirty(base, fields, new Set(["p1"]))).toBe(true);
-    expect(
-      isReviewDraftDirty(base, fields, new Set(["p1", "p3", "p2"])),
-    ).toBe(true);
+    expect(isReviewDraftDirty(base, fields, new Set(["p1", "p3", "p2"]))).toBe(
+      true,
+    );
   });
 
   it("끝 상태면 항상 false다", () => {
@@ -117,9 +117,7 @@ describe("requestLocationNote", () => {
   const base = detail();
 
   it("요청 위치 그대로면 reporter다", () => {
-    expect(requestLocationNote(base, fieldsFromRequest(base))).toBe(
-      "reporter",
-    );
+    expect(requestLocationNote(base, fieldsFromRequest(base))).toBe("reporter");
   });
 
   it("관리자가 옮겼으면 picked다", () => {
