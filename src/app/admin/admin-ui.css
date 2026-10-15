@@ -774,20 +774,6 @@ button.ku-admin-overview-item {
   margin-top: 20px;
 }
 
-/* 지도 작업 화면으로 아직 옮기지 않은 탭(제보함)의 입력 색과 버튼 반경을 맞춘다.
-   작업 화면은 자기 클래스가 값을 정하므로 뺀다. 명소의 이모지 피커는 작업 화면 안에 있어 이 규칙 밖이다.
-   피커 입력의 색은 후속으로 다룬다. 마지막 탭을 옮기는 PR이 이 규칙을 지운다(설계 2026-10-14 3.1). */
-.ku-admin-content > :not(.ku-map-workspace) input,
-.ku-admin-content > :not(.ku-map-workspace) textarea,
-.ku-admin-content > :not(.ku-map-workspace) select {
-  color: var(--ku-text-1) !important;
-  border-color: var(--ku-border-input) !important;
-  background: var(--ku-surface) !important;
-}
-.ku-admin-content > :not(.ku-map-workspace) button {
-  border-radius: 8px !important;
-}
-
 @media (max-width: 767px) {
   .ku-admin-shell {
     --ku-admin-header-height: 54px;
@@ -1218,42 +1204,6 @@ button.ku-admin-overview-item {
   line-height: 18px;
   text-align: center;
 }
-.ku-inbox-tabs {
-  display: inline-flex;
-  margin-bottom: 12px;
-  overflow: hidden;
-  border: 1px solid var(--ku-border);
-  border-radius: 8px;
-}
-.ku-inbox-tabs button {
-  padding: 7px 14px;
-  border: 0;
-  background: var(--ku-surface);
-  color: var(--ku-text-2);
-  cursor: pointer;
-}
-.ku-inbox-tabs button[aria-selected="true"] {
-  background: var(--ku-text-1);
-  color: var(--ku-surface);
-}
-.ku-inbox-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.ku-inbox-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 4px;
-  border: 0;
-  border-bottom: 1px solid var(--ku-border);
-  background: none;
-  color: var(--ku-text-1);
-  text-align: left;
-  cursor: pointer;
-}
 .ku-inbox-thumb {
   flex: none;
   width: 44px;
@@ -1263,15 +1213,6 @@ button.ku-admin-overview-item {
 }
 .ku-inbox-thumb--empty {
   background: var(--ku-surface-raised);
-}
-.ku-inbox-row-main {
-  flex: 1;
-  min-width: 0;
-}
-.ku-inbox-row-meta {
-  display: block;
-  color: var(--ku-text-3);
-  font-size: 12px;
 }
 .ku-inbox-status {
   padding: 2px 8px;
@@ -1550,7 +1491,7 @@ button.ku-admin-overview-item {
   flex-direction: column;
   width: min(600px, 100%);
   background: var(--ku-surface);
-  box-shadow: -12px 0 32px rgba(28, 25, 23, 0.16);
+  box-shadow: var(--ku-shadow-overlay);
 }
 .ku-inbox-drawer-head {
   display: flex;
@@ -1980,148 +1921,6 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   .ku-inbox-drawer-columns {
     grid-template-columns: 1fr;
   }
-}
-
-.ku-review-modal-title {
-  margin-bottom: 6px;
-  font-size: 16px;
-  font-weight: 600;
-}
-.ku-review-modal-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-  color: var(--ku-text-3);
-  font-size: 12px;
-}
-.ku-review-modal-meta a {
-  color: var(--ku-primary-text);
-}
-.ku-review-photos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 8px;
-  padding: 0;
-  list-style: none;
-}
-.ku-review-photos img,
-.ku-review-photo-missing {
-  display: block;
-  width: 96px;
-  height: 96px;
-  border-radius: 8px;
-  object-fit: cover;
-}
-.ku-review-photo-missing {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  border: 1.5px dashed var(--ku-border-input);
-  background: var(--ku-bg);
-  color: var(--ku-text-3);
-  font-size: 12px;
-}
-.ku-review-photos label {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  font-size: 12px;
-}
-.ku-review-actions {
-  flex-wrap: wrap;
-}
-.ku-review-actions button {
-  flex: 1 1 auto;
-  min-height: 40px;
-  padding: 8px 12px;
-  border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
-  background: var(--ku-surface);
-  color: var(--ku-text-1);
-  font-size: 13px;
-  cursor: pointer;
-}
-.ku-review-actions button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-.ku-review-actions .ku-review-reject {
-  border-color: var(--ku-danger);
-  color: var(--ku-danger);
-}
-.ku-review-actions .ku-review-approve {
-  border-color: var(--ku-primary);
-  background: var(--ku-primary);
-  color: #fff;
-}
-.ku-feedback-row {
-  padding: 10px 4px;
-  border-bottom: 1px solid var(--ku-border);
-}
-.ku-feedback-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-}
-.ku-feedback-head .ku-inbox-row-meta {
-  display: inline;
-}
-.ku-feedback-head select {
-  margin-left: auto;
-  padding: 4px 8px;
-  border: 1px solid var(--ku-border-input);
-  border-radius: 6px;
-  background: var(--ku-surface);
-  color: var(--ku-text-1);
-}
-.ku-feedback-type {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--ku-surface-raised);
-  color: var(--ku-text-2);
-  font-size: 11px;
-}
-.ku-feedback-preview {
-  display: -webkit-box;
-  width: 100%;
-  margin: 6px 0 0;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  background: none;
-  color: var(--ku-text-1);
-  font: inherit;
-  text-align: left;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  cursor: pointer;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-.ku-feedback-preview:hover {
-  color: var(--ku-primary-text);
-}
-.ku-feedback-detail-content {
-  margin: 0;
-  color: var(--ku-text-1);
-  line-height: 1.6;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-.ku-feedback-detail-status {
-  flex: 1 1 auto;
-  min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
-  background: var(--ku-surface);
-  color: var(--ku-text-1);
 }
 .ku-facility-photo-manager {
   display: flex;
