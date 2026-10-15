@@ -1,6 +1,8 @@
 "use client";
 
-import DetailPanel from "@/components/admin/workspace/DetailPanel";
+import DetailPanel, {
+  type DetailRemoveAction,
+} from "@/components/admin/workspace/DetailPanel";
 import { ADMIN_MOBILE_QUERY } from "@/components/admin/workspace/types";
 import { formatAdminUpdatedAt } from "@/lib/adminList";
 import {
@@ -11,9 +13,7 @@ import {
   formatPercent,
   type SlopeGrade,
 } from "@/lib/slopeScale";
-import { deleteSlopeRoute } from "@/lib/slopeSave";
 import {
-  SLOPE_COLLECTION_POLICY,
   formatMeters,
   slopeDisplayName,
   type SlopeListItem,
@@ -75,16 +75,14 @@ interface SlopeViewPanelProps {
   item: SlopeListItem;
   onEdit: () => void;
   onClose: () => void;
-  onDeleted: (routeId: string) => Promise<void>;
-  showToast: (message: string, type?: string) => void;
+  remove: DetailRemoveAction;
 }
 
 export default function SlopeViewPanel({
   item,
   onEdit,
   onClose,
-  onDeleted,
-  showToast,
+  remove,
 }: SlopeViewPanelProps) {
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const { route, summary } = item;
@@ -93,17 +91,6 @@ export default function SlopeViewPanel({
   const meta = summary
     ? `${summary.segments.length}개 구간 · 총 ${formatMeters(summary.totalDistance)} · ${date}`
     : date;
-
-  async function remove() {
-    const routeId = SLOPE_COLLECTION_POLICY.id(item);
-    const error = await deleteSlopeRoute(routeId);
-    if (error) {
-      showToast(error, "error");
-      return;
-    }
-    await onDeleted(routeId);
-    showToast(`"${name}" 경로를 삭제했어요`);
-  }
 
   // 형식 오류 경로는 편집기가 읽지 못한다. 지우고 다시 그리게 한다(설계 2026-10-14 6.2)
   const editButton = summary && (
@@ -125,10 +112,7 @@ export default function SlopeViewPanel({
         </div>
       }
       onClose={onClose}
-      remove={{
-        confirmMessage: "삭제한 경사도 경로는 복구할 수 없어요.",
-        onConfirm: remove,
-      }}
+      remove={remove}
       save={null}
     >
       {/* 모바일 상세는 헤더를 그리지 않으므로(DetailPanel) 메타와 편집 진입을 본문 맨 위에 둔다 */}

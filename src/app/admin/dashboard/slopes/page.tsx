@@ -29,9 +29,11 @@ import {
   type AdminChip,
 } from "@/lib/adminCollection";
 import { SLOPE_GRADE_COLORS } from "@/lib/slopeScale";
+import { deleteSlopeRoute } from "@/lib/slopeSave";
 import {
   SLOPE_CHIPS,
   SLOPE_COLLECTION_POLICY,
+  slopeDisplayName,
   summarizeSlopeRoute,
   type SlopeChip,
   type SlopeListItem,
@@ -51,6 +53,8 @@ const SlopeRouteMap = dynamic(
 );
 
 const NOT_FOUND_MESSAGE = "경로를 찾지 못했어요. 삭제됐거나 주소가 틀렸어요.";
+
+const DELETE_CONFIRM_MESSAGE = "삭제한 경사도 경로는 복구할 수 없어요.";
 
 const LEGEND = [
   { label: "1/12 이내", color: SLOPE_GRADE_COLORS.ok },
@@ -83,9 +87,16 @@ export default function SlopesPage() {
   );
   const [draft, setDraft] = useState<SlopeEditDraft | null>(null);
   const [editor, setEditor] = useState<SlopeEditorHandle | null>(null);
+  // 모바일에서 상세를 접고 전체 지도에서 경로를 고치는 편집 패널(owner)과, 그때 초안 경계로 옮길 지도 초점
+  const [fullMapOwner, setFullMapOwner] = useState<string | null>(null);
+  const [fullMapFocus, setFullMapFocus] = useState<{
+    owner: string;
+    focus: WorkspaceFocus;
+  } | null>(null);
   const loadRequestRef = useRef(0);
   const disposedRef = useRef(false);
   const loadedRef = useRef(false);
+  const fullMapSeqRef = useRef(0);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const { state, request } = useWorkspaceSelection({ allowEdit: true });
   const collection = useAdminCollection(routes, SLOPE_COLLECTION_POLICY);
@@ -106,6 +117,7 @@ export default function SlopesPage() {
   const activeDraft = draft && draft.owner === owner ? draft : null;
   const activeEditor = editor && editor.owner === owner ? editor : null;
   const saving = activeDraft?.locked ?? false;
+  const fullMap = mobile && fullMapOwner !== null && fullMapOwner === owner;
 
   function showToast(message: string, type = "success") {
     setToast({ message, type });
@@ -202,9 +214,46 @@ export default function SlopesPage() {
       return;
     }
     const page = collection.pageOf(id);
-    requestSelection({ mode: "view", id }, () => {
+    // 모바일 상세는 보기와 편집을 합친다(핸드오버 8장). 편집기가 읽지 못하는 형식 오류 경로만 보기로 연다
+    const editable =
+      mobile &&
+      Boolean(
+        routes.find((item) => SLOPE_COLLECTION_POLICY.id(item) === id)?.summary,
+      );
+    requestSelection({ mode: editable ? "edit" : "view", id }, () => {
       if (page !== null) setPage(page);
     });
+  }
+
+  // 지도는 선택이 바뀔 때만 옮기지만 전체 지도는 예외다. 들어갈 때는 확인 바 위 지도에, 완료로 나올 때는 띠에 지금 초안의
+  // 경로가 보이게 그때마다 새 key로 옮긴다(명소의 위치 고르기와 같은 방식). 나온 뒤에도 초점은 남긴다 — 거두면 key가 선택
+  // id로 돌아가 지도가 저장된 경로로 되돌아간다. 패널이 닫힐 때(closed) 거둔다
+  function handleFullMapChange(open: boolean, closed = false) {
+    if (closed || owner === null) {
+      setFullMapOwner(null);
+      setFullMapFocus(null);
+      return;
+    }
+    setFullMapOwner(open ? owner : null);
+    const bounds = activeDraft?.bounds;
+    if (!bounds) return;
+    fullMapSeqRef.current += 1;
+    setFullMapFocus({
+      owner,
+      focus: { key: `full-map:${fullMapSeqRef.current}`, target: { bounds } },
+    });
+  }
+
+  // 보기 패널과 모바일 편집 패널이 같은 삭제를 쓴다
+  async function deleteRoute(item: SlopeListItem) {
+    const routeId = SLOPE_COLLECTION_POLICY.id(item);
+    const error = await deleteSlopeRoute(routeId);
+    if (error) {
+      showToast(error, "error");
+      return;
+    }
+    await handleDeleted(routeId);
+    showToast(`"${slopeDisplayName(item.route)}" 경로를 삭제했어요`);
   }
 
   async function handleSaved(routeId: string, created: boolean) {
@@ -233,12 +282,15 @@ export default function SlopesPage() {
     void loadRoutes();
   }
 
-  const focus: WorkspaceFocus | null = selected?.summary
-    ? {
-        key: `route:${SLOPE_COLLECTION_POLICY.id(selected)}`,
-        target: { bounds: selected.summary.bounds },
-      }
-    : null;
+  const focus: WorkspaceFocus | null =
+    fullMapFocus && fullMapFocus.owner === owner
+      ? fullMapFocus.focus
+      : selected?.summary
+        ? {
+            key: `route:${SLOPE_COLLECTION_POLICY.id(selected)}`,
+            target: { bounds: selected.summary.bounds },
+          }
+        : null;
 
   const chips = [
     { key: "all", label: "전체", count: view.chipCounts.all },
@@ -263,6 +315,15 @@ export default function SlopesPage() {
             : { mode: "closed" },
         )
       }
+      remove={
+        selected && state.mode === "edit"
+          ? {
+              confirmMessage: DELETE_CONFIRM_MESSAGE,
+              onConfirm: () => deleteRoute(selected),
+            }
+          : undefined
+      }
+      onFullMapChange={handleFullMapChange}
       showToast={showToast}
     />
   ) : selected ? (
@@ -276,8 +337,10 @@ export default function SlopesPage() {
         })
       }
       onClose={() => requestSelection({ mode: "closed" })}
-      onDeleted={handleDeleted}
-      showToast={showToast}
+      remove={{
+        confirmMessage: DELETE_CONFIRM_MESSAGE,
+        onConfirm: () => deleteRoute(selected),
+      }}
     />
   ) : null;
 
@@ -286,6 +349,7 @@ export default function SlopesPage() {
       <AdminMapWorkspace
         focus={focus}
         mobileMapStrip={230}
+        mobilePicking={fullMap}
         renderMap={(slot) =>
           // 편집하면 지도 자리에 편집 지도를 바꿔 끼운다. 보기와 focus key가 같아 화면은 그대로다(설계 2026-10-14 2.6)
           editing ? (

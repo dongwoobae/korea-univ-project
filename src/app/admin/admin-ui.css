@@ -2901,6 +2901,7 @@ button.ku-admin-overview-item {
     font-size: 16px !important;
   }
   .ku-detail-segment button {
+    min-width: 44px;
     min-height: 44px;
     padding: 0 18px;
   }
@@ -2945,10 +2946,30 @@ button.ku-admin-overview-item {
   .ku-slope-view-mobile-head .ku-workspace-primary {
     min-height: 44px;
   }
+  .ku-slope-edit-name input {
+    height: 46px;
+  }
+  .ku-slope-card-input input {
+    height: 44px;
+    font-size: 16px;
+  }
+  /* 모바일은 상세를 접은 전체 지도에서만 그리므로(SlopeEditPanel) 상세를 비키지 않고 지도 위쪽 폭을 다 쓴다 */
+  .ku-slope-toolbar {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    justify-content: center;
+  }
+  .ku-slope-toolbar button {
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+  }
 
-  /* 위치를 고르는 동안 상세 대신 작업 화면 아래에 붙는다. z-index 없이 지도 뒤 문서 순서로 지도 위에
-     그려진다(.ku-bottom-sheet와 같다). 높이는 types.ts의 MOBILE_PICK_BAR와 맞춘다 */
-  .ku-landmark-pick-bar {
+  /* 명소의 위치 고르기·경사도의 전체 지도 동안 상세 대신 작업 화면 아래에 붙는다. z-index 없이 지도 뒤 문서
+     순서로 지도 위에 그려진다(.ku-bottom-sheet와 같다). 높이는 types.ts의 MOBILE_PICK_BAR와 맞춘다 */
+  .ku-landmark-pick-bar,
+  .ku-slope-map-bar {
     position: absolute;
     right: 0;
     bottom: 0;
@@ -2963,11 +2984,13 @@ button.ku-admin-overview-item {
     background: var(--ku-surface);
     box-shadow: 0 -6px 24px rgba(28, 25, 23, 0.14);
   }
-  .ku-landmark-pick-bar:focus-visible {
+  .ku-landmark-pick-bar:focus-visible,
+  .ku-slope-map-bar:focus-visible {
     outline: 2px solid var(--ku-primary-text);
     outline-offset: -2px;
   }
-  .ku-landmark-pick-text {
+  .ku-landmark-pick-text,
+  .ku-slope-map-bar p {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -2991,6 +3014,11 @@ button.ku-admin-overview-item {
   }
   .ku-landmark-pick-actions .ku-workspace-primary {
     flex: 2;
+    height: 50px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .ku-slope-map-bar .ku-workspace-primary {
     height: 50px;
     font-size: 13px;
     font-weight: 700;
