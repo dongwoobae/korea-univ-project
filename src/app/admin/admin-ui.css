@@ -1290,6 +1290,258 @@ button.ku-admin-overview-item {
   background: var(--ku-status-missing-bg);
   color: var(--ku-status-missing-fg);
 }
+/* 제보함 보드 — 열마다 따로 스크롤한다 */
+.ku-inbox-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: calc(100dvh - var(--ku-admin-header-height));
+  padding: 22px 24px 20px;
+}
+.ku-inbox-board-head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ku-inbox-caption {
+  margin-top: 5px;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+}
+.ku-inbox-board-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ku-inbox-kind-segment button {
+  height: 32px;
+}
+.ku-inbox-building-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 4px 0 11px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 999px;
+  color: var(--ku-primary-text);
+  background: var(--ku-surface);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ku-inbox-building-chip button {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+}
+.ku-inbox-columns {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  min-height: 0;
+}
+.ku-inbox-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 12px;
+  background: var(--ku-board-column);
+}
+.ku-inbox-column-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+}
+.ku-inbox-column-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ku-dot-new);
+}
+.ku-inbox-column[data-filter="reviewing"] .ku-inbox-column-dot {
+  background: var(--ku-status-review-fg);
+}
+.ku-inbox-column[data-filter="done"] .ku-inbox-column-dot {
+  background: var(--ku-success-fg);
+}
+.ku-inbox-column-name {
+  color: var(--ku-text-1);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.ku-inbox-column-count {
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-inbox-column-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 10px 12px;
+  overflow-y: auto;
+}
+.ku-inbox-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ku-inbox-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  box-shadow: var(--ku-shadow-raised);
+  cursor: pointer;
+  text-align: left;
+}
+.ku-inbox-card:hover {
+  border-color: var(--ku-border-input);
+}
+.ku-inbox-card-top,
+.ku-inbox-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ku-inbox-kind-tag {
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: var(--ku-text-2);
+  background: var(--ku-divider);
+  font-size: 11px;
+  font-weight: 700;
+}
+.ku-inbox-new-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ku-primary);
+}
+.ku-inbox-card-time {
+  margin-left: auto;
+  color: var(--ku-text-3);
+  font-size: 11.5px;
+}
+.ku-inbox-card-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.ku-inbox-card-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.ku-inbox-card-title {
+  color: var(--ku-text-1);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.ku-inbox-card-title[data-unread="true"] {
+  font-weight: 700;
+}
+.ku-inbox-card-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.ku-inbox-card-meta {
+  color: var(--ku-text-3);
+  font-size: 11.5px;
+}
+.ku-inbox-column-hint {
+  padding: 16px 0;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+  text-align: center;
+}
+.ku-inbox-column-empty {
+  padding: 28px 12px;
+  border: 1px dashed var(--ku-border-input);
+  border-radius: 10px;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+  text-align: center;
+}
+.ku-inbox-column-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--ku-status-warn-fg);
+  background: var(--ku-status-warn-bg);
+  font-size: 12.5px;
+}
+.ku-inbox-retry,
+.ku-inbox-more {
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-inbox-retry {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
+}
+.ku-inbox-more {
+  flex: none;
+  height: 34px;
+}
+.ku-inbox-more:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+@media (max-width: 767px) {
+  /* 모바일 목록은 후속 작업에서 새로 짠다. 그동안 열을 세로로 쌓는다. */
+  .ku-inbox-page {
+    height: auto;
+    padding: 20px 14px calc(82px + env(safe-area-inset-bottom));
+  }
+  .ku-inbox-board-head {
+    flex-direction: column;
+  }
+  .ku-inbox-columns {
+    grid-template-columns: 1fr;
+  }
+  .ku-inbox-column-body {
+    max-height: 70dvh;
+  }
+}
+
 .ku-review-modal-title {
   margin-bottom: 6px;
   font-size: 16px;

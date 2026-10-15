@@ -40,6 +40,8 @@
   --ku-status-review-bg: #e9e5f5;
   --ku-status-review-fg: #4f3f86;
   --ku-overlay: rgba(0, 0, 0, 0.55);
+  --ku-board-column: #efebe7;
+  --ku-dot-new: #c27a12;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -83,6 +85,8 @@
     --ku-status-review-bg: #2a2540;
     --ku-status-review-fg: #c3b6f0;
     --ku-overlay: rgba(0, 0, 0, 0.62);
+    --ku-board-column: #1b1714;
+    --ku-dot-new: #e0a23c;
   }
 }
 
