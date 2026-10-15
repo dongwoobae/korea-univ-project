@@ -1181,8 +1181,9 @@ button.ku-admin-overview-item {
   }
 }
 
-/* 구간 번호표 — 설계 2026-10-06 5.2. 작업 화면의 보기 지도도 같은 모양을 쓴다(설계 2026-10-14 6.1) */
-.ku-slope-segment-label {
+/* 구간 번호표 — 설계 2026-10-06 5.2. 작업 화면의 보기 지도도 같은 모양을 쓴다(설계 2026-10-14 6.1).
+   늦게 불리는 leaflet.css의 .leaflet-marker-icon 표시 규칙에 지지 않게 그 클래스를 함께 건다 */
+.leaflet-marker-icon.ku-slope-segment-label {
   display: flex;
   align-items: center;
   justify-content: center;

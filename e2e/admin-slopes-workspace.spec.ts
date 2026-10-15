@@ -317,6 +317,7 @@ test.describe("경사도 작업 화면 — 선택과 지도", () => {
     const labels = page.locator(".ku-slope-segment-label");
     await expect(labels).toHaveCount(1);
     await expect(labels).toHaveText("1");
+    await expect(labels).toHaveCSS("display", "flex");
   });
 
   test("목록 조회가 늦게 끝나도 ?id= 링크가 그 경로를 연다", async ({
