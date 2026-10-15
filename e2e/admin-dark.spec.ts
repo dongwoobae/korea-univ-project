@@ -206,6 +206,32 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
     }
   });
 
+  test("명소 이모지 피커에 하드코딩 밝은 색이 남지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto(
+      "/admin/dashboard/landmarks?id=11111111-1111-1111-1111-111111111111",
+    );
+    const detail = page.getByRole("region", { name: "다람쥐길", exact: true });
+    await expect(detail).toBeVisible();
+    await detail.getByRole("button", { name: /이모지 .* 바꾸기/ }).click();
+    await expect(
+      page.getByRole("group", { name: "이모지 선택" }),
+    ).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    const result = await scanContrast(page);
+    expect(
+      result.nearWhiteBg,
+      `미이관 흰 배경: ${result.nearWhiteBg.join(", ")}`,
+    ).toHaveLength(0);
+    expect(
+      result.nearBlackText,
+      `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
+    ).toHaveLength(0);
+  });
+
   test("제보함 등록 요청 드로어에 하드코딩 밝은 색이 남지 않고 승인 버튼 글자 대비를 지킨다", async ({
     page,
   }) => {
