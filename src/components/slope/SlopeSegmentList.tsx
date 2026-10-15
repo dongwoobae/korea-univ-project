@@ -2,13 +2,17 @@
 
 import type { RouteSegment } from "@/lib/slopeRoute";
 import {
+  SLOPE_GRADE_COLORS,
+  SLOPE_GRADE_ON_COLORS,
   degToPercent,
   formatDeg,
   formatPercent,
   isSlopeDegInRange,
+  slopeGradeFromDeg,
   slopeWarningFromDeg,
   type SlopeUnit,
 } from "@/lib/slopeScale";
+import { formatMeters } from "@/lib/slopeWorkspace";
 
 interface SlopeSegmentListProps {
   segments: RouteSegment[];
@@ -18,6 +22,7 @@ interface SlopeSegmentListProps {
   slopes: (number | null)[];
   unit: SlopeUnit;
   onDraftChange: (index: number, raw: string) => void;
+  disabled?: boolean;
 }
 
 const WARNING_TEXT = {
@@ -33,17 +38,18 @@ export default function SlopeSegmentList({
   slopes,
   unit,
   onDraftChange,
+  disabled = false,
 }: SlopeSegmentListProps) {
   if (segments.length === 0) {
     return (
-      <div style={{ fontSize: 13, color: "var(--ku-text-3)" }}>
+      <p className="ku-slope-card-empty">
         지도에서 경로를 그리면 구간이 나타납니다.
-      </div>
+      </p>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className="ku-slope-cards">
       {segments.map((segment) => {
         const value = slopes[segment.index];
         const measured =
@@ -52,6 +58,7 @@ export default function SlopeSegmentList({
             : null;
         const warning =
           measured === null ? null : slopeWarningFromDeg(measured);
+        const grade = measured === null ? null : slopeGradeFromDeg(measured);
         const converted =
           measured === null
             ? null
@@ -59,37 +66,44 @@ export default function SlopeSegmentList({
               ? formatPercent(degToPercent(measured))
               : formatDeg(measured);
         return (
-          <div
-            key={segment.index}
-            style={{
-              border: "1px solid var(--ku-border)",
-              borderRadius: 8,
-              padding: 12,
-            }}
-          >
-            <label
-              htmlFor={`slope-${segment.index}`}
-              style={{ fontSize: 13, fontWeight: 600 }}
-            >
-              구간 {segment.index + 1}
-            </label>
+          <div key={segment.index} className="ku-slope-card">
+            {/* 번호는 옆 "구간 n"이 읽는다. 값이 없거나 범위 밖이면 판정 색 대신 테두리만 둔다 */}
             <span
-              style={{
-                fontSize: 12,
-                color: "var(--ku-text-3)",
-                marginLeft: 8,
-              }}
+              className="ku-slope-card-index"
+              aria-hidden="true"
+              data-empty={grade === null || undefined}
+              style={
+                grade
+                  ? {
+                      background: SLOPE_GRADE_COLORS[grade],
+                      color: SLOPE_GRADE_ON_COLORS[grade],
+                    }
+                  : undefined
+              }
             >
-              {segment.distance}m
+              {segment.index + 1}
             </span>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                marginTop: 6,
-              }}
-            >
+            <div className="ku-slope-card-text">
+              <div>
+                <label htmlFor={`slope-${segment.index}`}>
+                  구간 {segment.index + 1}
+                </label>
+                <span className="ku-slope-card-meta">
+                  {" · "}
+                  {formatMeters(segment.distance)}
+                  {converted && ` · = ${converted}`}
+                </span>
+              </div>
+              {warning && (
+                <p
+                  className="ku-slope-card-warning"
+                  data-tone={warning === "extreme" ? "danger" : undefined}
+                >
+                  {WARNING_TEXT[warning]}
+                </p>
+              )}
+            </div>
+            <div className="ku-slope-card-input">
               <input
                 id={`slope-${segment.index}`}
                 aria-label={`구간 ${segment.index + 1} 경사도`}
@@ -97,41 +111,13 @@ export default function SlopeSegmentList({
                 step="any"
                 inputMode="decimal"
                 value={drafts[segment.index] ?? ""}
+                disabled={disabled}
                 onChange={(event) =>
                   onDraftChange(segment.index, event.target.value)
                 }
-                style={{
-                  width: 110,
-                  padding: "8px 10px",
-                  border: "1px solid var(--ku-border)",
-                  borderRadius: 8,
-                  fontSize: 14,
-                }}
               />
-              <span style={{ fontSize: 13 }}>{UNIT_SYMBOL[unit]}</span>
-              {converted && (
-                <span
-                  className="ku-slope-converted"
-                  style={{ fontSize: 12, color: "var(--ku-text-3)" }}
-                >
-                  = {converted}
-                </span>
-              )}
+              <span>{UNIT_SYMBOL[unit]}</span>
             </div>
-            {warning && (
-              <div
-                style={{
-                  marginTop: 6,
-                  fontSize: 12,
-                  color:
-                    warning === "extreme"
-                      ? "var(--ku-danger)"
-                      : "var(--ku-text-2)",
-                }}
-              >
-                {WARNING_TEXT[warning]}
-              </div>
-            )}
           </div>
         );
       })}

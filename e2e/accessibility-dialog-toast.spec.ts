@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
 
 test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
@@ -352,5 +352,57 @@ test.describe("모달 초점 관리와 토스트 라이브 영역", () => {
       expect(box!.width, label).toBeGreaterThanOrEqual(44);
       expect(box!.height, label).toBeGreaterThanOrEqual(44);
     }
+  });
+
+  test("모바일 경사도 편집의 버튼이 44px 터치 영역을 확보한다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/admin/dashboard/slopes?id=2&edit=1");
+
+    async function expectTouchTarget(target: Locator, label: string) {
+      await expect(target, label).toBeVisible();
+      const box = await target.boundingBox();
+      expect(box, label).not.toBeNull();
+      expect(box!.width, label).toBeGreaterThanOrEqual(44);
+      expect(box!.height, label).toBeGreaterThanOrEqual(44);
+    }
+
+    const detail = page.getByRole("region", {
+      name: "안암병원 정문 경사로 편집",
+      exact: true,
+    });
+    for (const name of [
+      "목록으로",
+      "도(°)",
+      "퍼센트(%)",
+      "지도에서 경로 고치기",
+      "삭제",
+      "취소",
+      "저장",
+    ]) {
+      await expectTouchTarget(
+        detail.getByRole("button", { name, exact: true }),
+        name,
+      );
+    }
+    await expectTouchTarget(
+      detail.getByLabel("구간 1 경사도"),
+      "구간 1 경사도",
+    );
+
+    await detail.getByRole("button", { name: "지도에서 경로 고치기" }).click();
+    const tools = page
+      .getByRole("toolbar", { name: "경로 편집 도구" })
+      .getByRole("button");
+    await expect(tools).not.toHaveCount(0);
+    for (const button of await tools.all()) {
+      await expectTouchTarget(button, (await button.textContent()) ?? "도구");
+    }
+    await expectTouchTarget(
+      page.getByRole("button", { name: "완료", exact: true }),
+      "완료",
+    );
   });
 });

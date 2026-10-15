@@ -139,6 +139,36 @@ export function slopeWarningFromDeg(deg: number): SlopeWarning {
   return null;
 }
 
+export type SlopeGrade = "ok" | "over" | "extreme";
+
+export const SLOPE_GRADES: readonly SlopeGrade[] = ["ok", "over", "extreme"];
+
+export function slopeGradeFromDeg(deg: number): SlopeGrade {
+  const warning = slopeWarningFromDeg(deg);
+  if (warning === "extreme") return "extreme";
+  return warning === "relaxed-limit" ? "over" : "ok";
+}
+
+// 관리자 화면 전용 판정 3색. 공개 지도는 연속 색(slopeColorFromDeg)을 쓴다(설계 2026-10-14 2.1).
+export const SLOPE_GRADE_COLORS: Record<SlopeGrade, string> = {
+  ok: "#1B9E77",
+  over: "#E6AB02",
+  extreme: "#A50F15",
+};
+
+// 데이터 색이라 라이트·다크가 같다.
+export const SLOPE_GRADE_ON_COLORS: Record<SlopeGrade, string> = {
+  ok: "#1C1917",
+  over: "#1C1917",
+  extreme: "#FFFFFF",
+};
+
+export const SLOPE_GRADE_LABELS: Record<SlopeGrade, string> = {
+  ok: "기준 이내",
+  over: "1/12 초과",
+  extreme: "확인 필요",
+};
+
 export type SlopeUnit = "deg" | "percent";
 
 export function toDegrees(value: number, unit: SlopeUnit): number {

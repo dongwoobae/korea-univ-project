@@ -4,6 +4,12 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { ADMIN_MOBILE_QUERY } from "./types";
 
+export interface DetailRemoveAction {
+  confirmMessage: string;
+  disabled?: boolean;
+  onConfirm: () => Promise<void>;
+}
+
 interface DetailPanelProps {
   /** region 이름이자 모바일 상단 바 제목 */
   label: string;
@@ -11,19 +17,19 @@ interface DetailPanelProps {
   header: ReactNode;
   onClose: () => void;
   closeDisabled?: boolean;
-  remove?: {
-    confirmMessage: string;
-    disabled?: boolean;
-    onConfirm: () => Promise<void>;
-  };
+  remove?: DetailRemoveAction;
   save: { pending: boolean; disabled?: boolean; onClick: () => void } | null;
   /**
    * 모바일 상세 위쪽에 지도 띠를 비워 둘지. 명소처럼 미리보기가 지도가 아니면 끈다(설계 2026-10-14 2.5).
    * AdminMapWorkspace의 `mobileMapStrip`과 같은 사실이라 짝으로 맞춘다 — 끄면 그쪽을 0으로 준다.
    */
   mapStrip?: boolean;
-  /** 패널을 마운트한 채 숨긴다. 모바일에서 상세를 접고 지도에서 위치를 고르는 동안 입력과 상태를 남긴다 */
+  /** 패널을 마운트한 채 숨긴다. 모바일에서 상세를 접고 지도에서 위치를 고르거나 경로를 고치는 동안 입력과 상태를 남긴다 */
   hidden?: boolean;
+  /** 하단 바 닫기 버튼 글자. 주지 않으면 데스크톱은 닫기, 모바일은 취소 */
+  closeLabel?: string;
+  /** 데스크톱 하단 바 왼쪽 안내 */
+  footNote?: ReactNode;
   children: ReactNode;
 }
 
@@ -36,6 +42,8 @@ export default function DetailPanel({
   save,
   mapStrip = true,
   hidden = false,
+  closeLabel,
+  footNote,
   children,
 }: DetailPanelProps) {
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
@@ -159,6 +167,9 @@ export default function DetailPanel({
       </div>
       <div className="ku-detail-panel-foot">
         {!mobile && removeControl}
+        {!mobile && footNote && (
+          <span className="ku-detail-panel-note">{footNote}</span>
+        )}
         <span className="ku-detail-panel-spacer" />
         <button
           type="button"
@@ -166,7 +177,7 @@ export default function DetailPanel({
           onClick={onClose}
           disabled={closeDisabled}
         >
-          {mobile ? "취소" : "닫기"}
+          {closeLabel ?? (mobile ? "취소" : "닫기")}
         </button>
         {save && (
           <button

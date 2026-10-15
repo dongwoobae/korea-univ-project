@@ -774,7 +774,7 @@ button.ku-admin-overview-item {
   margin-top: 20px;
 }
 
-/* 지도 작업 화면으로 아직 옮기지 않은 탭(경사도·제보함)의 입력 색과 버튼 반경을 맞춘다.
+/* 지도 작업 화면으로 아직 옮기지 않은 탭(제보함)의 입력 색과 버튼 반경을 맞춘다.
    작업 화면은 자기 클래스가 값을 정하므로 뺀다. 명소의 이모지 피커는 작업 화면 안에 있어 이 규칙 밖이다.
    피커 입력의 색은 후속으로 다룬다. 마지막 탭을 옮기는 PR이 이 규칙을 지운다(설계 2026-10-14 3.1). */
 .ku-admin-content > :not(.ku-map-workspace) input,
@@ -1181,8 +1181,9 @@ button.ku-admin-overview-item {
   }
 }
 
-/* 경사도 편집기 — 설계 2026-10-06 5.2·5.6 */
-.ku-slope-route-map .ku-slope-segment-label {
+/* 구간 번호표 — 설계 2026-10-06 5.2. 작업 화면의 보기 지도도 같은 모양을 쓴다(설계 2026-10-14 6.1).
+   늦게 불리는 leaflet.css의 .leaflet-marker-icon 표시 규칙에 지지 않게 그 클래스를 함께 건다 */
+.leaflet-marker-icon.ku-slope-segment-label {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1194,17 +1195,14 @@ button.ku-admin-overview-item {
   font-size: 12px;
   font-weight: 700;
 }
-.ku-slope-route-map .button-container.active .leaflet-pm-actions-container {
-  display: flex;
-  flex-direction: column;
+/* 경사도 편집 지도의 편집선. 클래스는 SlopeRouteMap의 EDIT_LINE_OPTIONS가 단다 */
+.ku-slope-route-map path.ku-slope-edit-line {
+  stroke: var(--ku-text-1);
 }
-.ku-slope-route-map
-  .button-container
-  .leaflet-pm-actions-container
-  .leaflet-pm-action {
-  border-right: 0;
-  border-bottom: 1px solid #eee;
-  border-radius: 0;
+/* 편집 꼭짓점 핸들: 14px 흰 원에 3px 테두리(핸드오버). 중간점 핸들은 hideMiddleMarkers로 없다 */
+.ku-slope-route-map .marker-icon:not(.marker-icon-middle) {
+  box-sizing: border-box;
+  border: 3px solid var(--ku-text-1);
 }
 
 .ku-admin-nav-badge {
@@ -1820,6 +1818,10 @@ button.ku-admin-overview-item {
   color: var(--ku-status-warn-fg);
   background: var(--ku-status-warn-bg);
 }
+.ku-row-badge[data-tone="ok"] {
+  color: var(--ku-success-fg);
+  background: var(--ku-success-bg);
+}
 .ku-row-badge[data-tone="neutral"] {
   color: var(--ku-text-2);
   background: var(--ku-divider);
@@ -1946,6 +1948,10 @@ button.ku-admin-overview-item {
 }
 .ku-detail-panel-spacer {
   flex: 1;
+}
+.ku-detail-panel-note {
+  color: var(--ku-text-3);
+  font-size: 11.5px;
 }
 .ku-detail-panel-foot .ku-workspace-primary {
   height: 36px;
@@ -2399,6 +2405,307 @@ button.ku-admin-overview-item {
   font-size: 12px;
 }
 
+/* 경사도 작업 화면 — 핸드오버 1장 "행 — 경사도"·4장 "보기" */
+.ku-slope-row {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 12px 18px;
+}
+.ku-slope-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ku-slope-row-head .ku-workspace-row-name {
+  flex: 1;
+  min-width: 0;
+}
+.ku-slope-row .ku-workspace-row-meta {
+  margin-top: 0;
+}
+.ku-slope-profile {
+  display: flex;
+  gap: 2px;
+  height: 6px;
+}
+.ku-slope-profile span {
+  border-radius: 3px;
+}
+.ku-slope-view-title {
+  align-items: center;
+}
+.ku-slope-view-title > div {
+  flex: 1;
+  min-width: 0;
+}
+.ku-slope-view-title .ku-workspace-primary,
+.ku-slope-view-mobile-head .ku-workspace-primary {
+  height: 36px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.ku-slope-view-mobile-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ku-slope-view-mobile-head p {
+  flex: 1;
+  min-width: 0;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+}
+.ku-slope-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  color: var(--ku-text-1);
+  font-size: 13px;
+}
+.ku-slope-table th,
+.ku-slope-table td {
+  padding: 0 0 0 10px;
+  text-align: left;
+}
+.ku-slope-table th:last-child,
+.ku-slope-table td:last-child {
+  padding-right: 10px;
+}
+.ku-slope-table th {
+  height: 34px;
+  color: var(--ku-text-3);
+  background: var(--ku-bg);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.ku-slope-table th:first-child {
+  width: 56px;
+  border-radius: 8px 0 0 8px;
+}
+.ku-slope-table th:last-child {
+  border-radius: 0 8px 8px 0;
+}
+.ku-slope-table td {
+  height: 40px;
+  border-bottom: 1px solid var(--ku-divider);
+}
+.ku-slope-table td:nth-child(2) {
+  color: var(--ku-text-2);
+}
+.ku-slope-table td:nth-child(3) {
+  font-weight: 600;
+}
+.ku-slope-table-index {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+}
+.ku-slope-table-index span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.ku-slope-view-notice {
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: var(--ku-status-warn-fg);
+  background: var(--ku-status-warn-bg);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 경사도 편집 패널 — 핸드오버 4장 "편집" */
+.ku-slope-edit-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ku-row-badge.ku-slope-edit-status {
+  padding: 4px 9px;
+  font-size: 11.5px;
+}
+.ku-slope-edit-meta {
+  flex: 1;
+  min-width: 0;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-slope-edit-name input {
+  width: 100%;
+  height: 42px;
+  padding: 0 11px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font-size: 16px;
+  font-weight: 700;
+}
+.ku-slope-edit-name input::placeholder {
+  color: var(--ku-text-3);
+  font-weight: 400;
+}
+.ku-slope-edit-name input:focus-visible,
+.ku-slope-card-input input:focus-visible {
+  border-color: var(--ku-crimson-700);
+}
+/* 도구 바는 목록·줌 버튼과 상세 패널 사이 지도의 빈 자리에 가운데로 놓는다. 가로는 left·right로 그 자리에 묶어
+   패널을 덮지 않고(넘치면 줄바꿈), 좁은 폭의 미디어 쿼리는 ADMIN_NARROW_QUERY와 같은 경계다.
+   두 패널이 나란히 서는 폭 중 빈 자리가 180px보다 좁은 폭(아래 미디어 쿼리)에서는 글자를 시각적으로 숨기고 기호만
+   세로로 쌓아 줌 버튼 아래, 목록과 상세 사이 좁은 틈에 둔다 */
+.ku-slope-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 476px;
+  left: 488px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  width: fit-content;
+  margin-inline: auto;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--ku-surface);
+  box-shadow: var(--ku-shadow-floating);
+}
+.ku-slope-toolbar button {
+  height: 38px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ku-text-1);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.ku-slope-toolbar button[aria-pressed="true"] {
+  color: var(--ku-primary-text);
+  background: var(--ku-primary-soft-bg);
+}
+.ku-slope-toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+@media (min-width: 964px) and (max-width: 1143px) {
+  .ku-slope-toolbar {
+    top: 112px;
+    right: auto;
+    left: 431px;
+    flex-direction: column;
+    margin-inline: 0;
+  }
+  .ku-slope-toolbar button {
+    justify-content: center;
+    width: 38px;
+    padding: 0;
+  }
+  .ku-slope-toolbar-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+@media (max-width: 963px) {
+  .ku-slope-toolbar {
+    right: 476px;
+    left: 68px;
+  }
+}
+.ku-slope-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ku-slope-card {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+}
+/* 채움은 판정 색(데이터 색)이라 SlopeSegmentList가 인라인으로 준다 */
+.ku-slope-card-index {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ku-slope-card-index[data-empty] {
+  border: 2px solid var(--ku-border-input);
+  color: var(--ku-text-2);
+}
+.ku-slope-card-text {
+  min-width: 0;
+  color: var(--ku-text-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ku-slope-card-meta {
+  color: var(--ku-text-3);
+  font-weight: 400;
+}
+.ku-slope-card-warning {
+  margin-top: 3px;
+  color: var(--ku-text-2);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+.ku-slope-card-warning[data-tone="danger"] {
+  color: var(--ku-danger);
+}
+.ku-slope-card-input {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ku-slope-card-input input {
+  width: 72px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+}
+.ku-slope-card-input span {
+  width: 12px;
+  color: var(--ku-text-2);
+  font-size: 13px;
+}
+.ku-slope-card-empty {
+  color: var(--ku-text-3);
+  font-size: 13px;
+}
+.ku-slope-edit-errors {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ku-text-2);
+  font-size: 12px;
+}
+
 /* 목록·줌 버튼·상세 패널이 나란히 들어가지 않는 폭(설계 2026-10-14 3.5). 경계는 types.ts의 ADMIN_NARROW_QUERY와 같다.
    visibility로 숨겨 상세를 닫았을 때 목록의 스크롤 위치가 남는다.
    아래 끝을 두지 않는다 — 확대로 767~768px 사이 폭이 나와도 JS와 같이 판정한다. 모바일은 목록 패널을 그리지 않고 줌 버튼을 숨겨 이 규칙이 닿지 않는다. */
@@ -2594,6 +2901,7 @@ button.ku-admin-overview-item {
     font-size: 16px !important;
   }
   .ku-detail-segment button {
+    min-width: 44px;
     min-height: 44px;
     padding: 0 18px;
   }
@@ -2635,10 +2943,34 @@ button.ku-admin-overview-item {
     color: var(--ku-text-3);
     font-size: 12.5px;
   }
+  .ku-slope-view-mobile-head .ku-workspace-primary {
+    min-height: 44px;
+  }
+  .ku-slope-edit-name input {
+    height: 46px;
+  }
+  .ku-slope-card-input input {
+    height: 44px;
+    font-size: 16px;
+  }
+  /* 모바일은 상세를 접은 전체 지도에서만 그리므로(SlopeEditPanel) 상세를 비키지 않고 지도 위쪽 폭을 다 쓴다.
+     위 여백과 버튼 높이는 SlopeEditToolbar의 MOBILE_TOOLBAR_BOTTOM과 맞춘다 */
+  .ku-slope-toolbar {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+    justify-content: center;
+  }
+  .ku-slope-toolbar button {
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+  }
 
-  /* 위치를 고르는 동안 상세 대신 작업 화면 아래에 붙는다. z-index 없이 지도 뒤 문서 순서로 지도 위에
-     그려진다(.ku-bottom-sheet와 같다). 높이는 types.ts의 MOBILE_PICK_BAR와 맞춘다 */
-  .ku-landmark-pick-bar {
+  /* 명소의 위치 고르기·경사도의 전체 지도 동안 상세 대신 작업 화면 아래에 붙는다. z-index 없이 지도 뒤 문서
+     순서로 지도 위에 그려진다(.ku-bottom-sheet와 같다). 높이는 types.ts의 MOBILE_PICK_BAR와 맞춘다 */
+  .ku-landmark-pick-bar,
+  .ku-slope-map-bar {
     position: absolute;
     right: 0;
     bottom: 0;
@@ -2653,11 +2985,13 @@ button.ku-admin-overview-item {
     background: var(--ku-surface);
     box-shadow: 0 -6px 24px rgba(28, 25, 23, 0.14);
   }
-  .ku-landmark-pick-bar:focus-visible {
+  .ku-landmark-pick-bar:focus-visible,
+  .ku-slope-map-bar:focus-visible {
     outline: 2px solid var(--ku-primary-text);
     outline-offset: -2px;
   }
-  .ku-landmark-pick-text {
+  .ku-landmark-pick-text,
+  .ku-slope-map-bar p {
     display: flex;
     flex-direction: column;
     gap: 2px;
@@ -2681,6 +3015,11 @@ button.ku-admin-overview-item {
   }
   .ku-landmark-pick-actions .ku-workspace-primary {
     flex: 2;
+    height: 50px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .ku-slope-map-bar .ku-workspace-primary {
     height: 50px;
     font-size: 13px;
     font-weight: 700;

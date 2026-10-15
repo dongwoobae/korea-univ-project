@@ -42,6 +42,18 @@ describe("workspaceInsets", () => {
     }
   });
 
+  it("고르는 동안 지도 위쪽을 덮는 막대가 있으면 그 아래부터 쓴다", () => {
+    expect(
+      workspaceInsets({
+        ...base,
+        mobile: true,
+        mapStrip: 230,
+        picking: true,
+        pickingTop: 110,
+      }),
+    ).toEqual({ top: 110 + 12, right: 0, bottom: MOBILE_PICK_BAR, left: 0 });
+  });
+
   it("데스크톱은 위치 고르기와 상관없이 목록과 상세 패널을 비킨다", () => {
     const expected = { top: 16, right: 16 + 460 + 16, bottom: 16, left: 436 };
     expect(workspaceInsets(base)).toEqual(expected);

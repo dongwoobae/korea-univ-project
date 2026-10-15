@@ -31,7 +31,7 @@ A의 번역이 덮는다. 한국어 원문은 B의 것, `name_en`·`name_zh`는 
 
 - **1번:** 바뀐 필드만 보낼지(폼 열 때 값과 비교), `updated_at`을 조건으로 건 낙관적 잠금으로 충돌을 알릴지.
   `building_facilities`에는 `updated_at` 컬럼이 있다(`supabase/migrations/20260723000000_add_admin_content_updated_at.sql`).
-  경사도 수정 화면(`src/app/admin/slopes/[id]/page.tsx`)이 이미 `updated_at`으로 잠근다. 바뀐 필드만 보내는 쪽은
+  경사도 저장(`src/lib/slopeSave.ts`의 `saveSlopeRoute`)이 이미 `updated_at`으로 잠근다. 바뀐 필드만 보내는 쪽은
   같은 필드를 둘이 고친 경우를 여전히 조용히 덮는다.
 - **2번:** 번역 결과를 쓸 때 원문(또는 수정 시각)이 번역을 시작한 시점과 같을 때만 쓸지. 다르면 결과를 버리고
   상태를 무엇으로 둘지(`pending` 유지 또는 재번역).
