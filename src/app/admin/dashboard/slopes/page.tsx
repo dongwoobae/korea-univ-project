@@ -253,8 +253,9 @@ export default function SlopesPage() {
       showToast(error, "error");
       return;
     }
-    await handleDeleted(routeId);
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
     showToast(`"${slopeDisplayName(item.route)}" 경로를 삭제했어요`);
+    await handleDeleted(routeId);
   }
 
   // 편집을 마치거나 그만둔 뒤의 자리. 모바일은 행이 보기를 거치지 않아 목록으로 간다(설계 2026-10-14 6.4·6.6)

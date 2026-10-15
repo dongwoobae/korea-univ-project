@@ -1,4 +1,10 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type Route,
+} from "@playwright/test";
 import {
   installMockBackend,
   stationBuildingRow,
@@ -252,6 +258,46 @@ function breakRoute2(state: MockState) {
   ];
 }
 
+const SQUIRREL_ID = "11111111-1111-1111-1111-111111111111";
+
+/** 다른 탭(명소)으로 옮겨 다람쥐길을 열고 이름 칸에 입력해 둔다. 늦게 끝난 요청이 이 화면을 건드리는지 보는 자리다 */
+async function typeInLandmarksTab(page: Page) {
+  await adminNav(page).getByRole("link", { name: "명소" }).click();
+  await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
+  await page
+    .getByRole("region", { name: "명소", exact: true })
+    .getByRole("button", { name: /다람쥐길/ })
+    .click();
+  const panel = detailPanel(page, "다람쥐길");
+  const name = panel.getByLabel("이름 *");
+  await name.fill("입력 중인 명소");
+  return { panel, name };
+}
+
+/** 이 탭에 머문 채 끝난 요청이 선택·입력을 건드리지 않았는지 */
+async function expectLandmarksTabUntouched(
+  page: Page,
+  tab: Awaited<ReturnType<typeof typeInLandmarksTab>>,
+) {
+  // 붙잡아 둔 요청이 실제로 끝난 뒤를 본다
+  await page.waitForTimeout(500);
+  await expect(page).toHaveURL(
+    (url) =>
+      url.search === `?id=${SQUIRREL_ID}` &&
+      url.pathname.endsWith("/landmarks"),
+  );
+  await expect(tab.panel).toBeVisible();
+  await expect(tab.name).toHaveValue("입력 중인 명소");
+}
+
+/** 목록 조회(select=*). 편집 지도의 겹침용 조회(select=id,segments)와 가른다 */
+function slopeListGet(route: Route) {
+  return (
+    route.request().method() === "GET" &&
+    route.request().url().includes("select=*")
+  );
+}
+
 test.describe("경사도 작업 화면 — 목록", () => {
   test("칩·검색·정렬로 목록을 좁히고 칩 개수는 전체 기준이다", async ({
     page,
@@ -362,6 +408,52 @@ test.describe("경사도 작업 화면 — 목록", () => {
     await expect(broken).not.toContainText("구간 ·");
     await expect(broken).toContainText("수정 ");
     await expect(broken.locator(".ku-slope-profile span")).toHaveCount(0);
+  });
+
+  test("첫 조회가 실패한 ?id= 링크도 다시 시도가 그 경로의 페이지를 연다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addSecondPageRoute(state);
+    let failNext = true;
+    await page.route(slopesRequest, async (route) => {
+      if (failNext && slopeListGet(route)) {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/slopes?id=900");
+    const list = listPanel(page);
+
+    await list.getByRole("button", { name: "다시 시도" }).click();
+    await expect(
+      list.getByRole("button", { name: "2 페이지" }),
+    ).toHaveAttribute("aria-current", "page");
+    await expect(listRow(page, "둘째 쪽 경로")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(detailPanel(page, "둘째 쪽 경로")).toBeVisible();
+    await expect(page).toHaveURL(/\?id=900$/);
+  });
+
+  test("첫 조회를 기다리다 다른 화면으로 떠나도 늦게 끝난 조회가 그 화면의 선택과 입력을 건드리지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseList = () => {};
+    const listHeld = new Promise<void>((resolve) => (releaseList = resolve));
+    await page.route(slopesRequest, async (route) => {
+      if (slopeListGet(route)) await listHeld;
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/slopes");
+
+    const tab = await typeInLandmarksTab(page);
+    releaseList();
+
+    await expectLandmarksTabUntouched(page, tab);
   });
 
   test("목록을 받지 못하면 패널 안에 오류와 다시 시도를 보인다", async ({
@@ -555,6 +647,92 @@ test.describe("경사도 작업 화면 — 보기 패널", () => {
     expect(state.slopes.some((row) => row.id === 1)).toBe(false);
   });
 
+  test("삭제 뒤 목록을 다시 받지 못하면 삭제 성공 토스트가 아니라 불러오기 오류가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await listRow(page, "정문-중앙광장").click();
+    const detail = detailPanel(page, "정문-중앙광장");
+    let failNext = true;
+    await page.route(slopesRequest, async (route) => {
+      if (failNext && route.request().method() === "GET") {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+
+    await confirmDelete(detail);
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "경사도 경로 목록을 새로 불러오지 못했어요" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('"정문-중앙광장" 경로를 삭제했어요'),
+    ).toHaveCount(0);
+    expect(state.slopes.some((row) => row.id === 1)).toBe(false);
+  });
+
+  test("삭제가 실패하면 반환된 메시지를 오류로 알리고 행을 남긴다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.route(slopesRequest, async (route) => {
+      if (route.request().method() === "DELETE") {
+        return route.fulfill({
+          status: 500,
+          headers: { "access-control-allow-origin": "*" },
+          contentType: "application/json",
+          body: JSON.stringify({ message: "삭제 거부" }),
+        });
+      }
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/slopes");
+    await listRow(page, "정문-중앙광장").click();
+    const detail = detailPanel(page, "정문-중앙광장");
+
+    await confirmDelete(detail);
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "삭제 실패: 삭제 거부" }),
+    ).toBeVisible();
+    await expect(listRow(page, "정문-중앙광장")).toBeVisible();
+    await expect(detail).toBeVisible();
+    expect(state.slopes.some((row) => row.id === 1)).toBe(true);
+  });
+
+  test("삭제를 기다리다 다른 화면으로 떠나도 끝난 삭제가 그 화면의 선택과 입력을 건드리지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseDelete = () => {};
+    const deleteHeld = new Promise<void>(
+      (resolve) => (releaseDelete = resolve),
+    );
+    await page.route(slopesRequest, async (route) => {
+      if (route.request().method() === "DELETE") await deleteHeld;
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/slopes");
+    await listRow(page, "정문-중앙광장").click();
+    const deleting = detailPanel(page, "정문-중앙광장");
+    await confirmDelete(deleting);
+    await expect(
+      deleting.getByRole("button", { name: "삭제 중..." }),
+    ).toBeDisabled();
+
+    const tab = await typeInLandmarksTab(page);
+    releaseDelete();
+
+    await expectLandmarksTabUntouched(page, tab);
+  });
+
   test("삭제를 기다리는 사이 연 다른 경로의 상세는 삭제가 끝나도 남는다", async ({
     page,
   }) => {
@@ -730,6 +908,44 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     await expect(detailPanel(page, "안암병원 정문 경사로")).toBeVisible();
     const saved = state.slopes.find((row) => row.id === 2);
     const segments = saved!.segments as Array<Record<string, unknown>>;
+    expect(segments[1].slope).toBe(9.4);
+  });
+
+  test("저장 뒤 목록을 다시 받지 못하면 저장 성공 토스트가 아니라 불러오기 오류가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await listRow(page, "안암병원 정문 경사로").click();
+    await detailPanel(page, "안암병원 정문 경사로")
+      .getByRole("button", { name: "경로 편집" })
+      .click();
+    const detail = editPanel(page, "안암병원 정문 경사로");
+    // 편집 지도도 `slope_segments`를 받는다(다른 경로 겹침). 목록 조회(select=*)만 실패시킨다
+    let failNext = true;
+    await page.route(slopesRequest, async (route) => {
+      if (
+        failNext &&
+        route.request().method() === "GET" &&
+        route.request().url().includes("select=*")
+      ) {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+
+    await detail.getByLabel("구간 1 경사도").fill("9.4");
+    await detail.getByRole("button", { name: "저장", exact: true }).click();
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "경사도 경로 목록을 새로 불러오지 못했어요" }),
+    ).toBeVisible();
+    await expect(page.getByText("경로가 수정되었어요")).toHaveCount(0);
+    const segments = state.slopes.find((row) => row.id === 2)!
+      .segments as Array<Record<string, unknown>>;
     expect(segments[1].slope).toBe(9.4);
   });
 
@@ -2047,6 +2263,40 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     await expect(
       newPanel(page).getByRole("button", { name: "삭제", exact: true }),
     ).toHaveCount(0);
+  });
+
+  test("삭제를 기다리는 사이 목록으로 돌아가 연 다른 경로의 상세는 삭제가 끝나도 남는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseDelete = () => {};
+    const deleteHeld = new Promise<void>(
+      (resolve) => (releaseDelete = resolve),
+    );
+    await page.route(slopesRequest, async (route) => {
+      if (route.request().method() === "DELETE") await deleteHeld;
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/slopes?id=1&edit=1");
+    const deleting = editPanel(page, "정문-중앙광장");
+    await confirmDelete(deleting);
+    await expect(
+      deleting.getByRole("button", { name: "삭제 중..." }),
+    ).toBeDisabled();
+
+    await deleting.getByRole("button", { name: "목록으로" }).click();
+    await expect(deleting).toHaveCount(0);
+    await listRow(page, ROUTE_2).click();
+    const other = editPanel(page, ROUTE_2);
+    await expect(other).toBeVisible();
+    releaseDelete();
+
+    await expect(
+      page.getByText('"정문-중앙광장" 경로를 삭제했어요'),
+    ).toBeVisible();
+    await expect(listRow(page, "정문-중앙광장")).toHaveCount(0);
+    await expect(other).toBeVisible();
+    await expect(page).toHaveURL(/\?id=2&edit=1$/);
   });
 
   test("?id= 링크와 형식 오류 행은 모바일에서도 보기 패널로 연다", async ({

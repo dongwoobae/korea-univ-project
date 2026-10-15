@@ -741,6 +741,65 @@ test.describe("명소 작업 화면 — 상세 패널 편집", () => {
     expect(state.landmarks.some((row) => row.id === "l-no-photo")).toBe(false);
   });
 
+  test("삭제 뒤 목록을 다시 받지 못하면 삭제 성공 토스트가 아니라 불러오기 오류가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+    let failNext = true;
+    await page.route(landmarksRequest, async (route) => {
+      if (failNext && route.request().method() === "GET") {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+
+    await detail.getByRole("button", { name: "삭제", exact: true }).click();
+    await detail
+      .getByRole("group", { name: "삭제 확인" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "명소 목록을 새로 불러오지 못했어요" }),
+    ).toBeVisible();
+    await expect(page.getByText("명소가 삭제되었어요")).toHaveCount(0);
+    expect(state.landmarks.some((row) => row.id === SQUIRREL_ID)).toBe(false);
+  });
+
+  test("저장 뒤 목록을 다시 받지 못하면 저장 성공 토스트가 아니라 불러오기 오류가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+    let failNext = true;
+    await page.route(landmarksRequest, async (route) => {
+      if (failNext && route.request().method() === "GET") {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+
+    await detail.getByLabel("이름 *").fill("도토리길");
+    await detail.getByRole("button", { name: "저장" }).click();
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "명소 목록을 새로 불러오지 못했어요" }),
+    ).toBeVisible();
+    await expect(page.getByText("명소가 수정되었어요")).toHaveCount(0);
+    expect(state.landmarks.find((row) => row.id === SQUIRREL_ID)!.name).toBe(
+      "도토리길",
+    );
+  });
+
   test("삭제를 기다리는 사이 연 다른 명소의 상세는 삭제가 끝나도 남는다", async ({
     page,
   }) => {

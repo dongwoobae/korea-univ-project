@@ -498,6 +498,69 @@ test.describe("독립 시설 작업 화면 — 상세 패널", () => {
     ).toBe(false);
   });
 
+  test("삭제 뒤 목록을 다시 받지 못하면 삭제 성공 토스트가 아니라 불러오기 오류가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "공사 중 주차구역").click();
+    const detail = detailPanel(page, "공사 중 주차구역");
+    let failNext = true;
+    await page.route(facilitiesRequest, async (route) => {
+      if (failNext && route.request().method() === "GET") {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+
+    await detail.getByRole("button", { name: "삭제", exact: true }).click();
+    await detail
+      .getByRole("group", { name: "삭제 확인" })
+      .getByRole("button", { name: "삭제" })
+      .click();
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "시설 목록을 새로 불러오지 못했어요" }),
+    ).toBeVisible();
+    await expect(page.getByText("시설이 삭제되었어요")).toHaveCount(0);
+    expect(
+      state.facilities.some((facility) => facility.id === "f-uninstalled"),
+    ).toBe(false);
+  });
+
+  test("저장 뒤 목록을 다시 받지 못하면 저장 성공 토스트가 아니라 불러오기 오류가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/facilities");
+    await listRow(page, "중앙광장 경사로").click();
+    const detail = detailPanel(page, "중앙광장 경사로");
+    let failNext = true;
+    await page.route(facilitiesRequest, async (route) => {
+      if (failNext && route.request().method() === "GET") {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+
+    await detail.getByLabel("시설 이름 (선택)").fill("고친 경사로");
+    await detail.getByRole("button", { name: "저장" }).click();
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "시설 목록을 새로 불러오지 못했어요" }),
+    ).toBeVisible();
+    await expect(page.getByText("시설이 수정되었어요!")).toHaveCount(0);
+    expect(
+      state.facilities.find((facility) => facility.id === "f-installed")!.name,
+    ).toBe("고친 경사로");
+  });
+
   test("삭제 확인을 닫으면 초점이 삭제 버튼으로 돌아오고 실패를 알린다", async ({
     page,
   }) => {
