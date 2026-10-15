@@ -1762,7 +1762,8 @@ test.describe("경사도 작업 화면 — 모바일", () => {
       .getByRole("dialog", { name: "저장하지 않은 변경사항이 있어요" })
       .getByRole("button", { name: "나가기" })
       .click();
-    await expect(page).toHaveURL(/\?id=2$/);
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(listPanel(page)).toBeVisible();
     const stored = state.slopes.find((row) => row.id === 2)!;
     expect(stored.name).toBe(ROUTE_2);
     expect(
@@ -1820,6 +1821,42 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     await expect(
       detail.getByRole("button", { name: "지도에서 경로 고치기" }),
     ).toBeVisible();
+
+    await detail.getByLabel("경로 이름").fill("모바일 새 경로");
+    await detail.getByLabel("구간 1 경사도").fill("3");
+    await detail.getByRole("button", { name: "저장", exact: true }).click();
+    await expect(page.getByText("경로가 추가되었어요")).toBeVisible();
+    await expect(detail).toHaveCount(0);
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(listRow(page, "모바일 새 경로")).toBeAttached();
+  });
+
+  test("모바일 편집 패널의 목록으로와 저장은 목록으로 돌아간다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await openFromSheet(page, ROUTE_2);
+    const detail = editPanel(page, ROUTE_2);
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+
+    await detail.getByRole("button", { name: "목록으로" }).click();
+    await expect(detail).toHaveCount(0);
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(listPanel(page)).toBeVisible();
+
+    // 바텀시트는 펼친 채 남아 있다
+    await listRow(page, ROUTE_2).click();
+    await detail.getByLabel("구간 1 경사도").fill("9.4");
+    await detail.getByRole("button", { name: "저장", exact: true }).click();
+    await expect(page.getByText("경로가 수정되었어요")).toBeVisible();
+    await expect(detail).toHaveCount(0);
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(listPanel(page)).toBeVisible();
+    const segments = state.slopes.find((row) => row.id === 2)!
+      .segments as Array<Record<string, unknown>>;
+    expect(segments[1].slope).toBe(9.4);
   });
 
   test("기존 경로의 편집 패널은 본문 맨 아래에 삭제를 두고 하단 취소·저장은 50px이다", async ({

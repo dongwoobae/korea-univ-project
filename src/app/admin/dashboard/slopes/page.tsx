@@ -256,15 +256,24 @@ export default function SlopesPage() {
     showToast(`"${slopeDisplayName(item.route)}" 경로를 삭제했어요`);
   }
 
+  // 편집을 마치거나 그만둔 뒤의 자리. 데스크톱은 그 경로의 보기로 돌아간다. 모바일은 보기와 편집을 합쳐(핸드오버 8장)
+  // 행이 보기를 거치지 않으므로 목록으로 간다 — 상단 바의 닫기도 `목록으로`다. 저장 뒤 편집에 머물지 않는 것은 같은
+  // key라 패널이 다시 마운트되지 않아 저장 조건(SlopeEditPanel의 loadedAt)이 낡기 때문이다
+  function afterEdit(routeId: string | null): WorkspaceState {
+    return mobile || routeId === null
+      ? { mode: "closed" }
+      : { mode: "view", id: routeId };
+  }
+
   async function handleSaved(routeId: string, created: boolean) {
     await loadRoutes();
     if (disposedRef.current) return;
-    // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 편집 상태일 때만 보기로 바꾼다(설계 2026-10-14 3.4)
+    // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 편집 상태일 때만 바꾼다(설계 2026-10-14 3.4)
     const selection = currentSelection();
     const stillEditing = created
       ? selection.mode === "new"
       : selection.mode === "edit" && selection.id === routeId;
-    if (stillEditing) applyWorkspaceState({ mode: "view", id: routeId });
+    if (stillEditing) applyWorkspaceState(afterEdit(routeId));
   }
 
   async function handleDeleted(routeId: string) {
@@ -309,11 +318,7 @@ export default function SlopesPage() {
       onDraftChange={setDraft}
       onSaved={handleSaved}
       onCancel={() =>
-        requestSelection(
-          state.mode === "edit"
-            ? { mode: "view", id: state.id }
-            : { mode: "closed" },
-        )
+        requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
       }
       remove={
         selected && state.mode === "edit"
