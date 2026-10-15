@@ -1055,3 +1055,189 @@ test.describe("제보함 — 피드백 드로어", () => {
     expect(state.feedbackSubmissions[0].status).toBe("new");
   });
 });
+
+function mobileList(page: Page) {
+  return page.getByRole("list", { name: "제보 목록" });
+}
+
+function mobileCards(page: Page) {
+  return mobileList(page).getByRole("listitem");
+}
+
+function mobileChip(page: Page, name: string) {
+  return page.getByRole("button", { name, exact: true });
+}
+
+// 상세 전체 화면이 헤더(54) 아래, 하단 nav(58) 위에 정확히 놓였는지 본다.
+async function expectFullScreenDetail(drawer: Locator) {
+  const box = await drawer.boundingBox();
+  expect(box!.x).toBe(0);
+  expect(box!.width).toBe(390);
+  expect(box!.y).toBe(54);
+  expect(box!.y + box!.height).toBe(844 - 58);
+}
+
+async function expectTouchTarget(button: Locator) {
+  const box = await button.boundingBox();
+  expect(box!.height).toBeGreaterThanOrEqual(44);
+}
+
+test.describe("제보함 — 모바일", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test("M1: 종류 세그먼트에 개수가 보이고, 상태 칩·세그먼트로 목록이 바뀌며, 카드는 전체 화면 상세를 연다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    seedFeedback(state);
+    addNewFeedback(state, 1);
+    await page.goto("/admin/dashboard/inbox");
+
+    await expect(kindButton(page, "등록 요청 2")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(kindButton(page, "피드백 3")).toBeVisible();
+    await expect(mobileChip(page, "처리 전")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(mobileCards(page)).toHaveCount(2);
+    // 모바일은 열이 없는 한 목록이다
+    await expect(page.getByRole("region", { name: "신규" })).toHaveCount(0);
+
+    await mobileChip(page, "처리 완료").click();
+    await expect(mobileCards(page)).toHaveCount(1);
+    await expect(mobileCards(page).first()).toContainText("거절됨");
+    await expect(kindButton(page, "등록 요청 1")).toBeVisible();
+    await expect(kindButton(page, "피드백 0")).toBeVisible();
+
+    await kindButton(page, "피드백 0").click();
+    await expect(page).toHaveURL(/tab=feedback/);
+    await expect(page.getByText("조건에 맞는 항목이 없어요")).toBeVisible();
+    await mobileChip(page, "처리 전").click();
+    await expect(mobileCards(page)).toHaveCount(3);
+    await expect(mobileCards(page).first()).toContainText("오류 제보");
+
+    await kindButton(page, "등록 요청 2").click();
+    await expect(page).toHaveURL(/tab=requests/);
+    await mobileCards(page).first().getByRole("button").click();
+    const drawer = drawerOf(page);
+    await expect(drawer.getByLabel("시설 유형 *")).toHaveValue("elevator");
+    await expectFullScreenDetail(drawer);
+    await expect(dimOf(page)).toHaveCount(0);
+
+    await drawer.getByRole("button", { name: "뒤로" }).click();
+    await expect(drawer).toBeHidden();
+    await expect(mobileCards(page)).toHaveCount(2);
+  });
+
+  test("M2: 등록 요청 상세 하단 바는 거절·승인이고, 데스크톱과 같은 로직으로 승인된다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    await page.goto("/admin/dashboard/inbox");
+    await mobileCards(page).first().getByRole("button").click();
+    const drawer = drawerOf(page);
+    await expect(drawer.getByLabel("시설 유형 *")).toHaveValue("elevator");
+
+    const reject = drawer.getByRole("button", { name: "거절", exact: true });
+    const approve = drawer.getByRole("button", { name: "승인하고 등록" });
+    await expectTouchTarget(reject);
+    await expectTouchTarget(approve);
+    const rejectBox = (await reject.boundingBox())!;
+    const approveBox = (await approve.boundingBox())!;
+    expect(approveBox.width).toBeGreaterThan(rejectBox.width);
+    expect(approveBox.y + approveBox.height).toBeLessThanOrEqual(844 - 58);
+
+    const confirm = drawer.getByRole("group", { name: "거절 확인" });
+    await reject.click();
+    await expect(confirm).toBeVisible();
+    await expect(approve).toHaveCount(0);
+    await expectTouchTarget(confirm.getByRole("button", { name: "취소" }));
+    await confirm.getByRole("button", { name: "취소" }).click();
+    await expect(confirm).toHaveCount(0);
+    await expect(approve).toBeVisible();
+    expect(state.facilityRequests[0].status).toBe("new");
+
+    await drawer.getByLabel("층 정보 (선택)").fill("4층");
+    await drawer.getByRole("checkbox", { name: "사진 2 공개" }).uncheck();
+    await expect(drawer.getByText("사진 1/2장 공개")).toBeVisible();
+    const map = drawer.locator(".leaflet-container");
+    await map.scrollIntoViewIfNeeded();
+    const mapBox = (await map.boundingBox())!;
+    expect(mapBox.height).toBe(190);
+    await map.click({ position: { x: 60, y: 50 } });
+    await expect(drawer.getByText("지도에서 고른 위치예요")).toBeVisible();
+
+    await approve.click();
+    await expect(drawer.getByText("승인되어 시설로 등록됐어요")).toBeVisible();
+    await expect(page.getByText("등록했어요!")).toBeVisible();
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByLabel("시설 유형 *")).toBeDisabled();
+    const created = state.facilities.find((facility) =>
+      String(facility.id).startsWith("f-approved"),
+    );
+    expect(created).toMatchObject({ floor_info: "4층" });
+    expect(Number(created!.lat)).not.toBeCloseTo(37.5894, 4);
+    expect(Number(created!.lng)).not.toBeCloseTo(127.0325, 4);
+    expect(
+      state.facilityPhotos.filter((photo) => photo.facility_id === created!.id),
+    ).toHaveLength(1);
+  });
+
+  test("M2: 값을 고친 채 뒤로를 누르면 확인을 묻고, 취소하면 상세가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    await page.goto("/admin/dashboard/inbox");
+    await mobileCards(page).first().getByRole("button").click();
+    const drawer = drawerOf(page);
+    const name = drawer.getByLabel("시설 이름 (선택)");
+    await name.fill("고치는 중");
+
+    await drawer.getByRole("button", { name: "뒤로" }).click();
+    await expect(leaveDialog(page)).toBeVisible();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(drawer).toBeVisible();
+    await expect(name).toHaveValue("고치는 중");
+
+    await drawer.getByRole("button", { name: "뒤로" }).click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(drawer).toBeHidden();
+  });
+
+  test("M3: 피드백 상세는 하단 상태 세그먼트로 바로 저장하고 다음 항목이 없다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedFeedback(state);
+    await page.goto("/admin/dashboard/inbox?tab=feedback");
+    await mobileCards(page)
+      .filter({ hasText: "중앙도서관" })
+      .getByRole("button")
+      .click();
+    const drawer = feedbackDrawerOf(page, "오류 제보");
+    await expectFullScreenDetail(drawer);
+    const segment = feedbackSegment(drawer);
+    for (const label of ["신규", "확인 중", "처리 완료"]) {
+      await expectTouchTarget(
+        segment.getByRole("button", { name: label, exact: true }),
+      );
+    }
+    await expect(drawer.getByRole("button", { name: /다음 항목/ })).toHaveCount(
+      0,
+    );
+
+    await segment.getByRole("button", { name: "처리 완료" }).click();
+    await expect(page.getByText("처리 완료로 바꿨어요")).toBeVisible();
+    expect(state.feedbackSubmissions[0].status).toBe("resolved");
+    await expect(drawer).toBeVisible();
+    await expect(
+      segment.getByRole("button", { name: "처리 완료" }),
+    ).toHaveAttribute("aria-pressed", "true");
+  });
+});
