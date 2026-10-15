@@ -56,6 +56,8 @@ interface EditorController {
 }
 
 interface SlopeRouteMapProps extends WorkspaceMapSlotProps {
+  /** 손잡이의 owner. 페이지가 만든다 */
+  owner: string;
   /** 마운트 때만 읽는다 */
   initialVertices: Vertex[] | null;
   /** 다른 경로로 깔지 않을 경로. 새 경로면 null */
@@ -70,6 +72,7 @@ export default function SlopeRouteMap({
   initialViewport,
   onViewportChange,
   onCommandsReady,
+  owner,
   initialVertices,
   editingRouteId,
   draft,
@@ -96,7 +99,6 @@ export default function SlopeRouteMap({
   // 미리보기는 초안의 slopes와 지도의 좌표로 그린다. slopes가 같은 채 좌표만 바뀌어도(꼭짓점 끌기)
   // 다시 그리도록 따로 신호를 준다.
   const [vertexVersion, setVertexVersion] = useState(0);
-  const owner = editingRouteId === null ? "edit:new" : `edit:${editingRouteId}`;
   const slopes = draft?.slopes;
   const locked = draft?.locked ?? false;
 

@@ -71,7 +71,7 @@ function selectedRouteId(state: WorkspaceState) {
   return state.mode === "view" || state.mode === "edit" ? state.id : null;
 }
 
-/** 편집 패널과 편집 지도의 key이자 둘이 주고받는 초안·손잡이의 owner */
+/** 편집 패널과 편집 지도의 key이자 둘이 주고받는 초안·손잡이의 owner. 여기서만 만들고 둘에는 props로 넘긴다 */
 function editOwner(state: WorkspaceState) {
   if (state.mode === "edit") return `edit:${state.id}`;
   if (state.mode === "new") return "edit:new";
@@ -109,11 +109,12 @@ export default function SlopesPage() {
       : (routes.find(
           (item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId,
         ) ?? null);
-  // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다
-  const editing =
+  // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다(owner가 null)
+  const owner =
     state.mode === "new" ||
-    (state.mode === "edit" && Boolean(selected?.summary));
-  const owner = editing ? editOwner(state) : null;
+    (state.mode === "edit" && Boolean(selected?.summary))
+      ? editOwner(state)
+      : null;
   // 패널이 바뀐 뒤 늦게 끝난 저장의 잠금이 남지 않게 owner로 거른다(명소의 activeDraft와 같다)
   const activeDraft = draft && draft.owner === owner ? draft : null;
   const activeEditor = editor && editor.owner === owner ? editor : null;
@@ -314,35 +315,37 @@ export default function SlopesPage() {
       }
     : undefined;
 
-  const detail = editing ? (
-    <SlopeEditPanel
-      key={owner}
-      route={selected && state.mode === "edit" ? selected.route : null}
-      summary={selected && state.mode === "edit" ? selected.summary : null}
-      editor={activeEditor}
-      onDraftChange={setDraft}
-      onSaved={handleSaved}
-      onCancel={() =>
-        requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
-      }
-      remove={remove}
-      onFullMapChange={handleFullMapChange}
-      showToast={showToast}
-    />
-  ) : selected ? (
-    <SlopeViewPanel
-      key={SLOPE_COLLECTION_POLICY.id(selected)}
-      item={selected}
-      onEdit={() =>
-        requestSelection({
-          mode: "edit",
-          id: SLOPE_COLLECTION_POLICY.id(selected),
-        })
-      }
-      onClose={() => requestSelection({ mode: "closed" })}
-      remove={remove}
-    />
-  ) : null;
+  const detail =
+    owner !== null ? (
+      <SlopeEditPanel
+        key={owner}
+        owner={owner}
+        route={selected && state.mode === "edit" ? selected.route : null}
+        summary={selected && state.mode === "edit" ? selected.summary : null}
+        editor={activeEditor}
+        onDraftChange={setDraft}
+        onSaved={handleSaved}
+        onCancel={() =>
+          requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
+        }
+        remove={remove}
+        onFullMapChange={handleFullMapChange}
+        showToast={showToast}
+      />
+    ) : selected ? (
+      <SlopeViewPanel
+        key={SLOPE_COLLECTION_POLICY.id(selected)}
+        item={selected}
+        onEdit={() =>
+          requestSelection({
+            mode: "edit",
+            id: SLOPE_COLLECTION_POLICY.id(selected),
+          })
+        }
+        onClose={() => requestSelection({ mode: "closed" })}
+        remove={remove}
+      />
+    ) : null;
 
   return (
     <>
@@ -353,9 +356,10 @@ export default function SlopesPage() {
         mobilePickingTop={MOBILE_TOOLBAR_BOTTOM}
         renderMap={(slot) =>
           // 편집하면 지도 자리에 편집 지도를 바꿔 끼운다. 보기와 focus key가 같아 화면을 이어받는다(설계 2026-10-14 2.6·3.2)
-          editing ? (
+          owner !== null ? (
             <SlopeRouteMap
               key={owner}
+              owner={owner}
               {...slot}
               initialVertices={
                 state.mode === "edit"

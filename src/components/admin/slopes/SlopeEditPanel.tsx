@@ -32,12 +32,15 @@ const UNIT_OPTIONS: { unit: SlopeUnit; symbol: string; label: string }[] = [
 ];
 
 interface SlopeEditPanelProps {
+  /** 초안의 owner. 페이지가 만든다 */
+  owner: string;
   /** null이면 새 경로 */
   route: SlopeSegment | null;
   summary: SlopeRouteSummary | null;
   /** 형제인 편집 지도가 내놓은 손잡이. owner가 맞는 것만 페이지가 넘긴다 */
   editor: SlopeEditorHandle | null;
-  onDraftChange: (draft: SlopeEditDraft) => void;
+  /** 패널이 사라질 때 null을 보낸다 */
+  onDraftChange: (draft: SlopeEditDraft | null) => void;
   /** 다시 받기와 보기 전환이 끝난 뒤 돌아온다 */
   onSaved: (routeId: string, created: boolean) => Promise<void>;
   onCancel: () => void;
@@ -52,6 +55,7 @@ interface SlopeEditPanelProps {
 }
 
 export default function SlopeEditPanel({
+  owner,
   route,
   summary,
   editor,
@@ -62,7 +66,6 @@ export default function SlopeEditPanel({
   onFullMapChange,
   showToast,
 }: SlopeEditPanelProps) {
-  const owner = route ? `edit:${route.id}` : "edit:new";
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const {
     name,
@@ -101,6 +104,13 @@ export default function SlopeEditPanel({
     onDraftChangeRef.current = onDraftChange;
     onFullMapChangeRef.current = onFullMapChange;
   }, [onDraftChange, onFullMapChange]);
+
+  // 사라지면 초안을 거둔다. 같은 경로를 다시 열면 owner가 같아, 새 패널이 첫 초안을 내놓기 전 한 렌더 동안 앞 패널의
+  // 초안(구간 값·잠금)이 편집 지도로 간다.
+  useEffect(() => {
+    const publish = onDraftChangeRef;
+    return () => publish.current(null);
+  }, []);
 
   // 패널이 사라졌다고 알려 페이지가 전체 지도와 그 초점을 거두게 한다
   useEffect(() => () => onFullMapChangeRef.current(false, true), []);
