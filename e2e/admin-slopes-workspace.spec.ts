@@ -1563,8 +1563,8 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
       ".leaflet-overlay-pane path.leaflet-pm-draggable",
     );
     const preview = previewLines(page).first();
-    const before = await preview.getAttribute("d");
     const center = await settledCenter(line);
+    const before = await preview.getAttribute("d");
     await page.mouse.move(center.x, center.y);
     await page.mouse.down();
     await page.mouse.move(center.x + 60, center.y + 40, { steps: 10 });
