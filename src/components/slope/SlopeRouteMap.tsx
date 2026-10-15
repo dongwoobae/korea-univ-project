@@ -218,11 +218,17 @@ export default function SlopeRouteMap({
       map.pm.disableDraw("Line");
     }
 
+    // geoman 2.19.3의 disableGlobalDragMode는 켠 적 없는 모드에서 부르면 없는 리스너를 지우려다
+    // Leaflet 경고(wrong listener type)를 낸다
+    function disableDragMode() {
+      if (map.pm.globalDragModeEnabled()) map.pm.disableGlobalDragMode();
+    }
+
     function applyMode() {
       if (!line) return;
       if (mode === "vertex") {
         // geoman의 enableLayerDrag가 꼭짓점 편집을 끄므로, 드래그 모드를 끈 뒤 다시 켠다
-        map.pm.disableGlobalDragMode();
+        disableDragMode();
         line.pm.enable(EDIT_OPTIONS);
         return;
       }
@@ -234,8 +240,8 @@ export default function SlopeRouteMap({
     // 그리기를 다시 연다. key로 지도를 리마운트하면 initialVertices를 다시 읽어
     // 원래 선을 되그리므로 그 방식은 쓰지 않는다.
     function resetLine() {
-      map.pm.disableGlobalEditMode();
-      map.pm.disableGlobalDragMode();
+      line?.pm.disable();
+      disableDragMode();
       if (line) map.removeLayer(line);
       line = null;
       mode = "vertex";
@@ -363,7 +369,7 @@ export default function SlopeRouteMap({
         editLocked = next;
         if (editLocked) {
           map.pm.disableDraw();
-          map.pm.disableGlobalDragMode();
+          disableDragMode();
           line?.pm.disable();
           return;
         }
