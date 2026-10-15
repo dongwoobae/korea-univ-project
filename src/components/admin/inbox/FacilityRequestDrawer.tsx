@@ -17,6 +17,7 @@ import {
   useUnsavedChanges,
   useUnsavedChangesGuard,
 } from "@/components/admin/UnsavedChangesGuard";
+import { ADMIN_MOBILE_QUERY } from "@/components/admin/workspace/types";
 import { useWorkspaceCloseRequest } from "@/components/admin/workspace/useWorkspaceSelection";
 import FacilityFields, {
   ADMIN_FACILITY_FIELD_LABELS,
@@ -45,6 +46,7 @@ import {
 import { getPolygonRingCenter } from "@/lib/polygonCenter";
 import { readErrorMessage } from "@/lib/responseError";
 import { color } from "@/lib/theme";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import InboxDrawer from "./InboxDrawer";
 
 const FacilityMap = dynamic(() => import("@/components/FacilityMap"), {
@@ -93,6 +95,7 @@ export default function FacilityRequestDrawer({
   const confirmId = useId();
   const router = useRouter();
   const { guard } = useUnsavedChangesGuard();
+  const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const [detail, setDetail] = useState<FacilityRequestDetail | null>(null);
   const [fields, setFields] = useState<FacilityFieldValues>(
     EMPTY_FACILITY_FIELDS,
@@ -395,6 +398,25 @@ export default function FacilityRequestDrawer({
     </div>
   );
 
+  // 모바일은 하단 바에 거절·승인만 두고, 상태 표시와 공개 장수는 본문 위쪽으로 옮긴다.
+  const statusToggle = detail && (
+    <button
+      type="button"
+      className="ku-workspace-button"
+      onClick={() =>
+        void changeStatus(detail.status === "reviewing" ? "new" : "reviewing")
+      }
+      disabled={busy}
+    >
+      {detail.status === "reviewing" ? "신규로 되돌리기" : "확인 중으로 표시"}
+    </button>
+  );
+  const photoNote = detail && detail.photos.length > 0 && (
+    <span className="ku-detail-panel-note">
+      사진 {publish.size}/{detail.photos.length}장 공개
+    </span>
+  );
+
   const footer = !detail ? null : ended ? (
     <>
       <span className="ku-inbox-end-note" data-status={detail.status}>
@@ -467,22 +489,9 @@ export default function FacilityRequestDrawer({
       >
         거절
       </button>
-      <button
-        type="button"
-        className="ku-workspace-button"
-        onClick={() =>
-          void changeStatus(detail.status === "reviewing" ? "new" : "reviewing")
-        }
-        disabled={busy}
-      >
-        {detail.status === "reviewing" ? "신규로 되돌리기" : "확인 중으로 표시"}
-      </button>
+      {!mobile && statusToggle}
       <span className="ku-detail-panel-spacer" />
-      {detail.photos.length > 0 && (
-        <span className="ku-detail-panel-note">
-          사진 {publish.size}/{detail.photos.length}장 공개
-        </span>
-      )}
+      {!mobile && photoNote}
       <button
         type="button"
         className="ku-workspace-primary"
@@ -569,6 +578,12 @@ export default function FacilityRequestDrawer({
               <div className="ku-inbox-column-empty">첨부된 사진이 없어요</div>
             )}
           </div>
+          {mobile && !ended && (
+            <div className="ku-inbox-mobile-actions">
+              {statusToggle}
+              {photoNote}
+            </div>
+          )}
           <div className="ku-inbox-drawer-columns">
             <div className="ku-detail-form">
               <FacilityFields
@@ -590,7 +605,7 @@ export default function FacilityRequestDrawer({
               <div className="ku-inbox-drawer-map">
                 <FacilityMap
                   center={center}
-                  height={240}
+                  height={mobile ? 190 : 240}
                   highlightId={detail.building_id}
                   highlightColor={color.crimson600}
                   markerPosition={

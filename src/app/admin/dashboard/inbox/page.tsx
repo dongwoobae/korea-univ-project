@@ -7,6 +7,7 @@ import FeedbackDrawer from "@/components/admin/inbox/FeedbackDrawer";
 import InboxBoard, {
   DESKTOP_BOARD_COLUMNS,
 } from "@/components/admin/inbox/InboxBoard";
+import InboxMobileList from "@/components/admin/inbox/InboxMobileList";
 import { useInboxBoard } from "@/components/admin/inbox/useInboxBoard";
 import { ADMIN_MOBILE_QUERY } from "@/components/admin/workspace/types";
 import Toast from "@/components/Toast";
@@ -64,17 +65,34 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
     null,
   );
 
+  // 모바일 상태 칩은 URL 밖에 둔다. 칩 하나가 열 하나라 칩을 바꾸면 보드를 새로 받는다.
+  const [mobileFilter, setMobileFilter] = useState<InboxFilter>("open");
+  // 모바일에는 전체가 없어 URL이 전체면 등록 요청을 보인다.
+  const mobileKind: InboxKind =
+    url.kind === "feedback" ? "feedback" : "requests";
+  // 모바일 세그먼트에 두 종류의 개수가 보여야 해서 둘 다 받고, 보이는 것은 고른 종류 하나다.
   const kinds = useMemo<InboxKind[]>(
-    () => (url.kind === "all" ? ["requests", "feedback"] : [url.kind]),
-    [url.kind],
+    () =>
+      mobile
+        ? url.building
+          ? ["requests"]
+          : ["requests", "feedback"]
+        : url.kind === "all"
+          ? ["requests", "feedback"]
+          : [url.kind],
+    [mobile, url.kind, url.building],
+  );
+  const visibleKinds = useMemo<InboxKind[]>(
+    () => (mobile ? [mobileKind] : kinds),
+    [mobile, mobileKind, kinds],
   );
   const options = useMemo(
     () => ({
-      columns: DESKTOP_BOARD_COLUMNS,
+      columns: mobile ? [mobileFilter] : DESKTOP_BOARD_COLUMNS,
       kinds,
       building: url.building,
     }),
-    [kinds, url.building],
+    [mobile, mobileFilter, kinds, url.building],
   );
   const { state, reload, loadMore, retryFirstPage } = useInboxBoard(options);
 
@@ -132,7 +150,7 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
 
   function open(card: InboxCard, origin: InboxFilter) {
     const column = state.columns.find((entry) => entry.filter === origin);
-    openCard(card, origin, column ? columnCards(column, kinds) : []);
+    openCard(card, origin, column ? columnCards(column, visibleKinds) : []);
   }
 
   function savedFeedbackStatus(key: string, status: FeedbackStatus) {
@@ -149,27 +167,48 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
     : undefined;
   const nextCard =
     opened?.feedback && openedColumn && !mobile
-      ? nextInboxCard(opened.navigation, columnCards(openedColumn, kinds), {
-          kind: "feedback",
-          item: opened.feedback,
-        })
+      ? nextInboxCard(
+          opened.navigation,
+          columnCards(openedColumn, visibleKinds),
+          {
+            kind: "feedback",
+            item: opened.feedback,
+          },
+        )
       : null;
 
   return (
     <>
-      <InboxBoard
-        state={state}
-        kindFilter={url.kind}
-        kinds={kinds}
-        building={url.building}
-        typeLabels={typeLabels}
-        onKindChange={changeKind}
-        onClearBuilding={clearBuilding}
-        titleRef={titleRef}
-        onOpen={open}
-        onLoadMore={loadMore}
-        onRetryFirstPage={retryFirstPage}
-      />
+      {mobile ? (
+        <InboxMobileList
+          state={state}
+          kind={mobileKind}
+          filter={mobileFilter}
+          building={url.building}
+          typeLabels={typeLabels}
+          titleRef={titleRef}
+          onKindChange={changeKind}
+          onFilterChange={setMobileFilter}
+          onClearBuilding={clearBuilding}
+          onOpen={open}
+          onLoadMore={loadMore}
+          onRetryFirstPage={retryFirstPage}
+        />
+      ) : (
+        <InboxBoard
+          state={state}
+          kindFilter={url.kind}
+          kinds={kinds}
+          building={url.building}
+          typeLabels={typeLabels}
+          onKindChange={changeKind}
+          onClearBuilding={clearBuilding}
+          titleRef={titleRef}
+          onOpen={open}
+          onLoadMore={loadMore}
+          onRetryFirstPage={retryFirstPage}
+        />
+      )}
       {opened?.kind === "requests" && (
         <FacilityRequestDrawer
           key={opened.key}

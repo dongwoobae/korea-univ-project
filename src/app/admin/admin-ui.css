@@ -1851,19 +1851,131 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   color: var(--ku-status-warn-fg);
 }
 @media (max-width: 767px) {
-  /* 모바일 목록은 후속 작업에서 새로 짠다. 그동안 열을 세로로 쌓는다. */
   .ku-inbox-page {
     height: auto;
     padding: 20px 14px calc(82px + env(safe-area-inset-bottom));
   }
-  .ku-inbox-board-head {
-    flex-direction: column;
+  /* 모바일 목록. 종류 세그먼트와 상태 칩 아래로 카드가 한 줄씩 쌓인다 */
+  .ku-inbox-mobile .ku-inbox-mobile-segment {
+    display: flex;
   }
-  .ku-inbox-columns {
-    grid-template-columns: 1fr;
+  .ku-inbox-mobile-segment button {
+    flex: 1;
+    height: 44px;
   }
-  .ku-inbox-column-body {
-    max-height: 70dvh;
+  .ku-inbox-mobile-chips {
+    flex-wrap: nowrap;
+    margin: 0 -14px;
+    padding: 0 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ku-inbox-mobile-chips .ku-chip {
+    flex: none;
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .ku-inbox-mobile-chips .ku-inbox-building-chip {
+    flex: none;
+    height: 44px;
+    padding-left: 14px;
+  }
+  .ku-inbox-mobile-chips .ku-inbox-building-chip button {
+    width: 36px;
+    height: 36px;
+  }
+  /* 모바일 카드는 상태와 제목이 먼저다. 종류 표시·첨부 요약은 상세에서 본다 */
+  .ku-inbox-mobile-cards .ku-inbox-kind-tag,
+  .ku-inbox-mobile-cards .ku-inbox-card-meta {
+    display: none;
+  }
+  .ku-inbox-mobile-cards .ku-inbox-card {
+    min-height: 44px;
+  }
+  .ku-inbox-mobile .ku-inbox-retry,
+  .ku-inbox-mobile .ku-inbox-more {
+    min-height: 44px;
+  }
+  .ku-inbox-mobile .ku-inbox-more {
+    width: 100%;
+  }
+
+  /* 상세는 전체 화면이다. 헤더와 하단 nav(안전 영역 포함) 사이를 덮고 배경은 없다 */
+  .ku-inbox-drawer-layer {
+    bottom: calc(var(--ku-admin-nav-height) + env(safe-area-inset-bottom));
+  }
+  .ku-inbox-drawer {
+    width: 100%;
+    box-shadow: none;
+  }
+  .ku-inbox-drawer-head {
+    align-items: center;
+    gap: 4px;
+    min-height: 52px;
+    padding: 4px 14px 4px 6px;
+    border-bottom: 1px solid var(--ku-divider);
+  }
+  .ku-inbox-drawer-back {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    color: var(--ku-text-1);
+    background: none;
+    cursor: pointer;
+    font-size: 26px;
+    line-height: 1;
+  }
+  .ku-inbox-drawer-icon {
+    display: none;
+  }
+  .ku-inbox-drawer-title h2 {
+    font-size: 16px;
+  }
+  .ku-inbox-drawer-title p {
+    margin-top: 2px;
+    gap: 6px;
+  }
+  .ku-inbox-drawer-body {
+    gap: 16px;
+    padding: 16px 14px;
+  }
+  .ku-inbox-drawer-foot {
+    padding: 10px 14px;
+  }
+  .ku-inbox-drawer-foot .ku-detail-panel-spacer {
+    display: none;
+  }
+  .ku-inbox-drawer-foot .ku-workspace-button {
+    flex: 1;
+    height: 50px;
+  }
+  .ku-inbox-drawer-foot .ku-workspace-primary {
+    flex: 2;
+    height: 50px;
+  }
+  .ku-inbox-reject-confirm {
+    flex-basis: 100%;
+  }
+  .ku-inbox-reject-confirm > span {
+    flex-basis: 100%;
+  }
+  .ku-inbox-status-segment {
+    flex: 1;
+  }
+  .ku-inbox-status-segment button {
+    flex: 1;
+    height: 44px;
+  }
+  .ku-inbox-mobile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+  .ku-inbox-mobile-actions .ku-workspace-button {
+    min-height: 44px;
   }
   .ku-inbox-drawer-columns {
     grid-template-columns: 1fr;

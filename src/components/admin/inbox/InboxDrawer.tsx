@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode, RefObject } from "react";
+import { ADMIN_MOBILE_QUERY } from "@/components/admin/workspace/types";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import { useModalFocus } from "@/lib/useModalFocus";
 
 interface InboxDrawerProps {
@@ -18,7 +20,8 @@ interface InboxDrawerProps {
 
 /**
  * 제보함 검토 드로어의 껍데기. 배경과 패널은 같은 층 안의 형제라 패널 안 클릭이 배경으로 번지지 않는다.
- * 열고 닫는 트랜지션은 두지 않는다.
+ * 열고 닫는 트랜지션은 두지 않는다. 모바일은 배경 없이 헤더와 하단 nav 사이를 덮는 전체 화면이고,
+ * ✕ 대신 위 바의 `‹`가 같은 닫기 요청을 부른다.
  */
 export default function InboxDrawer({
   titleId,
@@ -29,6 +32,7 @@ export default function InboxDrawer({
   closeOnEscape,
   restoreFallbackRef,
 }: InboxDrawerProps) {
+  const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const dialogRef = useModalFocus<HTMLElement>({
     onClose: onRequestClose,
     closeOnEscape,
@@ -37,12 +41,14 @@ export default function InboxDrawer({
 
   return (
     <div className="ku-inbox-drawer-layer">
-      <div
-        className="ku-inbox-drawer-dim"
-        data-testid="inbox-drawer-dim"
-        aria-hidden="true"
-        onClick={onRequestClose}
-      />
+      {!mobile && (
+        <div
+          className="ku-inbox-drawer-dim"
+          data-testid="inbox-drawer-dim"
+          aria-hidden="true"
+          onClick={onRequestClose}
+        />
+      )}
       <section
         ref={dialogRef}
         className="ku-inbox-drawer"
@@ -51,15 +57,27 @@ export default function InboxDrawer({
         aria-labelledby={titleId}
       >
         <div className="ku-inbox-drawer-head">
+          {mobile && (
+            <button
+              type="button"
+              className="ku-inbox-drawer-back"
+              aria-label="뒤로"
+              onClick={onRequestClose}
+            >
+              ‹
+            </button>
+          )}
           <div className="ku-inbox-drawer-head-main">{header}</div>
-          <button
-            type="button"
-            className="ku-inbox-drawer-close"
-            aria-label="닫기"
-            onClick={onRequestClose}
-          >
-            ✕
-          </button>
+          {!mobile && (
+            <button
+              type="button"
+              className="ku-inbox-drawer-close"
+              aria-label="닫기"
+              onClick={onRequestClose}
+            >
+              ✕
+            </button>
+          )}
         </div>
         <div className="ku-inbox-drawer-body">{children}</div>
         <div className="ku-inbox-drawer-foot">{footer}</div>
