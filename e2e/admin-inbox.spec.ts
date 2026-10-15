@@ -1,4 +1,10 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  expect,
+  test,
+  type Locator,
+  type Page,
+  type Route,
+} from "@playwright/test";
 import { installMockBackend, type MockState } from "./support/mockBackend";
 
 type ColumnName = "신규" | "확인 중" | "처리 완료";
@@ -807,5 +813,245 @@ test.describe("제보함 — 등록 요청 드로어", () => {
     expect(
       state.facilityRequestPhotos.filter((p) => p.request_id === REQUEST_3),
     ).toHaveLength(0);
+  });
+});
+
+function feedbackDrawerOf(page: Page, name: string) {
+  return page.getByRole("dialog", { name, exact: true });
+}
+
+function feedbackSegment(drawer: Locator) {
+  return drawer.getByRole("group", { name: "처리 상태" });
+}
+
+// n이 클수록 오래된 신규 피드백이다. n=0은 가장 새 접수다.
+function addNewFeedback(state: MockState, n: number) {
+  state.feedbackSubmissions.push({
+    id: `fbm-${n}`,
+    feedback_type: "error",
+    content: `내용 ${n}번`,
+    page_url: null,
+    status: "new",
+    created_at: new Date(
+      Date.UTC(2026, 9, 10, 12, 0) - n * 60000,
+    ).toISOString(),
+  });
+}
+
+function feedbackCard(page: Page, name: ColumnName, n: number) {
+  return cards(page, name).filter({ hasText: new RegExp(`내용 ${n}번`) });
+}
+
+test.describe("제보함 — 피드백 드로어", () => {
+  test("F1: 상태 세그먼트를 누르면 바로 저장되고, 드로어는 열린 채 카드가 처리 완료 열로 간다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedFeedback(state);
+    await openInbox(page, "?tab=feedback");
+    const badge = adminNav(page).getByRole("link", { name: /제보함/ });
+    await expect(badge).toContainText("1");
+
+    await cards(page, "신규").first().getByRole("button").click();
+    const drawer = feedbackDrawerOf(page, "오류 제보");
+    const segment = feedbackSegment(drawer);
+    await expect(
+      segment.getByRole("button", { name: "신규", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+
+    await segment.getByRole("button", { name: "처리 완료" }).click();
+    await expect(page.getByText("처리 완료로 바꿨어요")).toBeVisible();
+    await expect(drawer).toBeVisible();
+    await expect(
+      segment.getByRole("button", { name: "처리 완료" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(state.feedbackSubmissions[0].status).toBe("resolved");
+    await expect(cards(page, "처리 완료")).toHaveCount(1);
+    await expect(cards(page, "신규")).toHaveCount(0);
+    await expect(badge).not.toContainText("1");
+
+    await segment.getByRole("button", { name: "확인 중" }).click();
+    await expect(page.getByText("확인 중으로 바꿨어요")).toBeVisible();
+    await segment.getByRole("button", { name: "신규", exact: true }).click();
+    await expect(page.getByText("신규로 되돌렸어요")).toBeVisible();
+    expect(state.feedbackSubmissions[0].status).toBe("new");
+    await expect(cards(page, "신규")).toHaveCount(1);
+  });
+
+  test("F2: 전체 본문과 보낸 화면이 보이고, 같은 출처만 링크이며, Esc·배경으로 닫힌다", async ({
+    page,
+    baseURL,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    const sameOriginUrl = `${new URL(baseURL!).origin}/map?x=1`;
+    state.feedbackSubmissions.push(
+      {
+        id: "fb-ext",
+        feedback_type: "error",
+        content: "첫째 줄\n둘째 줄\n\n넷째 줄",
+        page_url: "https://campus.example/map?q=1",
+        status: "new",
+        created_at: "2026-10-09T00:00:00Z",
+      },
+      {
+        id: "fb-same",
+        feedback_type: "feature",
+        content: "같은 사이트에서 보냈어요",
+        page_url: sameOriginUrl,
+        status: "new",
+        created_at: "2026-10-08T00:00:00Z",
+      },
+    );
+    await openInbox(page, "?tab=feedback");
+
+    await cards(page, "신규").first().getByRole("button").click();
+    const external = feedbackDrawerOf(page, "오류 제보");
+    const content = external.getByTestId("feedback-content");
+    expect(await content.evaluate((el) => el.textContent)).toBe(
+      "첫째 줄\n둘째 줄\n\n넷째 줄",
+    );
+    await expect(content).toHaveCSS("white-space", "pre-wrap");
+    await expect(external).toContainText("보낸 화면");
+    await expect(external).toContainText("https://campus.example/map?q=1");
+    await expect(
+      external.getByRole("link", { name: /campus\.example/ }),
+    ).toHaveCount(0);
+    await expect(external).toContainText("접수");
+    await page.keyboard.press("Escape");
+    await expect(external).toBeHidden();
+
+    await cards(page, "신규").nth(1).getByRole("button").click();
+    const same = feedbackDrawerOf(page, "기능 제안");
+    const link = same.getByRole("link", { name: sameOriginUrl });
+    await expect(link).toHaveAttribute("href", sameOriginUrl);
+    await expect(link).not.toHaveAttribute("target", "_blank");
+    await clickDim(page);
+    await expect(same).toBeHidden();
+  });
+
+  test("F3: 다음 항목은 같은 열의 다음 카드를 열고, 마지막 카드에는 없다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    for (const n of [1, 2, 3]) addNewFeedback(state, n);
+    await openInbox(page, "?tab=feedback");
+
+    await feedbackCard(page, "신규", 1).getByRole("button").click();
+    const drawer = feedbackDrawerOf(page, "오류 제보");
+    const next = drawer.getByRole("button", { name: "다음 항목 →" });
+    await expect(drawer.getByTestId("feedback-content")).toHaveText("내용 1번");
+    await next.click();
+    await expect(drawer.getByTestId("feedback-content")).toHaveText("내용 2번");
+    await next.click();
+    await expect(drawer.getByTestId("feedback-content")).toHaveText("내용 3번");
+    await expect(next).toHaveCount(0);
+  });
+
+  test("F3: 상태를 바꿔 보드가 첫 쪽으로 돌아가도 다음 항목은 연 순간의 목록에서 이어진다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    for (let n = 1; n <= 21; n += 1) addNewFeedback(state, n);
+    await openInbox(page, "?tab=feedback");
+    await expect(cards(page, "신규")).toHaveCount(20);
+    await column(page, "신규").getByRole("button", { name: "더 보기" }).click();
+    await expect(cards(page, "신규")).toHaveCount(21);
+
+    // 사이에 더 새로운 접수가 들어와, 다시 받은 첫 쪽에는 21번째 카드가 들지 못한다.
+    addNewFeedback(state, 0);
+    await feedbackCard(page, "신규", 20).getByRole("button").click();
+    const drawer = feedbackDrawerOf(page, "오류 제보");
+    const content = drawer.getByTestId("feedback-content");
+    await expect(content).toHaveText("내용 20번");
+    await feedbackSegment(drawer)
+      .getByRole("button", { name: "확인 중" })
+      .click();
+    await expect(page.getByText("확인 중으로 바꿨어요")).toBeVisible();
+    await expect(feedbackCard(page, "확인 중", 20)).toHaveCount(1);
+    await expect(feedbackCard(page, "신규", 21)).toHaveCount(0);
+    // 상태를 바꿔도 드로어는 그 항목을 들고 있다.
+    await expect(content).toHaveText("내용 20번");
+
+    const next = drawer.getByRole("button", { name: "다음 항목 →" });
+    await next.click();
+    await expect(content).toHaveText("내용 21번");
+    await expect(next).toHaveCount(0);
+  });
+
+  test("F3: 저장하는 동안 세그먼트와 다음 항목은 막히고 Esc·배경·✕로 닫히지 않는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    for (const n of [1, 2]) addNewFeedback(state, n);
+    await openInbox(page, "?tab=feedback");
+
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let held = false;
+    await page.route("**/api/admin-feedback/*", async (route) => {
+      if (route.request().method() !== "PATCH") return route.fallback();
+      held = true;
+      await gate;
+      await route.fallback();
+    });
+
+    await feedbackCard(page, "신규", 1).getByRole("button").click();
+    const drawer = feedbackDrawerOf(page, "오류 제보");
+    const segment = feedbackSegment(drawer);
+    const next = drawer.getByRole("button", { name: "다음 항목 →" });
+    await segment.getByRole("button", { name: "확인 중" }).click();
+    await expect.poll(() => held).toBe(true);
+
+    for (const name of ["신규", "확인 중", "처리 완료"]) {
+      await expect(
+        segment.getByRole("button", { name, exact: true }),
+      ).toBeDisabled();
+    }
+    await expect(next).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await clickDim(page);
+    await drawer.getByRole("button", { name: "닫기" }).click();
+    await page.waitForTimeout(200);
+    await expect(drawer).toBeVisible();
+
+    release();
+    await expect(page.getByText("확인 중으로 바꿨어요")).toBeVisible();
+    await expect(
+      segment.getByRole("button", { name: "확인 중" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(next).toBeEnabled();
+    await page.keyboard.press("Escape");
+    await expect(drawer).toBeHidden();
+  });
+
+  test("F3: 상태를 바꾸지 못하면 오류 토스트가 뜨고 상태는 그대로다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedFeedback(state);
+    await page.route("**/api/admin-feedback/*", async (route) => {
+      if (route.request().method() !== "PATCH") return route.fallback();
+      await route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: JSON.stringify({ error: "fail" }),
+      });
+    });
+    await openInbox(page, "?tab=feedback");
+    await cards(page, "신규").first().getByRole("button").click();
+    const drawer = feedbackDrawerOf(page, "오류 제보");
+    await feedbackSegment(drawer)
+      .getByRole("button", { name: "처리 완료" })
+      .click();
+    await expect(page.getByText("상태를 바꾸지 못했어요")).toBeVisible();
+    await expect(
+      feedbackSegment(drawer).getByRole("button", {
+        name: "신규",
+        exact: true,
+      }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(state.feedbackSubmissions[0].status).toBe("new");
   });
 });
