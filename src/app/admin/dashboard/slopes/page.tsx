@@ -307,6 +307,13 @@ export default function SlopesPage() {
     })),
   ];
 
+  const remove = selected
+    ? {
+        confirmMessage: DELETE_CONFIRM_MESSAGE,
+        onConfirm: () => deleteRoute(selected),
+      }
+    : undefined;
+
   const detail = editing ? (
     <SlopeEditPanel
       key={owner}
@@ -318,14 +325,7 @@ export default function SlopesPage() {
       onCancel={() =>
         requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
       }
-      remove={
-        selected && state.mode === "edit"
-          ? {
-              confirmMessage: DELETE_CONFIRM_MESSAGE,
-              onConfirm: () => deleteRoute(selected),
-            }
-          : undefined
-      }
+      remove={remove}
       onFullMapChange={handleFullMapChange}
       showToast={showToast}
     />
@@ -340,10 +340,7 @@ export default function SlopesPage() {
         })
       }
       onClose={() => requestSelection({ mode: "closed" })}
-      remove={{
-        confirmMessage: DELETE_CONFIRM_MESSAGE,
-        onConfirm: () => deleteRoute(selected),
-      }}
+      remove={remove}
     />
   ) : null;
 

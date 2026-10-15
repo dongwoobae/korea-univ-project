@@ -75,7 +75,7 @@ interface SlopeViewPanelProps {
   item: SlopeListItem;
   onEdit: () => void;
   onClose: () => void;
-  remove: DetailRemoveAction;
+  remove?: DetailRemoveAction;
 }
 
 export default function SlopeViewPanel({
