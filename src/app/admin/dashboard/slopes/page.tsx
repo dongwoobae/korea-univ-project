@@ -245,7 +245,6 @@ export default function SlopesPage() {
     });
   }
 
-  // 보기 패널과 모바일 편집 패널이 같은 삭제를 쓴다
   async function deleteRoute(item: SlopeListItem) {
     const routeId = SLOPE_COLLECTION_POLICY.id(item);
     const error = await deleteSlopeRoute(routeId);
@@ -257,9 +256,7 @@ export default function SlopesPage() {
     showToast(`"${slopeDisplayName(item.route)}" 경로를 삭제했어요`);
   }
 
-  // 편집을 마치거나 그만둔 뒤의 자리. 데스크톱은 그 경로의 보기로 돌아간다. 모바일은 보기와 편집을 합쳐(핸드오버 8장)
-  // 행이 보기를 거치지 않으므로 목록으로 간다 — 상단 바의 닫기도 `목록으로`다. 저장 뒤 편집에 머물지 않는 것은 같은
-  // key라 패널이 다시 마운트되지 않아 저장 조건(SlopeEditPanel의 loadedAt)이 낡기 때문이다
+  // 편집을 마치거나 그만둔 뒤의 자리. 모바일은 행이 보기를 거치지 않아 목록으로 간다(설계 2026-10-14 6.4·6.6)
   function afterEdit(routeId: string | null): WorkspaceState {
     return mobile || routeId === null
       ? { mode: "closed" }

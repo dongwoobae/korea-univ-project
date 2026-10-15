@@ -1195,7 +1195,7 @@ button.ku-admin-overview-item {
   font-size: 12px;
   font-weight: 700;
 }
-/* 경사도 편집 지도의 편집선. 기존 선과 geoman이 새로 그리는 선을 같은 색으로, 다크에서도 보이게 칠한다(설계 2026-10-14 6.4) */
+/* 경사도 편집 지도의 편집선. 클래스는 SlopeRouteMap의 EDIT_LINE_OPTIONS가 단다 */
 .ku-slope-route-map path.ku-slope-edit-line {
   stroke: var(--ku-text-1);
 }
@@ -2638,7 +2638,7 @@ button.ku-admin-overview-item {
   border: 1px solid var(--ku-border);
   border-radius: 10px;
 }
-/* 채움은 판정 색(데이터 색)이라 인라인으로 준다. 값이 없거나 범위 밖이면 테두리만 남는다 */
+/* 채움은 판정 색(데이터 색)이라 SlopeSegmentList가 인라인으로 준다 */
 .ku-slope-card-index {
   display: grid;
   place-items: center;

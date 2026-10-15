@@ -38,7 +38,7 @@ const EDIT_OPTIONS = {
   preventMarkerRemoval: true,
 };
 
-// 기존 선과 geoman이 새로 그리는 선이 같은 모양이어야 한다. 색은 다크에서도 보이게 CSS가 토큰으로 칠한다.
+// 기존 선과 geoman이 새로 그리는 선이 같은 모양이어야 한다. 색은 CSS가 칠한다(설계 2026-10-14 6.4).
 // Leaflet은 className을 선을 만들 때만 붙인다
 const EDIT_LINE_OPTIONS = { className: "ku-slope-edit-line", weight: 3 };
 
