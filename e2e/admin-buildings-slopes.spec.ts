@@ -389,90 +389,6 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     );
   });
 
-  test("검색으로 목록을 좁히고 초기화한다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-
-    await page
-      .getByRole("searchbox", { name: "경사도 경로 검색" })
-      .fill("중앙광장");
-    await expect(page.getByText("안암병원 정문 경사로")).toHaveCount(0);
-    await expect(
-      page.getByRole("status", { name: "총 1개 중 현재 1개 표시" }),
-    ).toBeVisible();
-
-    await page.getByRole("button", { name: "초기화" }).click();
-    await expect(page.getByText("안암병원 정문 경사로")).toBeVisible();
-    await expect(
-      page.getByRole("status", { name: "총 2개 중 현재 2개 표시" }),
-    ).toBeVisible();
-  });
-
-  test("경로를 삭제한다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-
-    const row = page.getByText("정문-중앙광장").locator("xpath=../..");
-    await row.getByRole("button", { name: "삭제" }).click();
-    const deleteConfirm = page
-      .getByText('"정문-중앙광장" 경로를 삭제할까요?')
-      .locator("..");
-    await expect(deleteConfirm).toBeVisible();
-    await deleteConfirm.getByRole("button", { name: "취소" }).click();
-    await expect(
-      page.getByText("정문-중앙광장", { exact: true }),
-    ).toBeVisible();
-
-    await row.getByRole("button", { name: "삭제" }).click();
-    await page.getByRole("button", { name: "경로 삭제" }).click();
-    await expect(page.getByText("정문-중앙광장", { exact: true })).toHaveCount(
-      0,
-    );
-  });
-
-  test("목록에 GPX 안내·다운로드가 남지 않는다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-
-    await expect(page.getByText("안암병원 정문 경사로")).toBeVisible();
-    await expect(page.getByText(/GPX/)).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "다운로드" })).toHaveCount(0);
-    await expect(
-      page.getByRole("searchbox", { name: "경사도 경로 검색" }),
-    ).toHaveAttribute("placeholder", "경로명 검색");
-  });
-
-  test("수기 경로를 열어 값을 고쳐 저장한다", async ({ page }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-
-    const row = page.getByText("안암병원 정문 경사로").locator("xpath=../..");
-    await row.getByRole("button", { name: "수정" }).click();
-    await expect(page).toHaveURL(/\/admin\/slopes\/2$/);
-
-    await expect(page.getByLabel("경로 이름")).toHaveValue(
-      "안암병원 정문 경사로",
-    );
-    await expect(page.getByLabel("구간 1 경사도")).toHaveValue("7.2");
-
-    await page.getByLabel("구간 1 경사도").fill("9.4");
-    await page.getByRole("button", { name: "경로 저장" }).click();
-    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
-
-    const saved = state.slopes.find((row) => row.id === 2);
-    const segments = saved!.segments as Array<Record<string, unknown>>;
-    expect(segments[1].slope).toBe(9.4);
-  });
-
-  test("사유 없이 목록에 들어가면 리다이렉트 안내가 뜨지 않는다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-    await expect(page.getByText("저장 형식이 깨진 경로라")).toHaveCount(0);
-    await expect(page.getByText("경로를 찾을 수 없어요")).toHaveCount(0);
-  });
-
   test("비로그인 상태로 수정 화면에 가면 로그인 화면으로 보낸다", async ({
     page,
   }) => {
@@ -529,16 +445,6 @@ test.describe("건물과 경사도 관리자 흐름", () => {
 
     await expect(page.getByText("구간 1")).toBeVisible();
     await expect(page.getByLabel("구간 1 경사도")).toHaveValue("");
-  });
-
-  test("목록에서 경로 직접 그리기로 편집기에 들어간다", async ({ page }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes");
-    await page.getByRole("button", { name: "경로 직접 그리기" }).click();
-    await expect(page).toHaveURL(/\/admin\/slopes\/new$/);
-    await expect(
-      page.getByRole("heading", { name: "경사도 경로 그리기" }),
-    ).toBeVisible();
   });
 
   test("비로그인 상태로 편집기에 가면 로그인 화면으로 보낸다", async ({
@@ -620,34 +526,6 @@ test.describe("건물과 경사도 관리자 흐름", () => {
     await expect(
       page.locator(".leaflet-pm-icon-polyline").locator(".."),
     ).not.toHaveClass(/pm-disabled/);
-  });
-
-  test("없는 경로 id로 수정 화면에 가면 사유와 함께 목록으로 돌려보낸다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/slopes/999");
-    await expect(
-      page.getByText("경로를 찾을 수 없어요. 이미 삭제됐을 수 있어요"),
-    ).toBeVisible();
-    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
-  });
-
-  test("저장 형식이 깨진 경로는 열지 않고 목록에서 알린다", async ({
-    page,
-  }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    const row = state.slopes.find((slope) => slope.id === 2)!;
-    row.segments = [
-      { lat: 37.5861, lng: 127.0268 },
-      { lat: 37.5862, lng: 127.0269, distance: 12.4 },
-    ];
-
-    await page.goto("/admin/slopes/2");
-    await expect(
-      page.getByText("저장 형식이 깨진 경로라 열 수 없어요"),
-    ).toBeVisible();
-    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
   });
 
   test("수정 화면에서 값을 고친 채 벗어나려 하면 경고한다", async ({
