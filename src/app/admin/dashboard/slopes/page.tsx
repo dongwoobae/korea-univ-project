@@ -1,281 +1,287 @@
 "use client";
 
-import { useCallback, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
-import type { SlopeSegment } from "@/types/domain";
+import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
-import ConfirmModal from "@/components/ConfirmModal";
-import AdminListControls from "@/components/admin/AdminListControls";
-import AdminPagination from "@/components/admin/AdminPagination";
+import SlopeListRow from "@/components/admin/slopes/SlopeListRow";
+import SlopeViewPanel from "@/components/admin/slopes/SlopeViewPanel";
+import AdminMapWorkspace from "@/components/admin/workspace/AdminMapWorkspace";
+import WorkspaceListPanel from "@/components/admin/workspace/WorkspaceListPanel";
 import {
-  buildAdminSearchFilter,
-  formatAdminUpdatedAt,
-  getAdminPageCount,
-  getAdminPageRange,
-  type AdminListSort,
-} from "@/lib/adminList";
-import { useDebouncedValue } from "@/lib/useDebouncedValue";
+  ADMIN_MOBILE_QUERY,
+  type WorkspaceFocus,
+} from "@/components/admin/workspace/types";
+import { useAdminCollection } from "@/components/admin/workspace/useAdminCollection";
+import {
+  applyWorkspaceState,
+  useWorkspaceCloseRequest,
+  useWorkspaceSelection,
+} from "@/components/admin/workspace/useWorkspaceSelection";
+import {
+  INITIAL_ADMIN_COLLECTION_QUERY,
+  pageOfItem,
+  viewAdminCollection,
+  type AdminChip,
+} from "@/lib/adminCollection";
+import { SLOPE_GRADE_COLORS } from "@/lib/slopeScale";
+import {
+  SLOPE_CHIPS,
+  SLOPE_COLLECTION_POLICY,
+  summarizeSlopeRoute,
+  type SlopeChip,
+  type SlopeListItem,
+} from "@/lib/slopeWorkspace";
+import { supabase } from "@/lib/supabaseClient";
+import { useMediaQuery } from "@/lib/useMediaQuery";
+import { readWorkspaceState, type WorkspaceState } from "@/lib/workspaceUrl";
 
-const REDIRECT_NOTICE: Record<string, string> = {
-  missing: "경로를 찾을 수 없어요. 이미 삭제됐을 수 있어요",
-  invalid: "저장 형식이 깨진 경로라 열 수 없어요. 지우고 다시 그려주세요",
-};
+const SlopeWorkspaceMap = dynamic(
+  () => import("@/components/admin/slopes/SlopeWorkspaceMap"),
+  { ssr: false },
+);
+
+const NOT_FOUND_MESSAGE = "경로를 찾지 못했어요. 삭제됐거나 주소가 틀렸어요.";
+
+const LEGEND = [
+  { label: "1/12 이내", color: SLOPE_GRADE_COLORS.ok },
+  { label: "1/12 초과", color: SLOPE_GRADE_COLORS.over },
+  { label: "30%(16.7°) 초과", color: SLOPE_GRADE_COLORS.extreme },
+];
+
+function currentSelection() {
+  return readWorkspaceState(window.location.search, { allowEdit: true });
+}
+
+function selectedRouteId(state: WorkspaceState) {
+  return state.mode === "view" || state.mode === "edit" ? state.id : null;
+}
 
 export default function SlopesPage() {
-  const router = useRouter();
-  const [slopes, setSlopes] = useState<SlopeSegment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [confirmDelete, setConfirmDelete] = useState<SlopeSegment | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [routes, setRoutes] = useState<SlopeListItem[]>([]);
+  const [status, setStatus] = useState<"loading" | "error" | "ready">(
+    "loading",
+  );
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sort, setSort] = useState<AdminListSort>("updated-desc");
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const debouncedSearch = useDebouncedValue(searchQuery);
-
-  const hasActiveFilters = searchQuery.trim() !== "" || sort !== "updated-desc";
-
-  function resetControls() {
-    setSearchQuery("");
-    setSort("updated-desc");
-    setPage(1);
-  }
+  const loadRequestRef = useRef(0);
+  const disposedRef = useRef(false);
+  const loadedRef = useRef(false);
+  const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
+  const { state, request: requestSelection } = useWorkspaceSelection({
+    allowEdit: true,
+  });
+  const collection = useAdminCollection(routes, SLOPE_COLLECTION_POLICY);
+  const { view, setPage } = collection;
+  const selectedId = selectedRouteId(state);
+  const selected =
+    selectedId === null
+      ? null
+      : (routes.find(
+          (item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId,
+        ) ?? null);
 
   function showToast(message: string, type = "success") {
     setToast({ message, type });
   }
 
-  const fetchSlopes = useCallback(async () => {
-    const { from, to } = getAdminPageRange(page);
-    let query = supabase.from("slope_segments").select("*", { count: "exact" });
-    const searchFilter = buildAdminSearchFilter(["name"], debouncedSearch);
-    if (searchFilter) query = query.or(searchFilter);
-    query =
-      sort === "name"
-        ? query.order("name", { ascending: true })
-        : query.order("updated_at", {
-            ascending: sort === "updated-asc",
-            nullsFirst: false,
-          });
-    const { data, error, count } = await query
-      .order("id", { ascending: true })
-      .range(from, to);
-    if (error) {
-      setLoading(false);
-      setToast({
-        message: "경사도 경로를 불러오지 못했어요",
-        type: "error",
-      });
-      return;
-    }
-    const nextTotal = count ?? 0;
-    const pageCount = getAdminPageCount(nextTotal);
-    if (page > pageCount) {
-      setPage(pageCount);
-      return;
-    }
-    setSlopes(data ?? []);
-    setTotalCount(nextTotal);
-    setLoading(false);
-  }, [debouncedSearch, page, sort]);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => void fetchSlopes(), 0);
-    return () => window.clearTimeout(timer);
-  }, [fetchSlopes]);
-
-  // 수정 화면이 경로를 열지 못하고 여기로 돌려보낼 때 사유를 쿼리로 넘긴다.
-  // replace로 지워 새로고침·뒤로가기에 안내가 다시 뜨지 않게 한다.
-  useEffect(() => {
-    const redirected = new URLSearchParams(window.location.search).get(
-      "redirected",
-    );
-    const message = REDIRECT_NOTICE[redirected ?? ""];
-    if (!message) return;
-    setToast({ message, type: "warning" });
-    router.replace("/admin/dashboard/slopes");
-  }, [router]);
-
-  async function handleDelete(route: SlopeSegment) {
-    setDeletingId(route.id);
-    const { error } = await supabase
+  const loadRoutes = useCallback(async () => {
+    if (disposedRef.current) return;
+    loadRequestRef.current += 1;
+    const ticket = loadRequestRef.current;
+    const { data, error } = await supabase
       .from("slope_segments")
-      .delete()
-      .eq("id", route.id);
-    setDeletingId(null);
-    setConfirmDelete(null);
+      .select("*")
+      .order("id", { ascending: true });
+    // 삭제 뒤의 다시 받기가 겹치면 마지막 요청만 그린다
+    if (ticket !== loadRequestRef.current) return;
     if (error) {
-      showToast("삭제 실패: " + error.message, "error");
+      if (loadedRef.current) {
+        setToast({
+          message: "경사도 경로 목록을 새로 불러오지 못했어요",
+          type: "error",
+        });
+      } else {
+        setStatus("error");
+      }
       return;
     }
-    await fetchSlopes();
-    showToast(`"${route.name}" 경로를 삭제했어요`);
+    const rows: SlopeListItem[] = (data ?? []).map((route) => ({
+      route,
+      summary: summarizeSlopeRoute(route.segments),
+    }));
+    const firstLoad = !loadedRef.current;
+    loadedRef.current = true;
+    setRoutes(rows);
+    setStatus("ready");
+    // 존재 검사는 조회가 끝난 뒤에만 한다. 조회 전 빈 목록으로 판정하면 맞는 링크도 닫힌다(설계 2026-10-14 3.4)
+    const selection = currentSelection();
+    const id = selectedRouteId(selection);
+    if (id === null) return;
+    const row = rows.find((item) => SLOPE_COLLECTION_POLICY.id(item) === id);
+    if (!row) {
+      applyWorkspaceState({ mode: "closed" });
+      setToast({ message: NOT_FOUND_MESSAGE, type: "warning" });
+      return;
+    }
+    // 형식 오류 경로는 편집기가 읽지 못한다. 편집 주소로 들어와도 보기로 연다(설계 2026-10-14 6.2)
+    if (selection.mode === "edit" && !row.summary) {
+      applyWorkspaceState({ mode: "view", id });
+    }
+    // 페이지는 첫 성공에서만 맞춘다. 다시 받기는 보던 페이지를 둔다
+    if (firstLoad) {
+      const page = pageOfItem(
+        viewAdminCollection(
+          rows,
+          SLOPE_COLLECTION_POLICY,
+          INITIAL_ADMIN_COLLECTION_QUERY,
+        ).matched,
+        id,
+        SLOPE_COLLECTION_POLICY.id,
+      );
+      if (page !== null) setPage(page);
+    }
+  }, [setPage]);
+
+  useEffect(() => {
+    disposedRef.current = false;
+    const timer = window.setTimeout(() => void loadRoutes(), 0);
+    return () => {
+      window.clearTimeout(timer);
+      // 떠난 뒤에 끝난 조회가 그때의 주소(다른 화면)에서 ?id=를 지우지 않게 진행 중인 요청을 버린다.
+      // 떠난 뒤 끝난 삭제가 새로 시작하는 다시 받기와 그 뒤의 주소 갱신도 disposedRef가 막는다
+      disposedRef.current = true;
+      loadRequestRef.current += 1;
+    };
+  }, [loadRoutes]);
+
+  useWorkspaceCloseRequest(state.mode !== "closed", () =>
+    requestSelection({ mode: "closed" }),
+  );
+
+  // 칩·검색·정렬은 설계 2026-10-14 3.3대로 선택을 푼다
+  function clearSelectionThen(change: () => void) {
+    requestSelection({ mode: "closed" }, change);
   }
 
+  function select(id: string) {
+    if (!mobile && selectedId === id) {
+      requestSelection({ mode: "closed" });
+      return;
+    }
+    const page = collection.pageOf(id);
+    requestSelection({ mode: "view", id }, () => {
+      if (page !== null) setPage(page);
+    });
+  }
+
+  async function handleDeleted(routeId: string) {
+    if (disposedRef.current) return;
+    // 삭제는 선택을 잠그지 않는다. 기다리는 사이 다른 항목이나 새로 만들기로 옮겼으면 그 패널을 닫지 않는다(설계 2026-10-14 3.4)
+    if (selectedRouteId(currentSelection()) === routeId) {
+      applyWorkspaceState({ mode: "closed" });
+    }
+    await loadRoutes();
+  }
+
+  function retry() {
+    // 목록을 받은 뒤에 "loading"으로 가면, 이번 조회가 실패할 때 토스트만 뜨고 패널이 거기 멈춘다
+    if (!loadedRef.current) setStatus("loading");
+    void loadRoutes();
+  }
+
+  const focus: WorkspaceFocus | null = selected?.summary
+    ? {
+        key: `route:${SLOPE_COLLECTION_POLICY.id(selected)}`,
+        target: { bounds: selected.summary.bounds },
+      }
+    : null;
+
+  const chips = [
+    { key: "all", label: "전체", count: view.chipCounts.all },
+    ...SLOPE_CHIPS.map((chip) => ({
+      ...chip,
+      count: view.chipCounts[chip.key],
+    })),
+  ];
+
+  // 편집 패널은 아직 없다. 편집 주소도 보기 패널로 연다
+  const detail = selected ? (
+    <SlopeViewPanel
+      key={SLOPE_COLLECTION_POLICY.id(selected)}
+      item={selected}
+      onEdit={() =>
+        requestSelection({
+          mode: "edit",
+          id: SLOPE_COLLECTION_POLICY.id(selected),
+        })
+      }
+      onClose={() => requestSelection({ mode: "closed" })}
+      onDeleted={handleDeleted}
+      showToast={showToast}
+    />
+  ) : null;
+
   return (
-    <div style={{ padding: 24 }}>
-      <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 24 }}>
-        경사도 경로 관리
-      </div>
-
-      {/* 경로 목록 */}
-      <div
-        style={{
-          background: "var(--ku-surface)",
-          borderRadius: 10,
-          border: "1px solid var(--ku-border)",
-          padding: 24,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 16,
-          }}
-        >
-          <div style={{ fontSize: 14, fontWeight: 600 }}>
-            등록된 경로 (총 {totalCount}개)
-          </div>
-          <button
-            onClick={() => router.push("/admin/slopes/new")}
-            style={{
-              padding: "8px 16px",
-              background: "var(--ku-primary)",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            경로 직접 그리기
-          </button>
-        </div>
-        <AdminListControls
-          searchValue={searchQuery}
-          onSearchChange={(value) => {
-            setSearchQuery(value);
-            setPage(1);
-          }}
-          searchLabel="경사도 경로 검색"
-          searchPlaceholder="경로명 검색"
-          resultCount={slopes.length}
-          totalCount={totalCount}
-          hasActiveFilters={hasActiveFilters}
-          onReset={resetControls}
-        >
-          <select
-            value={sort}
-            onChange={(event) => {
-              setSort(event.target.value as AdminListSort);
-              setPage(1);
-            }}
-            aria-label="경사도 경로 정렬"
-          >
-            <option value="updated-desc">최근 수정순</option>
-            <option value="updated-asc">오래 수정순</option>
-            <option value="name">이름순</option>
-          </select>
-        </AdminListControls>
-        {loading ? (
-          <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>
-            불러오는 중...
-          </div>
-        ) : totalCount === 0 && !hasActiveFilters ? (
-          <div style={{ color: "var(--ku-text-3)", fontSize: 13 }}>
-            등록된 경로가 없습니다.
-          </div>
-        ) : totalCount === 0 ? (
-          <div className="ku-admin-list-empty">
-            조건에 맞는 경사도 경로가 없어요
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {slopes.map((s) => (
-              <div
-                key={s.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "12px 16px",
-                  border: "1px solid var(--ku-border)",
-                  borderRadius: 8,
-                }}
-              >
-                <div>
-                  <div
-                    data-testid="admin-list-item-name"
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: "var(--ku-text-1)",
-                    }}
-                  >
-                    {s.name}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--ku-text-2)",
-                      marginTop: 2,
-                    }}
-                  >
-                    {Array.isArray(s.segments) ? s.segments.length : 0}개 포인트
-                    · {formatAdminUpdatedAt(s.updated_at)}
-                  </div>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button
-                    onClick={() => router.push(`/admin/slopes/${s.id}`)}
-                    className="ku-admin-row-action"
-                    style={{
-                      fontSize: 13,
-                      color: "var(--ku-primary-text)",
-                      background: "none",
-                      border: "1px solid var(--ku-primary-text)",
-                      borderRadius: 6,
-                      padding: "6px 12px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    수정
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(s)}
-                    disabled={deletingId === s.id}
-                    className="ku-admin-row-action ku-admin-row-action--danger"
-                    style={{
-                      fontSize: 13,
-                      color: "var(--ku-danger)",
-                      background: "none",
-                      border: "1px solid var(--ku-danger)",
-                      borderRadius: 6,
-                      padding: "6px 12px",
-                      cursor: deletingId === s.id ? "wait" : "pointer",
-                    }}
-                  >
-                    삭제
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+    <>
+      <AdminMapWorkspace
+        focus={focus}
+        mobileMapStrip={230}
+        renderMap={(slot) => (
+          <SlopeWorkspaceMap
+            {...slot}
+            routes={view.matched}
+            selectedId={selected ? SLOPE_COLLECTION_POLICY.id(selected) : null}
+            onSelect={select}
+          />
         )}
-        <AdminPagination
-          page={page}
-          totalCount={totalCount}
-          onPageChange={setPage}
-        />
-      </div>
-
+        list={
+          <WorkspaceListPanel
+            title="경사도 경로"
+            caption={`구간별 경사를 기록한 보행 경로 · 총 ${view.total}개`}
+            addLabel="＋ 경로 그리기"
+            onAdd={() => requestSelection({ mode: "new" })}
+            searchValue={collection.search}
+            onSearchChange={(value) =>
+              clearSelectionThen(() => collection.setSearch(value))
+            }
+            searchLabel="경사도 경로 검색"
+            searchPlaceholder="경로명 검색"
+            chips={chips}
+            activeChip={collection.chip}
+            onChipChange={(key) =>
+              clearSelectionThen(() =>
+                collection.setChip(key as AdminChip<SlopeChip>),
+              )
+            }
+            sort={collection.sort}
+            onSortChange={(sort) =>
+              clearSelectionThen(() => collection.setSort(sort))
+            }
+            sortLabel="경사도 경로 정렬"
+            status={status}
+            errorMessage="경사도 경로를 불러오지 못했어요."
+            onRetry={retry}
+            matchedCount={view.matched.length}
+            page={view.page}
+            onPageChange={(page) => clearSelectionThen(() => setPage(page))}
+            legend={LEGEND}
+          >
+            {view.pageItems.map((item) => {
+              const id = SLOPE_COLLECTION_POLICY.id(item);
+              return (
+                <SlopeListRow
+                  key={id}
+                  item={item}
+                  selected={id === selectedId}
+                  onSelect={() => select(id)}
+                />
+              );
+            })}
+          </WorkspaceListPanel>
+        }
+        detail={detail}
+      />
       {toast && (
         <Toast
           message={toast.message}
@@ -283,18 +289,6 @@ export default function SlopesPage() {
           onClose={() => setToast(null)}
         />
       )}
-
-      {confirmDelete && (
-        <ConfirmModal
-          message={`"${confirmDelete.name}" 경로를 삭제할까요?`}
-          description="삭제한 경사도 경로는 복구할 수 없어요."
-          confirmLabel="경로 삭제"
-          pending={deletingId === confirmDelete.id}
-          pendingLabel="삭제 중..."
-          onConfirm={() => handleDelete(confirmDelete)}
-          onCancel={() => setConfirmDelete(null)}
-        />
-      )}
-    </div>
+    </>
   );
 }

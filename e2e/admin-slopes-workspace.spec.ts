@@ -342,11 +342,9 @@ test.describe("경사도 작업 화면 — 선택과 지도", () => {
     await page.goto("/admin/dashboard/slopes?id=999");
 
     await expect(
-      page
-        .locator(".ku-toast[data-tone='warning']")
-        .filter({
-          hasText: "경로를 찾지 못했어요. 삭제됐거나 주소가 틀렸어요.",
-        }),
+      page.locator(".ku-toast[data-tone='warning']").filter({
+        hasText: "경로를 찾지 못했어요. 삭제됐거나 주소가 틀렸어요.",
+      }),
     ).toBeVisible();
     await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
     await expect(page.locator(".ku-detail-panel")).toHaveCount(0);
