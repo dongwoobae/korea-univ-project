@@ -555,6 +555,35 @@ test.describe("경사도 작업 화면 — 보기 패널", () => {
     expect(state.slopes.some((row) => row.id === 1)).toBe(false);
   });
 
+  test("삭제 뒤 목록을 다시 받지 못하면 삭제 성공 토스트가 아니라 불러오기 오류가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await listRow(page, "정문-중앙광장").click();
+    const detail = detailPanel(page, "정문-중앙광장");
+    let failNext = true;
+    await page.route(slopesRequest, async (route) => {
+      if (failNext && route.request().method() === "GET") {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+
+    await confirmDelete(detail);
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "경사도 경로 목록을 새로 불러오지 못했어요" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText('"정문-중앙광장" 경로를 삭제했어요'),
+    ).toHaveCount(0);
+    expect(state.slopes.some((row) => row.id === 1)).toBe(false);
+  });
+
   test("삭제를 기다리는 사이 연 다른 경로의 상세는 삭제가 끝나도 남는다", async ({
     page,
   }) => {
@@ -730,6 +759,39 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     await expect(detailPanel(page, "안암병원 정문 경사로")).toBeVisible();
     const saved = state.slopes.find((row) => row.id === 2);
     const segments = saved!.segments as Array<Record<string, unknown>>;
+    expect(segments[1].slope).toBe(9.4);
+  });
+
+  test("저장 뒤 목록을 다시 받지 못하면 저장 성공 토스트가 아니라 불러오기 오류가 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await listRow(page, "안암병원 정문 경사로").click();
+    await detailPanel(page, "안암병원 정문 경사로")
+      .getByRole("button", { name: "경로 편집" })
+      .click();
+    const detail = editPanel(page, "안암병원 정문 경사로");
+    let failNext = true;
+    await page.route(slopesRequest, async (route) => {
+      if (failNext && route.request().method() === "GET") {
+        failNext = false;
+        return serverError(route);
+      }
+      return route.fallback();
+    });
+
+    await detail.getByLabel("구간 1 경사도").fill("9.4");
+    await detail.getByRole("button", { name: "저장", exact: true }).click();
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "경사도 경로 목록을 새로 불러오지 못했어요" }),
+    ).toBeVisible();
+    await expect(page.getByText("경로가 수정되었어요")).toHaveCount(0);
+    const segments = state.slopes.find((row) => row.id === 2)!
+      .segments as Array<Record<string, unknown>>;
     expect(segments[1].slope).toBe(9.4);
   });
 
