@@ -59,12 +59,20 @@ const THREE_POINTS: Point[] = [
   { x: 740, y: 380 },
 ];
 
-/** 편집 지도에 선을 그리고 마지막 점을 한 번 더 눌러 끝낸다 */
+function toolbar(page: Page) {
+  return page.getByRole("toolbar", { name: "경로 편집 도구" });
+}
+
+function tool(page: Page, name: string) {
+  return toolbar(page).getByRole("button", { name, exact: true });
+}
+
+/** 도구 바로 그리기를 켜고 점을 찍은 뒤 끝내기로 끝낸다 */
 async function drawRoute(page: Page, points: Point[]) {
   const map = editMap(page);
-  await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+  await tool(page, "그리기").click();
   for (const position of points) await map.click({ position });
-  await map.click({ position: points[points.length - 1] });
+  await tool(page, "끝내기").click();
 }
 
 /** fitBounds 애니메이션이 끝나 자리가 멈춘 뒤의 가운데 */
@@ -732,6 +740,11 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     await expect(
       detail.getByRole("button", { name: "취소", exact: true }),
     ).toBeDisabled();
+    const toolButtons = toolbar(page).getByRole("button");
+    await expect(toolButtons).not.toHaveCount(0);
+    for (const button of await toolButtons.all()) {
+      await expect(button).toBeDisabled();
+    }
 
     await listRow(page, "정문-중앙광장").click({ force: true });
     await expect(page).toHaveURL(/\?id=2&edit=1$/);
@@ -1043,9 +1056,10 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     await expect(
       page.locator(".leaflet-tooltip.bldg-label", { hasText: "중앙도서관" }),
     ).toBeVisible();
-    await expect(
-      newPanel(page).getByRole("checkbox", { name: "건물 외곽선에 붙이기" }),
-    ).not.toBeChecked();
+    await expect(tool(page, "건물에 붙이기")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   test("지우고 다시 그리기로 경로를 비운다", async ({ page }) => {
@@ -1056,18 +1070,14 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     await expect(detail.getByLabel("구간 1 경사도")).toBeVisible();
 
     // 실측값을 클릭 한 번에 날리지 않는다. 취소하면 그대로 남는다.
-    await detail
-      .getByRole("button", { name: "경로 지우고 다시 그리기" })
-      .click();
+    await tool(page, "지우기").click();
     await page
       .getByRole("dialog")
       .getByRole("button", { name: "취소" })
       .click();
     await expect(detail.getByLabel("구간 1 경사도")).toBeVisible();
 
-    await detail
-      .getByRole("button", { name: "경로 지우고 다시 그리기" })
-      .click();
+    await tool(page, "지우기").click();
     await expect(
       page.getByText("그린 경로를 지우고 다시 그릴까요?"),
     ).toBeVisible();
@@ -1076,9 +1086,9 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
       .getByRole("button", { name: "지우고 다시 그리기", exact: true })
       .click();
     await expect(detail.getByLabel("구간 1 경사도")).toHaveCount(0);
-    await expect(
-      page.locator(".leaflet-pm-icon-polyline").locator(".."),
-    ).not.toHaveClass(/pm-disabled/);
+    // 지우면 그리기가 다시 켜져 그리는 중 도구가 보인다
+    await expect(tool(page, "끝내기")).toBeVisible();
+    await expect(tool(page, "그리기")).toHaveCount(0);
   });
 
   test("수정 화면에서 지우고 다시 그리기를 누르면 선과 입력값이 함께 비워지고 다시 그릴 수 있다", async ({
@@ -1091,9 +1101,7 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     await expect(previewLines(page).first()).toBeVisible();
     await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("7.2");
 
-    await detail
-      .getByRole("button", { name: "경로 지우고 다시 그리기" })
-      .click();
+    await tool(page, "지우기").click();
     await expect(
       page.getByText("그린 경로를 지우고 다시 그릴까요?"),
     ).toBeVisible();
@@ -1104,9 +1112,7 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
 
     await expect(detail.getByLabel("구간 1 경사도")).toHaveCount(0);
     await expect(previewLines(page)).toHaveCount(0);
-    await expect(
-      page.locator(".leaflet-pm-icon-polyline").locator(".."),
-    ).not.toHaveClass(/pm-disabled/);
+    await expect(tool(page, "끝내기")).toBeVisible();
 
     // 지우면 그리기가 다시 켜져 있다
     const map = editMap(page);
@@ -1261,10 +1267,10 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     await page.goto("/admin/dashboard/slopes?new=1");
 
     const map = editMap(page);
-    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+    await tool(page, "그리기").click();
     for (const position of THREE_POINTS) await map.click({ position });
     await expect(page.locator(".ku-slope-segment-label")).toHaveCount(0);
-    await map.click({ position: THREE_POINTS[2] });
+    await tool(page, "끝내기").click();
 
     const labels = page.locator(".ku-slope-segment-label");
     await expect(labels).toHaveCount(2);
@@ -1293,25 +1299,87 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     await expect(detail.getByLabel("구간 2 경사도")).toBeVisible();
 
     // 선을 하나 그리면 그리기 버튼이 잠긴다.
-    await expect(
-      page.locator(".leaflet-pm-icon-polyline").locator(".."),
-    ).toHaveClass(/pm-disabled/);
+    await expect(tool(page, "그리기")).toBeDisabled();
   });
 
-  test("그리기 도구 문구가 한국어다", async ({ page }) => {
+  test("그리는 동안 도구 바는 끝내기·마지막 꼭지점 제거·취소만 보이고 geoman 툴바는 없다", async ({
+    page,
+  }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes?new=1");
+    await expect(page.locator(".leaflet-pm-toolbar")).toHaveCount(0);
 
-    await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
-    // 끝내기 문구는 그리기·이동 모드 두 컨테이너에 있어 그리기 쪽 액션으로 좁힌다.
-    const finish = page.locator(".leaflet-pm-action.action-finish");
-    await expect(finish).toHaveText("끝내기");
-    await expect(finish).toBeVisible();
-    await expect(
-      page
-        .locator(".leaflet-pm-actions-container")
-        .getByText("마지막 꼭지점 제거"),
-    ).toBeVisible();
+    await tool(page, "그리기").click();
+    await expect(toolbar(page).getByRole("button")).toHaveText([
+      "끝내기",
+      "마지막 꼭지점 제거",
+      "취소",
+    ]);
+    await expect(page.locator(".leaflet-pm-toolbar")).toHaveCount(0);
+  });
+
+  test("마지막 꼭지점 제거는 찍은 점을 하나 빼고 취소는 선 없이 그리기를 끝낸다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?new=1");
+    const detail = newPanel(page);
+    const map = editMap(page);
+
+    await tool(page, "그리기").click();
+    for (const position of THREE_POINTS) await map.click({ position });
+    await tool(page, "마지막 꼭지점 제거").click();
+    await tool(page, "끝내기").click();
+    await expect(detail.getByLabel("구간 1 경사도")).toBeVisible();
+    await expect(detail.getByLabel("구간 2 경사도")).toHaveCount(0);
+
+    await tool(page, "지우기").click();
+    await page
+      .getByRole("dialog")
+      .getByRole("button", { name: "지우고 다시 그리기", exact: true })
+      .click();
+    await tool(page, "취소").click();
+    await expect(tool(page, "그리기")).toBeEnabled();
+    await expect(tool(page, "끝내기")).toHaveCount(0);
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveCount(0);
+  });
+
+  test("꼭짓점 편집과 통째로 옮기기는 서로 하나만 눌리고 옮겨도 구간 값과 거리는 그대로다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?id=2&edit=1");
+    const detail = editPanel(page, "안암병원 정문 경사로");
+    const vertexTool = tool(page, "꼭짓점 편집");
+    const dragTool = tool(page, "통째로 옮기기");
+    await expect(vertexTool).toHaveAttribute("aria-pressed", "true");
+    await expect(dragTool).toHaveAttribute("aria-pressed", "false");
+
+    await dragTool.click();
+    await expect(vertexTool).toHaveAttribute("aria-pressed", "false");
+    await expect(dragTool).toHaveAttribute("aria-pressed", "true");
+
+    const slope = detail.getByLabel("구간 1 경사도");
+    const distance = detail.locator(".ku-slope-card-meta").first();
+    const distanceBefore = await distance.textContent();
+    const line = page.locator(
+      ".leaflet-overlay-pane path.leaflet-pm-draggable",
+    );
+    const preview = previewLines(page).first();
+    const before = await preview.getAttribute("d");
+    const center = await settledCenter(line);
+    await page.mouse.move(center.x, center.y);
+    await page.mouse.down();
+    await page.mouse.move(center.x + 60, center.y + 40, { steps: 10 });
+    await page.mouse.up();
+
+    await expect(preview).not.toHaveAttribute("d", before ?? "");
+    await expect(slope).toHaveValue("7.2");
+    await expect(distance).toHaveText(distanceBefore ?? "");
+
+    await vertexTool.click();
+    await expect(vertexTool).toHaveAttribute("aria-pressed", "true");
+    await expect(dragTool).toHaveAttribute("aria-pressed", "false");
   });
 
   test("모바일 폭에서도 지도가 화면 폭을 쓴다", async ({ page }) => {
@@ -1421,7 +1489,7 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     await expect(others).toHaveCount(1);
     await expect(others).toHaveAttribute("stroke", "#1B9E77");
 
-    await page.locator(".leaflet-pm-icon-drag").locator("..").click();
+    await tool(page, "통째로 옮기기").click();
     await expect(
       page.locator(".leaflet-overlay-pane path.leaflet-pm-draggable"),
     ).toHaveCount(1);
@@ -1439,9 +1507,11 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
         .first();
       await expect(building).toBeVisible();
       if (snapOn) {
-        await newPanel(page)
-          .getByRole("checkbox", { name: "건물 외곽선에 붙이기" })
-          .check();
+        await tool(page, "건물에 붙이기").click();
+        await expect(tool(page, "건물에 붙이기")).toHaveAttribute(
+          "aria-pressed",
+          "true",
+        );
       }
 
       const box = (await building.boundingBox())!;
@@ -1450,7 +1520,7 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
       const listBox = (await listPanel(page).boundingBox())!;
       expect(target.x - 30).toBeGreaterThan(listBox.x + listBox.width);
       const mapBox = (await editMap(page).boundingBox())!;
-      await page.locator(".leaflet-pm-icon-polyline").locator("..").click();
+      await tool(page, "그리기").click();
       await page.mouse.move(target.x - 30, target.y);
       await page.mouse.move(target.x, target.y, { steps: 5 });
       await page.mouse.click(target.x, target.y);
