@@ -23,6 +23,23 @@ export interface NeighborLayerOptions {
   snapIgnore?: boolean;
 }
 
+/**
+ * buildings의 점(Point) geojson(지하철역)을 주변 레이어에 놓는 법. GeoJSON의 기본값은 `L.marker`인데, 그 기본 그림의 경로를
+ * 번들에서 찾지 못해 깨진 이미지와 대체 글자 `Marker`가 뜬다. 주변 레이어에는 이름표만 있으면 되므로 보이지 않는 점에 단다.
+ */
+export function neighborPointToLayer(
+  latlng: L.LatLng,
+  options: NeighborLayerOptions = {},
+): L.Layer {
+  return L.circleMarker(latlng, {
+    ...options,
+    radius: 0,
+    stroke: false,
+    fill: false,
+    interactive: false,
+  });
+}
+
 export function addNeighborLayer(
   map: L.Map,
   features: Feature[],
@@ -38,6 +55,8 @@ export function addNeighborLayer(
       ...layerOptions,
       style: NEIGHBOR_STYLE,
       interactive: false,
+      pointToLayer: (_feature, latlng) =>
+        neighborPointToLayer(latlng, layerOptions),
       onEachFeature: (f, layer) => {
         if (f.properties?.name) {
           layer.bindTooltip(f.properties.name, {

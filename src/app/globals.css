@@ -194,16 +194,23 @@ a {
   }
 }
 
-.bldg-label {
+/* leaflet.css가 이 파일보다 뒤에 로드되어 같은 특이도의 .leaflet-tooltip(흰 박스)이 이긴다 — 클래스를 겹쳐 올린다.
+   박스 대신 공개 지도 .ku-building-label처럼 바탕색 테두리로 글자를 띄운다 */
+.leaflet-tooltip.bldg-label {
+  padding: 0;
   border: 0;
   color: var(--ku-text-2);
   background: none;
   box-shadow: none;
   font-size: 12px;
   font-weight: 600;
+  text-shadow:
+    0 0 2px var(--ku-surface),
+    0 0 4px var(--ku-surface),
+    0 0 6px var(--ku-surface);
 }
 
-.bldg-label::before {
+.leaflet-tooltip.bldg-label::before {
   display: none;
 }
 

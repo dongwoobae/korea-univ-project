@@ -17,6 +17,7 @@ import {
   NEIGHBOR_STYLE,
   fetchNeighborBuildings,
 } from "@/lib/neighborBuildings";
+import { neighborPointToLayer } from "@/lib/neighborLayer";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import { WORKSPACE_MAX_ZOOM, bindWorkspaceMapCommands } from "./focusMap";
 import type { WorkspaceMapSlotProps } from "./types";
@@ -48,6 +49,7 @@ function NeighborBuildings() {
       data={{ type: "FeatureCollection", features } as FeatureCollection}
       style={NEIGHBOR_STYLE}
       interactive={false}
+      pointToLayer={(_feature, latlng) => neighborPointToLayer(latlng)}
       onEachFeature={(feature, layer) => {
         if (feature.properties?.name) {
           layer.bindTooltip(feature.properties.name, {
