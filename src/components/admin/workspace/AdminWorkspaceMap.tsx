@@ -103,8 +103,9 @@ function CommandsBridge({
     map.on("unload", markDisposed);
     const commands: WorkspaceMapCommands = {
       focus(target, insets) {
-        if (disposed) return;
+        if (disposed) return false;
         focusWorkspaceMap(map, target, insets);
+        return true;
       },
     };
     onCommandsReadyRef.current(commands);

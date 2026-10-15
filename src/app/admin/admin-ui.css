@@ -1195,6 +1195,10 @@ button.ku-admin-overview-item {
   font-size: 12px;
   font-weight: 700;
 }
+/* 경사도 편집 지도의 편집선. 기존 선과 geoman이 새로 그리는 선을 같은 색으로, 다크에서도 보이게 칠한다(설계 2026-10-14 6.4) */
+.ku-slope-route-map path.ku-slope-edit-line {
+  stroke: var(--ku-text-1);
+}
 /* 경사도 편집기 — 설계 2026-10-06 5.6 */
 .ku-slope-route-map .button-container.active .leaflet-pm-actions-container {
   display: flex;
@@ -1953,6 +1957,10 @@ button.ku-admin-overview-item {
 .ku-detail-panel-spacer {
   flex: 1;
 }
+.ku-detail-panel-note {
+  color: var(--ku-text-3);
+  font-size: 11.5px;
+}
 .ku-detail-panel-foot .ku-workspace-primary {
   height: 36px;
   padding: 0 18px;
@@ -2517,6 +2525,138 @@ button.ku-admin-overview-item {
   background: var(--ku-status-warn-bg);
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* 경사도 편집 패널 — 핸드오버 4장 "편집" */
+.ku-slope-edit-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ku-row-badge.ku-slope-edit-status {
+  padding: 4px 9px;
+  font-size: 11.5px;
+}
+.ku-slope-edit-meta {
+  flex: 1;
+  min-width: 0;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-slope-edit-name input {
+  width: 100%;
+  height: 42px;
+  padding: 0 11px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font-size: 16px;
+  font-weight: 700;
+}
+.ku-slope-edit-name input::placeholder {
+  color: var(--ku-text-3);
+  font-weight: 400;
+}
+.ku-slope-edit-name input:focus-visible,
+.ku-slope-card-input input:focus-visible {
+  border-color: var(--ku-crimson-700);
+}
+.ku-slope-edit-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 13px;
+}
+.ku-slope-edit-tools label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ku-text-2);
+  cursor: pointer;
+}
+.ku-slope-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ku-slope-card {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+}
+/* 채움은 판정 색(데이터 색)이라 인라인으로 준다. 값이 없거나 범위 밖이면 테두리만 남는다 */
+.ku-slope-card-index {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+}
+.ku-slope-card-index[data-empty] {
+  border: 2px solid var(--ku-border-input);
+  color: var(--ku-text-2);
+}
+.ku-slope-card-text {
+  min-width: 0;
+  color: var(--ku-text-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ku-slope-card-meta {
+  color: var(--ku-text-3);
+  font-weight: 400;
+}
+.ku-slope-card-warning {
+  margin-top: 3px;
+  color: var(--ku-text-2);
+  font-size: 11.5px;
+  font-weight: 400;
+  line-height: 1.4;
+}
+.ku-slope-card-warning[data-tone="danger"] {
+  color: var(--ku-danger);
+}
+.ku-slope-card-input {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.ku-slope-card-input input {
+  width: 72px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 8px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+}
+.ku-slope-card-input span {
+  width: 12px;
+  color: var(--ku-text-2);
+  font-size: 13px;
+}
+.ku-slope-card-empty {
+  color: var(--ku-text-3);
+  font-size: 13px;
+}
+.ku-slope-edit-errors {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ku-text-2);
+  font-size: 12px;
 }
 
 /* 목록·줌 버튼·상세 패널이 나란히 들어가지 않는 폭(설계 2026-10-14 3.5). 경계는 types.ts의 ADMIN_NARROW_QUERY와 같다.

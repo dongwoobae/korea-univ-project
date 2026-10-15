@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
+import SlopeEditPanel from "@/components/admin/slopes/SlopeEditPanel";
 import SlopeListRow from "@/components/admin/slopes/SlopeListRow";
 import SlopeViewPanel from "@/components/admin/slopes/SlopeViewPanel";
 import AdminMapWorkspace from "@/components/admin/workspace/AdminMapWorkspace";
@@ -17,6 +18,10 @@ import {
   useWorkspaceCloseRequest,
   useWorkspaceSelection,
 } from "@/components/admin/workspace/useWorkspaceSelection";
+import type {
+  SlopeEditDraft,
+  SlopeEditorHandle,
+} from "@/components/slope/types";
 import {
   INITIAL_ADMIN_COLLECTION_QUERY,
   pageOfItem,
@@ -40,6 +45,11 @@ const SlopeWorkspaceMap = dynamic(
   { ssr: false },
 );
 
+const SlopeRouteMap = dynamic(
+  () => import("@/components/slope/SlopeRouteMap"),
+  { ssr: false },
+);
+
 const NOT_FOUND_MESSAGE = "경로를 찾지 못했어요. 삭제됐거나 주소가 틀렸어요.";
 
 const LEGEND = [
@@ -56,6 +66,13 @@ function selectedRouteId(state: WorkspaceState) {
   return state.mode === "view" || state.mode === "edit" ? state.id : null;
 }
 
+/** 편집 패널과 편집 지도의 key이자 둘이 주고받는 초안·손잡이의 owner */
+function editOwner(state: WorkspaceState) {
+  if (state.mode === "edit") return `edit:${state.id}`;
+  if (state.mode === "new") return "edit:new";
+  return null;
+}
+
 export default function SlopesPage() {
   const [routes, setRoutes] = useState<SlopeListItem[]>([]);
   const [status, setStatus] = useState<"loading" | "error" | "ready">(
@@ -64,13 +81,13 @@ export default function SlopesPage() {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
+  const [draft, setDraft] = useState<SlopeEditDraft | null>(null);
+  const [editor, setEditor] = useState<SlopeEditorHandle | null>(null);
   const loadRequestRef = useRef(0);
   const disposedRef = useRef(false);
   const loadedRef = useRef(false);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
-  const { state, request: requestSelection } = useWorkspaceSelection({
-    allowEdit: true,
-  });
+  const { state, request } = useWorkspaceSelection({ allowEdit: true });
   const collection = useAdminCollection(routes, SLOPE_COLLECTION_POLICY);
   const { view, setPage } = collection;
   const selectedId = selectedRouteId(state);
@@ -80,6 +97,15 @@ export default function SlopesPage() {
       : (routes.find(
           (item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId,
         ) ?? null);
+  // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다
+  const editing =
+    state.mode === "new" ||
+    (state.mode === "edit" && Boolean(selected?.summary));
+  const owner = editing ? editOwner(state) : null;
+  // 패널이 바뀐 뒤 늦게 끝난 저장의 잠금이 남지 않게 owner로 거른다(명소의 activeDraft와 같다)
+  const activeDraft = draft && draft.owner === owner ? draft : null;
+  const activeEditor = editor && editor.owner === owner ? editor : null;
+  const saving = activeDraft?.locked ?? false;
 
   function showToast(message: string, type = "success") {
     setToast({ message, type });
@@ -155,6 +181,12 @@ export default function SlopesPage() {
     };
   }, [loadRoutes]);
 
+  // 저장 중에는 선택을 바꾸지 않는다 — 행·선·칩·닫기를 막는다(설계 2026-10-14 3.4)
+  function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
+    if (saving) return;
+    request(next, alsoApply);
+  }
+
   useWorkspaceCloseRequest(state.mode !== "closed", () =>
     requestSelection({ mode: "closed" }),
   );
@@ -173,6 +205,17 @@ export default function SlopesPage() {
     requestSelection({ mode: "view", id }, () => {
       if (page !== null) setPage(page);
     });
+  }
+
+  async function handleSaved(routeId: string, created: boolean) {
+    await loadRoutes();
+    if (disposedRef.current) return;
+    // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 편집 상태일 때만 보기로 바꾼다(설계 2026-10-14 3.4)
+    const selection = currentSelection();
+    const stillEditing = created
+      ? selection.mode === "new"
+      : selection.mode === "edit" && selection.id === routeId;
+    if (stillEditing) applyWorkspaceState({ mode: "view", id: routeId });
   }
 
   async function handleDeleted(routeId: string) {
@@ -205,8 +248,24 @@ export default function SlopesPage() {
     })),
   ];
 
-  // 편집 패널은 아직 없다. 편집 주소도 보기 패널로 연다
-  const detail = selected ? (
+  const detail = editing ? (
+    <SlopeEditPanel
+      key={owner}
+      route={selected && state.mode === "edit" ? selected.route : null}
+      summary={selected && state.mode === "edit" ? selected.summary : null}
+      editor={activeEditor}
+      onDraftChange={setDraft}
+      onSaved={handleSaved}
+      onCancel={() =>
+        requestSelection(
+          state.mode === "edit"
+            ? { mode: "view", id: state.id }
+            : { mode: "closed" },
+        )
+      }
+      showToast={showToast}
+    />
+  ) : selected ? (
     <SlopeViewPanel
       key={SLOPE_COLLECTION_POLICY.id(selected)}
       item={selected}
@@ -227,14 +286,32 @@ export default function SlopesPage() {
       <AdminMapWorkspace
         focus={focus}
         mobileMapStrip={230}
-        renderMap={(slot) => (
-          <SlopeWorkspaceMap
-            {...slot}
-            routes={view.matched}
-            selectedId={selected ? SLOPE_COLLECTION_POLICY.id(selected) : null}
-            onSelect={select}
-          />
-        )}
+        renderMap={(slot) =>
+          // 편집하면 지도 자리에 편집 지도를 바꿔 끼운다. 보기와 focus key가 같아 화면은 그대로다(설계 2026-10-14 2.6)
+          editing ? (
+            <SlopeRouteMap
+              key={owner}
+              {...slot}
+              initialVertices={
+                state.mode === "edit"
+                  ? (selected?.summary?.vertices ?? null)
+                  : null
+              }
+              editingRouteId={state.mode === "edit" ? state.id : null}
+              draft={activeDraft}
+              onEditorChange={setEditor}
+            />
+          ) : (
+            <SlopeWorkspaceMap
+              {...slot}
+              routes={view.matched}
+              selectedId={
+                selected ? SLOPE_COLLECTION_POLICY.id(selected) : null
+              }
+              onSelect={select}
+            />
+          )
+        }
         list={
           <WorkspaceListPanel
             title="경사도 경로"

@@ -22,7 +22,8 @@ export interface WorkspaceFocus {
 }
 
 export interface WorkspaceMapCommands {
-  focus: (target: WorkspaceFocusTarget, insets: WorkspaceInsets) => void;
+  /** 정리된 지도면 옮기지 않고 false를 돌려준다 */
+  focus: (target: WorkspaceFocusTarget, insets: WorkspaceInsets) => boolean;
 }
 
 /**

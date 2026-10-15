@@ -24,6 +24,10 @@ interface DetailPanelProps {
   mapStrip?: boolean;
   /** 패널을 마운트한 채 숨긴다. 모바일에서 상세를 접고 지도에서 위치를 고르는 동안 입력과 상태를 남긴다 */
   hidden?: boolean;
+  /** 하단 바 닫기 버튼 글자. 주지 않으면 데스크톱은 닫기, 모바일은 취소 */
+  closeLabel?: string;
+  /** 데스크톱 하단 바 왼쪽 안내 */
+  footNote?: ReactNode;
   children: ReactNode;
 }
 
@@ -36,6 +40,8 @@ export default function DetailPanel({
   save,
   mapStrip = true,
   hidden = false,
+  closeLabel,
+  footNote,
   children,
 }: DetailPanelProps) {
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
@@ -159,6 +165,9 @@ export default function DetailPanel({
       </div>
       <div className="ku-detail-panel-foot">
         {!mobile && removeControl}
+        {!mobile && footNote && (
+          <span className="ku-detail-panel-note">{footNote}</span>
+        )}
         <span className="ku-detail-panel-spacer" />
         <button
           type="button"
@@ -166,7 +175,7 @@ export default function DetailPanel({
           onClick={onClose}
           disabled={closeDisabled}
         >
-          {mobile ? "취소" : "닫기"}
+          {closeLabel ?? (mobile ? "취소" : "닫기")}
         </button>
         {save && (
           <button

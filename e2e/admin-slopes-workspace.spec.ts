@@ -696,7 +696,8 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     const detail = editPanel(page, "안암병원 정문 경사로");
 
     await expect(detail.getByText("저장됨", { exact: true })).toBeVisible();
-    await expect(detail).toContainText("1개 구간 · 총 12.4m");
+    // 편집 패널의 거리는 지금 꼭짓점으로 다시 잰 값이다(픽스처의 저장 거리와 다르다)
+    await expect(detail).toContainText(/1개 구간 · 총 \d+(\.\d)?m/);
     await detail.getByLabel("구간 1 경사도").fill("9.4");
     await expect(detail.getByText("저장 안 됨", { exact: true })).toBeVisible();
     await expect(detail.getByText("저장됨", { exact: true })).toHaveCount(0);
@@ -973,7 +974,7 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
 
     const saved = state.slopes[state.slopes.length - 1];
     const segments = saved.segments as Array<Record<string, unknown>>;
-    // atan(0.125) = 7.12501634890…°. 반올림 없이 저장한다(2026-08-30 설계 2.2).
+    // atan(0.125) = 7.12501634890…°. 반올림 없이 저장한다(2026-10-06 설계 2.2).
     expect(segments[1].slope as number).toBeCloseTo(7.1250163489, 9);
   });
 

@@ -59,8 +59,7 @@ export default function AdminMapWorkspace({
       return;
     }
     if (!commands || focusedKeyRef.current === focus.key) return;
-    focusedKeyRef.current = focus.key;
-    commands.focus(
+    const applied = commands.focus(
       focus.target,
       workspaceInsets({
         mobile,
@@ -71,6 +70,9 @@ export default function AdminMapWorkspace({
         picking: mobilePicking,
       }),
     );
+    // 지도를 바꿔 끼우는 커밋에서는 렌더 때 받은 commands가 막 정리된 지도의 것이라 명령이 버려진다.
+    // 그때 key를 적어 두면 새 지도가 명령을 등록한 뒤에도 옮기지 않으므로, 옮겼을 때만 적는다
+    if (applied) focusedKeyRef.current = focus.key;
   }, [
     commands,
     focus,
