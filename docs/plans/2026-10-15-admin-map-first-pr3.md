@@ -25,27 +25,25 @@ Interactions다. 계획과 설계가 다르면 설계가 맞다 — 멈추고 �
 `src/lib/landmarkWorkspace.ts`·`landmarkSave.ts`와 그 테스트, `e2e/admin-landmarks-workspace.spec.ts`. 늦은 완료 방어·`panelKey`·
 `requestSelection`·모바일 위치 고르기(`pickOwner`·`pickFocus`)가 여기 있다.
 
-## 진행 상황 (2026-10-15 중단 시점)
+## 진행 상황 (2026-10-15)
 
-| 태스크 | 상태                                            | 커밋                                                                   |
-| ------ | ----------------------------------------------- | ---------------------------------------------------------------------- |
-| 0      | 끝                                              | `ab60503`(② 계획 은퇴), `a003bf7`(이 계획)                             |
-| 1·2    | 끝, diff 검토 통과                              | `a003bf7..15cd67f`                                                     |
-| 3      | 끝, diff 검토에서 나온 번호표 결함 고친 뒤 통과 | `15cd67f..58976cf`                                                     |
-| 4      | 구현 커밋까지 끝, **diff 검토 남음**            | `58976cf..ddc51ee`(test `adc6f24`, refactor `bb2022e`, feat `ddc51ee`) |
-| 5~8    | 시작 전                                         | —                                                                      |
+| 태스크 | 상태                       | 커밋                                                                   |
+| ------ | -------------------------- | ---------------------------------------------------------------------- |
+| 0      | 끝                         | `ab60503`(② 계획 은퇴), `a003bf7`(이 계획)                             |
+| 1·2    | 끝                         | `a003bf7..15cd67f`                                                     |
+| 3      | 끝                         | `15cd67f..58976cf`                                                     |
+| 4      | 끝                         | `58976cf..ddc51ee`(test `adc6f24`, refactor `bb2022e`, feat `ddc51ee`) |
+| 5      | 끝                         | `78cf381..571c899`                                                     |
+| 6      | 끝                         | `571c899..83ec4f8`                                                     |
+| 7      | 끝                         | `83ec4f8..c119876`                                                     |
+| 8      | 문서 끝, 푸시·PR 열기 남음 | `0b6687c`(건물 spec 이름), `ba38ed9`(README·설계)                      |
 
-이어받으면 Task 4 diff(`58976cf..ddc51ee`)부터 검토한 뒤 Task 5로 간다. 각 태스크의 brief·구현 보고서는 이 저장소의
-`.superpowers/sdd/2026-10-15-admin-map-first-pr3/`(git 무시, 이 머신에만 있다)에 있다.
+각 태스크의 brief·구현 보고서는 이 저장소의 `.superpowers/sdd/2026-10-15-admin-map-first-pr3/`(git 무시, 이 머신에만 있다)에
+있다.
 
-Task 4 검토 때 볼 것:
-
-- 계획의 파일 목록 밖인 공통 단위 `AdminMapWorkspace.tsx`·`workspace/types.ts`를 고쳤다. 지도를 바꿔 끼우면 정리된 지도의 명령으로
-  focus가 가서 버려지는데 key만 적혀 새 지도가 옮기지 않았다(`?id=&edit=1`로 바로 들어올 때, 편집 중 다른 행을 고를 때). 그래서
-  `WorkspaceMapCommands.focus`가 boolean을 돌려주고 실제로 옮겼을 때만 key를 적는다. 시설·명소 화면에 영향이 없는지 본다.
-- 전체 E2E에서 이 변경 없이도 같은 비율로 간헐 실패하는 시나리오가 있다(건물 캠퍼스 필터, 시설·명소 저장 안 한 변경 확인 셋, 명소
-  모바일 위치 고르기). PR 직전 CI 조건(`--retries=0`)에서 다시 확인한다.
-- Task 8로 넘길 것: 설계 3.2가 지운 `onResetReady` 주석을 가리킨다. README에 `SlopeRouteEditor` 줄이 남아 있다.
+PR 전에 정할 것: CI 조건(검증 방법 절) 재현에서 `꼭짓점만 끌어 옮겨도 저장 안 한 변경이다`가 전체 실행에서 실패했고
+`--repeat-each=6`에서 6번 중 5번 실패했다. 편집 주소로 들어온 뒤 지도가 경로로 옮기는 중에 꼭짓점을 잡아, 끌기가 꼭짓점이
+아니라 지도에 간다.
 
 실행 중 내린 결정:
 
@@ -54,6 +52,9 @@ Task 4 검토 때 볼 것:
   바뀌는 순간 깨진다. Task 4가 표대로 새 형태로 다시 썼다.
 - 번호표 선택자를 `.ku-slope-segment-label`로 넓히면(Task 3) 특이도가 leaflet.css의 `.leaflet-marker-icon { display: block }`과 같아져
   뒤에 로드되는 leaflet.css가 이긴다. `.leaflet-marker-icon.ku-slope-segment-label`로 올렸다(`58976cf`).
+- 계획과 다르게 간 것은 설계로 옮겼다 — `WorkspaceMapCommands.focus`가 옮겼는지를 돌려준다(설계 3.2, Task 4), 목록·상세 사이
+  틈이 좁은 폭의 기호 전용 도구 바(설계 6.4, Task 5), 모바일 편집에서 나가면 목록으로·전체 지도 focus가 위쪽 도구 바도 비킴·
+  띠로 돌아오면 꼭짓점 편집(설계 6.6, Task 7). 결정 8·12·15의 본문은 계획 당시대로 둔다.
 
 마지막 검토에 넘길 사소한 것: `slopeWorkspace`의 `verticesBounds(...)!`가 다른 파일(`readRoutePoints`)의 2점 이상 불변식에 기댄다.
 `SlopeViewPanel`의 `GRADE_TONES`가 `slopeRouteBadge`의 판정 → tone 짝을 다시 적는다. 명소 spec에 있는 삭제 실패·떠난 뒤 삭제·2페이지
