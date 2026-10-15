@@ -1594,3 +1594,215 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     });
   }
 });
+
+test.describe("경사도 작업 화면 — 저장 안 한 변경", () => {
+  const LEAVE_TITLE = "저장하지 않은 변경사항이 있어요";
+  const ROUTE_2 = "안암병원 정문 경사로";
+
+  function adminNav(page: Page) {
+    return page.getByRole("navigation", { name: "관리자 메뉴" });
+  }
+
+  function leaveDialog(page: Page) {
+    return page.getByRole("dialog", { name: LEAVE_TITLE });
+  }
+
+  // E2E는 브라우저의 새로고침 경고를 보지 못한다. 같은 이벤트를 직접 내 가드가 막는지 본다.
+  // 가드 등록은 effect라 편집 직후에 한 번 읽으면 앞지르므로 항상 poll로 기다린다
+  function unloadBlocked(page: Page) {
+    return page.evaluate(
+      () =>
+        !window.dispatchEvent(new Event("beforeunload", { cancelable: true })),
+    );
+  }
+
+  /** 경로 2의 편집을 열고 구간 값을 고친다. 가드가 dirty를 받을 때까지 기다린다 */
+  async function editValue(page: Page) {
+    await page.goto("/admin/dashboard/slopes?id=2&edit=1");
+    const detail = editPanel(page, ROUTE_2);
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+    // 지도가 좌표를 다시 읽어 초안에 새 배열을 써넣는 것까지 기다린다
+    await expect(previewLines(page).first()).toBeVisible();
+    await expect.poll(() => unloadBlocked(page)).toBe(false);
+    await detail.getByLabel("구간 1 경사도").fill("9.4");
+    await expect.poll(() => unloadBlocked(page)).toBe(true);
+    return detail;
+  }
+
+  test("값을 고친 채 다른 행을 고르면 묻고, 취소하면 값이 남고, 나가기면 그 행의 보기다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    const detail = await editValue(page);
+
+    await listRow(page, "정문-중앙광장").click();
+    await expect(leaveDialog(page)).toContainText(
+      "지금 나가면 입력한 값이 사라져요",
+    );
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\?id=2&edit=1$/);
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("9.4");
+
+    await listRow(page, "정문-중앙광장").click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).toHaveURL(/\?id=1$/);
+    await expect(detailPanel(page, "정문-중앙광장")).toBeVisible();
+    await expect.poll(() => unloadBlocked(page)).toBe(false);
+  });
+
+  test("값을 고친 채 칩을 바꾸면 묻는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipRoutes(state);
+    const detail = await editValue(page);
+    const chip = listPanel(page).getByRole("button", { name: "확인 필요 1개" });
+
+    await chip.click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("9.4");
+    await expect(chip).toHaveAttribute("aria-pressed", "false");
+
+    await chip.click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(chip).toHaveAttribute("aria-pressed", "true");
+    await expect(detail).toHaveCount(0);
+  });
+
+  test("값을 고친 채 검색하면 묻는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    const detail = await editValue(page);
+    const search = listPanel(page).getByRole("searchbox", {
+      name: "경사도 경로 검색",
+    });
+
+    await search.fill("중앙광장");
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("9.4");
+    await expect(search).toHaveValue("");
+
+    await search.fill("중앙광장");
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(search).toHaveValue("중앙광장");
+    await expect(detail).toHaveCount(0);
+  });
+
+  test("헤더 메뉴로 나가기 전에 묻는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await editValue(page);
+    const landmarks = adminNav(page).getByRole("link", { name: "명소" });
+
+    await landmarks.click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\/slopes\?id=2&edit=1$/);
+
+    await landmarks.click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
+  });
+
+  test("같은 화면의 헤더 메뉴는 편집을 닫고, 저장 안 한 변경이 있으면 먼저 묻는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    const detail = await editValue(page);
+    const slopes = adminNav(page).getByRole("link", { name: "경사도" });
+
+    await slopes.click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\?id=2&edit=1$/);
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("9.4");
+
+    await slopes.click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(detail).toHaveCount(0);
+  });
+
+  test("브라우저 뒤로가기 전에 묻는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/buildings");
+    await adminNav(page).getByRole("link", { name: "경사도" }).click();
+    await listRow(page, ROUTE_2).click();
+    await detailPanel(page, ROUTE_2)
+      .getByRole("button", { name: "경로 편집" })
+      .click();
+    const detail = editPanel(page, ROUTE_2);
+    await expect(previewLines(page).first()).toBeVisible();
+    await detail.getByLabel("구간 1 경사도").fill("9.4");
+    await expect.poll(() => unloadBlocked(page)).toBe(true);
+
+    await page.evaluate(() => window.history.back());
+    await expect(leaveDialog(page)).toBeVisible();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\/slopes\?id=2&edit=1$/);
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("9.4");
+
+    await page.evaluate(() => window.history.back());
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).not.toHaveURL(/edit=1/);
+  });
+
+  test("저장한 뒤에는 새로고침 경고가 풀리고 다른 행을 고를 때 묻지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    const detail = await editValue(page);
+
+    await detail.getByRole("button", { name: "저장", exact: true }).click();
+    await expect(page.getByText("경로가 수정되었어요")).toBeVisible();
+    await expect.poll(() => unloadBlocked(page)).toBe(false);
+
+    await listRow(page, "정문-중앙광장").click();
+    await expect(detailPanel(page, "정문-중앙광장")).toBeVisible();
+    await expect(leaveDialog(page)).toHaveCount(0);
+  });
+
+  test("새 경로는 선만 그려도 저장 안 한 변경이다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?new=1");
+    const detail = newPanel(page);
+    await expect.poll(() => unloadBlocked(page)).toBe(false);
+
+    await drawRoute(page, TWO_POINTS);
+    await expect(detail.getByLabel("구간 1 경사도")).toBeVisible();
+    await expect(detail.getByLabel("경로 이름")).toHaveValue("");
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("");
+    await expect.poll(() => unloadBlocked(page)).toBe(true);
+
+    await listRow(page, ROUTE_2).click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(detail).toBeVisible();
+
+    await listRow(page, ROUTE_2).click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(detailPanel(page, ROUTE_2)).toBeVisible();
+  });
+
+  test("꼭짓점만 끌어 옮겨도 저장 안 한 변경이다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?id=2&edit=1");
+    const detail = editPanel(page, ROUTE_2);
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+    const preview = previewLines(page).first();
+    await expect(preview).toBeVisible();
+    await expect.poll(() => unloadBlocked(page)).toBe(false);
+    const before = await preview.getAttribute("d");
+
+    const mapBox = (await editMap(page).boundingBox())!;
+    const marker = page.locator(".marker-icon").first();
+    const markerBox = (await marker.boundingBox())!;
+    await page.mouse.move(
+      markerBox.x + markerBox.width / 2,
+      markerBox.y + markerBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(mapBox.x + 600, mapBox.y + 400, { steps: 10 });
+    await page.mouse.up();
+
+    await expect(preview).not.toHaveAttribute("d", before ?? "");
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+    await expect.poll(() => unloadBlocked(page)).toBe(true);
+
+    await detail.getByRole("button", { name: "취소", exact: true }).click();
+    await expect(leaveDialog(page)).toBeVisible();
+  });
+});
