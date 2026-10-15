@@ -150,7 +150,15 @@ export default function FeedbackDrawer({
         <div className="ku-inbox-feedback-page">
           보낸 화면{" "}
           {href ? (
-            <a href={href}>{item.page_url}</a>
+            <a
+              href={href}
+              onClick={(event) => {
+                // 저장하는 동안은 다른 닫기 길처럼 떠나지 않는다. 결과 토스트와 보드 갱신을 잃는다.
+                if (busy) event.preventDefault();
+              }}
+            >
+              {item.page_url}
+            </a>
           ) : (
             <span>{item.page_url}</span>
           )}

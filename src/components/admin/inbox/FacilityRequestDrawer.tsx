@@ -143,10 +143,13 @@ export default function FacilityRequestDrawer({
       const result = await fetchDetail(requestId);
       if (cancelled) return;
       if (!("body" in result)) {
-        showToast(
-          await readErrorMessage(result.response, "요청을 불러오지 못했어요"),
-          "error",
+        const message = await readErrorMessage(
+          result.response,
+          "요청을 불러오지 못했어요",
         );
+        // 본문을 읽는 사이 다른 요청으로 바뀌었으면 onClose가 새로 연 드로어를 닫는다.
+        if (cancelled) return;
+        showToast(message, "error");
         onClose();
         return;
       }

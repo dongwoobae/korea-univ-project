@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -90,13 +90,19 @@ export default function FacilityMap({
     };
   }, []);
 
+  // 위치 응답은 몇 초 뒤에 온다. 누른 때의 콜백을 부르면 그 사이 바뀐 상태(저장 중·끝남)를 보지 못한다.
+  const onMapClickRef = useRef(onMapClick);
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  });
+
   function handleLocate() {
     if (!navigator.geolocation) return;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         map?.flyTo([coords.latitude, coords.longitude], 18);
-        onMapClick(coords.latitude, coords.longitude);
+        onMapClickRef.current(coords.latitude, coords.longitude);
         setLocating(false);
       },
       () => setLocating(false),

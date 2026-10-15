@@ -222,7 +222,10 @@ test.describe("제보함 — 보드", () => {
       "aria-pressed",
       "true",
     );
-    await expect(cards(page, "확인 중")).toHaveCount(1);
+    // 다른 건물의 요청이 돌아오고, 전체라 피드백 카드도 함께 보인다.
+    await expect(
+      cards(page, "확인 중").filter({ hasText: "등록 요청" }),
+    ).toHaveCount(1);
     await expect(
       cards(page, "신규").filter({ hasText: "피드백" }).first(),
     ).toBeVisible();

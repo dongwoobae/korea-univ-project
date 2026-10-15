@@ -126,7 +126,10 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
   }
 
   function clearBuilding() {
-    const next = { kind: url.kind, building: null };
+    // 건물 필터가 강제한 등록 요청은 주소의 tab이 아니다. building만 빼고 주소를 다시 읽어 원래 종류로 돌아간다.
+    const params = new URLSearchParams(window.location.search);
+    params.delete("building");
+    const next = readInboxUrl(params.toString());
     setUrl(next);
     replaceUrl(next);
   }
