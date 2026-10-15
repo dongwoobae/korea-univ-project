@@ -772,9 +772,14 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
       .getByRole("button", { name: "경로 편집" })
       .click();
     const detail = editPanel(page, "안암병원 정문 경사로");
+    // 편집 지도도 `slope_segments`를 받는다(다른 경로 겹침). 목록 조회(select=*)만 실패시킨다
     let failNext = true;
     await page.route(slopesRequest, async (route) => {
-      if (failNext && route.request().method() === "GET") {
+      if (
+        failNext &&
+        route.request().method() === "GET" &&
+        route.request().url().includes("select=*")
+      ) {
         failNext = false;
         return serverError(route);
       }
