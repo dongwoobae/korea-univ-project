@@ -59,12 +59,15 @@ export default function FacilityMap({
   onMapClick,
   highlightId,
   highlightColor = PUBLIC_HIGHLIGHT_COLOR,
+  height = 250,
 }: {
   center: [number, number];
   markerPosition: [number, number] | null;
   onMapClick: (lat: number, lng: number) => void;
   highlightId?: number;
   highlightColor?: string;
+  /** 지도 높이(px). 공개 등록 요청 모달은 기본값을 쓴다 */
+  height?: number;
 }) {
   const prefersDarkMode = usePrefersDarkMode();
   const [map, setMap] = useState<L.Map | null>(null);
@@ -106,7 +109,7 @@ export default function FacilityMap({
       <MapContainer
         center={center}
         zoom={18}
-        style={{ width: "100%", height: 250 }}
+        style={{ width: "100%", height }}
         scrollWheelZoom={true}
       >
         <TileLayer
@@ -154,6 +157,7 @@ export default function FacilityMap({
         )}
       </MapContainer>
       <button
+        className="ku-facility-map-locate"
         onClick={handleLocate}
         disabled={locating}
         title="현재 위치로 이동"
