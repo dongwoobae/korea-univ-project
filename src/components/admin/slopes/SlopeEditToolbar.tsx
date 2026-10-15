@@ -52,9 +52,11 @@ export default function SlopeEditToolbar({
             disabled={locked}
             onClick={commands.removeLastVertex}
           />
+          {/* 접근 이름을 패널의 취소와 가른다(설계 2026-10-14 6.4) */}
           <ToolButton
             symbol="✕"
             label="취소"
+            name="그리기 취소"
             disabled={locked}
             onClick={commands.cancelDraw}
           />
@@ -96,16 +98,19 @@ export default function SlopeEditToolbar({
   );
 }
 
-// 지도 위 빈 폭이 좁으면 CSS가 글자를 시각적으로만 숨긴다. 접근 이름은 글자가 맡는다
+// 지도 위 빈 폭이 좁으면 CSS가 글자를 시각적으로만 숨긴다. 접근 이름은 name이 없으면 글자가 맡는다
 function ToolButton({
   symbol,
   label,
+  name,
   pressed,
   disabled,
   onClick,
 }: {
   symbol: string;
   label: string;
+  /** 보이는 글자와 다른 접근 이름. 보이는 글자를 담아야 한다 */
+  name?: string;
   pressed?: boolean;
   disabled: boolean;
   onClick: () => void;
@@ -113,7 +118,8 @@ function ToolButton({
   return (
     <button
       type="button"
-      title={label}
+      title={name ?? label}
+      aria-label={name}
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}

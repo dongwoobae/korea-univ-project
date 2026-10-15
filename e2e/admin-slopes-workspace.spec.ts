@@ -1443,7 +1443,7 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     await expect(tool(page, "그리기")).toBeDisabled();
   });
 
-  test("그리는 동안 도구 바는 끝내기·마지막 꼭지점 제거·취소만 보이고 geoman 툴바는 없다", async ({
+  test("그리는 동안 도구 바는 끝내기·마지막 꼭지점 제거·그리기 취소만 보이고 geoman 툴바는 없다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
@@ -1456,10 +1456,12 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     for (const [index, name] of [
       "끝내기",
       "마지막 꼭지점 제거",
-      "취소",
+      "그리기 취소",
     ].entries()) {
       await expect(buttons.nth(index)).toHaveAccessibleName(name);
     }
+    // 보이는 글자는 그대로 두고 패널의 취소와 접근 이름만 가른다
+    await expect(buttons.nth(2)).toHaveText("✕취소");
     await expect(page.locator(".leaflet-pm-toolbar")).toHaveCount(0);
   });
 
@@ -1515,7 +1517,7 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     });
   }
 
-  test("마지막 꼭지점 제거는 찍은 점을 하나 빼고 취소는 선 없이 그리기를 끝낸다", async ({
+  test("마지막 꼭지점 제거는 찍은 점을 하나 빼고 그리기 취소는 선 없이 그리기를 끝낸다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
@@ -1535,7 +1537,7 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
       .getByRole("dialog")
       .getByRole("button", { name: "지우고 다시 그리기", exact: true })
       .click();
-    await tool(page, "취소").click();
+    await tool(page, "그리기 취소").click();
     await expect(tool(page, "그리기")).toBeEnabled();
     await expect(tool(page, "끝내기")).toHaveCount(0);
     await expect(detail.getByLabel("구간 1 경사도")).toHaveCount(0);
