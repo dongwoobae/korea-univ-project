@@ -6,7 +6,11 @@ import {
   type Page,
   type Route,
 } from "@playwright/test";
-import { installMockBackend, type MockState } from "./support/mockBackend";
+import {
+  installMockBackend,
+  stationBuildingRow,
+  type MockState,
+} from "./support/mockBackend";
 
 function listPanel(page: Page) {
   return page.getByRole("region", { name: "독립 시설", exact: true });
@@ -378,6 +382,33 @@ test.describe("독립 시설 작업 화면 — 목록과 지도", () => {
     await expect(
       page.locator(".leaflet-tooltip-pane .ku-workspace-marker-tooltip"),
     ).toHaveText("중앙광장 경사로");
+  });
+
+  test("주변 건물 이름표는 박스 없이 글자만 그리고, 점 데이터인 역은 마커 없이 이름만 그린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.buildings.push(stationBuildingRow(90, "안암역", [127.0316, 37.5889]));
+    await page.goto("/admin/dashboard/facilities");
+
+    const label = page.locator(
+      ".ku-map-workspace .leaflet-tooltip.bldg-label",
+      { hasText: "중앙도서관" },
+    );
+    await expect(label).toBeVisible();
+    await expect(label).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(label).toHaveCSS("border-top-width", "0px");
+    await expect(label).toHaveCSS("box-shadow", "none");
+    await expect(label).not.toHaveCSS("text-shadow", "none");
+
+    await expect(
+      page.locator(".ku-map-workspace .leaflet-tooltip.bldg-label", {
+        hasText: "안암역",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.locator(".ku-map-workspace img.leaflet-marker-icon"),
+    ).toHaveCount(0);
   });
 });
 

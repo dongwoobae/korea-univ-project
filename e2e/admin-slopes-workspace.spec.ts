@@ -5,7 +5,11 @@ import {
   type Page,
   type Route,
 } from "@playwright/test";
-import { installMockBackend, type MockState } from "./support/mockBackend";
+import {
+  installMockBackend,
+  stationBuildingRow,
+  type MockState,
+} from "./support/mockBackend";
 
 function listPanel(page: Page) {
   return page.getByRole("region", { name: "경사도 경로", exact: true });
@@ -1124,6 +1128,25 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
       "aria-pressed",
       "false",
     );
+  });
+
+  test("편집 지도도 주변 건물 이름표를 박스 없이 그리고, 점 데이터인 역은 마커 없이 이름만 그린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.buildings.push(stationBuildingRow(90, "안암역", [127.0316, 37.5889]));
+    await page.goto("/admin/dashboard/slopes?new=1");
+
+    const label = page.locator(".leaflet-tooltip.bldg-label", {
+      hasText: "중앙도서관",
+    });
+    await expect(label).toBeVisible();
+    await expect(label).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(label).toHaveCSS("box-shadow", "none");
+    await expect(
+      page.locator(".leaflet-tooltip.bldg-label", { hasText: "안암역" }),
+    ).toBeVisible();
+    await expect(page.locator("img.leaflet-marker-icon")).toHaveCount(0);
   });
 
   test("지우고 다시 그리기로 경로를 비운다", async ({ page }) => {
