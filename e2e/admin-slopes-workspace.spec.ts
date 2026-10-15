@@ -1214,6 +1214,34 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     expectNear(backCenter, editCenter, 2);
   });
 
+  test("경로로 옮긴 뒤 손으로 끈 화면은 경로 편집과 취소로 바꿔 끼워도 그대로 이어받는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await listRow(page, "안암병원 정문 경사로").click();
+    const focused = await settledCenter(routeLine(page, 2));
+
+    // 선과 패널을 피한 빈 곳을 끈다
+    await page.mouse.move(700, 560);
+    await page.mouse.down();
+    await page.mouse.move(620, 500, { steps: 10 });
+    await page.mouse.up();
+    const dragged = await settledCenter(routeLine(page, 2));
+    expect(Math.abs(dragged.x - focused.x)).toBeGreaterThan(40);
+
+    await detailPanel(page, "안암병원 정문 경사로")
+      .getByRole("button", { name: "경로 편집" })
+      .click();
+    expectNear(await settledCenter(previewLines(page).first()), dragged, 2);
+
+    await editPanel(page, "안암병원 정문 경사로")
+      .getByRole("button", { name: "취소", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\?id=2$/);
+    expectNear(await settledCenter(routeLine(page, 2)), dragged, 2);
+  });
+
   test("편집 주소로 바로 들어오면 경로를 패널 밖 지도 영역에 맞춰 연다", async ({
     page,
   }) => {
