@@ -27,16 +27,16 @@ Interactions다. 계획과 설계가 다르면 설계가 맞다 — 멈추고 �
 
 ## 진행 상황 (2026-10-15)
 
-| 태스크 | 상태                       | 커밋                                                                                       |
-| ------ | -------------------------- | ------------------------------------------------------------------------------------------ |
-| 0      | 끝                         | `ab60503`(② 계획 은퇴), `a003bf7`(이 계획)                                                 |
-| 1·2    | 끝                         | `a003bf7..15cd67f`                                                                         |
-| 3      | 끝                         | `15cd67f..58976cf`                                                                         |
-| 4      | 끝                         | `58976cf..ddc51ee`(test `adc6f24`, refactor `bb2022e`, feat `ddc51ee`)                     |
-| 5      | 끝                         | `78cf381..571c899`                                                                         |
-| 6      | 끝                         | `571c899..83ec4f8`                                                                         |
-| 7      | 끝                         | `83ec4f8..c119876`                                                                         |
-| 8      | 문서 끝, 푸시·PR 열기 남음 | `c119876..` — 건물 spec 이름 `0b6687c`, README·설계 `ba38ed9`, 테스트 `d900186`, 문서 고침 |
+| 태스크 | 상태                       | 커밋                                                                                                                    |
+| ------ | -------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 0      | 끝                         | `ab60503`(② 계획 은퇴), `a003bf7`(이 계획)                                                                              |
+| 1·2    | 끝                         | `a003bf7..15cd67f`                                                                                                      |
+| 3      | 끝                         | `15cd67f..58976cf`                                                                                                      |
+| 4      | 끝                         | `58976cf..ddc51ee`(test `adc6f24`, refactor `bb2022e`, feat `ddc51ee`)                                                  |
+| 5      | 끝                         | `78cf381..571c899`                                                                                                      |
+| 6      | 끝                         | `571c899..83ec4f8`                                                                                                      |
+| 7      | 끝                         | `83ec4f8..c119876`                                                                                                      |
+| 8      | 문서 끝, 푸시·PR 열기 남음 | `c119876..` — 건물 spec 이름 `0b6687c`, README·설계 `ba38ed9`, 테스트 `d900186`, 문서 고침, 2026-10-15 고침 `3eb8a0f..` |
 
 각 태스크의 brief·구현 보고서는 이 저장소의 `.superpowers/sdd/2026-10-15-admin-map-first-pr3/`(git 무시, 이 머신에만 있다)에
 있다.
@@ -56,10 +56,14 @@ Interactions다. 계획과 설계가 다르면 설계가 맞다 — 멈추고 �
   틈이 좁은 폭의 기호 전용 도구 바(설계 6.4, Task 5), 모바일 편집에서 나가면 목록으로·전체 지도 focus가 위쪽 도구 바도 비킴·
   띠로 돌아오면 꼭짓점 편집(설계 6.6, Task 7). 이 때문에 결정 8·12(모바일 나가기·저장 뒤), 13(도구 바 기호·배치),
   15(전체 지도 focus insets)와 다르게 갔고, 그 결정들의 본문은 계획 당시대로 둔다.
+- 2026-10-15 — 결정 9의 "보기에서 들어오면 같은 focus key라 지도가 그대로"는 보기 지도가 그 경로로 옮기는 중에 `경로 편집`을
+  누르거나, 편집 주소로 들어와 옮기는 중에 `취소`할 때 거짓이었다 — 새 지도가 옮기기 전 화면으로 열렸다. 작업 화면이 앞
+  지도가 다 옮겼는지 묻고 다시 맞춘다(설계 3.2, `a783e07`). 결정 9의 본문은 계획 당시대로 둔다.
 
-남은 사소한 것: `slopeWorkspace`의 `verticesBounds(...)!`가 다른 파일(`readRoutePoints`)의 2점 이상 불변식에 기댄다.
-`SlopeViewPanel`의 `GRADE_TONES`가 `slopeRouteBadge`의 판정 → tone 짝을 다시 적는다. 명소 spec에 있는 삭제 실패·떠난 뒤 삭제·2페이지
-`?id=` 첫 조회·다시 받기 실패 토스트 시나리오가 경사도 spec에 없다. 존재 검사·`disposedRef`·`retry` 주석이 명소 페이지와 글자 그대로 같다.
+남은 사소한 것과 후속은 `docs/TODO_list/`로 옮겼다(2026-10-15) — `admin/slope-vertices-bounds-assertion.md`,
+`admin/slope-grade-tones-duplicated.md`, `admin/slope-workspace-failure-scenarios.md`, `admin/workspace-page-load-duplication.md`,
+`admin/workspace-e2e-guard-helpers.md`, `admin/slope-edit-owner.md`, `admin/slope-toolbar-touch-labels.md`,
+`map/viewport-observer-update-depth.md`.
 
 ## Global Constraints
 
