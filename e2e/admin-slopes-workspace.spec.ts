@@ -101,6 +101,66 @@ function expectNear(actual: Point, expected: Point, tolerance: number) {
   expect(Math.abs(actual.y - expected.y)).toBeLessThanOrEqual(tolerance);
 }
 
+/** 선이 목록 패널과 상세 패널 사이 지도 안에 다 보이는지 */
+async function placementBetweenPanels(
+  page: Page,
+  line: Locator,
+  detail: Locator,
+) {
+  const [lineBox, listBox, detailBox, mapBox] = await Promise.all([
+    line.boundingBox(),
+    listPanel(page).boundingBox(),
+    detail.boundingBox(),
+    page.locator(".ku-map-workspace-map").boundingBox(),
+  ]);
+  if (!lineBox) return "선이 보이지 않음";
+  if (!listBox || !detailBox || !mapBox) return "잴 수 없음";
+  const left = listBox.x + listBox.width;
+  const right = detailBox.x;
+  return lineBox.x >= left &&
+    lineBox.x + lineBox.width <= right &&
+    lineBox.y >= mapBox.y &&
+    lineBox.y + lineBox.height <= mapBox.y + mapBox.height
+    ? "사이"
+    : `벗어남 (선 x ${Math.round(lineBox.x)}~${Math.round(lineBox.x + lineBox.width)} y ${Math.round(lineBox.y)}~${Math.round(lineBox.y + lineBox.height)}, 패널 사이 x ${Math.round(left)}~${Math.round(right)})`;
+}
+
+/**
+ * 지도가 옮기기 시작하면(Leaflet이 지도 판에 이동 애니메이션 클래스를 달면) 그 자리에서 버튼을 누르도록 다음 탐색부터
+ * 페이지에 걸어 둔다. Playwright의 click은 대기와 확인을 거쳐 이동(약 250ms)이 끝난 뒤에 닿을 수 있다
+ */
+async function clickWhenMapStartsMoving(
+  page: Page,
+  options: { map: string; panel: string; button: string },
+) {
+  await page.addInitScript(({ map, panel, button }) => {
+    const observer = new MutationObserver(() => {
+      const pane = document.querySelector(`${map} .leaflet-map-pane`);
+      if (!pane?.matches(".leaflet-zoom-anim, .leaflet-pan-anim")) return;
+      const target = [
+        ...document.querySelectorAll(`[aria-label="${panel}"] button`),
+      ].find((element) => element.textContent?.trim() === button);
+      if (!(target instanceof HTMLButtonElement)) return;
+      observer.disconnect();
+      target.click();
+    });
+    observer.observe(document, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  }, options);
+}
+
+/** 지도를 바꿔 끼우는 동안 정리된 Leaflet 지도가 남긴 미처리 예외를 모은다 */
+function collectLeafletErrors(page: Page) {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => {
+    if (error.message.includes("_leaflet_pos")) errors.push(error.message);
+  });
+  return errors;
+}
+
 async function dotOffsetFromCenter(page: Page) {
   const mapBox = (await page.locator(".leaflet-container").boundingBox())!;
   const dotBox = (await blueDot(page).boundingBox())!;
@@ -1188,6 +1248,55 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     const detailBox = (await detail.boundingBox())!;
     expect(lineBox.x).toBeGreaterThanOrEqual(listBox.x + listBox.width);
     expect(lineBox.x + lineBox.width).toBeLessThanOrEqual(detailBox.x);
+  });
+
+  test("행을 고른 뒤 지도가 경로로 옮기는 중에 경로 편집을 눌러도 편집 지도는 그 경로를 패널 사이에 보인다", async ({
+    page,
+  }) => {
+    const leafletErrors = collectLeafletErrors(page);
+    await installMockBackend(page, { authenticated: true });
+    await clickWhenMapStartsMoving(page, {
+      map: ".leaflet-container:not(.ku-slope-route-map)",
+      panel: "안암병원 정문 경사로",
+      button: "경로 편집",
+    });
+    await page.goto("/admin/dashboard/slopes");
+    await listRow(page, "안암병원 정문 경사로").click();
+
+    const detail = editPanel(page, "안암병원 정문 경사로");
+    await expect(detail).toBeVisible();
+    const line = previewLines(page).first();
+    await expect
+      .poll(() => placementBetweenPanels(page, line, detail))
+      .toBe("사이");
+    await settledCenter(line);
+    expect(await placementBetweenPanels(page, line, detail)).toBe("사이");
+    expect(leafletErrors).toEqual([]);
+  });
+
+  test("편집 주소로 들어와 지도가 경로로 옮기는 중에 취소해도 보기 지도는 경로를 같은 자리에 보인다", async ({
+    page,
+  }) => {
+    const leafletErrors = collectLeafletErrors(page);
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?id=2");
+    const viewCenter = await settledCenter(routeLine(page, 2));
+
+    await clickWhenMapStartsMoving(page, {
+      map: ".ku-slope-route-map",
+      panel: "안암병원 정문 경사로 편집",
+      button: "취소",
+    });
+    await page.goto("/admin/dashboard/slopes?id=2&edit=1");
+    await expect(page).toHaveURL(/\?id=2$/);
+
+    const detail = detailPanel(page, "안암병원 정문 경사로");
+    const line = routeLine(page, 2);
+    await expect
+      .poll(() => placementBetweenPanels(page, line, detail))
+      .toBe("사이");
+    expectNear(await settledCenter(line), viewCenter, 2);
+    expect(leafletErrors).toEqual([]);
   });
 
   test("수정 화면을 열면 불러온 경사값으로 판정 색 미리보기 선이 그려진다", async ({
