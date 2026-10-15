@@ -98,6 +98,29 @@ const polygon = {
   properties: {},
 };
 
+// 운영 buildings 표에서 지하철역은 폴리곤이 아니라 점(Point) geojson을 갖는다. 공용 픽스처에는 넣지 않고 필요한 테스트가 더한다.
+export function stationBuildingRow(
+  id: number,
+  name: string,
+  [lng, lat]: [number, number],
+): Row {
+  return {
+    id,
+    name,
+    name_en: null,
+    campus: null,
+    college_id: null,
+    is_deleted: false,
+    geojson: {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [lng, lat] },
+      properties: {},
+    },
+    last_updated: "2026-07-22",
+    colleges: null,
+  };
+}
+
 // 테스트 1건의 초기 상태 생성(건물/시설/명소/경사/사진). 이후 in-memory로 변형됨.
 function createState(authenticated: boolean): MockState {
   return {

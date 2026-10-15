@@ -16,6 +16,7 @@ import {
   NEIGHBOR_STYLE,
   fetchNeighborBuildings,
 } from "@/lib/neighborBuildings";
+import { neighborPointToLayer } from "@/lib/neighborLayer";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 
@@ -134,6 +135,7 @@ export default function FacilityMap({
                 : NEIGHBOR_STYLE
             }
             interactive={false}
+            pointToLayer={(_feature, latlng) => neighborPointToLayer(latlng)}
             onEachFeature={(f, layer) => {
               if (f.properties?.name) {
                 layer.bindTooltip(f.properties.name, {
