@@ -752,6 +752,28 @@ const REQUEST_FILTER: Record<string, string[] | null> = {
   done: ["approved", "rejected"],
   all: null,
 };
+// 운영 목록과 같은 쪽 크기(adminList의 ADMIN_PAGE_SIZE).
+const INBOX_PAGE_SIZE = 20;
+
+// 운영과 같은 정렬(created_at 내림차순, id 오름차순)로 자르고 쪽을 나눈다. total은 자르기 전 개수다.
+function sortAndPage<T extends Row>(rows: T[], url: URL) {
+  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+  const sorted = [...rows].sort((a, b) => {
+    const left = Date.parse(String(a.created_at ?? "")) || 0;
+    const right = Date.parse(String(b.created_at ?? "")) || 0;
+    if (left !== right) return right - left;
+    return String(a.id) < String(b.id)
+      ? -1
+      : String(a.id) > String(b.id)
+        ? 1
+        : 0;
+  });
+  return {
+    items: sorted.slice((page - 1) * INBOX_PAGE_SIZE, page * INBOX_PAGE_SIZE),
+    total: sorted.length,
+  };
+}
+
 const FEEDBACK_FILTER: Record<string, string[] | null> = {
   open: ["new", "reviewing"],
   new: ["new"],
@@ -784,32 +806,34 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     const statuses =
       REQUEST_FILTER[url.searchParams.get("status") ?? "open"] ?? null;
     const building = Number(url.searchParams.get("building"));
-    const items = state.facilityRequests
+    const filtered = state.facilityRequests
       .filter((row) => !statuses || statuses.includes(String(row.status)))
-      .filter((row) => !building || row.building_id === building)
-      .map((row) => {
-        const photos = state.facilityRequestPhotos.filter(
-          (photo) => photo.request_id === row.id,
-        );
-        return {
-          id: row.id,
-          building_id: row.building_id,
-          building_name:
-            state.buildings.find((b) => b.id === row.building_id)?.name ?? null,
-          facility_code: row.facility_code,
-          name: row.name ?? null,
-          floor_info: row.floor_info ?? null,
-          has_location: row.lat != null && row.lng != null,
-          status: row.status,
-          created_at: row.created_at,
-          facility_id: row.facility_id ?? null,
-          photo_count: photos.length,
-          thumbnail_url: photos.length
-            ? "https://cdn.test/request-thumb.webp"
-            : null,
-        };
-      });
-    return json(route, { items, total: items.length });
+      .filter((row) => !building || row.building_id === building);
+    const { items: pageRows, total } = sortAndPage(filtered, url);
+    const items = pageRows.map((row) => {
+      const photos = state.facilityRequestPhotos.filter(
+        (photo) => photo.request_id === row.id,
+      );
+      return {
+        id: row.id,
+        building_id: row.building_id,
+        building_name:
+          state.buildings.find((b) => b.id === row.building_id)?.name ?? null,
+        facility_code: row.facility_code,
+        name: row.name ?? null,
+        description: row.description ?? null,
+        floor_info: row.floor_info ?? null,
+        has_location: row.lat != null && row.lng != null,
+        status: row.status,
+        created_at: row.created_at,
+        facility_id: row.facility_id ?? null,
+        photo_count: photos.length,
+        thumbnail_url: photos.length
+          ? "https://cdn.test/request-thumb.webp"
+          : null,
+      };
+    });
+    return json(route, { items, total });
   }
   if (path === "/api/inbox-counts") {
     return json(route, {
@@ -991,7 +1015,7 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   if (path === "/api/admin-feedback") {
     const statuses =
       FEEDBACK_FILTER[url.searchParams.get("status") ?? "open"] ?? null;
-    const items = state.feedbackSubmissions
+    const filtered = state.feedbackSubmissions
       .filter(
         (row) => !statuses || statuses.includes(String(row.status ?? "new")),
       )
@@ -1003,7 +1027,8 @@ async function handleApi(route: Route, state: MockState, url: URL) {
         status: row.status ?? "new",
         created_at: row.created_at ?? "2026-10-08T00:00:00Z",
       }));
-    return json(route, { items, total: items.length });
+    const { items, total } = sortAndPage(filtered, url);
+    return json(route, { items, total });
   }
   const feedbackPatch = path.match(/^\/api\/admin-feedback\/([^/]+)$/);
   if (feedbackPatch) {

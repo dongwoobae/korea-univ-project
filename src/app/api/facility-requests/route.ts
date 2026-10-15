@@ -157,7 +157,7 @@ export async function GET(request: Request) {
   let query = supabaseAdmin()
     .from("facility_requests")
     .select(
-      "id, building_id, facility_code, name, floor_info, lat, lng, status, created_at, facility_id, buildings(name), facility_request_photos(id, storage_path, sort_order)",
+      "id, building_id, facility_code, name, description, floor_info, lat, lng, status, created_at, facility_id, buildings(name), facility_request_photos(id, storage_path, sort_order)",
       { count: "exact" },
     );
   if (statuses) query = query.in("status", statuses);
@@ -194,6 +194,7 @@ export async function GET(request: Request) {
     building_name: row.buildings?.name ?? null,
     facility_code: row.facility_code,
     name: row.name,
+    description: row.description,
     floor_info: row.floor_info,
     has_location: row.lat !== null && row.lng !== null,
     status: row.status as RequestStatus,

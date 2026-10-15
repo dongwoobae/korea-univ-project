@@ -25,6 +25,7 @@ function req(id: string, created_at: string): InboxCard {
     building_name: null,
     facility_code: "ramp",
     name: null,
+    description: null,
     floor_info: null,
     has_location: false,
     status: "new",
