@@ -665,6 +665,10 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
       "안암병원 정문 경사로",
     );
     await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+    // 데스크톱은 삭제를 보기 패널에만 둔다
+    await expect(
+      detail.getByRole("button", { name: "삭제", exact: true }),
+    ).toHaveCount(0);
 
     await detail.getByLabel("구간 1 경사도").fill("9.4");
     await detail.getByRole("button", { name: "저장", exact: true }).click();
@@ -1438,16 +1442,6 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     await expect(dragTool).toHaveAttribute("aria-pressed", "false");
   });
 
-  test("모바일 폭에서도 지도가 화면 폭을 쓴다", async ({ page }) => {
-    await page.setViewportSize({ width: 375, height: 812 });
-    await installMockBackend(page, { authenticated: true });
-    await page.goto("/admin/dashboard/slopes?new=1");
-
-    await expect(editMap(page)).toBeVisible();
-    const box = await editMap(page).boundingBox();
-    expect(box!.width).toBeGreaterThanOrEqual(320);
-  });
-
   test("새 경로는 받은 위치를 가운데 두고 파란 점을 찍는다", async ({
     page,
   }) => {
@@ -1593,6 +1587,275 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
       expect(Math.abs(centerX - (snapOn ? box.x : target.x))).toBeLessThan(3);
     });
   }
+});
+
+test.describe("경사도 작업 화면 — 모바일", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  const ROUTE_2 = "안암병원 정문 경사로";
+
+  function mapBar(page: Page) {
+    return page.getByRole("region", { name: "지도 편집", exact: true });
+  }
+
+  /** 바텀시트를 펼쳐 행을 누른다 */
+  async function openFromSheet(page: Page, name: string) {
+    await listPanel(page).getByRole("button", { name: "목록 펼치기" }).click();
+    await listRow(page, name).click();
+  }
+
+  type Box = Point & { width: number; height: number };
+
+  function expectInside(inner: Box, outer: Box) {
+    expect(inner.y).toBeGreaterThanOrEqual(outer.y);
+    expect(inner.y + inner.height).toBeLessThanOrEqual(outer.y + outer.height);
+    expect(inner.x).toBeGreaterThanOrEqual(outer.x);
+    expect(inner.x + inner.width).toBeLessThanOrEqual(outer.x + outer.width);
+  }
+
+  /** 지도를 옮긴 뒤 선이 멈추면 그 상자를 잰다 */
+  async function settledBox(locator: Locator) {
+    await settledCenter(locator);
+    return (await locator.boundingBox())!;
+  }
+
+  // 확인 바 위에 남은 지도(위 여백 12px부터 확인 바까지)의 가운데에 선이 있는지
+  async function linePlacement(page: Page) {
+    const [mapBox, lineBox, barBox] = await Promise.all([
+      page.locator(".ku-map-workspace-map").boundingBox(),
+      previewLines(page).first().boundingBox(),
+      mapBar(page).boundingBox(),
+    ]);
+    if (!mapBox || !lineBox || !barBox) return "잴 수 없음";
+    const lineY = lineBox.y + lineBox.height / 2;
+    const middle = (mapBox.y + 12 + barBox.y) / 2;
+    return Math.abs(lineY - middle) <= 24
+      ? "가운데"
+      : `벗어남 (선 ${Math.round(lineY)}, 가운데 ${Math.round(middle)})`;
+  }
+
+  test("바텀시트에서 행을 누르면 바로 편집 패널이 열리고 위쪽 230px 띠로 경로 선이 보인다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    const sheet = listPanel(page);
+    await expect(
+      page.getByRole("searchbox", { name: "경사도 경로 검색" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("group", { name: "목록 필터" })
+        .getByRole("button", { name: "전체 2개" }),
+    ).toBeVisible();
+
+    await sheet.getByRole("button", { name: "목록 펼치기" }).click();
+    const row = listRow(page, ROUTE_2);
+    expect((await row.boundingBox())!.height).toBeGreaterThanOrEqual(64);
+    await row.click();
+
+    // 모바일은 보기와 편집을 합친다
+    await expect(page).toHaveURL(/\?id=2&edit=1$/);
+    const detail = editPanel(page, ROUTE_2);
+    await expect(detail).toBeVisible();
+    await expect(sheet).toBeHidden();
+    const strip = (await detail
+      .locator(".ku-detail-panel-strip")
+      .boundingBox())!;
+    expect(strip.height).toBe(230);
+    expectInside(await settledBox(previewLines(page).first()), strip);
+    await expect(toolbar(page)).toHaveCount(0);
+  });
+
+  test("띠에서 꼭짓점을 끌면 구간 카드의 거리가 바뀐다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await openFromSheet(page, ROUTE_2);
+    const detail = editPanel(page, ROUTE_2);
+    const strip = (await detail
+      .locator(".ku-detail-panel-strip")
+      .boundingBox())!;
+    await settledCenter(previewLines(page).first());
+    const distance = detail.locator(".ku-slope-card-meta").first();
+    const distanceBefore = await distance.textContent();
+
+    const marker = page.locator(".marker-icon").first();
+    const markerBox = (await marker.boundingBox())!;
+    expectInside(markerBox, strip);
+    const start = {
+      x: markerBox.x + markerBox.width / 2,
+      y: markerBox.y + markerBox.height / 2,
+    };
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + 60, start.y + 40, { steps: 10 });
+    await page.mouse.up();
+
+    await expect(distance).not.toHaveText(distanceBefore ?? "");
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+    await expect(detail.getByText("저장 안 됨", { exact: true })).toBeVisible();
+  });
+
+  test("지도에서 경로 고치기로 상세를 접고 통째로 옮긴 뒤 완료하면 상세가 다시 보이고 값이 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await openFromSheet(page, ROUTE_2);
+    const detail = editPanel(page, ROUTE_2);
+    await settledCenter(previewLines(page).first());
+    await detail.getByLabel("경로 이름").fill("모바일에서 고친 경로");
+
+    const open = detail.getByRole("button", { name: "지도에서 경로 고치기" });
+    await open.click();
+    await expect(detail).toBeHidden();
+    const bar = mapBar(page);
+    await expect(bar).toBeVisible();
+    await expect(bar).toBeFocused();
+    await expect(bar).toContainText("도구 바로 그리고 꼭짓점을 끌어 고쳐요");
+    await expect.poll(() => linePlacement(page)).toBe("가운데");
+
+    const mapBox = (await page.locator(".ku-map-workspace-map").boundingBox())!;
+    const toolBox = (await toolbar(page).boundingBox())!;
+    const barBox = (await bar.boundingBox())!;
+    expect(Math.round(toolBox.y - mapBox.y)).toBe(12);
+    expect(toolBox.x).toBeGreaterThanOrEqual(mapBox.x + 12);
+    expect(toolBox.x + toolBox.width).toBeLessThanOrEqual(
+      mapBox.x + mapBox.width - 12,
+    );
+    expect(toolBox.y + toolBox.height).toBeLessThanOrEqual(barBox.y);
+
+    await tool(page, "통째로 옮기기").click();
+    const line = page.locator(
+      ".leaflet-overlay-pane path.leaflet-pm-draggable",
+    );
+    const preview = previewLines(page).first();
+    const before = await preview.getAttribute("d");
+    const center = await settledCenter(line);
+    await page.mouse.move(center.x, center.y);
+    await page.mouse.down();
+    await page.mouse.move(center.x + 60, center.y + 40, { steps: 10 });
+    await page.mouse.up();
+    await expect(preview).not.toHaveAttribute("d", before ?? "");
+
+    await bar.getByRole("button", { name: "완료" }).click();
+    await expect(bar).toHaveCount(0);
+    await expect(detail).toBeVisible();
+    await expect(open).toBeFocused();
+    await expect(toolbar(page)).toHaveCount(0);
+    await expect(detail.getByLabel("경로 이름")).toHaveValue(
+      "모바일에서 고친 경로",
+    );
+    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("7.2");
+    await expect(detail.getByText("저장 안 됨", { exact: true })).toBeVisible();
+    // 나오면 옮긴 경로를 띠에 맞춘다
+    const strip = (await detail
+      .locator(".ku-detail-panel-strip")
+      .boundingBox())!;
+    expectInside(await settledBox(preview), strip);
+
+    // 지도 편집은 바로 초안에 들어 있다. 패널의 취소가 초안 전체를 버린다
+    await detail.getByRole("button", { name: "취소", exact: true }).click();
+    await page
+      .getByRole("dialog", { name: "저장하지 않은 변경사항이 있어요" })
+      .getByRole("button", { name: "나가기" })
+      .click();
+    await expect(page).toHaveURL(/\?id=2$/);
+    const stored = state.slopes.find((row) => row.id === 2)!;
+    expect(stored.name).toBe(ROUTE_2);
+    expect(
+      (stored.segments as Array<Record<string, unknown>>)[1],
+    ).toMatchObject({ lat: 37.5862, lng: 127.0269 });
+  });
+
+  test("새 경로는 지도에서 경로 그리기로 그리고 완료하면 구간 카드가 생긴다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await listPanel(page).getByRole("button", { name: "＋ 추가" }).click();
+    const detail = newPanel(page);
+    await expect(
+      detail.getByRole("button", { name: "지도에서 경로 고치기" }),
+    ).toHaveCount(0);
+
+    await detail.getByRole("button", { name: "지도에서 경로 그리기" }).click();
+    await expect(detail).toBeHidden();
+    const bar = mapBar(page);
+    const done = bar.getByRole("button", { name: "완료" });
+    await tool(page, "그리기").click();
+    // 그리는 동안 나가면 띠에서 그리기를 끝낼 도구가 없다
+    await expect(done).toBeDisabled();
+    for (const position of [
+      { x: 120, y: 280 },
+      { x: 260, y: 400 },
+    ]) {
+      await editMap(page).click({ position });
+    }
+    await tool(page, "끝내기").click();
+    await done.click();
+
+    await expect(detail).toBeVisible();
+    await expect(detail.getByLabel("구간 1 경사도")).toBeVisible();
+    await expect(detail.getByLabel("구간 2 경사도")).toHaveCount(0);
+    await expect(
+      detail.getByRole("button", { name: "지도에서 경로 고치기" }),
+    ).toBeVisible();
+  });
+
+  test("기존 경로의 편집 패널은 본문 맨 아래에 삭제를 두고 하단 취소·저장은 50px이다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?id=2&edit=1");
+    const detail = editPanel(page, ROUTE_2);
+    const body = detail.locator(".ku-detail-panel-body");
+    await expect(
+      body.getByRole("button", { name: "삭제", exact: true }),
+    ).toBeVisible();
+    expect(
+      await body.evaluate((element) => element.lastElementChild?.textContent),
+    ).toBe("삭제");
+    for (const name of ["취소", "저장"]) {
+      const box = await detail
+        .getByRole("button", { name, exact: true })
+        .boundingBox();
+      expect(box!.height, name).toBe(50);
+    }
+
+    await confirmDelete(detail);
+    await expect(
+      page.getByText(`"${ROUTE_2}" 경로를 삭제했어요`),
+    ).toBeVisible();
+    await expect(detail).toHaveCount(0);
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    expect(state.slopes.some((row) => row.id === 2)).toBe(false);
+
+    await listPanel(page).getByRole("button", { name: "＋ 추가" }).click();
+    await expect(newPanel(page)).toBeVisible();
+    await expect(
+      newPanel(page).getByRole("button", { name: "삭제", exact: true }),
+    ).toHaveCount(0);
+  });
+
+  test("?id= 링크와 형식 오류 행은 모바일에서도 보기 패널로 연다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addChipRoutes(state);
+    await page.goto("/admin/dashboard/slopes?id=2");
+    const view = detailPanel(page, ROUTE_2);
+    await expect(view.getByRole("table")).toBeVisible();
+    await expect(view.getByRole("button", { name: "경로 편집" })).toBeVisible();
+
+    await view.getByRole("button", { name: "목록으로" }).click();
+    await openFromSheet(page, "깨진 경로");
+    await expect(page).toHaveURL(/\?id=4$/);
+    await expect(
+      detailPanel(page, "깨진 경로").getByText(
+        "저장 형식이 깨진 경로라 열 수 없어요. 지우고 다시 그려주세요",
+      ),
+    ).toBeVisible();
+  });
 });
 
 test.describe("경사도 작업 화면 — 저장 안 한 변경", () => {
