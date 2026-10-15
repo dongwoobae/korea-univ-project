@@ -5,6 +5,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import { useUnsavedChanges } from "@/components/admin/UnsavedChangesGuard";
 import DetailPanel from "@/components/admin/workspace/DetailPanel";
 import { ADMIN_MOBILE_QUERY } from "@/components/admin/workspace/types";
+import SlopeEditToolbar from "@/components/admin/slopes/SlopeEditToolbar";
 import SlopeSegmentList from "@/components/slope/SlopeSegmentList";
 import type {
   SlopeEditDraft,
@@ -192,28 +193,6 @@ export default function SlopeEditPanel({
             onChange={(event) => setName(event.target.value)}
           />
         </div>
-        <div className="ku-slope-edit-tools">
-          <label>
-            <input
-              type="checkbox"
-              disabled={!editor || saving}
-              onChange={(event) =>
-                editor?.commands.setSnap(event.target.checked)
-              }
-            />
-            건물 외곽선에 붙이기
-          </label>
-          {vertices.length > 0 && (
-            <button
-              type="button"
-              className="ku-workspace-button"
-              disabled={!editor || saving}
-              onClick={() => setConfirmReset(true)}
-            >
-              경로 지우고 다시 그리기
-            </button>
-          )}
-        </div>
         <SlopeSegmentList
           segments={segments}
           drafts={drafts}
@@ -230,6 +209,11 @@ export default function SlopeEditPanel({
           </ul>
         )}
       </DetailPanel>
+      <SlopeEditToolbar
+        editor={editor}
+        locked={saving}
+        onResetRequest={() => setConfirmReset(true)}
+      />
       {/* 지도 자리는 z-index 0 맥락이라 지도 안에서 그리면 패널 밑에 갇힌다. 패널의 형제로 그린다 */}
       {confirmReset && (
         <ConfirmModal

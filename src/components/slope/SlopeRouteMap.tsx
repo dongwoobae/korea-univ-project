@@ -219,7 +219,6 @@ export default function SlopeRouteMap({
 
     function lockDrawButton() {
       map.pm.disableDraw("Line");
-      map.pm.Toolbar.setButtonDisabled("drawPolyline", true);
     }
 
     function applyMode() {
@@ -244,7 +243,6 @@ export default function SlopeRouteMap({
       line = null;
       mode = "vertex";
       previewRef.current?.clearLayers();
-      map.pm.Toolbar.setButtonDisabled("drawPolyline", false);
       map.pm.enableDraw("Line");
       setEditorState((state) => ({
         ...state,
@@ -263,21 +261,6 @@ export default function SlopeRouteMap({
     }
 
     map.pm.setLang("ko");
-    map.pm.addControls({
-      position: "topleft",
-      drawPolyline: true,
-      editMode: false,
-      dragMode: true,
-      cutPolygon: false,
-      removalMode: false,
-      drawMarker: false,
-      drawCircle: false,
-      drawPolygon: false,
-      drawRectangle: false,
-      drawCircleMarker: false,
-      drawText: false,
-      rotateMode: false,
-    });
     // geoman의 스냅 기본값은 켜짐이다. 건물 스냅은 꺼진 채 시작한다(2026-10-06 설계 5.5)
     map.pm.setGlobalOptions({ snappable: false });
     map.pm.setPathOptions(EDIT_LINE_OPTIONS);

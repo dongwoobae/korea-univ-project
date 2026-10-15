@@ -1199,18 +1199,10 @@ button.ku-admin-overview-item {
 .ku-slope-route-map path.ku-slope-edit-line {
   stroke: var(--ku-text-1);
 }
-/* 경사도 편집기 — 설계 2026-10-06 5.6 */
-.ku-slope-route-map .button-container.active .leaflet-pm-actions-container {
-  display: flex;
-  flex-direction: column;
-}
-.ku-slope-route-map
-  .button-container
-  .leaflet-pm-actions-container
-  .leaflet-pm-action {
-  border-right: 0;
-  border-bottom: 1px solid #eee;
-  border-radius: 0;
+/* 편집 꼭짓점 핸들: 14px 흰 원에 3px 테두리(핸드오버). 중간점 핸들은 hideMiddleMarkers로 없다 */
+.ku-slope-route-map .marker-icon:not(.marker-icon-middle) {
+  box-sizing: border-box;
+  border: 3px solid var(--ku-text-1);
 }
 
 .ku-admin-nav-badge {
@@ -2563,19 +2555,48 @@ button.ku-admin-overview-item {
 .ku-slope-card-input input:focus-visible {
   border-color: var(--ku-crimson-700);
 }
-.ku-slope-edit-tools {
+/* 도구 바는 목록·줌 버튼과 상세 패널 사이 지도의 가운데 위에 놓는다. 두 가장자리는 admin-ui.css의
+   .ku-float-panel·.ku-detail-panel·줌 버튼 폭에서 온다. 좁은 폭의 미디어 쿼리는 ADMIN_NARROW_QUERY와 같은 경계다 */
+.ku-slope-toolbar {
+  position: absolute;
+  top: 16px;
+  left: calc(488px + (100% - 964px) / 2);
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 14px;
-  font-size: 13px;
+  gap: 2px;
+  min-width: 180px;
+  max-width: calc(100% - 964px);
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--ku-surface);
+  box-shadow: var(--ku-shadow-floating);
+  transform: translateX(-50%);
 }
-.ku-slope-edit-tools label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--ku-text-2);
+.ku-slope-toolbar button {
+  height: 38px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 7px;
+  color: var(--ku-text-1);
+  background: transparent;
   cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ku-slope-toolbar button[aria-pressed="true"] {
+  color: var(--ku-primary-text);
+  background: var(--ku-primary-soft-bg);
+}
+.ku-slope-toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+@media (max-width: 963px) {
+  .ku-slope-toolbar {
+    left: calc(68px + (100% - 544px) / 2);
+    max-width: calc(100% - 544px);
+  }
 }
 .ku-slope-cards {
   display: flex;
