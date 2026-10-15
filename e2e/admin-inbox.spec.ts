@@ -1,5 +1,7 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Route } from "@playwright/test";
 import { installMockBackend, type MockState } from "./support/mockBackend";
+
+type ColumnName = "신규" | "확인 중" | "처리 완료";
 
 function seedRequests(state: MockState) {
   const base = {
@@ -53,68 +55,293 @@ function seedRequests(state: MockState) {
   );
 }
 
-async function openInbox(page: Page) {
-  await page.goto("/admin/dashboard/inbox");
-  return page.getByRole("list", { name: "등록 요청 목록" });
+function seedFeedback(state: MockState) {
+  state.feedbackSubmissions.push(
+    {
+      id: "fb-1",
+      feedback_type: "error",
+      content: "중앙도서관 경사로 위치가 틀려요",
+      page_url: "https://campus.example/",
+      status: "new",
+      created_at: "2026-10-08T00:00:00Z",
+    },
+    {
+      id: "fb-2",
+      feedback_type: "feature",
+      content: "영문 이름도 검색되면 좋겠어요",
+      page_url: null,
+      status: "reviewing",
+      created_at: "2026-10-07T00:00:00Z",
+    },
+  );
 }
 
-test.describe("제보함 — 등록 요청 목록", () => {
-  test("메뉴 배지는 신규 수, 기본 목록은 신규·확인 중이다", async ({
+const MANY_ID = (n: number) =>
+  `00000000-0000-4000-8000-${String(1000 + n).padStart(12, "0")}`;
+
+// n이 클수록 오래된 신규 요청이다(1번이 첫 쪽 맨 위). 층은 "{n}F"다.
+function addNewRequest(state: MockState, n: number) {
+  state.facilityRequests.push({
+    id: MANY_ID(n),
+    building_id: 1,
+    facility_code: "elevator",
+    name: null,
+    description: `설명 ${n}`,
+    floor_info: `${n}F`,
+    lat: null,
+    lng: null,
+    status: "new",
+    created_at: new Date(
+      Date.UTC(2026, 9, 10, 12, 0) - n * 60000,
+    ).toISOString(),
+    reviewed_at: null,
+    facility_id: null,
+  });
+}
+
+function seedManyNew(state: MockState, count: number) {
+  for (let n = 1; n <= count; n += 1) addNewRequest(state, n);
+}
+
+// 열은 region(이름 = 열 이름), 카드는 그 안 list의 listitem 하나다.
+function column(page: Page, name: ColumnName) {
+  return page.getByRole("region", { name, exact: true });
+}
+
+function cards(page: Page, name: ColumnName) {
+  return column(page, name).getByRole("listitem");
+}
+
+function cardWithFloor(page: Page, name: ColumnName, n: number) {
+  return cards(page, name).filter({ hasText: new RegExp(` ${n}F`) });
+}
+
+function kindButton(page: Page, name: string) {
+  return page.getByRole("button", { name, exact: true });
+}
+
+async function openInbox(page: Page, search = "") {
+  await page.goto(`/admin/dashboard/inbox${search}`);
+  return cards(page, "신규");
+}
+
+test.describe("제보함 — 보드", () => {
+  test("B1: 메뉴 배지는 신규 수고, 카드는 상태별 열로 나뉜다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
-    const list = await openInbox(page);
+    await openInbox(page);
 
     await expect(
       page
         .getByRole("navigation", { name: "관리자 메뉴" })
         .getByRole("link", { name: /제보함/ }),
     ).toContainText("1");
-    await expect(list.getByRole("listitem")).toHaveCount(2);
-    await expect(list.getByRole("listitem").first()).toContainText(
-      "엘리베이터",
-    );
-    await expect(list.getByRole("listitem").first()).toContainText("사진 2");
-    await expect(list.getByRole("listitem").first()).toContainText("신규");
+    await expect(cards(page, "신규")).toHaveCount(1);
+    await expect(cards(page, "신규").first()).toContainText("엘리베이터");
+    await expect(cards(page, "신규").first()).toContainText("사진 2");
+    await expect(cards(page, "신규").first()).toContainText("등록 요청");
+    await expect(cards(page, "확인 중")).toHaveCount(1);
+    await expect(cards(page, "확인 중").first()).toContainText("경사로");
+    await expect(cards(page, "처리 완료")).toHaveCount(1);
+    await expect(cards(page, "처리 완료").first()).toContainText("거절됨");
+    for (const name of ["신규", "확인 중", "처리 완료"] as const) {
+      await expect(
+        column(page, name).getByTestId("inbox-column-count"),
+      ).toHaveText("1");
+    }
+    await expect(page.getByText("처리 전 2건")).toBeVisible();
   });
 
-  test("상태 필터로 처리 완료와 전체를 본다", async ({ page }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    seedRequests(state);
-    const list = await openInbox(page);
-    const filter = page.getByRole("combobox", { name: "상태 필터" });
-
-    await filter.selectOption("done");
-    await expect(list.getByRole("listitem")).toHaveCount(1);
-    await expect(list.getByRole("listitem")).toContainText("거절됨");
-    await filter.selectOption("all");
-    await expect(list.getByRole("listitem")).toHaveCount(3);
-  });
-
-  test("?building으로 열면 그 건물 요청만 보이고 해제할 수 있다", async ({
+  test("B2: 종류 세그먼트는 그 종류만 보이고 주소를 바꾸되 모르는 파라미터는 남긴다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
+    seedFeedback(state);
+    await openInbox(page, "?foo=bar");
+    await expect(cards(page, "신규")).toHaveCount(2);
+
+    await kindButton(page, "피드백").click();
+    await expect(page).toHaveURL(/tab=feedback/);
+    await expect(page).toHaveURL(/foo=bar/);
+    await expect(kindButton(page, "피드백")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(cards(page, "신규")).toHaveCount(1);
+    await expect(cards(page, "신규").first()).toContainText("오류 제보");
+    await expect(cards(page, "신규").first()).not.toContainText("엘리베이터");
+
+    await kindButton(page, "등록 요청").click();
+    await expect(page).toHaveURL(/tab=requests/);
+    await expect(page).toHaveURL(/foo=bar/);
+    await expect(cards(page, "신규")).toHaveCount(1);
+    await expect(cards(page, "신규").first()).toContainText("엘리베이터");
+
+    await kindButton(page, "전체").click();
+    await expect(page).not.toHaveURL(/tab=/);
+    await expect(page).toHaveURL(/foo=bar/);
+    await expect(cards(page, "신규")).toHaveCount(2);
+
+    await page.goto("/admin/dashboard/inbox?tab=feedback");
+    await expect(cards(page, "신규")).toHaveCount(1);
+    await expect(cards(page, "신규").first()).toContainText("오류 제보");
+  });
+
+  test("B3: ?building으로 열면 그 건물 요청만 보이고 해제할 수 있다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    seedFeedback(state);
     state.facilityRequests[1].building_id = 2;
-    await page.goto("/admin/dashboard/inbox?building=1");
-    const list = page.getByRole("list", { name: "등록 요청 목록" });
-    await expect(list.getByRole("listitem")).toHaveCount(1);
+    await openInbox(page, "?building=1");
+
+    await expect(cards(page, "신규")).toHaveCount(1);
+    await expect(cards(page, "신규").first()).toContainText("엘리베이터");
+    await expect(
+      column(page, "확인 중").getByText("비어 있어요"),
+    ).toBeVisible();
+    await expect(page.getByText("건물로 거름")).toBeVisible();
+    await expect(kindButton(page, "전체")).toBeDisabled();
+    await expect(kindButton(page, "피드백")).toBeDisabled();
+
     await page.getByRole("button", { name: "건물 필터 해제" }).click();
-    await expect(list.getByRole("listitem")).toHaveCount(2);
+    await expect(page).not.toHaveURL(/building=/);
+    await expect(cards(page, "확인 중")).toHaveCount(1);
+    await expect(page.getByText("건물로 거름")).toHaveCount(0);
+    await expect(kindButton(page, "피드백")).toBeEnabled();
+  });
+
+  test("B4: 피드백만 실패하면 등록 요청 카드는 그대로고 그 열에 안내와 다시 시도가 뜬다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    seedFeedback(state);
+    const failing = (route: Route) =>
+      route.fulfill({ status: 500, json: { error: "x" } });
+    await page.route("**/api/admin-feedback?*", failing);
+    await openInbox(page);
+
+    const fresh = column(page, "신규");
+    await expect(fresh.getByText("피드백을 불러오지 못했어요")).toBeVisible();
+    await expect(fresh.getByText("등록 요청을 불러오지 못했어요")).toHaveCount(
+      0,
+    );
+    await expect(cards(page, "신규")).toHaveCount(1);
+    await expect(cards(page, "신규").first()).toContainText("엘리베이터");
+    await expect(fresh.getByText("비어 있어요")).toHaveCount(0);
+    await expect(fresh.getByTestId("inbox-column-count")).toHaveCount(0);
+
+    await page.unroute("**/api/admin-feedback?*", failing);
+    await fresh.getByRole("button", { name: "다시 시도" }).click();
+    await expect(fresh.getByText("피드백을 불러오지 못했어요")).toHaveCount(0);
+    await expect(cards(page, "신규")).toHaveCount(2);
+    await expect(fresh.getByTestId("inbox-column-count")).toHaveText("2");
+  });
+
+  test("B5: 더 보기로 21번째 카드를 받고, 보드를 다시 받으면 첫 쪽으로 돌아간다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedManyNew(state, 21);
+    const firstResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === "/api/facility-requests" &&
+        response.url().includes("status=new") &&
+        response.url().includes("page=1"),
+    );
+    await openInbox(page);
+    const body = (await (await firstResponse).json()) as {
+      items: unknown[];
+      total: number;
+    };
+    expect(body.items).toHaveLength(20);
+    expect(body.total).toBe(21);
+
+    const fresh = column(page, "신규");
+    await expect(cards(page, "신규")).toHaveCount(20);
+    await expect(fresh.getByTestId("inbox-column-count")).toHaveText("21");
+    await fresh.getByRole("button", { name: "더 보기" }).click();
+    await expect(cards(page, "신규")).toHaveCount(21);
+    await expect(fresh.getByTestId("inbox-column-count")).toHaveText("21");
+    await expect(fresh.getByRole("button", { name: "더 보기" })).toHaveCount(0);
+
+    // 사이에 새 접수가 들어온 채로 보드를 다시 받으면 이어 붙인 쪽을 버리고 첫 쪽으로 돌아간다.
+    addNewRequest(state, 22);
+    await cardWithFloor(page, "신규", 1).getByRole("button").click();
+    await page
+      .getByRole("dialog", { name: /등록 요청/ })
+      .getByRole("button", { name: "확인 중으로 표시" })
+      .click();
+    await expect(cardWithFloor(page, "확인 중", 1)).toHaveCount(1);
+    await expect(cards(page, "신규")).toHaveCount(20);
+    await expect(fresh.getByTestId("inbox-column-count")).toHaveText("21");
+    await expect(fresh.getByRole("button", { name: "더 보기" })).toBeVisible();
+  });
+
+  test("B6: 보드를 다시 받은 뒤 도착한 낡은 응답은 버려진다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedManyNew(state, 21);
+    await openInbox(page);
+    await expect(cards(page, "신규")).toHaveCount(20);
+
+    // 붙잡는 순간의 응답을 복사해 둔다. 나중에 fallback()하면 그때의 최신 상태로 답해 낡은 응답이 아니게 된다.
+    let copying = false;
+    let heldRoute: Route | null = null;
+    let staleBody = "";
+    await page.route("**/api/facility-requests?*page=2*", async (route) => {
+      if (copying) return route.fallback();
+      copying = true;
+      const request = route.request();
+      staleBody = await page.evaluate(
+        async ({ url, headers }) => (await fetch(url, { headers })).text(),
+        { url: request.url(), headers: request.headers() },
+      );
+      heldRoute = route;
+    });
+    await column(page, "신규").getByRole("button", { name: "더 보기" }).click();
+    await expect.poll(() => heldRoute !== null).toBe(true);
+    expect(JSON.parse(staleBody).items).toHaveLength(1);
+
+    // 붙잡힌 21번째 카드는 서버에서 확인 중으로 옮기고, 1번 카드를 화면에서 바꿔 보드를 다시 받게 한다.
+    state.facilityRequests.find((row) => row.id === MANY_ID(21))!.status =
+      "reviewing";
+    await cardWithFloor(page, "신규", 1).getByRole("button").click();
+    await page
+      .getByRole("dialog", { name: /등록 요청/ })
+      .getByRole("button", { name: "확인 중으로 표시" })
+      .click();
+    await expect(cards(page, "신규")).toHaveCount(19);
+
+    await heldRoute!.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: staleBody,
+    });
+    await page.waitForTimeout(300);
+    await expect(cards(page, "신규")).toHaveCount(19);
+    await expect(cardWithFloor(page, "신규", 21)).toHaveCount(0);
+    await expect(
+      column(page, "신규").getByTestId("inbox-column-count"),
+    ).toHaveText("19");
   });
 });
 
 test.describe("제보함 — 검토 모달", () => {
-  test("층을 고치고 사진 하나를 빼고 승인하면 그 값으로 시설이 생기고 목록에서 빠진다", async ({
+  test("층을 고치고 사진 하나를 빼고 승인하면 그 값으로 시설이 생기고 보드에서 옮겨진다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
     const list = await openInbox(page);
 
-    await list.getByRole("listitem").first().getByRole("button").click();
+    await list.first().getByRole("button").click();
     const dialog = page.getByRole("dialog", { name: /등록 요청/ });
     await expect(dialog.getByLabel("시설 유형 *")).toHaveValue("elevator");
     await dialog.getByLabel("층 정보 (선택)").fill("4층");
@@ -133,14 +360,18 @@ test.describe("제보함 — 검토 모달", () => {
     expect(
       state.facilityPhotos.filter((photo) => photo.facility_id === created!.id),
     ).toHaveLength(1);
-    await expect(list.getByRole("listitem")).toHaveCount(1);
+    await expect(cards(page, "신규")).toHaveCount(0);
+    await expect(column(page, "신규").getByText("비어 있어요")).toBeVisible();
+    await expect(cards(page, "처리 완료")).toHaveCount(2);
   });
 
-  test("확인 중으로 표시하고 되돌린다 — 모달은 열린 채다", async ({ page }) => {
+  test("확인 중으로 표시하고 되돌린다 — 모달은 열린 채고 카드는 열을 옮겼다 돌아온다", async ({
+    page,
+  }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
     const list = await openInbox(page);
-    await list.getByRole("listitem").first().getByRole("button").click();
+    await list.first().getByRole("button").click();
     const dialog = page.getByRole("dialog", { name: /등록 요청/ });
 
     await dialog.getByRole("button", { name: "확인 중으로 표시" }).click();
@@ -148,11 +379,14 @@ test.describe("제보함 — 검토 모달", () => {
       dialog.getByRole("button", { name: "신규로 되돌리기" }),
     ).toBeVisible();
     expect(state.facilityRequests[0].status).toBe("reviewing");
+    await expect(cards(page, "확인 중")).toHaveCount(2);
     await dialog.getByRole("button", { name: "신규로 되돌리기" }).click();
     await expect(
       dialog.getByRole("button", { name: "확인 중으로 표시" }),
     ).toBeVisible();
     expect(state.facilityRequests[0].status).toBe("new");
+    await expect(cards(page, "신규")).toHaveCount(1);
+    await expect(cards(page, "확인 중")).toHaveCount(1);
   });
 
   test("거절은 확인을 거치고, 거절된 요청은 읽기 전용으로 열린다", async ({
@@ -161,7 +395,7 @@ test.describe("제보함 — 검토 모달", () => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
     const list = await openInbox(page);
-    await list.getByRole("listitem").first().getByRole("button").click();
+    await list.first().getByRole("button").click();
     await page
       .getByRole("dialog", { name: /등록 요청/ })
       .getByRole("button", { name: "거절" })
@@ -179,11 +413,8 @@ test.describe("제보함 — 검토 모달", () => {
       ),
     ).toHaveLength(0);
 
-    await page
-      .getByRole("combobox", { name: "상태 필터" })
-      .selectOption("done");
-    await expect(list.getByRole("listitem")).toHaveCount(2);
-    await list.getByRole("listitem").first().getByRole("button").click();
+    await expect(cards(page, "처리 완료")).toHaveCount(2);
+    await cards(page, "처리 완료").first().getByRole("button").click();
     const readOnly = page.getByRole("dialog", { name: /등록 요청/ });
     await expect(readOnly.getByLabel("시설 유형 *")).toBeDisabled();
     await expect(
@@ -197,7 +428,7 @@ test.describe("제보함 — 검토 모달", () => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
     const list = await openInbox(page);
-    await list.getByRole("listitem").first().getByRole("button").click();
+    await list.first().getByRole("button").click();
     const dialog = page.getByRole("dialog", { name: /등록 요청/ });
     await expect(dialog.getByLabel("시설 유형 *")).toBeEnabled();
     state.facilityRequests[0].status = "approved";
@@ -214,7 +445,7 @@ test.describe("제보함 — 검토 모달", () => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
     const list = await openInbox(page);
-    await list.getByRole("listitem").first().getByRole("button").click();
+    await list.first().getByRole("button").click();
     const dialog = page.getByRole("dialog", { name: /등록 요청/ });
     await dialog.getByLabel("층 정보 (선택)").fill("4층");
     await dialog.getByRole("checkbox", { name: "사진 2 공개" }).uncheck();
@@ -243,7 +474,7 @@ test.describe("제보함 — 검토 모달", () => {
     seedRequests(state);
     state.facilityRequestPhotos[1].unsigned = true;
     const list = await openInbox(page);
-    await list.getByRole("listitem").first().getByRole("button").click();
+    await list.first().getByRole("button").click();
     const dialog = page.getByRole("dialog", { name: /등록 요청/ });
 
     await expect(dialog.getByText("볼 수 없음")).toBeVisible();
@@ -256,99 +487,5 @@ test.describe("제보함 — 검토 모달", () => {
     expect(state.facilityPhotos.map((photo) => photo.storage_path)).toEqual([
       "f-approved-0001/rp-1.webp",
     ]);
-  });
-});
-
-test.describe("제보함 — 피드백", () => {
-  test("피드백 탭에서 상태를 바꾸면 기본 목록에서 빠지고 처리 완료에 보인다", async ({
-    page,
-  }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    state.feedbackSubmissions.push(
-      {
-        id: "fb-1",
-        feedback_type: "error",
-        content: "중앙도서관 경사로 위치가 틀려요",
-        page_url: "https://campus.example/",
-        status: "new",
-        created_at: "2026-10-08T00:00:00Z",
-      },
-      {
-        id: "fb-2",
-        feedback_type: "feature",
-        content: "영문 이름도 검색되면 좋겠어요",
-        page_url: null,
-        status: "reviewing",
-        created_at: "2026-10-07T00:00:00Z",
-      },
-    );
-    await page.goto("/admin/dashboard/inbox?tab=feedback");
-    const list = page.getByRole("list", { name: "피드백 목록" });
-    await expect(list.getByRole("listitem")).toHaveCount(2);
-    await expect(list.getByRole("listitem").first()).toContainText("오류 제보");
-
-    await list
-      .getByRole("listitem")
-      .first()
-      .getByRole("combobox", { name: "처리 상태" })
-      .selectOption("resolved");
-    await expect(list.getByRole("listitem")).toHaveCount(1);
-    expect(state.feedbackSubmissions[0].status).toBe("resolved");
-
-    await page
-      .getByRole("combobox", { name: "상태 필터" })
-      .selectOption("done");
-    await expect(list.getByRole("listitem")).toHaveCount(1);
-    await expect(list).toContainText("중앙도서관 경사로 위치가 틀려요");
-  });
-
-  test("본문 미리보기를 누르면 모달에 전체 본문과 제보 페이지가 보이고, 모달에서 상태를 바꾼다", async ({
-    page,
-  }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    const longContent = `${"경사로 위치가 지도와 달라요. ".repeat(20)}끝 문장`;
-    state.feedbackSubmissions.push({
-      id: "fb-1",
-      feedback_type: "error",
-      content: longContent,
-      page_url: "https://campus.example/building/1",
-      status: "new",
-      created_at: "2026-10-08T00:00:00Z",
-    });
-    await page.goto("/admin/dashboard/inbox?tab=feedback");
-    const list = page.getByRole("list", { name: "피드백 목록" });
-    await expect(list.getByRole("button", { name: "펼치기" })).toHaveCount(0);
-
-    const preview = list.getByRole("button", { name: /경사로 위치가/ });
-    await preview.click();
-    const dialog = page.getByRole("dialog", { name: "오류 제보" });
-    await expect(dialog).toContainText("끝 문장");
-    await expect(
-      dialog.getByRole("link", { name: "제보한 페이지" }),
-    ).toHaveAttribute("href", "https://campus.example/building/1");
-
-    await dialog
-      .getByRole("combobox", { name: "처리 상태" })
-      .selectOption("resolved");
-    await expect(list.getByRole("listitem")).toHaveCount(0);
-    expect(state.feedbackSubmissions[0].status).toBe("resolved");
-    await expect(
-      dialog.getByRole("combobox", { name: "처리 상태" }),
-    ).toHaveValue("resolved");
-
-    await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
-  });
-
-  test("목록을 불러오지 못하면 빈 목록이 아니라 오류로 보인다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, { authenticated: true });
-    await page.route("**/api/admin-feedback?*", (route) =>
-      route.fulfill({ status: 500, json: { error: "x" } }),
-    );
-    await page.goto("/admin/dashboard/inbox?tab=feedback");
-    await expect(page.getByText("목록을 불러오지 못했어요.")).toBeVisible();
-    await expect(page.getByText("피드백이 없어요.")).toHaveCount(0);
   });
 });
