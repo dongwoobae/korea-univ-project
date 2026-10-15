@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
 
-test.describe("건물과 경사도 관리자 흐름", () => {
+test.describe("건물 관리자 흐름", () => {
   test("건물 보완 필요 현황을 서버 집계로 표시한다", async ({ page }) => {
     const state = await installMockBackend(page, { authenticated: true });
     state.buildings.push(
