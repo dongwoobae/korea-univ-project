@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import SlopeEditPanel from "@/components/admin/slopes/SlopeEditPanel";
+import { MOBILE_TOOLBAR_BOTTOM } from "@/components/admin/slopes/SlopeEditToolbar";
 import SlopeListRow from "@/components/admin/slopes/SlopeListRow";
 import SlopeViewPanel from "@/components/admin/slopes/SlopeViewPanel";
 import AdminMapWorkspace from "@/components/admin/workspace/AdminMapWorkspace";
@@ -355,6 +356,7 @@ export default function SlopesPage() {
         focus={focus}
         mobileMapStrip={230}
         mobilePicking={fullMap}
+        mobilePickingTop={MOBILE_TOOLBAR_BOTTOM}
         renderMap={(slot) =>
           // 편집하면 지도 자리에 편집 지도를 바꿔 끼운다. 보기와 focus key가 같아 화면은 그대로다(설계 2026-10-14 2.6)
           editing ? (

@@ -93,11 +93,13 @@ export function workspaceInsets(options: {
   mapStrip: number;
   /** 모바일 상세를 접고 지도에서 위치를 고르거나 경로를 고치는 중(설계 2026-10-14 2.5) */
   picking: boolean;
+  /** 고르는 동안 지도 위쪽을 덮는 막대(경사도 도구 바)의 아래 끝. 지도 위쪽에서 잰다 */
+  pickingTop?: number;
 }): WorkspaceInsets {
   if (options.mobile && options.picking) {
-    // 상세가 접혀 지도 전체가 보이고 아래 확인 바만 비킨다. 경사도 전체 지도의 위쪽 도구 바는 비키지 않는다
+    // 상세가 접혀 지도 전체가 보이고 아래 확인 바와 위쪽 막대만 지도를 가린다
     return {
-      top: MOBILE_PICK_GAP,
+      top: (options.pickingTop ?? 0) + MOBILE_PICK_GAP,
       right: 0,
       bottom: MOBILE_PICK_BAR,
       left: 0,

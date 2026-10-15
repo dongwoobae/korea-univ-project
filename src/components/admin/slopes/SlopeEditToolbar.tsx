@@ -12,6 +12,13 @@ interface SlopeEditToolbarProps {
   onResetRequest: () => void;
 }
 
+/**
+ * 모바일 전체 지도에서 도구 바의 아래 끝(지도 위쪽에서 잰다). admin-ui.css 모바일 `.ku-slope-toolbar`의 위 여백과
+ * 두 줄 높이에 맞춘다 — 좁은 모바일 폭에서 도구가 두 줄로 접힌다. 한 줄일 때(넓은 모바일 폭, 그리는 중)는 이 값이
+ * 실제보다 커서 경로가 조금 작게 맞춰질 뿐이다
+ */
+export const MOBILE_TOOLBAR_BOTTOM = 110;
+
 const MODE_TOOLS: { mode: SlopeEditMode; symbol: string; label: string }[] = [
   { mode: "vertex", symbol: "◇", label: "꼭짓점 편집" },
   { mode: "drag", symbol: "✥", label: "통째로 옮기기" },

@@ -1618,19 +1618,19 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     return (await locator.boundingBox())!;
   }
 
-  // 확인 바 위에 남은 지도(위 여백 12px부터 확인 바까지)의 가운데에 선이 있는지
+  // 전체 지도에서 선이 위쪽 도구 바와 아래 확인 바 사이에 다 보이는지
   async function linePlacement(page: Page) {
-    const [mapBox, lineBox, barBox] = await Promise.all([
-      page.locator(".ku-map-workspace-map").boundingBox(),
+    const [lineBox, toolBox, barBox] = await Promise.all([
       previewLines(page).first().boundingBox(),
+      toolbar(page).boundingBox(),
       mapBar(page).boundingBox(),
     ]);
-    if (!mapBox || !lineBox || !barBox) return "잴 수 없음";
-    const lineY = lineBox.y + lineBox.height / 2;
-    const middle = (mapBox.y + 12 + barBox.y) / 2;
-    return Math.abs(lineY - middle) <= 24
-      ? "가운데"
-      : `벗어남 (선 ${Math.round(lineY)}, 가운데 ${Math.round(middle)})`;
+    if (!lineBox || !toolBox || !barBox) return "잴 수 없음";
+    const toolBottom = toolBox.y + toolBox.height;
+    const lineBottom = lineBox.y + lineBox.height;
+    return lineBox.y >= toolBottom && lineBottom <= barBox.y
+      ? "사이"
+      : `벗어남 (선 ${Math.round(lineBox.y)}~${Math.round(lineBottom)}, 도구 바 아래 ${Math.round(toolBottom)}, 확인 바 위 ${Math.round(barBox.y)})`;
   }
 
   test("바텀시트에서 행을 누르면 바로 편집 패널이 열리고 위쪽 230px 띠로 경로 선이 보인다", async ({
@@ -1699,6 +1699,12 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
+    // 위아래로 긴 경로라야 들어갈 때 맞춘 화면이 위쪽 도구 바에 닿는지 드러난다
+    const row = state.slopes.find((slope) => slope.id === 2)!;
+    row.segments = [
+      { lat: 37.5861, lng: 127.0268 },
+      { lat: 37.5885, lng: 127.0269, slope: 7.2, distance: 266.9 },
+    ];
     await page.goto("/admin/dashboard/slopes");
     await openFromSheet(page, ROUTE_2);
     const detail = editPanel(page, ROUTE_2);
@@ -1712,7 +1718,9 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     await expect(bar).toBeVisible();
     await expect(bar).toBeFocused();
     await expect(bar).toContainText("도구 바로 그리고 꼭짓점을 끌어 고쳐요");
-    await expect.poll(() => linePlacement(page)).toBe("가운데");
+    await expect.poll(() => linePlacement(page)).toBe("사이");
+    await settledCenter(previewLines(page).first());
+    expect(await linePlacement(page)).toBe("사이");
 
     const mapBox = (await page.locator(".ku-map-workspace-map").boundingBox())!;
     const toolBox = (await toolbar(page).boundingBox())!;
@@ -1768,7 +1776,7 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     expect(stored.name).toBe(ROUTE_2);
     expect(
       (stored.segments as Array<Record<string, unknown>>)[1],
-    ).toMatchObject({ lat: 37.5862, lng: 127.0269 });
+    ).toMatchObject({ lat: 37.5885, lng: 127.0269 });
   });
 
   test("데스크톱에서 통째로 옮기기를 고른 채 모바일 폭이 되어도 띠는 꼭짓점 편집이다", async ({
