@@ -6,7 +6,10 @@ import FacilityFields, {
 } from "@/components/facility/FacilityFields";
 import FacilityPhotoManager from "@/components/admin/FacilityPhotoManager";
 import FacilityVideoModal from "@/components/admin/FacilityVideoModal";
-import { useUnsavedChanges } from "@/components/admin/UnsavedChangesGuard";
+import {
+  useBusyNavigation,
+  useUnsavedChanges,
+} from "@/components/admin/UnsavedChangesGuard";
 import DetailPanel from "@/components/admin/workspace/DetailPanel";
 import {
   DEFAULT_WORKSPACE_VIEWPORT,
@@ -77,6 +80,8 @@ export default function FacilityDetailPanel({
   const fieldId = useId();
   const busy = saving || installing;
   useUnsavedChanges(facilityFormDirty(form, facility));
+  // 저장 뒤 번역 호출과 재번역은 화면을 떠나면 빠진다
+  useBusyNavigation(saving || retranslating);
 
   useEffect(() => {
     onDraftChangeRef.current = onDraftChange;
