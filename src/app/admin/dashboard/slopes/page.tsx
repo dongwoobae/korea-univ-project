@@ -358,7 +358,7 @@ export default function SlopesPage() {
         mobilePicking={fullMap}
         mobilePickingTop={MOBILE_TOOLBAR_BOTTOM}
         renderMap={(slot) =>
-          // 편집하면 지도 자리에 편집 지도를 바꿔 끼운다. 보기와 focus key가 같아 화면은 그대로다(설계 2026-10-14 2.6)
+          // 편집하면 지도 자리에 편집 지도를 바꿔 끼운다. 보기와 focus key가 같아 화면을 이어받는다(설계 2026-10-14 2.6·3.2)
           editing ? (
             <SlopeRouteMap
               key={owner}

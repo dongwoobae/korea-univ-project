@@ -18,8 +18,8 @@ import {
   fetchNeighborBuildings,
 } from "@/lib/neighborBuildings";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
-import { WORKSPACE_MAX_ZOOM, focusWorkspaceMap } from "./focusMap";
-import type { WorkspaceMapCommands, WorkspaceMapSlotProps } from "./types";
+import { WORKSPACE_MAX_ZOOM, bindWorkspaceMapCommands } from "./focusMap";
+import type { WorkspaceMapSlotProps } from "./types";
 
 // 기본 tooltipPane은 markerPane 위라 이름표가 시설 마커를 가린다. 폴리곤과 마커 사이에 둔다(설계 2026-10-14 3.5)
 const BUILDING_LABEL_PANE = "workspaceBuildingLabels";
@@ -95,23 +95,11 @@ function CommandsBridge({
   }, [onCommandsReady]);
 
   useEffect(() => {
-    // 정리된 지도에 명령이 가지 않게 한다. 정리 순서가 바뀌어도 막히도록 unload도 본다.
-    let disposed = false;
-    const markDisposed = () => {
-      disposed = true;
-    };
-    map.on("unload", markDisposed);
-    const commands: WorkspaceMapCommands = {
-      focus(target, insets) {
-        if (disposed) return false;
-        focusWorkspaceMap(map, target, insets);
-        return true;
-      },
-    };
+    const { commands, dispose } = bindWorkspaceMapCommands(map);
     onCommandsReadyRef.current(commands);
+    // React는 지운 트리의 effect 정리를 부모부터 부른다. MapContainer의 remove()가 이 정리보다 먼저 돈다
     return () => {
-      disposed = true;
-      map.off("unload", markDisposed);
+      dispose();
       onCommandsReadyRef.current(null);
     };
   }, [map]);

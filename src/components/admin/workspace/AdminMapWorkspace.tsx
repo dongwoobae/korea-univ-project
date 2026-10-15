@@ -51,17 +51,28 @@ export default function AdminMapWorkspace({
     DEFAULT_WORKSPACE_VIEWPORT,
   );
   const [commands, setCommands] = useState<WorkspaceMapCommands | null>(null);
-  const focusedKeyRef = useRef<string | null>(null);
+  const focusedRef = useRef<{
+    key: string;
+    commands: WorkspaceMapCommands;
+  } | null>(null);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const narrow = useMediaQuery(ADMIN_NARROW_QUERY);
   const detailOpen = detail !== null;
 
   useEffect(() => {
     if (!focus) {
-      focusedKeyRef.current = null;
+      focusedRef.current = null;
       return;
     }
-    if (!commands || focusedKeyRef.current === focus.key) return;
+    if (!commands) return;
+    const focused = focusedRef.current;
+    // 바꿔 끼운 지도는 앞 지도가 moveend로 알린 마지막 화면으로 열린다. 앞 지도가 이 key로 옮기다 정리됐으면 그 화면은
+    // 옮기기 전 자리라 새 지도에서 다시 맞추고, 다 옮겼으면 그 뒤 손으로 옮긴 화면까지 그대로 이어받는다(설계 2026-10-14 3.2)
+    if (
+      focused?.key === focus.key &&
+      (focused.commands === commands || !focused.commands.moving())
+    )
+      return;
     const applied = commands.focus(
       focus.target,
       workspaceInsets({
@@ -76,7 +87,7 @@ export default function AdminMapWorkspace({
     );
     // 지도를 바꿔 끼우는 커밋에서는 렌더 때 받은 commands가 막 정리된 지도의 것이라 명령이 버려진다.
     // 그때 key를 적어 두면 새 지도가 명령을 등록한 뒤에도 옮기지 않으므로, 옮겼을 때만 적는다
-    if (applied) focusedKeyRef.current = focus.key;
+    if (applied) focusedRef.current = { key: focus.key, commands };
   }, [
     commands,
     focus,

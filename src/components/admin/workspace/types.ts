@@ -24,6 +24,8 @@ export interface WorkspaceFocus {
 export interface WorkspaceMapCommands {
   /** 정리된 지도면 옮기지 않고 false를 돌려준다 */
   focus: (target: WorkspaceFocusTarget, insets: WorkspaceInsets) => boolean;
+  /** 마지막 focus로 옮기는 중인지. 다 옮기기 전에 정리된 지도면 true로 남는다 */
+  moving: () => boolean;
 }
 
 /**

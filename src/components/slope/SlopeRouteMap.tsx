@@ -7,12 +7,9 @@ import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import {
   WORKSPACE_MAX_ZOOM,
-  focusWorkspaceMap,
+  bindWorkspaceMapCommands,
 } from "@/components/admin/workspace/focusMap";
-import type {
-  WorkspaceMapCommands,
-  WorkspaceMapSlotProps,
-} from "@/components/admin/workspace/types";
+import type { WorkspaceMapSlotProps } from "@/components/admin/workspace/types";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { KU_BOUNDS, containsPoint } from "@/lib/mapBounds";
 import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
@@ -121,8 +118,8 @@ export default function SlopeRouteMap({
     let editLocked = false;
     let line: L.Polyline | null = null;
 
-    // 보기 지도에서 바꿔 끼울 때 화면이 그대로여야 한다. 기존 경로라도 선에 맞춰 옮기지 않고 넘겨받은 화면으로 연다.
-    // ?id=&edit=1로 바로 들어오면 작업 화면의 focus 명령이 맞춘다(설계 2026-10-14 6.4)
+    // 기존 경로라도 선에 맞춰 옮기지 않고 넘겨받은 화면으로 연다. 맞춰야 할 때는 작업 화면이 focus 명령으로 맞춘다
+    // (설계 2026-10-14 6.4)
     const map = L.map(containerRef.current!, {
       scrollWheelZoom: true,
       maxZoom: WORKSPACE_MAX_ZOOM,
@@ -374,14 +371,8 @@ export default function SlopeRouteMap({
       },
     };
 
-    const workspaceCommands: WorkspaceMapCommands = {
-      focus(target, insets) {
-        if (disposed) return false;
-        focusWorkspaceMap(map, target, insets);
-        return true;
-      },
-    };
-    onCommandsReadyRef.current(workspaceCommands);
+    const workspace = bindWorkspaceMapCommands(map);
+    onCommandsReadyRef.current(workspace.commands);
 
     return () => {
       disposed = true;
@@ -390,6 +381,7 @@ export default function SlopeRouteMap({
       onCommandsReadyRef.current(null);
       controllerRef.current = null;
       map.remove();
+      workspace.dispose();
       tileLayerRef.current = null;
       previewRef.current = null;
       labelsRef.current = null;
