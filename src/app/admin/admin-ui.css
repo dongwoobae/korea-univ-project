@@ -1639,6 +1639,55 @@ button.ku-admin-overview-item {
   font-size: 13px;
   font-weight: 700;
 }
+.ku-inbox-feedback-title {
+  font-size: 12px;
+}
+.ku-inbox-feedback-title .ku-inbox-kind-tag {
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.ku-inbox-feedback-content {
+  max-width: 640px;
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.ku-inbox-feedback-page {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+}
+.ku-inbox-feedback-page a,
+.ku-inbox-feedback-page span {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.ku-inbox-feedback-page a {
+  color: var(--ku-primary-text);
+}
+.ku-inbox-foot-label {
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-inbox-status-segment button {
+  height: 32px;
+}
+.ku-inbox-status-segment button[aria-pressed="true"][data-status="new"] {
+  color: var(--ku-status-warn-fg);
+}
+.ku-inbox-status-segment button[aria-pressed="true"][data-status="reviewing"] {
+  color: var(--ku-status-review-fg);
+}
+.ku-inbox-status-segment button[aria-pressed="true"][data-status="resolved"] {
+  color: var(--ku-success-fg);
+}
 .ku-inbox-reject {
   border-color: color-mix(in srgb, var(--ku-danger) 45%, var(--ku-surface));
   color: var(--ku-danger);

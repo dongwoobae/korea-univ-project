@@ -83,3 +83,10 @@ export function formatAdminReceivedAt(value: string | null | undefined) {
   if (!date || Number.isNaN(date.getTime())) return "접수일 없음";
   return `접수 ${date.toLocaleDateString("ko-KR")}`;
 }
+
+/** 드로어 머리의 "{날짜} 접수". 카드의 formatAdminReceivedAt과 어순만 다르다. */
+export function formatAdminReceivedSuffix(value: string | null | undefined) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return "접수일 없음";
+  return `${date.toLocaleDateString("ko-KR")} 접수`;
+}

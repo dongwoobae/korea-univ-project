@@ -3,33 +3,43 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUnsavedChangesGuard } from "@/components/admin/UnsavedChangesGuard";
 import FacilityRequestDrawer from "@/components/admin/inbox/FacilityRequestDrawer";
+import FeedbackDrawer from "@/components/admin/inbox/FeedbackDrawer";
 import InboxBoard, {
   DESKTOP_BOARD_COLUMNS,
 } from "@/components/admin/inbox/InboxBoard";
 import { useInboxBoard } from "@/components/admin/inbox/useInboxBoard";
+import { ADMIN_MOBILE_QUERY } from "@/components/admin/workspace/types";
 import Toast from "@/components/Toast";
 import {
   columnCards,
   inboxCardKey,
+  nextInboxCard,
   type InboxCard,
   type InboxKind,
   type InboxKindFilter,
 } from "@/lib/inboxBoard";
-import type { InboxFilter } from "@/lib/inboxStatus";
+import type {
+  FeedbackItem,
+  FeedbackStatus,
+  InboxFilter,
+} from "@/lib/inboxStatus";
 import {
   readInboxUrl,
   writeInboxUrl,
   type InboxUrlState,
 } from "@/lib/inboxUrl";
 import { supabase } from "@/lib/supabaseClient";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 
-/** 열려 있는 항목. 드로어가 생기면 이 모양 그대로 쓴다: 연 순간 그 열의 카드를 스냅샷으로 들고 있다. */
+/** 열려 있는 항목. 연 순간 그 열의 카드를 스냅샷으로 들고 있다. */
 interface OpenedItem {
   key: string;
   kind: InboxKind;
   id: string;
   origin: InboxFilter;
   navigation: InboxCard[];
+  /** 피드백은 상세 API가 없어 연 카드의 항목을 든다. 보드가 다시 받아져도 이 값을 보인다 */
+  feedback?: FeedbackItem;
 }
 
 function replaceUrl(next: InboxUrlState) {
@@ -49,6 +59,7 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
   const [opened, setOpened] = useState<OpenedItem | null>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const { guard } = useUnsavedChangesGuard();
+  const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -102,20 +113,47 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
     replaceUrl(next);
   }
 
-  function open(card: InboxCard, origin: InboxFilter) {
-    // 피드백은 드로어를 잇는 뒤 작업에서 연다.
-    if (card.kind !== "requests") return;
-    const column = state.columns.find((entry) => entry.filter === origin);
+  function openCard(
+    card: InboxCard,
+    origin: InboxFilter,
+    navigation: InboxCard[],
+  ) {
     const next: OpenedItem = {
       key: inboxCardKey(card),
       kind: card.kind,
       id: card.item.id,
       origin,
-      navigation: column ? columnCards(column, kinds) : [],
+      navigation,
+      feedback: card.kind === "feedback" ? card.item : undefined,
     };
     // 데스크톱은 배경이 보드를 막아 열린 채 다른 카드를 누를 수 없지만, 열기는 가드를 거치게 둔다.
     guard(() => setOpened(next));
   }
+
+  function open(card: InboxCard, origin: InboxFilter) {
+    const column = state.columns.find((entry) => entry.filter === origin);
+    openCard(card, origin, column ? columnCards(column, kinds) : []);
+  }
+
+  function savedFeedbackStatus(key: string, status: FeedbackStatus) {
+    setOpened((previous) =>
+      previous?.key === key && previous.feedback
+        ? { ...previous, feedback: { ...previous.feedback, status } }
+        : previous,
+    );
+  }
+
+  // 다음 카드는 연 순간의 스냅샷과 그 열의 지금 카드로 찾는다. 모바일에는 다음 항목이 없다.
+  const openedColumn = opened
+    ? state.columns.find((entry) => entry.filter === opened.origin)
+    : undefined;
+  const nextCard =
+    opened?.feedback && openedColumn && !mobile
+      ? nextInboxCard(opened.navigation, columnCards(openedColumn, kinds), {
+          kind: "feedback",
+          item: opened.feedback,
+        })
+      : null;
 
   return (
     <>
@@ -144,6 +182,22 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
           onChanged={onChanged}
           showToast={showToast}
           restoreFallbackRef={titleRef}
+        />
+      )}
+      {opened?.kind === "feedback" && opened.feedback && (
+        <FeedbackDrawer
+          key={opened.key}
+          item={opened.feedback}
+          onClose={closeDrawer}
+          onStatusSaved={(status) => savedFeedbackStatus(opened.key, status)}
+          onChanged={onChanged}
+          showToast={showToast}
+          restoreFallbackRef={titleRef}
+          onNext={
+            nextCard
+              ? () => openCard(nextCard, opened.origin, opened.navigation)
+              : undefined
+          }
         />
       )}
       {toast && (

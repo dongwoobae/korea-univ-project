@@ -23,6 +23,7 @@ import FacilityFields, {
 } from "@/components/facility/FacilityFields";
 import { getFacilityMarkerColor } from "@/components/map/facilityColors";
 import { FacilityTypeIcon } from "@/components/map/iconography";
+import { formatAdminReceivedSuffix } from "@/lib/adminList";
 import { authedFetch } from "@/lib/authedFetch";
 import {
   EMPTY_FACILITY_FIELDS,
@@ -77,13 +78,6 @@ async function fetchDetail(requestId: string): Promise<DetailResult> {
     response?.ok &&
     ((await response.json().catch(() => null)) as FacilityRequestDetail | null);
   return body ? { body } : { response };
-}
-
-function receivedAt(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime())
-    ? "접수일 없음"
-    : `${date.toLocaleDateString("ko-KR")} 접수`;
 }
 
 export default function FacilityRequestDrawer({
@@ -394,7 +388,7 @@ export default function FacilityRequestDrawer({
             <Link href={buildingHref} onClick={guardedLink(buildingHref)}>
               {detail.building?.name ?? `건물 ${detail.building_id}`}
             </Link>
-            <span>· {receivedAt(detail.created_at)}</span>
+            <span>· {formatAdminReceivedSuffix(detail.created_at)}</span>
           </p>
         )}
       </div>
