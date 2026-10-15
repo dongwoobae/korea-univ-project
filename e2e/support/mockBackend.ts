@@ -37,8 +37,10 @@ import type { Page, Route } from "@playwright/test";
 type Row = Record<string, unknown>;
 export interface MockState {
   authenticated: boolean;
-  buildingPhotoUploadAttempts: number;
-  buildingPhotoFailuresRemaining: number;
+  /** 건물 사진·명소 사진 업로드(`/api/upload-building-photo`·`/api/upload-landmark-photo`)가 같이 센다 */
+  photoUploadAttempts: number;
+  /** 남은 횟수만큼 건물·명소 사진 업로드가 500으로 실패한다 */
+  photoUploadFailuresRemaining: number;
   translationFailuresRemaining: number;
   /** 켜면 등록 요청 승인·거절이 요청 사진을 지우지 못하고 cleanupFailed로 답한다 */
   requestCleanupFails: boolean;
@@ -127,8 +129,8 @@ export function stationBuildingRow(
 function createState(authenticated: boolean): MockState {
   return {
     authenticated,
-    buildingPhotoUploadAttempts: 0,
-    buildingPhotoFailuresRemaining: 0,
+    photoUploadAttempts: 0,
+    photoUploadFailuresRemaining: 0,
     translationFailuresRemaining: 0,
     requestCleanupFails: false,
     feedbackSubmissions: [],
@@ -1086,9 +1088,9 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     return json(route, { status: "translated" });
   }
   if (path === "/api/upload-landmark-photo") {
-    state.buildingPhotoUploadAttempts += 1;
-    if (state.buildingPhotoFailuresRemaining > 0) {
-      state.buildingPhotoFailuresRemaining -= 1;
+    state.photoUploadAttempts += 1;
+    if (state.photoUploadFailuresRemaining > 0) {
+      state.photoUploadFailuresRemaining -= 1;
       return json(route, { error: "테스트 업로드 실패" }, 500);
     }
     const rawBody = route.request().postData() ?? "";
@@ -1103,9 +1105,9 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     return json(route, { photoUrl: "https://cdn.test/uploaded-landmark.webp" });
   }
   if (path === "/api/upload-building-photo") {
-    state.buildingPhotoUploadAttempts += 1;
-    if (state.buildingPhotoFailuresRemaining > 0) {
-      state.buildingPhotoFailuresRemaining -= 1;
+    state.photoUploadAttempts += 1;
+    if (state.photoUploadFailuresRemaining > 0) {
+      state.photoUploadFailuresRemaining -= 1;
       return json(route, { error: "테스트 업로드 실패" }, 500);
     }
     const rawBody = route.request().postData() ?? "";
@@ -1231,7 +1233,7 @@ export async function installMockBackend(
   page: Page,
   options: {
     authenticated?: boolean;
-    failBuildingPhotoUploads?: number;
+    failPhotoUploads?: number;
     failTranslations?: number;
     /** null이면 위치 권한 거부로 응답한다 */
     currentLocation?: { latitude: number; longitude: number } | null;
@@ -1240,7 +1242,7 @@ export async function installMockBackend(
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
-  state.buildingPhotoFailuresRemaining = options.failBuildingPhotoUploads ?? 0;
+  state.photoUploadFailuresRemaining = options.failPhotoUploads ?? 0;
   state.translationFailuresRemaining = options.failTranslations ?? 0;
   // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(

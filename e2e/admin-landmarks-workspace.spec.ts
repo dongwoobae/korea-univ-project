@@ -922,7 +922,7 @@ test.describe("명소 작업 화면 — 사진", () => {
   }) => {
     const state = await installMockBackend(page, {
       authenticated: true,
-      failBuildingPhotoUploads: 1,
+      failPhotoUploads: 1,
     });
     addChipLandmarks(state);
     await page.goto("/admin/dashboard/landmarks");
@@ -1063,7 +1063,7 @@ test.describe("명소 작업 화면 — 사진", () => {
   }) => {
     const state = await installMockBackend(page, {
       authenticated: true,
-      failBuildingPhotoUploads: 1,
+      failPhotoUploads: 1,
     });
     await page.goto("/admin/dashboard/landmarks");
     await listPanel(page).getByRole("button", { name: "＋ 명소 추가" }).click();
