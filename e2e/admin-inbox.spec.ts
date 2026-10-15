@@ -333,22 +333,61 @@ test.describe("제보함 — 보드", () => {
   });
 });
 
-test.describe("제보함 — 검토 모달", () => {
-  test("층을 고치고 사진 하나를 빼고 승인하면 그 값으로 시설이 생기고 보드에서 옮겨진다", async ({
+const LEAVE_TITLE = "저장하지 않은 변경사항이 있어요";
+const REQUEST_1 = "00000000-0000-4000-8000-000000000001";
+const REQUEST_3 = "00000000-0000-4000-8000-000000000003";
+
+function drawerOf(page: Page) {
+  return page.getByRole("dialog", { name: /등록 요청/ });
+}
+
+function dimOf(page: Page) {
+  return page.getByTestId("inbox-drawer-dim");
+}
+
+function leaveDialog(page: Page) {
+  return page.getByRole("dialog", { name: LEAVE_TITLE });
+}
+
+function adminNav(page: Page) {
+  return page.getByRole("navigation", { name: "관리자 메뉴" });
+}
+
+async function openFirstNew(page: Page) {
+  const list = await openInbox(page);
+  await list.first().getByRole("button").click();
+  const drawer = drawerOf(page);
+  await expect(drawer.getByLabel("시설 유형 *")).toHaveValue("elevator");
+  return drawer;
+}
+
+// 드로어 바깥(왼쪽) 배경을 누른다.
+function clickDim(page: Page) {
+  return dimOf(page).click({ position: { x: 20, y: 300 } });
+}
+
+test.describe("제보함 — 등록 요청 드로어", () => {
+  test("R1: 층을 고치고 사진 하나를 빼고 승인하면 시설이 생기고, 드로어는 처리 후 상태로 남는다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
-    const list = await openInbox(page);
+    const drawer = await openFirstNew(page);
+    await drawer.getByLabel("층 정보 (선택)").fill("4층");
+    await drawer.getByRole("checkbox", { name: "사진 2 공개" }).uncheck();
+    await expect(drawer.getByText("사진 1/2장 공개")).toBeVisible();
+    await drawer.getByRole("button", { name: "승인하고 등록" }).click();
 
-    await list.first().getByRole("button").click();
-    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
-    await expect(dialog.getByLabel("시설 유형 *")).toHaveValue("elevator");
-    await dialog.getByLabel("층 정보 (선택)").fill("4층");
-    await dialog.getByRole("checkbox", { name: "사진 2 공개" }).uncheck();
-    await dialog.getByRole("button", { name: "승인하고 등록" }).click();
-
-    await expect(dialog).toBeHidden();
+    await expect(drawer.getByText("승인되어 시설로 등록됐어요")).toBeVisible();
+    await expect(page.getByText("등록했어요!")).toBeVisible();
+    await expect(drawer).toBeVisible();
+    await expect(drawer.getByLabel("시설 유형 *")).toBeDisabled();
+    await expect(
+      drawer.getByRole("button", { name: "승인하고 등록" }),
+    ).toHaveCount(0);
+    await expect(
+      drawer.getByRole("link", { name: "만들어진 시설 보기 →" }),
+    ).toBeVisible();
     const created = state.facilities.find((facility) =>
       String(facility.id).startsWith("f-approved"),
     );
@@ -365,127 +404,418 @@ test.describe("제보함 — 검토 모달", () => {
     await expect(cards(page, "처리 완료")).toHaveCount(2);
   });
 
-  test("확인 중으로 표시하고 되돌린다 — 모달은 열린 채고 카드는 열을 옮겼다 돌아온다", async ({
+  test("R2: 확인 중으로 표시하고 되돌린다 — 드로어는 열린 채고 카드는 열을 옮겼다 돌아온다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
-    const list = await openInbox(page);
-    await list.first().getByRole("button").click();
-    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
+    const drawer = await openFirstNew(page);
 
-    await dialog.getByRole("button", { name: "확인 중으로 표시" }).click();
+    await drawer.getByRole("button", { name: "확인 중으로 표시" }).click();
     await expect(
-      dialog.getByRole("button", { name: "신규로 되돌리기" }),
+      drawer.getByRole("button", { name: "신규로 되돌리기" }),
     ).toBeVisible();
     expect(state.facilityRequests[0].status).toBe("reviewing");
     await expect(cards(page, "확인 중")).toHaveCount(2);
-    await dialog.getByRole("button", { name: "신규로 되돌리기" }).click();
+    await expect(drawer).toBeVisible();
+    await drawer.getByRole("button", { name: "신규로 되돌리기" }).click();
     await expect(
-      dialog.getByRole("button", { name: "확인 중으로 표시" }),
+      drawer.getByRole("button", { name: "확인 중으로 표시" }),
     ).toBeVisible();
     expect(state.facilityRequests[0].status).toBe("new");
     await expect(cards(page, "신규")).toHaveCount(1);
     await expect(cards(page, "확인 중")).toHaveCount(1);
+    await expect(drawer).toBeVisible();
   });
 
-  test("거절은 확인을 거치고, 거절된 요청은 읽기 전용으로 열린다", async ({
+  test("R3: 거절은 인라인 확인을 거치고, Esc 한 번은 확인만 취소하며, 거절된 요청은 읽기 전용으로 열린다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
-    const list = await openInbox(page);
-    await list.first().getByRole("button").click();
-    await page
-      .getByRole("dialog", { name: /등록 요청/ })
-      .getByRole("button", { name: "거절" })
-      .click();
-    await page
-      .getByRole("dialog", { name: "이 요청을 거절할까요?" })
-      .getByRole("button", { name: "거절" })
-      .click();
+    const drawer = await openFirstNew(page);
+    const confirm = drawer.getByRole("group", { name: "거절 확인" });
 
-    await expect(page.getByRole("dialog", { name: /등록 요청/ })).toBeHidden();
+    await drawer.getByRole("button", { name: "거절" }).click();
+    await expect(
+      confirm.getByText("거절할까요? 요청 사진은 지워지고 거절됨으로 남아요."),
+    ).toBeVisible();
+    await confirm.getByRole("button", { name: "취소" }).click();
+    await expect(confirm).toHaveCount(0);
+    expect(state.facilityRequests[0].status).toBe("new");
+
+    await drawer.getByRole("button", { name: "거절" }).click();
+    await expect(confirm).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(confirm).toHaveCount(0);
+    await expect(drawer).toBeVisible();
+    expect(state.facilityRequests[0].status).toBe("new");
+
+    await drawer.getByRole("button", { name: "거절" }).click();
+    await confirm.getByRole("button", { name: "거절" }).click();
+    await expect(drawer.getByText("거절된 요청이에요")).toBeVisible();
+    await expect(page.getByText("거절했어요")).toBeVisible();
     expect(state.facilityRequests[0].status).toBe("rejected");
     expect(
       state.facilityRequestPhotos.filter(
         (p) => p.request_id === state.facilityRequests[0].id,
       ),
     ).toHaveLength(0);
+    await expect(drawer.getByLabel("시설 유형 *")).toBeDisabled();
 
+    await page.keyboard.press("Escape");
+    await expect(drawer).toBeHidden();
     await expect(cards(page, "처리 완료")).toHaveCount(2);
     await cards(page, "처리 완료").first().getByRole("button").click();
-    const readOnly = page.getByRole("dialog", { name: /등록 요청/ });
+    const readOnly = drawerOf(page);
     await expect(readOnly.getByLabel("시설 유형 *")).toBeDisabled();
     await expect(
       readOnly.getByRole("button", { name: "승인하고 등록" }),
     ).toHaveCount(0);
   });
 
-  test("다른 관리자가 먼저 처리했으면(409) 안내하고 읽기 전용으로 다시 읽는다", async ({
+  test("R4: 다른 관리자가 먼저 처리했으면(409) 안내하고 읽기 전용으로 다시 읽는다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
-    const list = await openInbox(page);
-    await list.first().getByRole("button").click();
-    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
-    await expect(dialog.getByLabel("시설 유형 *")).toBeEnabled();
+    const drawer = await openFirstNew(page);
+    await expect(drawer.getByLabel("시설 유형 *")).toBeEnabled();
     state.facilityRequests[0].status = "approved";
-    await dialog.getByRole("button", { name: "승인하고 등록" }).click();
+    await drawer.getByRole("button", { name: "승인하고 등록" }).click();
 
     await expect(page.getByText("이미 처리된 요청이에요")).toBeVisible();
     await expect(
-      dialog.getByRole("button", { name: "승인하고 등록" }),
+      drawer.getByRole("button", { name: "승인하고 등록" }),
     ).toHaveCount(0);
-    await expect(dialog.getByText("승인됨")).toBeVisible();
+    await expect(drawer.getByText("승인됨", { exact: true })).toBeVisible();
+    await expect(drawer).toBeVisible();
   });
 
-  test("승인이 거절돼도 고치던 값과 사진 선택은 남는다", async ({ page }) => {
+  test("R5: 승인이 거절돼도 고치던 값과 사진 선택은 남는다", async ({
+    page,
+  }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
-    const list = await openInbox(page);
-    await list.first().getByRole("button").click();
-    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
-    await dialog.getByLabel("층 정보 (선택)").fill("4층");
-    await dialog.getByRole("checkbox", { name: "사진 2 공개" }).uncheck();
+    const drawer = await openFirstNew(page);
+    await drawer.getByLabel("층 정보 (선택)").fill("4층");
+    await drawer.getByRole("checkbox", { name: "사진 2 공개" }).uncheck();
     state.buildings[0].is_deleted = true;
-    await dialog.getByRole("button", { name: "승인하고 등록" }).click();
+    await drawer.getByRole("button", { name: "승인하고 등록" }).click();
 
     await expect(
       page.getByText(
         "삭제된 건물의 요청이에요. 건물을 복구한 뒤 승인해 주세요",
       ),
     ).toBeVisible();
-    await expect(dialog.getByLabel("층 정보 (선택)")).toHaveValue("4층");
+    await expect(drawer.getByLabel("층 정보 (선택)")).toHaveValue("4층");
     await expect(
-      dialog.getByRole("checkbox", { name: "사진 2 공개" }),
+      drawer.getByRole("checkbox", { name: "사진 2 공개" }),
     ).not.toBeChecked();
     await expect(
-      dialog.getByRole("button", { name: "승인하고 등록" }),
+      drawer.getByRole("button", { name: "승인하고 등록" }),
     ).toBeEnabled();
     expect(
       state.facilities.some((f) => String(f.id).startsWith("f-approved")),
     ).toBe(false);
   });
 
-  test("볼 수 없는 사진은 공개할 수 없고 승인에서 빠진다", async ({ page }) => {
+  test("R6: 볼 수 없는 사진은 공개할 수 없고 승인에서 빠진다", async ({
+    page,
+  }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
     state.facilityRequestPhotos[1].unsigned = true;
-    const list = await openInbox(page);
-    await list.first().getByRole("button").click();
-    const dialog = page.getByRole("dialog", { name: /등록 요청/ });
+    const drawer = await openFirstNew(page);
 
-    await expect(dialog.getByText("볼 수 없음")).toBeVisible();
-    const hidden = dialog.getByRole("checkbox", { name: "사진 2 공개" });
+    await expect(drawer.getByText("볼 수 없음")).toBeVisible();
+    const hidden = drawer.getByRole("checkbox", { name: "사진 2 공개" });
     await expect(hidden).toBeDisabled();
     await expect(hidden).not.toBeChecked();
-    await dialog.getByRole("button", { name: "승인하고 등록" }).click();
+    await expect(drawer.getByText("사진 1/2장 공개")).toBeVisible();
+    await drawer.getByRole("button", { name: "승인하고 등록" }).click();
 
-    await expect(dialog).toBeHidden();
+    await expect(drawer.getByText("승인되어 시설로 등록됐어요")).toBeVisible();
     expect(state.facilityPhotos.map((photo) => photo.storage_path)).toEqual([
       "f-approved-0001/rp-1.webp",
     ]);
+  });
+
+  test("R7: 고친 값이 있으면 배경·✕·Esc가 확인을 묻고, 취소하면 드로어와 값이 남는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const drawer = await openFirstNew(page);
+    const name = drawer.getByLabel("시설 이름 (선택)");
+    await name.fill("고치는 중");
+
+    await clickDim(page);
+    await expect(leaveDialog(page)).toBeVisible();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(drawer).toBeVisible();
+    await expect(name).toHaveValue("고치는 중");
+
+    await page.keyboard.press("Escape");
+    await expect(leaveDialog(page)).toBeVisible();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(drawer).toBeVisible();
+    await expect(name).toHaveValue("고치는 중");
+
+    await drawer.getByRole("button", { name: "닫기" }).click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(drawer).toBeHidden();
+
+    // 확인 중으로 표시해도 고치던 값은 남고 확인을 묻지 않는다.
+    await cards(page, "신규").first().getByRole("button").click();
+    await drawer.getByLabel("시설 이름 (선택)").fill("또 고치는 중");
+    await drawer.getByRole("button", { name: "확인 중으로 표시" }).click();
+    await expect(
+      drawer.getByRole("button", { name: "신규로 되돌리기" }),
+    ).toBeVisible();
+    await expect(leaveDialog(page)).toHaveCount(0);
+    await expect(drawer.getByLabel("시설 이름 (선택)")).toHaveValue(
+      "또 고치는 중",
+    );
+  });
+
+  test("R7: 헤더 링크 — 같은 화면 제보함 링크와 다른 화면 링크가 모두 확인을 묻는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const drawer = await openFirstNew(page);
+    await drawer.getByLabel("시설 이름 (선택)").fill("고치는 중");
+
+    await adminNav(page)
+      .getByRole("link", { name: /제보함/ })
+      .click();
+    await expect(leaveDialog(page)).toBeVisible();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(drawer).toBeHidden();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/inbox/);
+
+    await cards(page, "신규").first().getByRole("button").click();
+    await drawer.getByLabel("시설 이름 (선택)").fill("고치는 중");
+    await adminNav(page).getByRole("link", { name: "독립 시설" }).click();
+    await expect(leaveDialog(page)).toBeVisible();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/inbox/);
+    await expect(drawer.getByLabel("시설 이름 (선택)")).toHaveValue(
+      "고치는 중",
+    );
+    await adminNav(page).getByRole("link", { name: "독립 시설" }).click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/facilities/);
+  });
+
+  test("R7: 드로어 안 건물 링크와 브라우저 뒤로가기도 확인을 묻는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    await page.goto("/admin/dashboard/buildings");
+    await adminNav(page)
+      .getByRole("link", { name: /제보함/ })
+      .click();
+    await cards(page, "신규").first().getByRole("button").click();
+    const drawer = drawerOf(page);
+    await expect(drawer.getByLabel("시설 유형 *")).toHaveValue("elevator");
+    await drawer.getByLabel("시설 이름 (선택)").fill("고치는 중");
+
+    await drawer.getByRole("link", { name: "중앙도서관" }).click();
+    await expect(leaveDialog(page)).toBeVisible();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/inbox/);
+    await expect(drawer).toBeVisible();
+
+    await page.evaluate(() => window.history.back());
+    await expect(leaveDialog(page)).toBeVisible();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/inbox/);
+    await expect(drawer.getByLabel("시설 이름 (선택)")).toHaveValue(
+      "고치는 중",
+    );
+
+    await drawer.getByRole("link", { name: "중앙도서관" }).click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).toHaveURL(/\/admin\/buildings\/1$/);
+  });
+
+  test("R7: 고친 값이 없으면 배경과 ✕가 확인 없이 닫는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const drawer = await openFirstNew(page);
+
+    await clickDim(page);
+    await expect(drawer).toBeHidden();
+    await expect(leaveDialog(page)).toHaveCount(0);
+
+    await cards(page, "신규").first().getByRole("button").click();
+    await drawer.getByRole("button", { name: "닫기" }).click();
+    await expect(drawer).toBeHidden();
+    await expect(leaveDialog(page)).toHaveCount(0);
+  });
+
+  test("R8: 승인 요청과 번역 요청을 기다리는 동안 Esc·배경·✕로 닫히지 않는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const drawer = await openFirstNew(page);
+
+    let releaseApprove!: () => void;
+    const approveGate = new Promise<void>((resolve) => {
+      releaseApprove = resolve;
+    });
+    let releaseTranslate!: () => void;
+    const translateGate = new Promise<void>((resolve) => {
+      releaseTranslate = resolve;
+    });
+    let approveHeld = false;
+    let translateHeld = false;
+    await page.route("**/api/facility-requests/*/approve", async (route) => {
+      approveHeld = true;
+      await approveGate;
+      await route.fallback();
+    });
+    await page.route("**/api/translate-facility", async (route) => {
+      translateHeld = true;
+      await translateGate;
+      await route.fallback();
+    });
+
+    async function expectNotClosable() {
+      await page.keyboard.press("Escape");
+      await clickDim(page);
+      await drawer.getByRole("button", { name: "닫기" }).click();
+      await page.waitForTimeout(200);
+      await expect(drawer).toBeVisible();
+      await expect(leaveDialog(page)).toHaveCount(0);
+    }
+
+    await drawer.getByRole("button", { name: "승인하고 등록" }).click();
+    await expect.poll(() => approveHeld).toBe(true);
+    await expectNotClosable();
+
+    releaseApprove();
+    await expect.poll(() => translateHeld).toBe(true);
+    await expect(drawer.getByText("승인되어 시설로 등록됐어요")).toBeVisible();
+    await expectNotClosable();
+
+    releaseTranslate();
+    await expect(page.getByText("등록했어요!")).toBeVisible();
+    await expect(drawer).toBeVisible();
+    await drawer.getByRole("button", { name: "닫기" }).click();
+    await expect(drawer).toBeHidden();
+  });
+
+  test("R9: 상세 첫 조회가 실패하면 안내하고 드로어가 닫힌다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    await page.route(`**/api/facility-requests/${REQUEST_1}`, (route) =>
+      route.fulfill({ status: 500, json: {} }),
+    );
+    const list = await openInbox(page);
+    await list.first().getByRole("button").click();
+
+    await expect(page.getByText("요청을 불러오지 못했어요")).toBeVisible();
+    await expect(drawerOf(page)).toBeHidden();
+  });
+
+  test("R9: 유형을 비우고 승인하면 경고만 뜨고 요청은 나가지 않는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const drawer = await openFirstNew(page);
+    let approveRequests = 0;
+    page.on("request", (request) => {
+      if (request.url().includes("/approve")) approveRequests += 1;
+    });
+    await drawer.getByLabel("시설 유형 *").selectOption("");
+    await drawer.getByRole("button", { name: "승인하고 등록" }).click();
+
+    await expect(page.getByText("시설 유형을 선택해주세요")).toBeVisible();
+    expect(approveRequests).toBe(0);
+    await expect(drawer).toBeVisible();
+  });
+
+  test("R9: 승인·거절 뒤 사진 정리가 실패하면 경고 토스트가 뜬다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    await page.route("**/api/facility-requests/*/approve", async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        json: { ...(await response.json()), cleanupFailed: true },
+      });
+    });
+    await page.route("**/api/facility-requests/*/reject", async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        json: { ...(await response.json()), cleanupFailed: true },
+      });
+    });
+    const drawer = await openFirstNew(page);
+    await drawer.getByRole("button", { name: "승인하고 등록" }).click();
+    await expect(
+      page.getByText("등록했어요. 요청 사진 정리는 실패해 다시 해야 해요."),
+    ).toBeVisible();
+    await expect(drawer.getByText("승인되어 시설로 등록됐어요")).toBeVisible();
+
+    await drawer.getByRole("button", { name: "닫기" }).click();
+    await cards(page, "확인 중").first().getByRole("button").click();
+    await expect(drawer.getByLabel("시설 유형 *")).toHaveValue("ramp");
+    await drawer.getByRole("button", { name: "거절" }).click();
+    await drawer
+      .getByRole("group", { name: "거절 확인" })
+      .getByRole("button", { name: "거절" })
+      .click();
+    await expect(
+      page.getByText("거절했지만 사진을 지우지 못했어요"),
+    ).toBeVisible();
+    await expect(drawer.getByText("거절된 요청이에요")).toBeVisible();
+  });
+
+  test("R9: 끝 상태 요청의 남은 사진 정리 — 실패하면 남고 성공하면 사라진다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    state.facilityRequestPhotos.push({
+      id: "rp-3",
+      request_id: REQUEST_3,
+      storage_path: "x/3.webp",
+      sort_order: 0,
+    });
+    let failCleanup = true;
+    await page.route("**/api/facility-requests/*/cleanup", (route) =>
+      failCleanup
+        ? route.fulfill({ status: 500, json: { error: "정리 실패" } })
+        : route.fallback(),
+    );
+    await openInbox(page);
+    await cards(page, "처리 완료").first().getByRole("button").click();
+    const drawer = drawerOf(page);
+    const cleanup = drawer.getByRole("button", { name: "남은 사진 정리" });
+    await expect(drawer.getByText("거절된 요청이에요")).toBeVisible();
+
+    await cleanup.click();
+    await expect(page.getByText("정리 실패")).toBeVisible();
+    await expect(cleanup).toBeVisible();
+
+    failCleanup = false;
+    await cleanup.click();
+    await expect(page.getByText("남은 사진을 정리했어요")).toBeVisible();
+    await expect(cleanup).toHaveCount(0);
+    expect(
+      state.facilityRequestPhotos.filter((p) => p.request_id === REQUEST_3),
+    ).toHaveLength(0);
   });
 });
