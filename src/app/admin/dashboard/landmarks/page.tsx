@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import LandmarkDetailPanel from "@/components/admin/landmarks/LandmarkDetailPanel";
@@ -18,6 +18,7 @@ import {
   useWorkspaceCloseRequest,
   useWorkspaceSelection,
 } from "@/components/admin/workspace/useWorkspaceSelection";
+import { useWorkspaceLoad } from "@/components/admin/workspace/useWorkspaceLoad";
 import {
   INITIAL_ADMIN_COLLECTION_QUERY,
   pageOfItem,
@@ -49,9 +50,6 @@ function currentSelection() {
 
 export default function LandmarksPage() {
   const [landmarks, setLandmarks] = useState<Landmark[]>([]);
-  const [status, setStatus] = useState<"loading" | "error" | "ready">(
-    "loading",
-  );
   const [draft, setDraft] = useState<DetailDraftPin | null>(null);
   // 모바일에서 상세를 접고 지도에서 위치를 고르는 패널(owner)과, 그때 핀으로 옮길 지도 초점
   const [pickOwner, setPickOwner] = useState<string | null>(null);
@@ -62,9 +60,6 @@ export default function LandmarksPage() {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
-  const loadRequestRef = useRef(0);
-  const disposedRef = useRef(false);
-  const loadedRef = useRef(false);
   const pickSeqRef = useRef(0);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const { boundaries, error: boundariesError } = useCampusBoundaries();
@@ -85,66 +80,43 @@ export default function LandmarksPage() {
     setToast({ message, type });
   }
 
-  const loadLandmarks = useCallback(async () => {
-    if (disposedRef.current) return;
-    loadRequestRef.current += 1;
-    const ticket = loadRequestRef.current;
+  const fetchRows = useCallback(async () => {
     const { data, error } = await supabase
       .from("landmarks")
       .select("*")
       .order("id", { ascending: true });
-    // 저장·사진 변경 뒤의 다시 받기가 겹치면 마지막 요청만 그린다
-    if (ticket !== loadRequestRef.current) return;
-    if (error) {
-      if (loadedRef.current) {
-        setToast({
-          message: "명소 목록을 새로 불러오지 못했어요",
-          type: "error",
-        });
-      } else {
-        setStatus("error");
-      }
-      return;
-    }
-    const rows: Landmark[] = data ?? [];
-    const firstLoad = !loadedRef.current;
-    loadedRef.current = true;
-    setLandmarks(rows);
-    setStatus("ready");
-    // 존재 검사는 조회가 끝난 뒤에만 한다. 조회 전 빈 목록으로 판정하면 맞는 링크도 닫힌다(설계 2026-10-14 3.4)
-    const selection = currentSelection();
-    if (selection.mode !== "view") return;
-    if (!rows.some((row) => row.id === selection.id)) {
-      applyWorkspaceState({ mode: "closed" });
-      setToast({ message: NOT_FOUND_MESSAGE, type: "warning" });
-      return;
-    }
-    // 페이지는 첫 성공에서만 맞춘다. 다시 받기는 보던 페이지를 둔다
-    if (firstLoad) {
-      const page = pageOfItem(
+    return error ? null : ((data ?? []) as Landmark[]);
+  }, []);
+
+  const {
+    status,
+    reload: loadLandmarks,
+    retry,
+    isDisposed,
+  } = useWorkspaceLoad<Landmark>({
+    fetchRows,
+    onRows: setLandmarks,
+    rowId: (row) => row.id,
+    selectedId: (selection) =>
+      selection.mode === "view" ? selection.id : null,
+    initialPageOf: (rows, id) =>
+      pageOfItem(
         viewAdminCollection(
           rows,
           LANDMARK_COLLECTION_POLICY,
           INITIAL_ADMIN_COLLECTION_QUERY,
         ).matched,
-        selection.id,
+        id,
         LANDMARK_COLLECTION_POLICY.id,
-      );
-      if (page !== null) setPage(page);
-    }
-  }, [setPage]);
-
-  useEffect(() => {
-    disposedRef.current = false;
-    const timer = window.setTimeout(() => void loadLandmarks(), 0);
-    return () => {
-      window.clearTimeout(timer);
-      // 떠난 뒤에 끝난 조회가 그때의 주소(다른 화면)에서 ?id=를 지우지 않게 진행 중인 요청을 버린다.
-      // 떠난 뒤 끝난 저장·삭제가 새로 시작하는 다시 받기와 그 뒤의 주소 갱신도 disposedRef가 막는다
-      disposedRef.current = true;
-      loadRequestRef.current += 1;
-    };
-  }, [loadLandmarks]);
+      ),
+    setPage,
+    allowEdit: false,
+    messages: {
+      refreshFailed: "명소 목록을 새로 불러오지 못했어요",
+      notFound: NOT_FOUND_MESSAGE,
+    },
+    showToast,
+  });
 
   // 저장 중에는 선택을 바꾸지 않는다 — 행·마커·닫기·칩을 막는다(설계 2026-10-14 3.4)
   function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
@@ -199,7 +171,7 @@ export default function LandmarksPage() {
 
   async function handleSaved(landmarkId: string, created: boolean) {
     await loadLandmarks();
-    if (disposedRef.current) return;
+    if (isDisposed()) return;
     // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 새로 만들기 패널일 때만 바꾼다(설계 2026-10-14 3.4)
     if (created && currentSelection().mode === "new") {
       applyWorkspaceState({ mode: "view", id: landmarkId });
@@ -207,19 +179,13 @@ export default function LandmarksPage() {
   }
 
   async function handleDeleted(landmarkId: string) {
-    if (disposedRef.current) return;
+    if (isDisposed()) return;
     // 삭제는 선택을 잠그지 않는다. 기다리는 사이 다른 항목이나 새로 만들기로 옮겼으면 그 패널을 닫지 않는다(설계 2026-10-14 3.4)
     const selection = currentSelection();
     if (selection.mode === "view" && selection.id === landmarkId) {
       applyWorkspaceState({ mode: "closed" });
     }
     await loadLandmarks();
-  }
-
-  function retry() {
-    // 목록을 받은 뒤에 "loading"으로 가면, 이번 조회가 실패할 때 토스트만 뜨고 패널이 거기 멈춘다
-    if (!loadedRef.current) setStatus("loading");
-    void loadLandmarks();
   }
 
   const focus: WorkspaceFocus | null =
