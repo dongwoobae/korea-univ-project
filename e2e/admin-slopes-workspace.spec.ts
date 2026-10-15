@@ -2113,15 +2113,13 @@ test.describe("경사도 작업 화면 — 저장 안 한 변경", () => {
     const preview = previewLines(page).first();
     await expect(preview).toBeVisible();
     await expect.poll(() => unloadBlocked(page)).toBe(false);
-    const before = await preview.getAttribute("d");
 
     const mapBox = (await editMap(page).boundingBox())!;
     const marker = page.locator(".marker-icon").first();
-    const markerBox = (await marker.boundingBox())!;
-    await page.mouse.move(
-      markerBox.x + markerBox.width / 2,
-      markerBox.y + markerBox.height / 2,
-    );
+    // 편집 주소로 들어오면 작업 화면이 지도를 경로로 옮긴다. 멈추기 전에 잡으면 끌기가 꼭짓점이 아니라 지도에 간다
+    const markerCenter = await settledCenter(marker);
+    const before = await preview.getAttribute("d");
+    await page.mouse.move(markerCenter.x, markerCenter.y);
     await page.mouse.down();
     await page.mouse.move(mapBox.x + 600, mapBox.y + 400, { steps: 10 });
     await page.mouse.up();
