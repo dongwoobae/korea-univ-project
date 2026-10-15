@@ -1742,6 +1742,9 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     await expect(detail).toBeVisible();
     await expect(open).toBeFocused();
     await expect(toolbar(page)).toHaveCount(0);
+    // 띠에는 도구 바가 없어 지금 모드가 보이지 않는다. 꼭짓점 편집으로 돌아와 있어야 띠에서 꼭짓점을 끈다
+    await expect(page.locator(".marker-icon")).toHaveCount(2);
+    await expect(line).toHaveCount(0);
     await expect(detail.getByLabel("경로 이름")).toHaveValue(
       "모바일에서 고친 경로",
     );
@@ -1765,6 +1768,23 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     expect(
       (stored.segments as Array<Record<string, unknown>>)[1],
     ).toMatchObject({ lat: 37.5862, lng: 127.0269 });
+  });
+
+  test("데스크톱에서 통째로 옮기기를 고른 채 모바일 폭이 되어도 띠는 꼭짓점 편집이다", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?id=2&edit=1");
+    await tool(page, "통째로 옮기기").click();
+    await expect(page.locator(".marker-icon")).toHaveCount(0);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(toolbar(page)).toHaveCount(0);
+    await expect(page.locator(".marker-icon")).toHaveCount(2);
+    await expect(
+      page.locator(".leaflet-overlay-pane path.leaflet-pm-draggable"),
+    ).toHaveCount(0);
   });
 
   test("새 경로는 지도에서 경로 그리기로 그리고 완료하면 구간 카드가 생긴다", async ({

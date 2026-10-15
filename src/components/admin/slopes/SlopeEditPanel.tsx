@@ -116,6 +116,13 @@ export default function SlopeEditPanel({
     mapButtonRef.current?.focus();
   }, [fullMap]);
 
+  // 띠에는 도구 바가 없어 지금 모드가 보이지 않고, 통째로 옮기기면 꼭짓점 핸들이 없어 띠에서 끌 것이 경로 전체뿐이다.
+  // 띠로 돌아오면(전체 지도의 완료, 데스크톱에서 모바일 폭으로 좁아짐) 꼭짓점 편집으로 되돌린다
+  useEffect(() => {
+    if (!mobile || fullMap || editor?.state.mode !== "drag") return;
+    editor.commands.setMode("vertex");
+  }, [mobile, fullMap, editor]);
+
   // 지도(형제 컴포넌트)가 미리보기를 칠하고 꼭짓점 변경을 돌려주도록 맡긴다
   useEffect(() => {
     onDraftChangeRef.current({
