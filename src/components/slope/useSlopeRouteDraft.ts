@@ -13,8 +13,8 @@ import { toDegrees, type SlopeUnit } from "@/lib/slopeScale";
 
 const UNIT_STORAGE_KEY = "ku_slope_input_unit";
 
-// 편집 패널은 목록 조회가 끝난 뒤 클라이언트에서만 그려지고, ?new=1도 서버 스냅숏(빈 주소)에서는
-// 닫힘 상태라 서버 렌더링을 거치지 않는다. 그래서 첫 렌더에서 localStorage를 읽어도 hydration이 어긋나지 않는다.
+// 작업 화면의 선택은 서버 스냅숏(useWorkspaceSelection의 빈 주소)에서 닫힘이라 편집 패널은 hydration 뒤에야 처음
+// 그려진다. 그래서 첫 렌더에서 localStorage를 읽어도 hydration이 어긋나지 않는다.
 function readUnitPreference(): SlopeUnit {
   try {
     return localStorage.getItem(UNIT_STORAGE_KEY) === "percent"
