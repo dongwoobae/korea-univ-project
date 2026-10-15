@@ -60,6 +60,13 @@
   color: var(--ku-text-3);
   font-size: 12px;
 }
+/* 메뉴로 접히기 전(768~899px)에는 브랜드·메뉴 링크·버튼이 한 줄에 다 들어가지 않아 로그아웃이 화면 밖으로 밀린다.
+   이메일만 뺀다. 메뉴로 접는 767px 경계는 아래 nav 등 다른 모바일 규칙과 같이 써서 따로 올리지 않는다 */
+@media (min-width: 768px) and (max-width: 899px) {
+  .ku-admin-email {
+    display: none;
+  }
+}
 .ku-admin-account .ku-admin-button {
   min-height: 34px;
   padding: 0 12px;
