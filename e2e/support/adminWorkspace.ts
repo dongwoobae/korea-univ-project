@@ -11,6 +11,13 @@ export function leaveDialog(page: Page) {
   return page.getByRole("dialog", { name: LEAVE_TITLE });
 }
 
+/** 진행 중인 작업이 있을 때의 확인 창의 제목(`UnsavedChangesGuard`) */
+const BUSY_TITLE = "처리 중인 작업이 있어요";
+
+export function busyDialog(page: Page) {
+  return page.getByRole("dialog", { name: BUSY_TITLE });
+}
+
 /**
  * 지금 페이지를 떠나면 브라우저가 묻는지. E2E는 브라우저의 새로고침 경고를 보지 못해 같은 이벤트를 직접 내 가드가
  * 막는지 본다. 가드 등록은 effect라 편집 직후에 한 번 읽으면 앞지르므로 항상 `expect.poll`로 기다린다.

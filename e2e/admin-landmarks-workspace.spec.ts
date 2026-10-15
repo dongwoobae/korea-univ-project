@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { installMockBackend, type MockState } from "./support/mockBackend";
 import {
+  busyDialog,
   leaveDialog,
   unloadBlocked,
   adminNav,
@@ -714,6 +715,37 @@ test.describe("명소 작업 화면 — 상세 패널 편집", () => {
     await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`\\?id=${SQUIRREL_ID}$`));
     await expect(detailPanel(page, "도토리길")).toBeVisible();
+  });
+
+  test("저장하는 동안 헤더 메뉴로 나가기 전에 처리 중 확인을 묻는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseSave = () => {};
+    const saveHeld = new Promise<void>((resolve) => (releaseSave = resolve));
+    let held = false;
+    await page.route(landmarksRequest, async (route) => {
+      if (route.request().method() === "PATCH") {
+        held = true;
+        await saveHeld;
+      }
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/landmarks");
+    const detail = await openSquirrel(page);
+    await detail.getByLabel("이름 *").fill("도토리길");
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect.poll(() => held).toBe(true);
+
+    await adminNav(page).getByRole("link", { name: "독립 시설" }).click();
+    await expect(busyDialog(page)).toBeVisible();
+    await expect(leaveDialog(page)).toHaveCount(0);
+    await busyDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(new RegExp(`\\?id=${SQUIRREL_ID}$`));
+
+    releaseSave();
+    await expect(page.getByText("명소가 수정되었어요")).toBeVisible();
+    await expect(busyDialog(page)).toHaveCount(0);
   });
 
   test("인라인 확인을 거쳐 명소를 지우면 행이 사라지고 패널이 닫힌다", async ({
