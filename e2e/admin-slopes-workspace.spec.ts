@@ -1,15 +1,16 @@
-import {
-  expect,
-  test,
-  type Locator,
-  type Page,
-  type Route,
-} from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   installMockBackend,
   stationBuildingRow,
   type MockState,
 } from "./support/mockBackend";
+import {
+  leaveDialog,
+  unloadBlocked,
+  adminNav,
+  detailPanel,
+  serverError,
+} from "./support/adminWorkspace";
 
 function listPanel(page: Page) {
   return page.getByRole("region", { name: "경사도 경로", exact: true });
@@ -17,10 +18,6 @@ function listPanel(page: Page) {
 
 function listRow(page: Page, name: string) {
   return listPanel(page).getByRole("button", { name: new RegExp(name) });
-}
-
-function detailPanel(page: Page, name: string) {
-  return page.getByRole("region", { name, exact: true });
 }
 
 function routeLine(page: Page, id: number) {
@@ -178,15 +175,6 @@ const NEAR_CENTER = { latitude: 37.5893, longitude: 127.034 };
 
 function slopesRequest(url: URL) {
   return url.pathname.endsWith("/rest/v1/slope_segments");
-}
-
-function serverError(route: Route) {
-  return route.fulfill({
-    status: 500,
-    headers: { "access-control-allow-origin": "*" },
-    contentType: "application/json",
-    body: "{}",
-  });
 }
 
 async function confirmDelete(detail: Locator) {
@@ -1928,10 +1916,7 @@ test.describe("경사도 작업 화면 — 모바일", () => {
 
     // 지도 편집은 바로 초안에 들어 있다. 패널의 취소가 초안 전체를 버린다
     await detail.getByRole("button", { name: "취소", exact: true }).click();
-    await page
-      .getByRole("dialog", { name: "저장하지 않은 변경사항이 있어요" })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
     await expect(listPanel(page)).toBeVisible();
     const stored = state.slopes.find((row) => row.id === 2)!;
@@ -2086,25 +2071,7 @@ test.describe("경사도 작업 화면 — 모바일", () => {
 });
 
 test.describe("경사도 작업 화면 — 저장 안 한 변경", () => {
-  const LEAVE_TITLE = "저장하지 않은 변경사항이 있어요";
   const ROUTE_2 = "안암병원 정문 경사로";
-
-  function adminNav(page: Page) {
-    return page.getByRole("navigation", { name: "관리자 메뉴" });
-  }
-
-  function leaveDialog(page: Page) {
-    return page.getByRole("dialog", { name: LEAVE_TITLE });
-  }
-
-  // E2E는 브라우저의 새로고침 경고를 보지 못한다. 같은 이벤트를 직접 내 가드가 막는지 본다.
-  // 가드 등록은 effect라 편집 직후에 한 번 읽으면 앞지르므로 항상 poll로 기다린다
-  function unloadBlocked(page: Page) {
-    return page.evaluate(
-      () =>
-        !window.dispatchEvent(new Event("beforeunload", { cancelable: true })),
-    );
-  }
 
   /** 경로 2의 편집을 열고 구간 값을 고친다. 가드가 dirty를 받을 때까지 기다린다 */
   async function editValue(page: Page) {

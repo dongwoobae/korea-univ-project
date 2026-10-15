@@ -1,16 +1,17 @@
 import path from "node:path";
-import {
-  expect,
-  test,
-  type Locator,
-  type Page,
-  type Route,
-} from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import {
   installMockBackend,
   stationBuildingRow,
   type MockState,
 } from "./support/mockBackend";
+import {
+  leaveDialog,
+  unloadBlocked,
+  adminNav,
+  detailPanel,
+  serverError,
+} from "./support/adminWorkspace";
 
 function listPanel(page: Page) {
   return page.getByRole("region", { name: "독립 시설", exact: true });
@@ -28,10 +29,6 @@ function deletePhotosRequest(url: URL) {
   return url.pathname === "/api/delete-facility-photos";
 }
 
-function detailPanel(page: Page, name: string) {
-  return page.getByRole("region", { name, exact: true });
-}
-
 // 목업이 unpkg(ffmpeg 코어)를 끊어 변환은 항상 실패한다. 재생 가능한 원본으로
 // 대체되는 경로를 타려면 더미 바이트가 아닌 실제 H.264 파일이 필요하다.
 const PLAYABLE_VIDEO = path.join(__dirname, "fixtures/tiny-h264.mp4");
@@ -43,15 +40,6 @@ async function openNewFacility(page: Page) {
 
 function typesRequest(url: URL) {
   return url.pathname.endsWith("/rest/v1/facility_types");
-}
-
-function serverError(route: Route) {
-  return route.fulfill({
-    status: 500,
-    headers: { "access-control-allow-origin": "*" },
-    contentType: "application/json",
-    body: "{}",
-  });
 }
 
 /** 목 픽스처와 같은 모양의 독립 시설 행 */
@@ -645,10 +633,7 @@ test.describe("독립 시설 작업 화면 — 상세 패널", () => {
       deleting.getByRole("button", { name: "삭제 중..." }),
     ).toBeDisabled();
 
-    await page
-      .getByRole("navigation", { name: "관리자 메뉴" })
-      .getByRole("link", { name: "명소" })
-      .click();
+    await adminNav(page).getByRole("link", { name: "명소" }).click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
     await page
       .getByRole("region", { name: "명소", exact: true })
@@ -953,8 +938,6 @@ test.describe("독립 시설 작업 화면 — 상세 패널", () => {
 });
 
 test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
-  const LEAVE_TITLE = "저장하지 않은 변경사항이 있어요";
-
   async function editName(page: Page) {
     await listRow(page, "중앙광장 경사로").click();
     const detail = detailPanel(page, "중앙광장 경사로");
@@ -970,7 +953,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     const detail = await editName(page);
 
     await listRow(page, "공사 중 주차구역").click();
-    const confirm = page.getByRole("dialog", { name: LEAVE_TITLE });
+    const confirm = leaveDialog(page);
     await expect(confirm).toContainText("지금 나가면 입력한 값이 사라져요");
     await confirm.getByRole("button", { name: "취소" }).click();
     await expect(detail.getByLabel("시설 이름 (선택)")).toHaveValue(
@@ -979,10 +962,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await expect(page).toHaveURL(/\?id=f-installed$/);
 
     await listRow(page, "공사 중 주차구역").click();
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(detailPanel(page, "공사 중 주차구역")).toBeVisible();
     await expect(page).toHaveURL(/\?id=f-uninstalled$/);
   });
@@ -994,10 +974,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     const chip = listPanel(page).getByRole("button", { name: "미설치 1개" });
 
     await chip.click();
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(chip).toHaveAttribute("aria-pressed", "true");
     await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
   });
@@ -1006,38 +983,27 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/facilities");
     await editName(page);
-    const landmarks = page
-      .getByRole("navigation", { name: "관리자 메뉴" })
-      .getByRole("link", { name: "명소" });
+    const landmarks = adminNav(page).getByRole("link", { name: "명소" });
 
     await landmarks.click();
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "취소" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
     await expect(page).toHaveURL(
       /\/admin\/dashboard\/facilities\?id=f-installed$/,
     );
 
     await landmarks.click();
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
   });
 
   test("브라우저 뒤로가기 전에 묻는다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/buildings");
-    await page
-      .getByRole("navigation", { name: "관리자 메뉴" })
-      .getByRole("link", { name: "독립 시설" })
-      .click();
+    await adminNav(page).getByRole("link", { name: "독립 시설" }).click();
     const detail = await editName(page);
 
     await page.evaluate(() => window.history.back());
-    const confirm = page.getByRole("dialog", { name: LEAVE_TITLE });
+    const confirm = leaveDialog(page);
     await expect(confirm).toBeVisible();
     await confirm.getByRole("button", { name: "취소" }).click();
     await expect(page).toHaveURL(
@@ -1048,10 +1014,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     );
 
     await page.evaluate(() => window.history.back());
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
   });
 
@@ -1060,9 +1023,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
   }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/facilities");
-    const facilities = page
-      .getByRole("navigation", { name: "관리자 메뉴" })
-      .getByRole("link", { name: "독립 시설" });
+    const facilities = adminNav(page).getByRole("link", { name: "독립 시설" });
 
     await listRow(page, "공사 중 주차구역").click();
     await facilities.click();
@@ -1071,28 +1032,14 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
 
     const detail = await editName(page);
     await facilities.click();
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
     await expect(detail).toHaveCount(0);
   });
 
-  // E2E는 브라우저의 새로고침 경고를 보지 못한다. 같은 이벤트를 직접 내 가드가 막는지 본다
-  function unloadBlocked(page: Page) {
-    return page.evaluate(
-      () =>
-        !window.dispatchEvent(new Event("beforeunload", { cancelable: true })),
-    );
-  }
-
   async function openFromBuildings(page: Page) {
     await page.goto("/admin/dashboard/buildings");
-    await page
-      .getByRole("navigation", { name: "관리자 메뉴" })
-      .getByRole("link", { name: "독립 시설" })
-      .click();
+    await adminNav(page).getByRole("link", { name: "독립 시설" }).click();
   }
 
   async function saveAndSettle(page: Page, detail: Locator) {
@@ -1113,9 +1060,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await saveAndSettle(page, detail);
     await listRow(page, "공사 중 주차구역").click();
     await expect(detailPanel(page, "공사 중 주차구역")).toBeVisible();
-    await expect(page.getByRole("dialog", { name: LEAVE_TITLE })).toHaveCount(
-      0,
-    );
+    await expect(leaveDialog(page)).toHaveCount(0);
   });
 
   test("저장한 뒤 다시 고친 채 뒤로가기를 해도 나가기면 이전 화면으로 간다", async ({
@@ -1136,10 +1081,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await expect.poll(() => unloadBlocked(page)).toBe(true);
     expect(await historyLength()).toBe(trapped);
     await page.evaluate(() => window.history.back());
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
   });
 
@@ -1160,10 +1102,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await editName(page);
 
     await page.evaluate(() => window.history.back());
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(page).toHaveURL(external);
   });
 
@@ -1182,7 +1121,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     const detail = await editName(page);
 
     await page.evaluate(() => window.history.back());
-    const confirm = page.getByRole("dialog", { name: LEAVE_TITLE });
+    const confirm = leaveDialog(page);
     await confirm.getByRole("button", { name: "나가기" }).click();
     // 판정을 기다리는 동안 낸 beforeunload는 떠나는 것으로 읽히므로, 기록을 다시 쌓은 뒤에 본다
     await expect
@@ -1222,10 +1161,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
       .getByLabel("시설 이름 (선택)")
       .fill("다시 고치는 중");
     await page.evaluate(() => window.history.back());
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
   });
 
@@ -1237,7 +1173,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await editName(page);
 
     await page.evaluate(() => window.history.back());
-    const confirm = page.getByRole("dialog", { name: LEAVE_TITLE });
+    const confirm = leaveDialog(page);
     await expect(confirm).toBeVisible();
     await page.evaluate(() => window.history.back());
     await expect(page).toHaveURL(/\/admin\/dashboard\/buildings$/);
@@ -1255,16 +1191,11 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
       return route.fallback();
     });
     await page.goto("/admin/dashboard/facilities");
-    const facilities = page
-      .getByRole("navigation", { name: "관리자 메뉴" })
-      .getByRole("link", { name: "독립 시설" });
+    const facilities = adminNav(page).getByRole("link", { name: "독립 시설" });
     const detail = await editName(page);
 
     await facilities.click();
-    await page
-      .getByRole("dialog", { name: LEAVE_TITLE })
-      .getByRole("button", { name: "취소" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
     await expect(page).toHaveURL(/\?id=f-installed$/);
     await expect(detail.getByLabel("시설 이름 (선택)")).toHaveValue(
       "고치는 중",
@@ -1276,9 +1207,7 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await expect(page.getByText("시설이 수정되었어요!")).toBeVisible();
     await expect(page).toHaveURL(/\?id=f-installed$/);
     await expect(detailPanel(page, "고치는 중")).toBeVisible();
-    await expect(page.getByRole("dialog", { name: LEAVE_TITLE })).toHaveCount(
-      0,
-    );
+    await expect(leaveDialog(page)).toHaveCount(0);
   });
 });
 

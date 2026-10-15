@@ -689,6 +689,10 @@ Next 16.2.4는 요청 쿼리를 모두 목적지로 넘기고, 같은 키는 목
 - 제보함 `전체`에서 한쪽 API만 실패하면 성공한 쪽과 안내가 함께 보인다
 - 다크 모드 크림슨 채움 대비(`admin-dark.spec.ts`에 더함)
 
+2026-10-15 — 작업 화면 세 spec과 제보함 spec이 같이 쓰는 화면 헬퍼(저장 안 한 변경 확인 창, `beforeunload` 판정,
+관리자 메뉴, 상세 패널 region, Supabase 500 응답)는 `e2e/support/adminWorkspace.ts`에 둔다. 확인 창 제목이나 판정
+방식이 바뀌면 그 파일 하나만 고친다. 탭마다 이름이 다른 목록 패널(`listPanel`)과 그에 기대는 `listRow`는 각 spec에 둔다.
+
 ### 8.4 검증 방식
 
 lint·format:check·typecheck·vitest·Playwright를 로컬에서 돌려 확인하고, PR CI는 PR을 마칠 때 최종 확인으로 쓴다.

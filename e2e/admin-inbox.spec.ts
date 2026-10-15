@@ -6,6 +6,7 @@ import {
   type Route,
 } from "@playwright/test";
 import { installMockBackend, type MockState } from "./support/mockBackend";
+import { leaveDialog, adminNav } from "./support/adminWorkspace";
 
 type ColumnName = "신규" | "확인 중" | "처리 완료";
 
@@ -140,9 +141,7 @@ test.describe("제보함 — 보드", () => {
     await openInbox(page);
 
     await expect(
-      page
-        .getByRole("navigation", { name: "관리자 메뉴" })
-        .getByRole("link", { name: /제보함/ }),
+      adminNav(page).getByRole("link", { name: /제보함/ }),
     ).toContainText("1");
     await expect(cards(page, "신규")).toHaveCount(1);
     await expect(cards(page, "신규").first()).toContainText("엘리베이터");
@@ -372,7 +371,6 @@ test.describe("제보함 — 보드", () => {
   });
 });
 
-const LEAVE_TITLE = "저장하지 않은 변경사항이 있어요";
 const REQUEST_1 = "00000000-0000-4000-8000-000000000001";
 const REQUEST_3 = "00000000-0000-4000-8000-000000000003";
 
@@ -382,14 +380,6 @@ function drawerOf(page: Page) {
 
 function dimOf(page: Page) {
   return page.getByTestId("inbox-drawer-dim");
-}
-
-function leaveDialog(page: Page) {
-  return page.getByRole("dialog", { name: LEAVE_TITLE });
-}
-
-function adminNav(page: Page) {
-  return page.getByRole("navigation", { name: "관리자 메뉴" });
 }
 
 async function openFirstNew(page: Page) {
