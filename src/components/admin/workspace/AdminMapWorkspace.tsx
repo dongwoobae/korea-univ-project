@@ -30,7 +30,7 @@ interface AdminMapWorkspaceProps {
    * DetailPanel의 `mapStrip`과 같은 사실이라 짝으로 맞춘다 — 상세가 띠를 끄면 0을 준다.
    */
   mobileMapStrip?: number;
-  /** 모바일 상세를 접고 지도에서 위치를 고르거나 경로를 고치는 중. 지도를 옮길 때 확인 바만 비킨다 */
+  /** 모바일 상세를 접고 지도에서 위치를 고르거나 경로를 고치는 중. 지도를 옮길 때 아래 확인 바와 `mobilePickingTop`을 비킨다 */
   mobilePicking?: boolean;
   /** 고르는 동안 지도 위쪽을 덮는 막대(경사도 도구 바)의 아래 끝. 지도 위쪽에서 잰다 */
   mobilePickingTop?: number;
