@@ -1,3 +1,4 @@
+import type { RefObject } from "react";
 import {
   columnCount,
   type InboxBoardState,
@@ -31,6 +32,8 @@ interface InboxBoardProps {
   kinds: InboxKind[];
   building: number | null;
   typeLabels: Map<string, string>;
+  /** 드로어가 닫힐 때 돌아갈 카드가 사라졌으면 초점을 받는 제목 */
+  titleRef: RefObject<HTMLHeadingElement | null>;
   onKindChange: (kind: InboxKindFilter) => void;
   onClearBuilding: () => void;
   onOpen: (card: InboxCard, origin: InboxFilter) => void;
@@ -44,6 +47,7 @@ export default function InboxBoard({
   kinds,
   building,
   typeLabels,
+  titleRef,
   onKindChange,
   onClearBuilding,
   onOpen,
@@ -64,7 +68,9 @@ export default function InboxBoard({
     <div className="ku-inbox-page">
       <div className="ku-inbox-board-head">
         <div>
-          <h1 className="ku-admin-title">제보함</h1>
+          <h1 ref={titleRef} tabIndex={-1} className="ku-admin-title">
+            제보함
+          </h1>
           <p className="ku-inbox-caption">
             {pending === null
               ? "카드를 눌러 검토해요"

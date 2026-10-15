@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import FacilityRequestReviewModal from "@/components/admin/inbox/FacilityRequestReviewModal";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useUnsavedChangesGuard } from "@/components/admin/UnsavedChangesGuard";
+import FacilityRequestDrawer from "@/components/admin/inbox/FacilityRequestDrawer";
 import InboxBoard, {
   DESKTOP_BOARD_COLUMNS,
 } from "@/components/admin/inbox/InboxBoard";
@@ -46,6 +47,8 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
     [],
   );
   const [opened, setOpened] = useState<OpenedItem | null>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const { guard } = useUnsavedChangesGuard();
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -64,12 +67,12 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
   );
   const { state, reload, loadMore, retryFirstPage } = useInboxBoard(options);
 
-  // 검토 모달의 상세 조회 effect가 이 둘에 의존한다. 고정하지 않으면 상세를 반복해 불러온다.
+  // 검토 드로어의 상세 조회 effect가 이 둘에 의존한다. 고정하지 않으면 상세를 반복해 불러온다.
   const showToast = useCallback(
     (message: string, type = "success") => setToast({ message, type }),
     [],
   );
-  const closeModal = useCallback(() => setOpened(null), []);
+  const closeDrawer = useCallback(() => setOpened(null), []);
   const onChanged = useCallback(() => {
     reload();
     window.dispatchEvent(new Event("inboxCountsChanged"));
@@ -103,13 +106,15 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
     // 피드백은 드로어를 잇는 뒤 작업에서 연다.
     if (card.kind !== "requests") return;
     const column = state.columns.find((entry) => entry.filter === origin);
-    setOpened({
+    const next: OpenedItem = {
       key: inboxCardKey(card),
       kind: card.kind,
       id: card.item.id,
       origin,
       navigation: column ? columnCards(column, kinds) : [],
-    });
+    };
+    // 데스크톱은 배경이 보드를 막아 열린 채 다른 카드를 누를 수 없지만, 열기는 가드를 거치게 둔다.
+    guard(() => setOpened(next));
   }
 
   return (
@@ -122,21 +127,23 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
         typeLabels={typeLabels}
         onKindChange={changeKind}
         onClearBuilding={clearBuilding}
+        titleRef={titleRef}
         onOpen={open}
         onLoadMore={loadMore}
         onRetryFirstPage={retryFirstPage}
       />
       {opened?.kind === "requests" && (
-        <FacilityRequestReviewModal
+        <FacilityRequestDrawer
           key={opened.key}
           requestId={opened.id}
           facilityTypes={types.map((type) => ({
             code: type.code,
             label: type.label ?? type.code,
           }))}
-          onClose={closeModal}
+          onClose={closeDrawer}
           onChanged={onChanged}
           showToast={showToast}
+          restoreFallbackRef={titleRef}
         />
       )}
       {toast && (

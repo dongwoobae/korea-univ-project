@@ -1525,6 +1525,282 @@ button.ku-admin-overview-item {
   cursor: wait;
   opacity: 0.65;
 }
+.ku-inbox-board-head h1:focus {
+  outline: none;
+}
+
+/* 제보함 검토 드로어. 층은 이 레이어 하나다 — 관리자 헤더(z-index 100) 아래, 보드 위.
+   안쪽 요소는 z-index를 두지 않고, Leaflet이 내부에서 쓰는 큰 z-index는 지도 상자의 isolation이 가둔다. */
+.ku-inbox-drawer-layer {
+  position: fixed;
+  z-index: 90;
+  inset: var(--ku-admin-header-height) 0 0 0;
+}
+.ku-inbox-drawer-dim {
+  position: absolute;
+  inset: 0;
+  background: var(--ku-drawer-dim);
+}
+.ku-inbox-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100%);
+  background: var(--ku-surface);
+  box-shadow: -12px 0 32px rgba(28, 25, 23, 0.16);
+}
+.ku-inbox-drawer-head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 22px 20px 0 28px;
+}
+.ku-inbox-drawer-head-main {
+  flex: 1;
+  min-width: 0;
+}
+.ku-inbox-drawer-close {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ku-text-3);
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
+}
+.ku-inbox-drawer-close:hover {
+  background: var(--ku-bg);
+}
+.ku-inbox-drawer-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.ku-inbox-drawer-title h2 {
+  font-size: 19px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.ku-inbox-drawer-title p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+}
+.ku-inbox-drawer-title a {
+  color: var(--ku-primary-text);
+}
+.ku-inbox-drawer-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  color: #fff;
+}
+.ku-inbox-drawer-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  padding: 20px 28px 24px;
+  overflow: auto;
+}
+.ku-inbox-drawer-foot {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-top: 1px solid var(--ku-border);
+  background: var(--ku-surface);
+}
+.ku-inbox-drawer-foot:empty {
+  display: none;
+}
+.ku-inbox-drawer-foot .ku-workspace-button {
+  height: 38px;
+}
+.ku-inbox-drawer-foot .ku-workspace-primary {
+  height: 38px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.ku-inbox-reject {
+  border-color: color-mix(in srgb, var(--ku-danger) 45%, var(--ku-surface));
+  color: var(--ku-danger);
+}
+.ku-inbox-reject-confirm {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--ku-status-missing-fg);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ku-inbox-reject-confirm > span {
+  flex: 1;
+  min-width: 200px;
+}
+.ku-inbox-end-note {
+  color: var(--ku-success-fg);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ku-inbox-end-note[data-status="rejected"] {
+  color: var(--ku-status-missing-fg);
+}
+.ku-inbox-end-link {
+  color: var(--ku-primary-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ku-inbox-photos-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-inbox-photos-head > :first-child {
+  color: var(--ku-text-1);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ku-inbox-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ku-inbox-photo {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 132px;
+  height: 132px;
+  overflow: hidden;
+  border: 2px solid var(--ku-border);
+  border-radius: 10px;
+  background: var(--ku-bg);
+}
+.ku-inbox-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+label.ku-inbox-photo {
+  cursor: pointer;
+}
+label.ku-inbox-photo[data-selected="true"] {
+  border-color: var(--ku-primary);
+}
+label.ku-inbox-photo[data-selected="false"] {
+  opacity: 0.6;
+}
+label.ku-inbox-photo[data-disabled="true"] {
+  cursor: not-allowed;
+}
+label.ku-inbox-photo:has(input:focus-visible) {
+  outline: 2px solid var(--ku-crimson-700);
+  outline-offset: 2px;
+}
+.ku-inbox-photo-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-inbox-photo-check {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--ku-border-input);
+  border-radius: 6px;
+  color: #fff;
+  background: var(--ku-surface);
+  font-size: 13px;
+  font-weight: 700;
+}
+label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
+  border-color: var(--ku-primary);
+  background: var(--ku-primary);
+}
+.ku-inbox-photo input {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.ku-inbox-drawer-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.ku-inbox-drawer-location {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 12px;
+}
+.ku-inbox-drawer-location .ku-detail-label {
+  margin-bottom: 0;
+}
+.ku-inbox-drawer-map {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+}
+.ku-inbox-drawer .ku-facility-map-locate {
+  border-color: var(--ku-border-input) !important;
+  color: var(--ku-text-1) !important;
+  background: var(--ku-surface) !important;
+  box-shadow: var(--ku-shadow-floating) !important;
+}
+.ku-inbox-location-note {
+  color: var(--ku-text-1);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.ku-inbox-location-note[data-tone="reporter"] {
+  color: var(--ku-success-fg);
+}
+.ku-inbox-location-note[data-tone="none"] {
+  color: var(--ku-status-warn-fg);
+}
 @media (max-width: 767px) {
   /* 모바일 목록은 후속 작업에서 새로 짠다. 그동안 열을 세로로 쌓는다. */
   .ku-inbox-page {
@@ -1539,6 +1815,9 @@ button.ku-admin-overview-item {
   }
   .ku-inbox-column-body {
     max-height: 70dvh;
+  }
+  .ku-inbox-drawer-columns {
+    grid-template-columns: 1fr;
   }
 }
 

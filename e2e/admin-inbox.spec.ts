@@ -748,26 +748,16 @@ test.describe("제보함 — 등록 요청 드로어", () => {
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
     seedRequests(state);
-    await page.route("**/api/facility-requests/*/approve", async (route) => {
-      const response = await route.fetch();
-      await route.fulfill({
-        response,
-        json: { ...(await response.json()), cleanupFailed: true },
-      });
-    });
-    await page.route("**/api/facility-requests/*/reject", async (route) => {
-      const response = await route.fetch();
-      await route.fulfill({
-        response,
-        json: { ...(await response.json()), cleanupFailed: true },
-      });
-    });
+    state.requestCleanupFails = true;
     const drawer = await openFirstNew(page);
     await drawer.getByRole("button", { name: "승인하고 등록" }).click();
     await expect(
       page.getByText("등록했어요. 요청 사진 정리는 실패해 다시 해야 해요."),
     ).toBeVisible();
     await expect(drawer.getByText("승인되어 시설로 등록됐어요")).toBeVisible();
+    await expect(
+      drawer.getByRole("button", { name: "남은 사진 정리" }),
+    ).toBeVisible();
 
     await drawer.getByRole("button", { name: "닫기" }).click();
     await cards(page, "확인 중").first().getByRole("button").click();

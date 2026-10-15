@@ -40,6 +40,8 @@ export interface MockState {
   buildingPhotoUploadAttempts: number;
   buildingPhotoFailuresRemaining: number;
   translationFailuresRemaining: number;
+  /** 켜면 등록 요청 승인·거절이 요청 사진을 지우지 못하고 cleanupFailed로 답한다 */
+  requestCleanupFails: boolean;
   buildings: Row[];
   facilities: Row[];
   feedbackSubmissions: Row[];
@@ -128,6 +130,7 @@ function createState(authenticated: boolean): MockState {
     buildingPhotoUploadAttempts: 0,
     buildingPhotoFailuresRemaining: 0,
     translationFailuresRemaining: 0,
+    requestCleanupFails: false,
     feedbackSubmissions: [],
     buildings: [
       {
@@ -937,8 +940,11 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     if (action === "reject") {
       if (!open) return json(route, { error: "이미 처리된 요청이에요" }, 409);
       row.status = "rejected";
-      removePhotos();
-      return json(route, { ok: true, cleanupFailed: false });
+      if (!state.requestCleanupFails) removePhotos();
+      return json(route, {
+        ok: true,
+        cleanupFailed: state.requestCleanupFails,
+      });
     }
     if (action === "cleanup") {
       removePhotos();
@@ -977,8 +983,11 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     );
     row.status = "approved";
     row.facility_id = facilityId;
-    removePhotos();
-    return json(route, { facilityId, cleanupFailed: false });
+    if (!state.requestCleanupFails) removePhotos();
+    return json(route, {
+      facilityId,
+      cleanupFailed: state.requestCleanupFails,
+    });
   }
   if (path === "/api/facilities")
     return json(
