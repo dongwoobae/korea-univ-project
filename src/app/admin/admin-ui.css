@@ -2953,7 +2953,8 @@ button.ku-admin-overview-item {
     height: 44px;
     font-size: 16px;
   }
-  /* 모바일은 상세를 접은 전체 지도에서만 그리므로(SlopeEditPanel) 상세를 비키지 않고 지도 위쪽 폭을 다 쓴다 */
+  /* 모바일은 상세를 접은 전체 지도에서만 그리므로(SlopeEditPanel) 상세를 비키지 않고 지도 위쪽 폭을 다 쓴다.
+     위 여백과 버튼 높이는 SlopeEditToolbar의 MOBILE_TOOLBAR_BOTTOM과 맞춘다 */
   .ku-slope-toolbar {
     top: 12px;
     right: 12px;
