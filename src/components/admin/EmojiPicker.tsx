@@ -86,9 +86,9 @@ export default function EmojiPicker({
     padding: "4px 9px",
     fontSize: 12,
     borderRadius: 999,
-    border: `1px solid ${active ? "#C08A2D" : "#ddd"}`,
-    background: active ? "#FDF6E7" : "white",
-    color: active ? "#7A5C16" : "#555",
+    border: `1px solid ${active ? "var(--ku-star)" : "var(--ku-border-input)"}`,
+    background: active ? "var(--ku-star-bg)" : "var(--ku-surface)",
+    color: active ? "var(--ku-status-warn-fg)" : "var(--ku-text-2)",
     cursor: "pointer",
     whiteSpace: "nowrap",
   });
@@ -100,9 +100,9 @@ export default function EmojiPicker({
       aria-label="이모지 선택"
       style={{
         marginTop: 6,
-        border: "1px solid #ddd",
+        border: "1px solid var(--ku-border)",
         borderRadius: 8,
-        background: "white",
+        background: "var(--ku-surface)",
         padding: 10,
         display: "flex",
         flexDirection: "column",
@@ -111,7 +111,7 @@ export default function EmojiPicker({
     >
       <label
         htmlFor={`${fieldId}-search`}
-        style={{ fontSize: 12, color: "#555" }}
+        style={{ fontSize: 12, color: "var(--ku-text-2)" }}
       >
         이모지 검색
       </label>
@@ -126,9 +126,11 @@ export default function EmojiPicker({
         placeholder="예: 나무, 다람쥐, 벚꽃"
         style={{
           padding: "7px 9px",
-          border: "1px solid #ddd",
+          border: "1px solid var(--ku-border-input)",
           borderRadius: 6,
           fontSize: 13,
+          background: "var(--ku-surface)",
+          color: "var(--ku-text-1)",
         }}
       />
 
@@ -185,11 +187,13 @@ export default function EmojiPicker({
               padding: 4,
               border:
                 emoji.unicode === selected
-                  ? "1px solid #C08A2D"
+                  ? "1px solid var(--ku-star)"
                   : "1px solid transparent",
               borderRadius: 5,
               background:
-                emoji.unicode === selected ? "#FDF6E7" : "transparent",
+                emoji.unicode === selected
+                  ? "var(--ku-star-bg)"
+                  : "transparent",
               cursor: "pointer",
             }}
           >
@@ -199,7 +203,10 @@ export default function EmojiPicker({
       </div>
 
       {shown.length === 0 && (
-        <div aria-live="polite" style={{ fontSize: 12, color: "#888" }}>
+        <div
+          aria-live="polite"
+          style={{ fontSize: 12, color: "var(--ku-text-3)" }}
+        >
           검색 결과가 없어요. 분류에서 골라보세요.
         </div>
       )}
