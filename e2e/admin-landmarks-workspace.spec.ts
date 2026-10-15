@@ -1,11 +1,12 @@
-import {
-  expect,
-  test,
-  type Locator,
-  type Page,
-  type Route,
-} from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { installMockBackend, type MockState } from "./support/mockBackend";
+import {
+  leaveDialog,
+  unloadBlocked,
+  adminNav,
+  detailPanel,
+  serverError,
+} from "./support/adminWorkspace";
 
 const SQUIRREL_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -17,21 +18,8 @@ function listRow(page: Page, name: string) {
   return listPanel(page).getByRole("button", { name: new RegExp(name) });
 }
 
-function detailPanel(page: Page, name: string) {
-  return page.getByRole("region", { name, exact: true });
-}
-
 function landmarksRequest(url: URL) {
   return url.pathname.endsWith("/rest/v1/landmarks");
-}
-
-function serverError(route: Route) {
-  return route.fulfill({
-    status: 500,
-    headers: { "access-control-allow-origin": "*" },
-    contentType: "application/json",
-    body: "{}",
-  });
 }
 
 /** 목 픽스처와 같은 모양의 명소 행 */
@@ -817,10 +805,7 @@ test.describe("명소 작업 화면 — 상세 패널 편집", () => {
       deleting.getByRole("button", { name: "삭제 중..." }),
     ).toBeDisabled();
 
-    await page
-      .getByRole("navigation", { name: "관리자 메뉴" })
-      .getByRole("link", { name: "독립 시설" })
-      .click();
+    await adminNav(page).getByRole("link", { name: "독립 시설" }).click();
     await expect(page).toHaveURL(/\/admin\/dashboard\/facilities$/);
     await page
       .getByRole("region", { name: "독립 시설", exact: true })
@@ -1102,28 +1087,10 @@ test.describe("명소 작업 화면 — 사진", () => {
 });
 
 test.describe("명소 작업 화면 — 저장 안 한 변경", () => {
-  const LEAVE_TITLE = "저장하지 않은 변경사항이 있어요";
-
-  function adminNav(page: Page) {
-    return page.getByRole("navigation", { name: "관리자 메뉴" });
-  }
-
   async function editName(page: Page) {
     const detail = await openSquirrel(page);
     await detail.getByLabel("이름 *").fill("고치는 중");
     return detail;
-  }
-
-  function leaveDialog(page: Page) {
-    return page.getByRole("dialog", { name: LEAVE_TITLE });
-  }
-
-  // E2E는 브라우저의 새로고침 경고를 보지 못한다. 같은 이벤트를 직접 내 가드가 막는지 본다
-  function unloadBlocked(page: Page) {
-    return page.evaluate(
-      () =>
-        !window.dispatchEvent(new Event("beforeunload", { cancelable: true })),
-    );
   }
 
   test("다른 행을 고르기 전에 묻고, 취소하면 입력이 남는다", async ({
@@ -1494,9 +1461,7 @@ test.describe("명소 작업 화면 — 모바일 위치 고르기", () => {
     await expect(coords).toHaveText("37.58955, 127.03225");
     await detail.getByRole("button", { name: "목록으로" }).click();
     await expect(detail).toHaveCount(0);
-    await expect(
-      page.getByRole("dialog", { name: "저장하지 않은 변경사항이 있어요" }),
-    ).toHaveCount(0);
+    await expect(leaveDialog(page)).toHaveCount(0);
   });
 
   test("새 명소도 위치 고르기로 위치를 찍고 저장한다", async ({ page }) => {
@@ -1586,10 +1551,7 @@ test.describe("명소 작업 화면 — 모바일 위치 고르기", () => {
     await bar.getByRole("button", { name: "이 위치로" }).click();
 
     await detail.getByRole("button", { name: "목록으로" }).click();
-    await page
-      .getByRole("dialog", { name: "저장하지 않은 변경사항이 있어요" })
-      .getByRole("button", { name: "나가기" })
-      .click();
+    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(detail).toHaveCount(0);
     await settleMap(page);
     const before = await markerCenter(page, squirrel);
