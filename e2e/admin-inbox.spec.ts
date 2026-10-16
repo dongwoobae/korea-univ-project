@@ -6,7 +6,7 @@ import {
   type Route,
 } from "@playwright/test";
 import { installMockBackend, type MockState } from "./support/mockBackend";
-import { leaveDialog, adminNav } from "./support/adminWorkspace";
+import { busyDialog, leaveDialog, adminNav } from "./support/adminWorkspace";
 
 type ColumnName = "신규" | "확인 중" | "처리 완료";
 
@@ -739,6 +739,48 @@ test.describe("제보함 — 등록 요청 드로어", () => {
     await expect(drawer).toBeHidden();
   });
 
+  test("R8b: 승인 뒤 번역을 기다리는 동안 다른 헤더 링크나 뒤로가기는 처리 중 확인을 묻는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedRequests(state);
+    const drawer = await openFirstNew(page);
+
+    let releaseTranslate!: () => void;
+    const translateGate = new Promise<void>((resolve) => {
+      releaseTranslate = resolve;
+    });
+    let translateHeld = false;
+    await page.route("**/api/translate-facility", async (route) => {
+      translateHeld = true;
+      await translateGate;
+      await route.fallback();
+    });
+
+    await drawer.getByRole("button", { name: "승인하고 등록" }).click();
+    await expect.poll(() => translateHeld).toBe(true);
+
+    await adminNav(page).getByRole("link", { name: "독립 시설" }).click();
+    const confirm = busyDialog(page);
+    await expect(confirm).toContainText(
+      "지금 나가면 진행 중인 작업이 끝나지 않을 수 있어요",
+    );
+    await expect(leaveDialog(page)).toHaveCount(0);
+    await confirm.getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/inbox/);
+    await expect(drawer).toBeVisible();
+
+    await page.goBack();
+    await expect(busyDialog(page)).toBeVisible();
+    await busyDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/inbox/);
+
+    releaseTranslate();
+    await expect(page.getByText("등록했어요!")).toBeVisible();
+    await expect(drawer).toBeVisible();
+    await expect(busyDialog(page)).toHaveCount(0);
+  });
+
   test("R9: 상세 첫 조회가 실패하면 안내하고 드로어가 닫힌다", async ({
     page,
   }) => {
@@ -1054,6 +1096,42 @@ test.describe("제보함 — 피드백 드로어", () => {
     await expect(next).toBeEnabled();
     await page.keyboard.press("Escape");
     await expect(drawer).toBeHidden();
+  });
+
+  test("F2b: 상태를 저장하는 동안 다른 헤더 링크는 처리 중 확인을 묻는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedFeedback(state);
+    await openInbox(page, "?tab=feedback");
+
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    let held = false;
+    await page.route("**/api/admin-feedback/*", async (route) => {
+      if (route.request().method() !== "PATCH") return route.fallback();
+      held = true;
+      await gate;
+      await route.fallback();
+    });
+
+    await cards(page, "신규").first().getByRole("button").click();
+    const drawer = feedbackDrawerOf(page, "오류 제보");
+    await feedbackSegment(drawer)
+      .getByRole("button", { name: "확인 중" })
+      .click();
+    await expect.poll(() => held).toBe(true);
+
+    await adminNav(page).getByRole("link", { name: "독립 시설" }).click();
+    await expect(busyDialog(page)).toBeVisible();
+    await busyDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/inbox/);
+
+    release();
+    await expect(page.getByText("확인 중으로 바꿨어요")).toBeVisible();
+    await expect(busyDialog(page)).toHaveCount(0);
   });
 
   test("F3: 상태를 바꾸지 못하면 오류 토스트가 뜨고 상태는 그대로다", async ({

@@ -6,6 +6,7 @@ import {
   type MockState,
 } from "./support/mockBackend";
 import {
+  busyDialog,
   leaveDialog,
   unloadBlocked,
   adminNav,
@@ -1028,6 +1029,37 @@ test.describe("독립 시설 작업 화면 — 저장 안 한 변경", () => {
     await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
     await expect(detailPanel(page, "공사 중 주차구역")).toBeVisible();
     await expect(page).toHaveURL(/\?id=f-uninstalled$/);
+  });
+
+  test("저장 뒤 번역을 기다리는 동안 헤더 메뉴로 나가기 전에 처리 중 확인을 묻는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let release = () => {};
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let held = false;
+    await page.route("**/api/translate-facility", async (route) => {
+      held = true;
+      await gate;
+      return route.fallback();
+    });
+    await page.goto("/admin/dashboard/facilities");
+    const detail = await editName(page);
+    await detail.getByRole("button", { name: "저장" }).click();
+    await expect.poll(() => held).toBe(true);
+
+    await adminNav(page).getByRole("link", { name: "명소" }).click();
+    await expect(busyDialog(page)).toContainText(
+      "지금 나가면 진행 중인 작업이 끝나지 않을 수 있어요",
+    );
+    await expect(leaveDialog(page)).toHaveCount(0);
+    await busyDialog(page).getByRole("button", { name: "취소" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/facilities/);
+
+    await adminNav(page).getByRole("link", { name: "명소" }).click();
+    await busyDialog(page).getByRole("button", { name: "나가기" }).click();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/landmarks$/);
+    release();
   });
 
   test("칩을 바꾸기 전에도 묻는다", async ({ page }) => {

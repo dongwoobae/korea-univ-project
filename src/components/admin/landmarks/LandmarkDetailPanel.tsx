@@ -4,7 +4,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import LandmarkTranslationCard from "@/components/admin/landmarks/LandmarkTranslationCard";
-import { useUnsavedChanges } from "@/components/admin/UnsavedChangesGuard";
+import {
+  useBusyNavigation,
+  useUnsavedChanges,
+} from "@/components/admin/UnsavedChangesGuard";
 import DetailPanel from "@/components/admin/workspace/DetailPanel";
 import {
   ADMIN_MOBILE_QUERY,
@@ -94,6 +97,7 @@ export default function LandmarkDetailPanel({
   const pickBarRef = useRef<HTMLDivElement>(null);
   const pickReturnFocusRef = useRef(false);
   const busy = saving || photoBusy !== null;
+  useBusyNavigation(saving);
   // 지도를 바로 누를 수 있는 데스크톱에는 고르기가 없다. 고르는 중에 데스크톱 폭이 되면 상세를 다시 보인다
   const picking = mobile && pickStart !== null;
   const onDraftChangeRef = useRef(onDraftChange);

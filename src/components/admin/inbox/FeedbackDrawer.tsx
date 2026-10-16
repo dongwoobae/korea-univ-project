@@ -1,7 +1,10 @@
 "use client";
 
 import { useId, useState, type RefObject } from "react";
-import { useUnsavedChangesGuard } from "@/components/admin/UnsavedChangesGuard";
+import {
+  useBusyNavigation,
+  useUnsavedChangesGuard,
+} from "@/components/admin/UnsavedChangesGuard";
 import { useWorkspaceCloseRequest } from "@/components/admin/workspace/useWorkspaceSelection";
 import { formatAdminReceivedSuffix } from "@/lib/adminList";
 import { authedFetch } from "@/lib/authedFetch";
@@ -53,6 +56,7 @@ export default function FeedbackDrawer({
   const titleId = useId();
   const { guard } = useUnsavedChangesGuard();
   const [busy, setBusy] = useState(false);
+  useBusyNavigation(busy);
 
   // 피드백에는 고칠 값이 없어 저장 안 한 변경을 등록하지 않는다. 바쁜 동안만 닫지 않는다.
   const requestDrawerClose = () => {

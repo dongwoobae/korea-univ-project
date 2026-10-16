@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Feature, Polygon } from "geojson";
 import {
+  useBusyNavigation,
   useUnsavedChanges,
   useUnsavedChangesGuard,
 } from "@/components/admin/UnsavedChangesGuard";
@@ -113,6 +114,8 @@ export default function FacilityRequestDrawer({
   useUnsavedChanges(
     detail ? isReviewDraftDirty(detail, fields, publish) : false,
   );
+  // 승인 뒤 번역·캐시 갱신까지 끝나야 하므로 떠나려 하면 따로 묻는다
+  useBusyNavigation(busy);
 
   // 닫기 길(✕·배경·Esc·같은 화면 헤더 링크)은 모두 이 하나를 지난다. 바쁜 동안은 닫지 않는다.
   const requestDrawerClose = () => {
