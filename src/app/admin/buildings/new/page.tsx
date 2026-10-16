@@ -20,7 +20,7 @@ const inputStyle: CSSProperties = {
   width: "100%",
   padding: "10px 12px",
   border: "1px solid var(--ku-border)",
-  borderRadius: 8,
+  borderRadius: "var(--ku-radius)",
   fontSize: 14,
   outline: "none",
   boxSizing: "border-box",
@@ -141,7 +141,7 @@ export default function NewBuilding() {
         <div
           style={{
             background: "var(--ku-surface)",
-            borderRadius: 10,
+            borderRadius: "var(--ku-radius)",
             padding: 24,
             border: "1px solid var(--ku-border)",
             marginBottom: 20,
@@ -208,7 +208,7 @@ export default function NewBuilding() {
         <div
           style={{
             background: "var(--ku-surface)",
-            borderRadius: 10,
+            borderRadius: "var(--ku-radius)",
             padding: 24,
             border: "1px solid var(--ku-border)",
             marginBottom: 20,
@@ -254,7 +254,7 @@ export default function NewBuilding() {
               padding: "12px",
               background: "var(--ku-surface)",
               border: "1px solid var(--ku-border)",
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               fontSize: 14,
               cursor: "pointer",
               color: "var(--ku-text-2)",
@@ -273,7 +273,7 @@ export default function NewBuilding() {
                 : "var(--ku-primary)",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               fontSize: 14,
               fontWeight: 600,
               cursor: saving ? "not-allowed" : "pointer",

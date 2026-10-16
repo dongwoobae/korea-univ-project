@@ -28,7 +28,7 @@ export default function FacilityInstallationControl({
         style={{
           fontSize: 12,
           padding: "4px 10px",
-          borderRadius: 20,
+          borderRadius: "var(--ku-radius)",
           fontWeight: 600,
           whiteSpace: "nowrap",
           background: isInstalled
@@ -51,7 +51,7 @@ export default function FacilityInstallationControl({
           fontSize: 12,
           padding: "4px 8px",
           border: "1px solid var(--ku-border)",
-          borderRadius: 6,
+          borderRadius: "var(--ku-radius)",
           background: "var(--ku-surface)",
           color: "var(--ku-text-2)",
           cursor: pending ? "wait" : "pointer",

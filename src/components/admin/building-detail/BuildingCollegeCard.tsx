@@ -23,7 +23,7 @@ export default function BuildingCollegeCard({
       className="ku-admin-detail-card ku-admin-detail-card--college"
       style={{
         background: "var(--ku-surface)",
-        borderRadius: 10,
+        borderRadius: "var(--ku-radius)",
         padding: 20,
         border: "1px solid var(--ku-border)",
         marginBottom: 20,
@@ -53,7 +53,7 @@ export default function BuildingCollegeCard({
             flex: 1,
             padding: "8px 10px",
             border: "1px solid var(--ku-border)",
-            borderRadius: 6,
+            borderRadius: "var(--ku-radius)",
             fontSize: 13,
             outline: "none",
             background: "var(--ku-surface)",
@@ -74,7 +74,7 @@ export default function BuildingCollegeCard({
             background: "var(--ku-primary)",
             color: "#fff",
             border: "none",
-            borderRadius: 6,
+            borderRadius: "var(--ku-radius)",
             fontSize: 13,
             cursor: saving ? "not-allowed" : "pointer",
             opacity: saving ? 0.7 : 1,

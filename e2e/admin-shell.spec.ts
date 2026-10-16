@@ -50,18 +50,17 @@ test.describe("관리자 셸", () => {
     await expect(page.locator(".ku-admin-email")).toBeVisible();
   });
 
-  // .ku-admin-content 전역 덮어쓰기가 없어져도 건물 카드 모양이 그대로인지 지킨다.
-  test("건물 화면 카드 버튼의 반경은 8px이다", async ({ page }) => {
+  test("건물 화면 카드 버튼은 모서리가 각지다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/buildings");
     await expect(
       page.locator("button.ku-admin-overview-item").first(),
-    ).toHaveCSS("border-radius", "8px");
+    ).toHaveCSS("border-radius", "0px");
 
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.locator(".ku-admin-mobile-card").first()).toHaveCSS(
       "border-radius",
-      "8px",
+      "0px",
     );
   });
 });

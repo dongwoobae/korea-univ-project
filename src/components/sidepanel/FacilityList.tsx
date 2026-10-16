@@ -55,7 +55,7 @@ export default function FacilityList({
                 background: "#991B1B",
                 color: "#fff",
                 border: "none",
-                borderRadius: 8,
+                borderRadius: "var(--ku-radius)",
                 padding: "8px 16px",
                 fontSize: 14,
                 fontWeight: 600,
@@ -132,7 +132,7 @@ export default function FacilityList({
                         style={{
                           width: "100%",
                           maxHeight: 180,
-                          borderRadius: 8,
+                          borderRadius: "var(--ku-radius)",
                           background: "#000",
                         }}
                       />

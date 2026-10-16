@@ -41,7 +41,7 @@ const inputStyle: CSSProperties = {
   width: "100%",
   padding: "8px 10px",
   border: "1px solid #ddd",
-  borderRadius: 6,
+  borderRadius: "var(--ku-radius)",
   fontSize: 13,
   outline: "none",
   boxSizing: "border-box",
@@ -166,7 +166,7 @@ export default function FacilityFields({
             className="ku-facility-map-frame"
             style={{
               marginTop: 4,
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               overflow: "hidden",
               border: "1px solid #ddd",
             }}

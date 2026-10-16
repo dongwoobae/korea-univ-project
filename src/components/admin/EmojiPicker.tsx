@@ -85,7 +85,7 @@ export default function EmojiPicker({
   const tabStyle = (active: boolean): CSSProperties => ({
     padding: "4px 9px",
     fontSize: 12,
-    borderRadius: 999,
+    borderRadius: "var(--ku-radius)",
     border: `1px solid ${active ? "var(--ku-star)" : "var(--ku-border-input)"}`,
     background: active ? "var(--ku-star-bg)" : "var(--ku-surface)",
     color: active ? "var(--ku-status-warn-fg)" : "var(--ku-text-2)",
@@ -101,7 +101,7 @@ export default function EmojiPicker({
       style={{
         marginTop: 6,
         border: "1px solid var(--ku-border)",
-        borderRadius: 8,
+        borderRadius: "var(--ku-radius)",
         background: "var(--ku-surface)",
         padding: 10,
         display: "flex",
@@ -127,7 +127,7 @@ export default function EmojiPicker({
         style={{
           padding: "7px 9px",
           border: "1px solid var(--ku-border-input)",
-          borderRadius: 6,
+          borderRadius: "var(--ku-radius)",
           fontSize: 13,
           background: "var(--ku-surface)",
           color: "var(--ku-text-1)",
@@ -189,7 +189,7 @@ export default function EmojiPicker({
                 emoji.unicode === selected
                   ? "1px solid var(--ku-star)"
                   : "1px solid transparent",
-              borderRadius: 5,
+              borderRadius: "var(--ku-radius)",
               background:
                 emoji.unicode === selected
                   ? "var(--ku-star-bg)"

@@ -64,11 +64,11 @@ export default function MapErrorBanner({
             gap: 12,
             background: "#FEF2F2",
             border: "1px solid #FCA5A5",
-            borderRadius: 10,
+            borderRadius: "var(--ku-radius)",
             padding: "10px 14px",
             fontSize: 14,
             color: "#991B1B",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            boxShadow: "var(--ku-shadow-floating)",
           }}
         >
           <span
@@ -85,7 +85,7 @@ export default function MapErrorBanner({
               background: "#991B1B",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               padding: "6px 12px",
               fontSize: 13,
               fontWeight: 600,

@@ -64,10 +64,11 @@ export default function ConfirmModal({
         aria-describedby={description ? descriptionId : undefined}
         style={{
           background: "#fff",
-          borderRadius: 12,
+          border: "1px solid var(--ku-border)",
+          borderRadius: "var(--ku-radius)",
           padding: 24,
           width: 320,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+          boxShadow: "var(--ku-shadow-overlay)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -109,7 +110,7 @@ export default function ConfirmModal({
               padding: "10px",
               background: "none",
               border: "1px solid #ddd",
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               fontSize: 13,
               cursor: busy ? "not-allowed" : "pointer",
               color: "#555",
@@ -128,7 +129,7 @@ export default function ConfirmModal({
               background: confirmColor,
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               fontSize: 13,
               cursor: busy ? "wait" : "pointer",
               fontWeight: 500,

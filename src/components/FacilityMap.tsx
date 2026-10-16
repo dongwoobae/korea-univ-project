@@ -175,14 +175,14 @@ export default function FacilityMap({
           width: 34,
           height: 34,
           background: "#fff",
-          border: "2px solid rgba(0,0,0,0.2)",
-          borderRadius: 4,
+          border: "1px solid var(--ku-border-input)",
+          borderRadius: "var(--ku-radius)",
           cursor: locating ? "wait" : "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           fontSize: 18,
-          boxShadow: "0 1px 5px rgba(0,0,0,0.15)",
+          boxShadow: "var(--ku-shadow-raised)",
         }}
       >
         {locating ? "⏳" : "📍"}

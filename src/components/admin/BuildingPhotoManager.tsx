@@ -248,7 +248,7 @@ export default function BuildingPhotoManager({
             width: "100%",
             height: 120,
             background: "var(--ku-border)",
-            borderRadius: 8,
+            borderRadius: "var(--ku-radius)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -280,7 +280,7 @@ export default function BuildingPhotoManager({
                   unoptimized
                   style={{
                     objectFit: "cover",
-                    borderRadius: 6,
+                    borderRadius: "var(--ku-radius)",
                   }}
                 />
                 <button
@@ -324,7 +324,7 @@ export default function BuildingPhotoManager({
                   fontSize: 11,
                   padding: "4px 6px",
                   border: "1px solid var(--ku-border)",
-                  borderRadius: 4,
+                  borderRadius: "var(--ku-radius)",
                   outline: "none",
                   color: "var(--ku-text-1)",
                   background:
