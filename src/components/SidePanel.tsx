@@ -341,6 +341,10 @@ export default function SidePanel({
           loading={loading}
           isFavorite={isFavorite}
           onTts={handleTts}
+          // 사이트 키가 없으면 버튼을 숨긴다 — 배포와 환경 변수 등록 순서가 어긋나도 실패하는 버튼이 보이지 않는다.
+          onRequestFacility={
+            TURNSTILE_SITE_KEY ? () => setRequestOpen(true) : undefined
+          }
           onToggleFavorite={toggleFavorite}
           onClose={onClose}
           t={t}
@@ -368,18 +372,6 @@ export default function SidePanel({
           lastUpdated={building?.last_updated}
           t={t}
         />
-        {/* 사이트 키가 없으면 버튼을 숨긴다 — 배포와 환경 변수 등록 순서가 어긋나도 실패하는 버튼이 보이지 않는다. */}
-        {TURNSTILE_SITE_KEY && !loading && (
-          <div className="ku-request-entry">
-            <button
-              type="button"
-              className="ku-request-entry-button"
-              onClick={() => setRequestOpen(true)}
-            >
-              {t("requestButton")}
-            </button>
-          </div>
-        )}
         {requestOpen && (
           <FacilityRequestModal
             buildingId={buildingId}

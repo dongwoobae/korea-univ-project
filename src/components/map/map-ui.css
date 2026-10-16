@@ -1114,12 +1114,12 @@
   cursor: pointer;
 }
 .ku-side-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 8px;
   margin-top: 15px;
 }
 .ku-side-action {
+  flex: 1 1 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1132,11 +1132,48 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
+  transition: background-color 0.15s ease;
+}
+.ku-side-action:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ku-text-1) 4%, var(--ku-surface));
+}
+.ku-side-action:active:not(:disabled) {
+  background: color-mix(in srgb, var(--ku-text-1) 8%, var(--ku-surface));
 }
 .ku-side-action--favorite {
   border-color: var(--ku-crimson-600);
   color: var(--ku-crimson-600);
   background: var(--ku-crimson-50);
+}
+.ku-side-action--favorite:hover:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--ku-crimson-600) 8%,
+    var(--ku-crimson-50)
+  );
+}
+.ku-side-action--favorite:active:not(:disabled) {
+  background: color-mix(
+    in srgb,
+    var(--ku-crimson-600) 14%,
+    var(--ku-crimson-50)
+  );
+}
+.ku-side-action--icon {
+  flex: 0 0 40px;
+}
+/* 첫 도형이 몸통(스피커·핀)이라 그것만 채운다. 소리 파동·더하기 선까지 채우면 활 모양 덩어리가 생긴다. */
+.ku-side-speak-icon {
+  color: var(--ku-speak-icon);
+}
+.ku-side-speak-icon > :first-child {
+  fill: var(--ku-speak-icon-fill);
+}
+.ku-side-request-icon {
+  color: var(--ku-request-icon);
+}
+.ku-side-request-icon > :first-child {
+  fill: var(--ku-request-icon-fill);
 }
 .ku-side-content {
   padding: 16px 20px 20px;
@@ -1537,20 +1574,6 @@
   outline-offset: 2px;
 }
 
-.ku-request-entry {
-  padding: 12px 20px 20px;
-}
-.ku-request-entry-button {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--ku-crimson-700);
-  border-radius: 8px;
-  background: var(--ku-surface);
-  color: var(--ku-crimson-700);
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
 .ku-request-modal-backdrop {
   position: fixed;
   inset: 0;
