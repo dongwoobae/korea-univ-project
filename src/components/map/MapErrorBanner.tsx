@@ -68,7 +68,7 @@ export default function MapErrorBanner({
             padding: "10px 14px",
             fontSize: 14,
             color: "#991B1B",
-            boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            boxShadow: "var(--ku-shadow-floating)",
           }}
         >
           <span

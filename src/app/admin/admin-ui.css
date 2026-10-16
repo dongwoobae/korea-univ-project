@@ -1497,6 +1497,7 @@ button.ku-admin-overview-item {
   display: flex;
   flex-direction: column;
   width: min(600px, 100%);
+  border-left: 1px solid var(--ku-border);
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-overlay);
 }
@@ -1855,6 +1856,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   }
   .ku-inbox-drawer {
     width: 100%;
+    border-left: 0;
     box-shadow: none;
   }
   .ku-inbox-drawer-head {
@@ -2099,9 +2101,10 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   flex-direction: column;
   width: 404px;
   overflow: hidden;
+  border: 1px solid var(--ku-border);
   border-radius: var(--ku-radius);
   background: var(--ku-surface);
-  box-shadow: 0 4px 20px rgba(28, 25, 23, 0.14);
+  box-shadow: var(--ku-shadow-floating);
 }
 .ku-float-panel-head {
   display: flex;
@@ -2392,9 +2395,10 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   flex-direction: column;
   width: 460px;
   overflow: hidden;
+  border: 1px solid var(--ku-border);
   border-radius: var(--ku-radius);
   background: var(--ku-surface);
-  box-shadow: 0 4px 20px rgba(28, 25, 23, 0.14);
+  box-shadow: var(--ku-shadow-floating);
 }
 /* 위의 display: flex가 브라우저 기본 [hidden]을 이기므로 다시 숨긴다 */
 .ku-detail-panel[hidden] {
@@ -2534,7 +2538,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 }
 .ku-detail-segment button[aria-pressed="true"] {
   background: var(--ku-surface);
-  box-shadow: 0 1px 3px rgba(28, 25, 23, 0.12);
+  box-shadow: inset 0 0 0 1px var(--ku-border-input);
 }
 .ku-detail-segment button[aria-pressed="true"][data-tone="installed"] {
   color: var(--ku-success-fg);
@@ -3067,6 +3071,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   width: fit-content;
   margin-inline: auto;
   padding: 4px;
+  border: 1px solid var(--ku-border);
   border-radius: var(--ku-radius);
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-floating);
@@ -3264,9 +3269,10 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
     display: flex;
     flex-direction: column;
     height: 150px;
+    border-top: 1px solid var(--ku-border);
     border-radius: var(--ku-radius) var(--ku-radius) 0 0;
     background: var(--ku-surface);
-    box-shadow: 0 -6px 24px rgba(28, 25, 23, 0.14);
+    box-shadow: 0 -2px 6px rgba(28, 25, 23, 0.12);
     transition: height 0.25s ease;
   }
   .ku-bottom-sheet[data-expanded] {
@@ -3331,6 +3337,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   .ku-detail-panel {
     inset: 0;
     width: auto;
+    border: 0;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
@@ -3478,9 +3485,10 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
     gap: 10px;
     min-height: 124px;
     padding: 12px 14px;
+    border-top: 1px solid var(--ku-border);
     border-radius: var(--ku-radius) var(--ku-radius) 0 0;
     background: var(--ku-surface);
-    box-shadow: 0 -6px 24px rgba(28, 25, 23, 0.14);
+    box-shadow: 0 -2px 6px rgba(28, 25, 23, 0.12);
   }
   .ku-landmark-pick-bar:focus-visible,
   .ku-slope-map-bar:focus-visible {

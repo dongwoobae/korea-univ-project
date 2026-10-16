@@ -26,9 +26,9 @@
   --ku-success-fg: #2f7a4f;
   --ku-backdrop: rgba(28, 25, 23, 0.4);
   --ku-map-control: rgba(255, 255, 255, 0.94);
-  --ku-shadow-raised: 0 1px 3px rgba(28, 25, 23, 0.1);
-  --ku-shadow-floating: 0 4px 16px rgba(28, 25, 23, 0.12);
-  --ku-shadow-overlay: 0 12px 32px rgba(28, 25, 23, 0.16);
+  --ku-shadow-raised: 0 1px 2px rgba(28, 25, 23, 0.08);
+  --ku-shadow-floating: 0 2px 6px rgba(28, 25, 23, 0.12);
+  --ku-shadow-overlay: 0 6px 16px rgba(28, 25, 23, 0.16);
   --ku-primary: #8c0000;
   --ku-primary-hover: #6e0000;
   --ku-primary-text: var(--ku-crimson-600);
@@ -77,9 +77,9 @@
     --ku-success-fg: #7bd5a1;
     --ku-backdrop: rgba(0, 0, 0, 0.68);
     --ku-map-control: rgba(33, 29, 26, 0.96);
-    --ku-shadow-raised: 0 1px 3px rgba(0, 0, 0, 0.35);
-    --ku-shadow-floating: 0 4px 18px rgba(0, 0, 0, 0.42);
-    --ku-shadow-overlay: 0 14px 36px rgba(0, 0, 0, 0.58);
+    --ku-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --ku-shadow-floating: 0 2px 6px rgba(0, 0, 0, 0.45);
+    --ku-shadow-overlay: 0 6px 18px rgba(0, 0, 0, 0.55);
     /* 채움은 흰 글자(4.5:1)와 다크 표면(3:1) 대비를 함께 지키는 값이다(설계 2026-10-14 2.4).
        -text·-soft-bg는 :root의 크림슨 참조가 이 블록의 크림슨 값을 따라간다. */
     --ku-primary: #cc2936;
@@ -171,7 +171,7 @@ a {
 }
 
 .leaflet-control-zoom {
-  border: 0 !important;
+  border: 1px solid var(--ku-border) !important;
   box-shadow: var(--ku-shadow-floating) !important;
 }
 
@@ -256,7 +256,7 @@ a {
   padding: 14px 24px;
   border: 1px solid;
   border-radius: var(--ku-radius);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--ku-shadow-floating);
   font-size: 15px;
   white-space: normal;
   word-break: keep-all;

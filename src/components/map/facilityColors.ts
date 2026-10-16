@@ -5,8 +5,8 @@ const FACILITY_COLORS: Record<FacilityCode, string> = {
   ...facilityColor,
 };
 
-const FALLBACK_PALETTE = [
-  "#0891B2",
+export const FALLBACK_PALETTE = [
+  "#0E7490",
   "#BE185D",
   "#15803D",
   "#B45309",

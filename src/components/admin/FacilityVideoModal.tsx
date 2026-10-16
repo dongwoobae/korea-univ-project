@@ -260,11 +260,12 @@ export default function FacilityVideoModal({
         <div
           style={{
             background: "#fff",
+            border: "1px solid var(--ku-border)",
             borderRadius: "var(--ku-radius)",
             width: "min(480px, 92vw)",
             maxHeight: "90vh",
             overflowY: "auto",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            boxShadow: "var(--ku-shadow-overlay)",
             pointerEvents: "all",
           }}
         >

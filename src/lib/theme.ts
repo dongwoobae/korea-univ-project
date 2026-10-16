@@ -40,14 +40,6 @@ export const facilityColor = {
   braille: "#8A6A00",
 } as const;
 
-export const radius = { sm: 8, md: 12, lg: 16, full: 999 } as const;
-
-export const shadow = {
-  raised: "0 1px 3px rgba(28,25,23,0.10)",
-  floating: "0 4px 16px rgba(28,25,23,0.12)",
-  overlay: "0 12px 32px rgba(28,25,23,0.16)",
-} as const;
-
 export const focusRing = {
   borderColor: color.crimson700,
   boxShadow: `0 0 0 3px ${color.crimson100}`,

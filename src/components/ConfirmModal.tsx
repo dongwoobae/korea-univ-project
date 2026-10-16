@@ -64,10 +64,11 @@ export default function ConfirmModal({
         aria-describedby={description ? descriptionId : undefined}
         style={{
           background: "#fff",
+          border: "1px solid var(--ku-border)",
           borderRadius: "var(--ku-radius)",
           padding: 24,
           width: 320,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+          boxShadow: "var(--ku-shadow-overlay)",
         }}
         onClick={(e) => e.stopPropagation()}
       >
