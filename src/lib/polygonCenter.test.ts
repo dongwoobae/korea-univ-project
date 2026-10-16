@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import type { Feature, Polygon } from "geojson";
-import { KU_CENTER, getPolygonRingCenter } from "./polygonCenter";
+import type { Feature, Point, Polygon } from "geojson";
+import {
+  KU_CENTER,
+  getBuildingViewCenter,
+  getPointLatLng,
+  getPolygonRingCenter,
+} from "./polygonCenter";
 
 function polygon(ring: [number, number][]): Feature<Polygon> {
   return {
@@ -56,5 +61,53 @@ describe("getPolygonRingCenter", () => {
     } as unknown as Feature<Polygon>;
 
     expect(getPolygonRingCenter(point)).toEqual(KU_CENTER);
+  });
+});
+
+function point(lng: number, lat: number): Feature<Point> {
+  return {
+    type: "Feature",
+    geometry: { type: "Point", coordinates: [lng, lat] },
+    properties: {},
+  };
+}
+
+describe("getPointLatLng", () => {
+  it("점(Point) geojson이면 [lat, lng]을 돌려준다", () => {
+    expect(getPointLatLng(point(127.0316, 37.5889))).toEqual([
+      37.5889, 127.0316,
+    ]);
+  });
+
+  it("폴리곤이나 빈 값이면 null이다", () => {
+    expect(
+      getPointLatLng(
+        polygon([
+          [127.03, 37.58],
+          [127.04, 37.58],
+          [127.04, 37.59],
+        ]),
+      ),
+    ).toBeNull();
+    expect(getPointLatLng(null)).toBeNull();
+  });
+});
+
+describe("getBuildingViewCenter", () => {
+  it("점(Point) geojson이면 그 점에서 연다", () => {
+    expect(getBuildingViewCenter(point(127.0316, 37.5889))).toEqual([
+      37.5889, 127.0316,
+    ]);
+  });
+
+  it("폴리곤이면 링 평균점, 없으면 캠퍼스 중심이다", () => {
+    const shape = polygon([
+      [127.03, 37.58],
+      [127.04, 37.58],
+      [127.04, 37.59],
+      [127.03, 37.59],
+    ]);
+    expect(getBuildingViewCenter(shape)).toEqual(getPolygonRingCenter(shape));
+    expect(getBuildingViewCenter(null)).toEqual(KU_CENTER);
   });
 });

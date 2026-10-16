@@ -8,7 +8,7 @@ import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
 import { addNeighborLayer } from "@/lib/neighborLayer";
-import { getPolygonRingCenter } from "@/lib/polygonCenter";
+import { getBuildingViewCenter, getPointLatLng } from "@/lib/polygonCenter";
 
 interface BuildingPolygonPreviewProps {
   geojson: Feature<Polygon>;
@@ -50,7 +50,7 @@ export default function BuildingPolygonPreview({
       boxZoom: false,
       keyboard: false,
       zoomControl: false,
-    }).setView(getPolygonRingCenter(initialGeojson), 18);
+    }).setView(getBuildingViewCenter(initialGeojson), 18);
     mapRef.current = map;
 
     tileLayerRef.current = L.tileLayer(getCartoTileUrl(false), {
@@ -68,11 +68,17 @@ export default function BuildingPolygonPreview({
         // 주변 건물은 보조 정보다. 실패해도 이 건물 폴리곤은 그린다.
       });
 
-    // Point geojson(지하철역 3건)은 폴리곤이 아니므로 그리지 않는다.
-    // Point 처리 정책은 별도 과제로 남아 있다.
-    if (initialGeojson.geometry?.type === "Polygon") {
+    const buildingStyle = { color: "#2563EB", weight: 2, fillOpacity: 0.3 };
+    const station = getPointLatLng(initialGeojson);
+    if (station) {
+      L.circleMarker(station, {
+        ...buildingStyle,
+        radius: 7,
+        interactive: false,
+      }).addTo(map);
+    } else if (initialGeojson.geometry?.type === "Polygon") {
       L.geoJSON(initialGeojson, {
-        style: { color: "#2563EB", weight: 2, fillOpacity: 0.3 },
+        style: buildingStyle,
         interactive: false,
       }).addTo(map);
     }

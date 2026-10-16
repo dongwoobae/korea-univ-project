@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { installMockBackend } from "./support/mockBackend";
+import { installMockBackend, stationBuildingRow } from "./support/mockBackend";
 
 test.describe("건물 관리자 흐름", () => {
   test("건물 보완 필요 현황을 서버 집계로 표시한다", async ({ page }) => {
@@ -240,6 +240,44 @@ test.describe("건물 관리자 흐름", () => {
     expect(
       state.buildings.some((building) => building.name === "E2E 신관"),
     ).toBeTruthy();
+  });
+
+  test("점 데이터인 역은 프리뷰에 그 점을 찍어 그 자리에서 열고, 편집기는 점 없이 폴리곤이 없는 건물처럼 연다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.buildings.push(stationBuildingRow(90, "안암역", [127.0316, 37.5889]));
+    await page.goto("/admin/buildings/90");
+
+    const preview = page.getByRole("img", { name: "건물 폴리곤 미리보기" });
+    const dot = preview.locator('path[stroke="#2563EB"]');
+    await expect(dot).toHaveCount(1);
+    const previewBox = (await preview.boundingBox())!;
+    const dotBox = (await dot.boundingBox())!;
+    expect(
+      Math.abs(
+        dotBox.x + dotBox.width / 2 - (previewBox.x + previewBox.width / 2),
+      ),
+    ).toBeLessThan(3);
+    expect(
+      Math.abs(
+        dotBox.y + dotBox.height / 2 - (previewBox.y + previewBox.height / 2),
+      ),
+    ).toBeLessThan(3);
+    await expect(page.locator("img.leaflet-marker-icon")).toHaveCount(0);
+
+    await page
+      .locator("#building-polygon")
+      .getByRole("button", { name: "편집" })
+      .click();
+    const map = page.locator(".leaflet-container");
+    await expect(page.locator(".leaflet-pm-icon-polygon")).toBeVisible();
+    await expect(page.locator("img.leaflet-marker-icon")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "폴리곤 지우고 다시 그리기" }),
+    ).toHaveCount(0);
+    await page.locator(".leaflet-pm-icon-polygon").locator("..").click();
+    await expect(map).toHaveClass(/geoman-draw-cursor/);
   });
 
   test("건물명 수정과 소프트 삭제·복원을 수행한다", async ({ page }) => {
