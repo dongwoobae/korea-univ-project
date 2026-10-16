@@ -18,6 +18,10 @@
   --ku-crimson-800: #6e0000;
   --ku-star: #e0a400;
   --ku-star-bg: #fbf4df;
+  --ku-speak-icon: #2b8fcb;
+  --ku-speak-icon-fill: #d6effc;
+  --ku-request-icon: #c8463c;
+  --ku-request-icon-fill: #fde0dd;
   --ku-success-bg: #eaf3ed;
   --ku-success-fg: #2f7a4f;
   --ku-backdrop: rgba(28, 25, 23, 0.4);
@@ -64,6 +68,10 @@
     --ku-crimson-800: #ffaaa3;
     --ku-star: #f2c44d;
     --ku-star-bg: #3b321c;
+    --ku-speak-icon: #7cc8f0;
+    --ku-speak-icon-fill: #183b4f;
+    --ku-request-icon: #f0948c;
+    --ku-request-icon-fill: #45221f;
     --ku-success-bg: #1c3528;
     --ku-success-fg: #7bd5a1;
     --ku-backdrop: rgba(0, 0, 0, 0.68);
