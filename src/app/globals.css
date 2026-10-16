@@ -47,6 +47,7 @@
   --ku-board-column: #efebe7;
   --ku-dot-new: #c27a12;
   --ku-drawer-dim: rgba(28, 25, 23, 0.22);
+  --ku-radius: 0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -195,6 +196,19 @@ a {
   background: var(--ku-surface);
 }
 
+/* leaflet.css·leaflet-geoman.css는 이 파일보다 늦게 불리고, 툴바 첫·끝 버튼의 반경 규칙은 특이도가 더 높다 */
+.leaflet-bar,
+.leaflet-bar a,
+.leaflet-control-layers,
+.leaflet-popup-content-wrapper,
+.leaflet-tooltip,
+.leaflet-pm-toolbar a.leaflet-buttons-control-button,
+.leaflet-pm-toolbar a.leaflet-pm-action,
+.leaflet-pm-touch-hint,
+.pm-textarea {
+  border-radius: var(--ku-radius) !important;
+}
+
 /* Leaflet 기본 CSS의 will-change: transform은 건물 SVG를 별도 합성 레이어로
    만든다. 그러면 moveend에 transform과 viewBox를 함께 옮길 때 크롬이 transform만
    먼저 적용해 폴리곤이 한 프레임 밀렸다 돌아온다(2026-09-08 사용자 녹화로 확인). */
@@ -241,7 +255,7 @@ a {
   max-width: 700px;
   padding: 14px 24px;
   border: 1px solid;
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   font-size: 15px;
   white-space: normal;

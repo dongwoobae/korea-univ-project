@@ -260,7 +260,7 @@ export default function FacilityVideoModal({
         <div
           style={{
             background: "#fff",
-            borderRadius: 12,
+            borderRadius: "var(--ku-radius)",
             width: "min(480px, 92vw)",
             maxHeight: "90vh",
             overflowY: "auto",
@@ -337,7 +337,7 @@ export default function FacilityVideoModal({
                   style={{
                     height: 6,
                     background: "#e5e7eb",
-                    borderRadius: 99,
+                    borderRadius: "var(--ku-radius)",
                     overflow: "hidden",
                   }}
                 >
@@ -347,7 +347,7 @@ export default function FacilityVideoModal({
                         height: "100%",
                         width: "40%",
                         background: "#9ca3af",
-                        borderRadius: 99,
+                        borderRadius: "var(--ku-radius)",
                         animation: "shimmer 1.2s ease-in-out infinite",
                       }}
                     />
@@ -357,7 +357,7 @@ export default function FacilityVideoModal({
                         height: "100%",
                         width: `${progress}%`,
                         background: "var(--ku-primary)",
-                        borderRadius: 99,
+                        borderRadius: "var(--ku-radius)",
                         transition: "width 0.2s",
                       }}
                     />
@@ -373,7 +373,7 @@ export default function FacilityVideoModal({
                   controls
                   style={{
                     width: "100%",
-                    borderRadius: 8,
+                    borderRadius: "var(--ku-radius)",
                     background: "#000",
                     maxHeight: 260,
                   }}
@@ -391,7 +391,7 @@ export default function FacilityVideoModal({
                     fontSize: 13,
                     padding: "7px 10px",
                     border: "1px solid #e5e7eb",
-                    borderRadius: 6,
+                    borderRadius: "var(--ku-radius)",
                     outline: "none",
                     color: "#374151",
                     background: savingCaption ? "#f9fafb" : "#fff",

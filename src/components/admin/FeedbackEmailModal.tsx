@@ -78,7 +78,7 @@ export default function FeedbackEmailModal({
     padding: "8px 10px",
     fontSize: 13,
     border: "1px solid #d1d5db",
-    borderRadius: 6,
+    borderRadius: "var(--ku-radius)",
     boxSizing: "border-box",
   };
   const labelStyle = {
@@ -110,7 +110,7 @@ export default function FeedbackEmailModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "#fff",
-          borderRadius: 12,
+          borderRadius: "var(--ku-radius)",
           padding: 24,
           width: "90%",
           maxWidth: 420,
@@ -160,7 +160,7 @@ export default function FeedbackEmailModal({
                   color: "#888",
                   background: "#f3f4f6",
                   border: "1px solid #d1d5db",
-                  borderRadius: 6,
+                  borderRadius: "var(--ku-radius)",
                   cursor: "pointer",
                 }}
                 aria-label={`참조 ${i + 1} 삭제`}
@@ -177,7 +177,7 @@ export default function FeedbackEmailModal({
               color: "var(--ku-primary-text)",
               background: "none",
               border: "1px dashed var(--ku-primary-text)",
-              borderRadius: 6,
+              borderRadius: "var(--ku-radius)",
               padding: "5px 10px",
               cursor: "pointer",
             }}
@@ -218,7 +218,7 @@ export default function FeedbackEmailModal({
               color: "#555",
               background: "#fff",
               border: "1px solid #d1d5db",
-              borderRadius: 6,
+              borderRadius: "var(--ku-radius)",
               padding: "8px 14px",
               cursor: "pointer",
             }}
@@ -233,7 +233,7 @@ export default function FeedbackEmailModal({
               color: "#fff",
               background: "var(--ku-primary)",
               border: "none",
-              borderRadius: 6,
+              borderRadius: "var(--ku-radius)",
               padding: "8px 14px",
               cursor: saving ? "not-allowed" : "pointer",
               opacity: saving ? 0.6 : 1,

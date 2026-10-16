@@ -35,7 +35,7 @@ export default function AddFacilityButton({
           background: "var(--ku-primary)",
           color: "#fff",
           border: "none",
-          borderRadius: 8,
+          borderRadius: "var(--ku-radius)",
           cursor: "pointer",
         }}
       >

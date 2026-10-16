@@ -66,7 +66,7 @@ export default function BuildingDetailHeader({
             color: "var(--ku-text-2)",
             background: "none",
             border: "1px solid var(--ku-border)",
-            borderRadius: 6,
+            borderRadius: "var(--ku-radius)",
             padding: "6px 12px",
             cursor: "pointer",
           }}

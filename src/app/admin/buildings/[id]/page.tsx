@@ -338,7 +338,7 @@ export default function BuildingDetail() {
           className="ku-admin-detail-card ku-admin-detail-card--photos"
           style={{
             background: "var(--ku-surface)",
-            borderRadius: 10,
+            borderRadius: "var(--ku-radius)",
             padding: 20,
             border: "1px solid var(--ku-border)",
             marginBottom: 20,
@@ -356,7 +356,7 @@ export default function BuildingDetail() {
           className="ku-admin-detail-card ku-admin-detail-card--videos"
           style={{
             background: "var(--ku-surface)",
-            borderRadius: 10,
+            borderRadius: "var(--ku-radius)",
             padding: 20,
             border: "1px solid var(--ku-border)",
             marginBottom: 20,
@@ -428,7 +428,7 @@ export default function BuildingDetail() {
                 color: "#fff",
                 background: "var(--ku-primary)",
                 border: "1px solid var(--ku-primary)",
-                borderRadius: 6,
+                borderRadius: "var(--ku-radius)",
                 padding: "6px 14px",
                 cursor: "pointer",
               }}
@@ -444,7 +444,7 @@ export default function BuildingDetail() {
                 color: "var(--ku-danger)",
                 background: "none",
                 border: "1px solid var(--ku-danger)",
-                borderRadius: 6,
+                borderRadius: "var(--ku-radius)",
                 padding: "6px 14px",
                 cursor: "pointer",
               }}

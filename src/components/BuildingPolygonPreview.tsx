@@ -103,7 +103,7 @@ export default function BuildingPolygonPreview({
       style={{
         width: "100%",
         height: 260,
-        borderRadius: 8,
+        borderRadius: "var(--ku-radius)",
         overflow: "hidden",
         border: "1px solid var(--ku-border)",
       }}

@@ -46,7 +46,7 @@ const landmarkMarkerIcon = (
     () =>
       L.divIcon({
         className: "",
-        html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${escapeHtml(landmark.id)}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#C08A2D;box-shadow:0 2px 7px rgba(28,25,23,0.22);"><span aria-hidden="true" style="display:flex;font-size:15px;line-height:1">${escapeHtml(emoji)}</span></div>${showLabel ? `<span data-testid="landmark-label" style="padding:2px 5px;border-radius:999px;color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span>` : ""}</div>`,
+        html: `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;white-space:nowrap"><div data-testid="landmark-marker-${escapeHtml(landmark.id)}" style="width:30px;height:30px;background:white;border:2px solid #C08A2D;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#C08A2D;box-shadow:0 2px 7px rgba(28,25,23,0.22);"><span aria-hidden="true" style="display:flex;font-size:15px;line-height:1">${escapeHtml(emoji)}</span></div>${showLabel ? `<span data-testid="landmark-label" style="padding:2px 5px;border-radius:var(--ku-radius);color:#7A5C16;background:rgba(255,255,255,.92);box-shadow:0 1px 3px rgba(28,25,23,.12);font:700 10.5px Pretendard,sans-serif">${escapeHtml(name)}</span>` : ""}</div>`,
         iconAnchor: [17, 17],
         popupAnchor: [0, -20],
       }),
@@ -174,7 +174,7 @@ function LandmarkMarkers({
                       position: "relative",
                       width: "100%",
                       height: 150,
-                      borderRadius: 6,
+                      borderRadius: "var(--ku-radius)",
                       marginTop: 8,
                       overflow: "hidden",
                     }}

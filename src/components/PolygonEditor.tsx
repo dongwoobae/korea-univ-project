@@ -178,7 +178,7 @@ export default function PolygonEditor({
         style={{
           width: "100%",
           height: 420,
-          borderRadius: 8,
+          borderRadius: "var(--ku-radius)",
           overflow: "hidden",
           border: "1px solid #ddd",
         }}
@@ -194,7 +194,7 @@ export default function PolygonEditor({
               background: "none",
               border: "1px solid var(--ku-danger)",
               color: "var(--ku-danger)",
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               fontSize: 13,
               cursor: "pointer",
             }}
@@ -212,7 +212,7 @@ export default function PolygonEditor({
                 padding: "10px",
                 background: "none",
                 border: "1px solid #ddd",
-                borderRadius: 8,
+                borderRadius: "var(--ku-radius)",
                 fontSize: 13,
                 cursor: "pointer",
               }}
@@ -228,7 +228,7 @@ export default function PolygonEditor({
                 background: "var(--ku-primary)",
                 color: "#fff",
                 border: "none",
-                borderRadius: 8,
+                borderRadius: "var(--ku-radius)",
                 fontSize: 13,
                 cursor: "pointer",
               }}

@@ -176,7 +176,7 @@ export default function FacilityMap({
           height: 34,
           background: "#fff",
           border: "2px solid rgba(0,0,0,0.2)",
-          borderRadius: 4,
+          borderRadius: "var(--ku-radius)",
           cursor: locating ? "wait" : "pointer",
           display: "flex",
           alignItems: "center",

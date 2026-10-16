@@ -123,7 +123,7 @@ export default function FacilityFormModal({
         className="ku-facility-modal"
         style={{
           background: "#fff",
-          borderRadius: 12,
+          borderRadius: "var(--ku-radius)",
           padding: 24,
           width: "min(500px, calc(100vw - 32px))",
           boxSizing: "border-box",
@@ -196,7 +196,7 @@ export default function FacilityFormModal({
               padding: "10px",
               background: "none",
               border: "1px solid #ddd",
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               fontSize: 13,
               cursor: "pointer",
             }}
@@ -212,7 +212,7 @@ export default function FacilityFormModal({
               background: "#8C0000",
               color: "#fff",
               border: "none",
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               fontSize: 13,
               cursor: "pointer",
             }}

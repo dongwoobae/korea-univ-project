@@ -33,7 +33,7 @@ export default function BuildingPolygonCard({
       className="ku-admin-detail-card ku-admin-detail-card--polygon"
       style={{
         background: "var(--ku-surface)",
-        borderRadius: 10,
+        borderRadius: "var(--ku-radius)",
         padding: 20,
         border: "1px solid var(--ku-border)",
         marginBottom: 20,
@@ -79,7 +79,7 @@ export default function BuildingPolygonCard({
               background: "none",
               border: "1px solid var(--ku-primary-text)",
               color: "var(--ku-primary-text)",
-              borderRadius: 8,
+              borderRadius: "var(--ku-radius)",
               cursor: "pointer",
             }}
           >

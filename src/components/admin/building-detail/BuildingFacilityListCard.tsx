@@ -46,7 +46,7 @@ export default function BuildingFacilityListCard({
       className="ku-admin-detail-card ku-admin-detail-card--facilities"
       style={{
         background: "var(--ku-surface)",
-        borderRadius: 10,
+        borderRadius: "var(--ku-radius)",
         padding: 20,
         border: "1px solid var(--ku-border)",
       }}

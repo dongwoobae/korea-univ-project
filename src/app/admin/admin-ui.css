@@ -90,7 +90,7 @@
   min-width: 200px;
   padding: 6px;
   border: 1px solid var(--ku-border);
-  border-radius: 12px;
+  border-radius: var(--ku-radius);
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-overlay);
 }
@@ -106,7 +106,7 @@
   min-height: 44px;
   padding: 0 12px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: transparent;
   cursor: pointer;
@@ -125,7 +125,7 @@
   min-height: 38px;
   padding: 0 13px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   cursor: pointer;
@@ -164,7 +164,7 @@
   min-height: 38px;
   padding: 0 13px;
   border: 1px solid var(--ku-primary-text);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-primary-text);
   background: var(--ku-surface);
   cursor: pointer;
@@ -233,7 +233,7 @@
   margin-bottom: 14px;
   padding: 0 13px;
   border: 1px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-2);
   background: var(--ku-surface);
   font-size: 12.5px;
@@ -253,7 +253,7 @@
   min-width: 0;
   padding: 12px 13px;
   border: 1px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   /* button은 브라우저 기본값이 text-align: center이고 color도 상속하지 않는다.
      둘 다 명시하지 않으면 카드 안 텍스트가 가운데로 가고 색이 어긋난다.
      (globals.css 리셋은 button에 font: inherit만 준다) */
@@ -262,7 +262,7 @@
   background: var(--ku-surface);
 }
 button.ku-admin-overview-item {
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   cursor: pointer;
 }
 .ku-admin-overview-item[aria-pressed="true"] {
@@ -316,7 +316,7 @@ button.ku-admin-overview-item {
   margin: 0 0 16px;
   padding: 12px 13px;
   border: 1px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-2);
   background: var(--ku-surface);
   font-size: 13px;
@@ -338,7 +338,7 @@ button.ku-admin-overview-item {
   height: 42px;
   padding: 0 38px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   outline: 0;
   color: var(--ku-text-1);
   background: var(--ku-surface);
@@ -352,7 +352,7 @@ button.ku-admin-overview-item {
   margin-bottom: 12px;
   padding: 10px;
   border: 1px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   background: var(--ku-bg);
 }
 .ku-admin-list-search {
@@ -372,7 +372,7 @@ button.ku-admin-overview-item {
 .ku-admin-list-controls select {
   min-height: 40px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   font-size: 13px;
@@ -389,7 +389,7 @@ button.ku-admin-overview-item {
   min-height: 40px;
   padding: 0 10px;
   border: 1px solid var(--ku-border);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-primary-text);
   background: var(--ku-surface);
   cursor: pointer;
@@ -420,7 +420,7 @@ button.ku-admin-overview-item {
   min-width: 72px;
   min-height: 40px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-primary-text);
   background: var(--ku-surface);
   cursor: pointer;
@@ -460,7 +460,7 @@ button.ku-admin-overview-item {
   margin-top: 12px;
   padding: 12px;
   border: 1px solid var(--ku-border);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   background: var(--ku-bg);
 }
 .ku-photo-upload-summary {
@@ -483,7 +483,7 @@ button.ku-admin-overview-item {
   gap: 12px;
   min-height: 32px;
   padding: 7px 9px;
-  border-radius: 6px;
+  border-radius: var(--ku-radius);
   background: var(--ku-surface);
   color: var(--ku-text-2);
   font-size: 12px;
@@ -511,7 +511,7 @@ button.ku-admin-overview-item {
   margin-top: 10px;
   padding: 0 12px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 7px;
+  border-radius: var(--ku-radius);
   color: var(--ku-primary-text);
   background: var(--ku-surface);
   cursor: pointer;
@@ -521,7 +521,7 @@ button.ku-admin-overview-item {
 .ku-admin-table {
   overflow: hidden;
   border: 1px solid var(--ku-border);
-  border-radius: 12px;
+  border-radius: var(--ku-radius);
   background: var(--ku-surface);
 }
 .ku-admin-table-row {
@@ -577,7 +577,7 @@ button.ku-admin-overview-item {
   align-items: center;
   min-height: 24px;
   padding: 0 8px;
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   color: var(--ku-success-fg);
   background: var(--ku-success-bg);
   font-size: 12px;
@@ -618,7 +618,7 @@ button.ku-admin-overview-item {
   width: min(380px, 100%);
   padding: 32px;
   border: 1px solid var(--ku-border);
-  border-radius: 16px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-overlay);
@@ -637,7 +637,7 @@ button.ku-admin-overview-item {
   min-height: 46px;
   padding: 0 12px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   outline: 0;
   color: var(--ku-text-1);
   background: var(--ku-surface);
@@ -655,7 +655,7 @@ button.ku-admin-overview-item {
 .ku-admin-detail-save-status {
   flex: 0 0 auto;
   padding: 4px 9px;
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   color: var(--ku-status-installed-fg);
   background: var(--ku-status-installed-bg);
   font-size: 11.5px;
@@ -669,7 +669,7 @@ button.ku-admin-overview-item {
 }
 .ku-admin-detail-unsaved-label {
   padding: 3px 7px;
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -686,7 +686,7 @@ button.ku-admin-overview-item {
   margin: 0 !important;
   color: var(--ku-text-1);
   border-color: var(--ku-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--ku-radius) !important;
   background: var(--ku-surface) !important;
 }
 /* DOM 순서가 아니라 카드의 의미로 배치한다. nth-child로 두면 카드를 하나
@@ -740,7 +740,7 @@ button.ku-admin-overview-item {
   margin: 0 !important;
   color: var(--ku-text-1);
   border-color: var(--ku-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--ku-radius) !important;
   background: var(--ku-surface) !important;
 }
 .ku-facility-modal-backdrop {
@@ -749,7 +749,7 @@ button.ku-admin-overview-item {
 .ku-facility-modal {
   color: var(--ku-text-1);
   border: 1px solid var(--ku-border);
-  border-radius: 16px !important;
+  border-radius: var(--ku-radius) !important;
   background: var(--ku-surface) !important;
   box-shadow: var(--ku-shadow-overlay);
 }
@@ -769,7 +769,7 @@ button.ku-admin-overview-item {
   min-height: 48px;
   margin-top: 10px;
   border: 1.5px solid var(--ku-crimson-600);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-crimson-600);
   background: var(--ku-surface);
   cursor: pointer;
@@ -931,7 +931,7 @@ button.ku-admin-overview-item {
     min-height: 82px;
     padding: 13px 14px;
     border: 1px solid var(--ku-border);
-    border-radius: 8px;
+    border-radius: var(--ku-radius);
     text-align: left;
     color: var(--ku-text-1);
     background: var(--ku-surface);
@@ -979,7 +979,7 @@ button.ku-admin-overview-item {
     width: 100% !important;
     max-height: 92dvh !important;
     padding: 18px 16px calc(14px + env(safe-area-inset-bottom)) !important;
-    border-radius: 20px 20px 0 0 !important;
+    border-radius: var(--ku-radius) var(--ku-radius) 0 0 !important;
   }
   .ku-facility-modal-actions {
     position: sticky;
@@ -1003,7 +1003,7 @@ button.ku-admin-overview-item {
 .ku-facility-translation-badge {
   padding: 4px 7px;
   border: 1px solid #f59e0b;
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   color: #92400e;
   background: #fffbeb;
   font-size: 11px;
@@ -1013,7 +1013,7 @@ button.ku-admin-overview-item {
 .ku-facility-translation-control button {
   padding: 4px 7px;
   border: 1px solid #d97706;
-  border-radius: 6px;
+  border-radius: var(--ku-radius);
   color: #92400e;
   background: var(--ku-surface);
   font-size: 11px;
@@ -1081,7 +1081,7 @@ button.ku-admin-overview-item {
 
 .ku-facility-row-badge {
   padding: 3px 7px;
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -1134,7 +1134,7 @@ button.ku-admin-overview-item {
 .ku-building-video-unpublished {
   margin-left: 6px;
   padding: 2px 6px;
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-2);
   background: var(--ku-border);
   font-size: 11px;
@@ -1203,7 +1203,7 @@ button.ku-admin-overview-item {
   min-width: 18px;
   margin-left: 4px;
   padding: 0 5px;
-  border-radius: 9px;
+  border-radius: var(--ku-radius);
   background: var(--ku-primary);
   color: #fff;
   font-size: 11px;
@@ -1215,7 +1215,7 @@ button.ku-admin-overview-item {
   flex: none;
   width: 44px;
   height: 44px;
-  border-radius: 6px;
+  border-radius: var(--ku-radius);
   object-fit: cover;
 }
 .ku-inbox-thumb--empty {
@@ -1223,7 +1223,7 @@ button.ku-admin-overview-item {
 }
 .ku-inbox-status {
   padding: 2px 8px;
-  border-radius: 9px;
+  border-radius: var(--ku-radius);
   font-size: 11px;
   white-space: nowrap;
   background: var(--ku-status-warn-bg);
@@ -1273,7 +1273,7 @@ button.ku-admin-overview-item {
   height: 30px;
   padding: 0 4px 0 11px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   color: var(--ku-primary-text);
   background: var(--ku-surface);
   font-size: 12px;
@@ -1283,7 +1283,7 @@ button.ku-admin-overview-item {
   width: 22px;
   height: 22px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   color: inherit;
   background: transparent;
   cursor: pointer;
@@ -1300,7 +1300,7 @@ button.ku-admin-overview-item {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-radius: 12px;
+  border-radius: var(--ku-radius);
   background: var(--ku-board-column);
 }
 .ku-inbox-column-head {
@@ -1356,7 +1356,7 @@ button.ku-admin-overview-item {
   width: 100%;
   padding: 12px;
   border: 1px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-raised);
@@ -1374,7 +1374,7 @@ button.ku-admin-overview-item {
 }
 .ku-inbox-kind-tag {
   padding: 2px 7px;
-  border-radius: 5px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-2);
   background: var(--ku-divider);
   font-size: 11px;
@@ -1434,7 +1434,7 @@ button.ku-admin-overview-item {
 .ku-inbox-column-empty {
   padding: 28px 12px;
   border: 1px dashed var(--ku-border-input);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-3);
   font-size: 12.5px;
   text-align: center;
@@ -1445,7 +1445,7 @@ button.ku-admin-overview-item {
   justify-content: space-between;
   gap: 8px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   color: var(--ku-status-warn-fg);
   background: var(--ku-status-warn-bg);
   font-size: 12.5px;
@@ -1453,7 +1453,7 @@ button.ku-admin-overview-item {
 .ku-inbox-retry,
 .ku-inbox-more {
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   cursor: pointer;
@@ -1516,7 +1516,7 @@ button.ku-admin-overview-item {
   width: 34px;
   height: 34px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-3);
   background: none;
   cursor: pointer;
@@ -1553,7 +1553,7 @@ button.ku-admin-overview-item {
   place-items: center;
   width: 42px;
   height: 42px;
-  border-radius: 11px;
+  border-radius: var(--ku-radius);
   color: #fff;
 }
 .ku-inbox-drawer-body {
@@ -1592,7 +1592,7 @@ button.ku-admin-overview-item {
 }
 .ku-inbox-feedback-title .ku-inbox-kind-tag {
   padding: 3px 9px;
-  border-radius: 6px;
+  border-radius: var(--ku-radius);
   font-size: 12px;
 }
 .ku-inbox-feedback-content {
@@ -1696,7 +1696,7 @@ button.ku-admin-overview-item {
   height: 132px;
   overflow: hidden;
   border: 2px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   background: var(--ku-bg);
 }
 .ku-inbox-photo img {
@@ -1740,7 +1740,7 @@ label.ku-inbox-photo:has(input:focus-visible) {
   width: 22px;
   height: 22px;
   border: 1.5px solid var(--ku-border-input);
-  border-radius: 6px;
+  border-radius: var(--ku-radius);
   color: #fff;
   background: var(--ku-surface);
   font-size: 13px;
@@ -1779,7 +1779,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   isolation: isolate;
   overflow: hidden;
   border: 1px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
 }
 .ku-inbox-drawer .ku-facility-map-locate {
   border-color: var(--ku-border-input) !important;
@@ -1942,7 +1942,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   display: block;
   width: 64px;
   height: 64px;
-  border-radius: 6px;
+  border-radius: var(--ku-radius);
   object-fit: cover;
 }
 .ku-facility-photo-manager-item button {
@@ -1967,7 +1967,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   width: 64px;
   height: 64px;
   border: 1.5px dashed var(--ku-border-input);
-  border-radius: 6px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-2);
   font-size: 11px;
   text-align: center;
@@ -1984,7 +1984,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 .ku-facility-pending-link {
   padding: 4px 10px;
   border: 1px solid var(--ku-status-warn-fg);
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   background: var(--ku-status-warn-bg);
   color: var(--ku-status-warn-fg);
   font-size: 12px;
@@ -2044,7 +2044,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 .ku-map-workspace .leaflet-control-zoom.leaflet-control {
   margin: 0;
   overflow: hidden;
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
 }
 .ku-map-workspace .leaflet-control-zoom a {
   width: 36px !important;
@@ -2059,7 +2059,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 34px;
   padding: 0 12px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: #fff;
   background: var(--ku-primary);
   cursor: pointer;
@@ -2078,7 +2078,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 36px;
   padding: 0 14px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   cursor: pointer;
@@ -2099,7 +2099,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   flex-direction: column;
   width: 404px;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: var(--ku-radius);
   background: var(--ku-surface);
   box-shadow: 0 4px 20px rgba(28, 25, 23, 0.14);
 }
@@ -2149,7 +2149,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 38px;
   padding: 0 12px 0 32px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   font-size: 13px;
@@ -2158,7 +2158,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 38px;
   padding: 0 10px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   font-size: 12.5px;
@@ -2175,7 +2175,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 30px;
   padding: 0 11px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-2);
   background: var(--ku-surface);
   cursor: pointer;
@@ -2303,7 +2303,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 }
 .ku-row-badge {
   padding: 2px 7px;
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   font-size: 11px;
   font-weight: 700;
   white-space: nowrap;
@@ -2368,7 +2368,6 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 .leaflet-tooltip.ku-workspace-marker-tooltip {
   padding: 5px 9px;
   border: 0;
-  border-radius: 7px;
   color: var(--ku-surface);
   background: var(--ku-text-1);
   box-shadow: none;
@@ -2393,7 +2392,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   flex-direction: column;
   width: 460px;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: var(--ku-radius);
   background: var(--ku-surface);
   box-shadow: 0 4px 20px rgba(28, 25, 23, 0.14);
 }
@@ -2417,7 +2416,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   width: 32px;
   height: 32px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-3);
   background: none;
   cursor: pointer;
@@ -2461,7 +2460,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 34px;
   padding: 0 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-danger);
   background: none;
   cursor: pointer;
@@ -2497,7 +2496,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   color: #fff;
 }
 .ku-detail-title h2 {
@@ -2519,14 +2518,14 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 .ku-detail-segment {
   display: inline-flex;
   padding: 3px;
-  border-radius: 9px;
+  border-radius: var(--ku-radius);
   background: var(--ku-divider);
 }
 .ku-detail-segment button {
   height: 30px;
   padding: 0 14px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-3);
   background: transparent;
   cursor: pointer;
@@ -2555,7 +2554,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   padding: 4px 4px 4px 10px;
   border: 1px solid
     color-mix(in srgb, var(--ku-status-warn-fg) 35%, transparent);
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   color: var(--ku-status-warn-fg);
   background: var(--ku-status-warn-bg);
   font-size: 12px;
@@ -2565,7 +2564,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 24px;
   padding: 0 9px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--ku-radius);
   color: var(--ku-surface);
   background: var(--ku-status-warn-fg);
   cursor: pointer;
@@ -2594,7 +2593,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   min-height: 40px;
   padding: 0 11px !important;
   border: 1px solid var(--ku-border-input) !important;
-  border-radius: 8px !important;
+  border-radius: var(--ku-radius) !important;
   color: var(--ku-text-1);
   background: var(--ku-surface);
   font-size: 14px !important;
@@ -2650,13 +2649,13 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 .ku-detail-panel .ku-facility-photo-manager-add {
   width: 58px;
   height: 58px;
-  border-radius: 7px;
+  border-radius: var(--ku-radius);
 }
 .ku-detail-dashed {
   width: 100%;
   height: 58px;
   border: 1.5px dashed var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-2);
   background: var(--ku-surface);
   cursor: pointer;
@@ -2673,7 +2672,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 58px;
   padding: 0 12px;
   border: 1px solid var(--ku-border);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   font-size: 12.5px;
 }
@@ -2685,7 +2684,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   place-items: center;
   width: 38px;
   height: 28px;
-  border-radius: 5px;
+  border-radius: var(--ku-radius);
   color: #fff;
   background: #1c1917;
   font-size: 10px;
@@ -2694,7 +2693,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 28px;
   padding: 0 10px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 7px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   cursor: pointer;
@@ -2709,7 +2708,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 44px;
   padding: 0;
   border: 1px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: color-mix(in srgb, var(--ku-bg) 70%, var(--ku-surface));
   cursor: pointer;
@@ -2757,7 +2756,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   width: 100%;
   height: 150px;
   overflow: hidden;
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   background: var(--ku-divider);
 }
 /* 사진 파일 칸은 화면 밖에 있어 Tab 초점이 보이지 않는다. 초점이 오면 사진 틀에 고리를 건다 */
@@ -2801,7 +2800,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   min-height: 28px;
   padding: 0 10px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   font-size: 12px;
@@ -2823,7 +2822,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   gap: 10px;
   padding: 12px 14px;
   border: 1px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   background: color-mix(in srgb, var(--ku-bg) 55%, var(--ku-surface));
 }
 .ku-landmark-translation-head {
@@ -2841,7 +2840,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 32px;
   padding: 0 12px;
   border: 1px solid var(--ku-crimson-700);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-primary-text);
   background: transparent;
   cursor: pointer;
@@ -2929,7 +2928,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 6px;
 }
 .ku-slope-profile span {
-  border-radius: 3px;
+  border-radius: var(--ku-radius);
 }
 .ku-slope-view-title {
   align-items: center;
@@ -2982,10 +2981,10 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 }
 .ku-slope-table th:first-child {
   width: 56px;
-  border-radius: 8px 0 0 8px;
+  border-radius: var(--ku-radius) 0 0 var(--ku-radius);
 }
 .ku-slope-table th:last-child {
-  border-radius: 0 8px 8px 0;
+  border-radius: 0 var(--ku-radius) var(--ku-radius) 0;
 }
 .ku-slope-table td {
   height: 40px;
@@ -3010,7 +3009,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 }
 .ku-slope-view-notice {
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   color: var(--ku-status-warn-fg);
   background: var(--ku-status-warn-bg);
   font-size: 13px;
@@ -3039,7 +3038,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 42px;
   padding: 0 11px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   font-size: 16px;
@@ -3068,7 +3067,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   width: fit-content;
   margin-inline: auto;
   padding: 4px;
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-floating);
 }
@@ -3076,7 +3075,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 38px;
   padding: 0 11px;
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: transparent;
   cursor: pointer;
@@ -3134,7 +3133,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   gap: 10px;
   padding: 10px 12px;
   border: 1px solid var(--ku-border);
-  border-radius: 10px;
+  border-radius: var(--ku-radius);
 }
 /* 채움은 판정 색(데이터 색)이라 SlopeSegmentList가 인라인으로 준다 */
 .ku-slope-card-index {
@@ -3181,7 +3180,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 36px;
   padding: 0 8px;
   border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
+  border-radius: var(--ku-radius);
   color: var(--ku-text-1);
   background: var(--ku-surface);
   font-size: 14px;
@@ -3244,7 +3243,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   .ku-workspace-mobile-bar .ku-workspace-search input,
   .ku-workspace-mobile-bar .ku-workspace-search-row select {
     height: 46px;
-    border-radius: 12px;
+    border-radius: var(--ku-radius);
     box-shadow: var(--ku-shadow-floating);
     font-size: 16px;
   }
@@ -3265,7 +3264,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
     display: flex;
     flex-direction: column;
     height: 150px;
-    border-radius: 18px 18px 0 0;
+    border-radius: var(--ku-radius) var(--ku-radius) 0 0;
     background: var(--ku-surface);
     box-shadow: 0 -6px 24px rgba(28, 25, 23, 0.14);
     transition: height 0.25s ease;
@@ -3286,7 +3285,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   .ku-bottom-sheet-handle span {
     width: 40px;
     height: 4px;
-    border-radius: 2px;
+    border-radius: var(--ku-radius);
     background: var(--ku-border-input);
   }
   .ku-bottom-sheet-head {
@@ -3479,7 +3478,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
     gap: 10px;
     min-height: 124px;
     padding: 12px 14px;
-    border-radius: 18px 18px 0 0;
+    border-radius: var(--ku-radius) var(--ku-radius) 0 0;
     background: var(--ku-surface);
     box-shadow: 0 -6px 24px rgba(28, 25, 23, 0.14);
   }

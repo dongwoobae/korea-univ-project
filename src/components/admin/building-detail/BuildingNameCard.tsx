@@ -26,7 +26,7 @@ export default function BuildingNameCard({
       className="ku-admin-detail-card ku-admin-detail-card--name"
       style={{
         background: "var(--ku-surface)",
-        borderRadius: 10,
+        borderRadius: "var(--ku-radius)",
         padding: 20,
         border: "1px solid var(--ku-border)",
         marginBottom: 20,
@@ -67,7 +67,7 @@ export default function BuildingNameCard({
               width: "100%",
               padding: "8px 10px",
               border: "1px solid var(--ku-border)",
-              borderRadius: 6,
+              borderRadius: "var(--ku-radius)",
               fontSize: 13,
               outline: "none",
               boxSizing: "border-box",
@@ -97,7 +97,7 @@ export default function BuildingNameCard({
               width: "100%",
               padding: "8px 10px",
               border: "1px solid var(--ku-border)",
-              borderRadius: 6,
+              borderRadius: "var(--ku-radius)",
               fontSize: 13,
               outline: "none",
               boxSizing: "border-box",
@@ -115,7 +115,7 @@ export default function BuildingNameCard({
               : "var(--ku-primary)",
             color: "#fff",
             border: "none",
-            borderRadius: 6,
+            borderRadius: "var(--ku-radius)",
             fontSize: 13,
             cursor: saving ? "default" : "pointer",
           }}

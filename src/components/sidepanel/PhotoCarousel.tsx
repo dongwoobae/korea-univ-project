@@ -37,7 +37,7 @@ export default function PhotoCarousel({
             height: 150,
             margin: "16px 20px 0",
             background: "#000",
-            borderRadius: 12,
+            borderRadius: "var(--ku-radius)",
             overflow: "hidden",
           }}
         >
@@ -134,7 +134,7 @@ export default function PhotoCarousel({
                     style={{
                       width: i === photoIndex ? 16 : 6,
                       height: 6,
-                      borderRadius: 3,
+                      borderRadius: "var(--ku-radius)",
                       border: "none",
                       cursor: "pointer",
                       padding: 0,
@@ -154,7 +154,7 @@ export default function PhotoCarousel({
             width: "calc(100% - 40px)",
             height: 150,
             margin: "16px 20px 0",
-            borderRadius: 12,
+            borderRadius: "var(--ku-radius)",
             background: "var(--ku-bg)",
             display: "flex",
             alignItems: "center",
