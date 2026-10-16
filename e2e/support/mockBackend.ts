@@ -37,9 +37,13 @@ import type { Page, Route } from "@playwright/test";
 type Row = Record<string, unknown>;
 export interface MockState {
   authenticated: boolean;
-  buildingPhotoUploadAttempts: number;
-  buildingPhotoFailuresRemaining: number;
+  /** 건물 사진·명소 사진 업로드(`/api/upload-building-photo`·`/api/upload-landmark-photo`)가 같이 센다 */
+  photoUploadAttempts: number;
+  /** 남은 횟수만큼 건물·명소 사진 업로드가 500으로 실패한다 */
+  photoUploadFailuresRemaining: number;
   translationFailuresRemaining: number;
+  /** 켜면 등록 요청 승인·거절이 요청 사진을 지우지 못하고 cleanupFailed로 답한다 */
+  requestCleanupFails: boolean;
   buildings: Row[];
   facilities: Row[];
   feedbackSubmissions: Row[];
@@ -125,9 +129,10 @@ export function stationBuildingRow(
 function createState(authenticated: boolean): MockState {
   return {
     authenticated,
-    buildingPhotoUploadAttempts: 0,
-    buildingPhotoFailuresRemaining: 0,
+    photoUploadAttempts: 0,
+    photoUploadFailuresRemaining: 0,
     translationFailuresRemaining: 0,
+    requestCleanupFails: false,
     feedbackSubmissions: [],
     buildings: [
       {
@@ -752,6 +757,28 @@ const REQUEST_FILTER: Record<string, string[] | null> = {
   done: ["approved", "rejected"],
   all: null,
 };
+// 운영 목록과 같은 쪽 크기(adminList의 ADMIN_PAGE_SIZE).
+const INBOX_PAGE_SIZE = 20;
+
+// 운영과 같은 정렬(created_at 내림차순, id 오름차순)로 자르고 쪽을 나눈다. total은 자르기 전 개수다.
+function sortAndPage<T extends Row>(rows: T[], url: URL) {
+  const page = Math.max(1, Number(url.searchParams.get("page")) || 1);
+  const sorted = [...rows].sort((a, b) => {
+    const left = Date.parse(String(a.created_at ?? "")) || 0;
+    const right = Date.parse(String(b.created_at ?? "")) || 0;
+    if (left !== right) return right - left;
+    return String(a.id) < String(b.id)
+      ? -1
+      : String(a.id) > String(b.id)
+        ? 1
+        : 0;
+  });
+  return {
+    items: sorted.slice((page - 1) * INBOX_PAGE_SIZE, page * INBOX_PAGE_SIZE),
+    total: sorted.length,
+  };
+}
+
 const FEEDBACK_FILTER: Record<string, string[] | null> = {
   open: ["new", "reviewing"],
   new: ["new"],
@@ -784,32 +811,34 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     const statuses =
       REQUEST_FILTER[url.searchParams.get("status") ?? "open"] ?? null;
     const building = Number(url.searchParams.get("building"));
-    const items = state.facilityRequests
+    const filtered = state.facilityRequests
       .filter((row) => !statuses || statuses.includes(String(row.status)))
-      .filter((row) => !building || row.building_id === building)
-      .map((row) => {
-        const photos = state.facilityRequestPhotos.filter(
-          (photo) => photo.request_id === row.id,
-        );
-        return {
-          id: row.id,
-          building_id: row.building_id,
-          building_name:
-            state.buildings.find((b) => b.id === row.building_id)?.name ?? null,
-          facility_code: row.facility_code,
-          name: row.name ?? null,
-          floor_info: row.floor_info ?? null,
-          has_location: row.lat != null && row.lng != null,
-          status: row.status,
-          created_at: row.created_at,
-          facility_id: row.facility_id ?? null,
-          photo_count: photos.length,
-          thumbnail_url: photos.length
-            ? "https://cdn.test/request-thumb.webp"
-            : null,
-        };
-      });
-    return json(route, { items, total: items.length });
+      .filter((row) => !building || row.building_id === building);
+    const { items: pageRows, total } = sortAndPage(filtered, url);
+    const items = pageRows.map((row) => {
+      const photos = state.facilityRequestPhotos.filter(
+        (photo) => photo.request_id === row.id,
+      );
+      return {
+        id: row.id,
+        building_id: row.building_id,
+        building_name:
+          state.buildings.find((b) => b.id === row.building_id)?.name ?? null,
+        facility_code: row.facility_code,
+        name: row.name ?? null,
+        description: row.description ?? null,
+        floor_info: row.floor_info ?? null,
+        has_location: row.lat != null && row.lng != null,
+        status: row.status,
+        created_at: row.created_at,
+        facility_id: row.facility_id ?? null,
+        photo_count: photos.length,
+        thumbnail_url: photos.length
+          ? "https://cdn.test/request-thumb.webp"
+          : null,
+      };
+    });
+    return json(route, { items, total });
   }
   if (path === "/api/inbox-counts") {
     return json(route, {
@@ -913,8 +942,11 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     if (action === "reject") {
       if (!open) return json(route, { error: "이미 처리된 요청이에요" }, 409);
       row.status = "rejected";
-      removePhotos();
-      return json(route, { ok: true, cleanupFailed: false });
+      if (!state.requestCleanupFails) removePhotos();
+      return json(route, {
+        ok: true,
+        cleanupFailed: state.requestCleanupFails,
+      });
     }
     if (action === "cleanup") {
       removePhotos();
@@ -953,8 +985,11 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     );
     row.status = "approved";
     row.facility_id = facilityId;
-    removePhotos();
-    return json(route, { facilityId, cleanupFailed: false });
+    if (!state.requestCleanupFails) removePhotos();
+    return json(route, {
+      facilityId,
+      cleanupFailed: state.requestCleanupFails,
+    });
   }
   if (path === "/api/facilities")
     return json(
@@ -991,7 +1026,7 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   if (path === "/api/admin-feedback") {
     const statuses =
       FEEDBACK_FILTER[url.searchParams.get("status") ?? "open"] ?? null;
-    const items = state.feedbackSubmissions
+    const filtered = state.feedbackSubmissions
       .filter(
         (row) => !statuses || statuses.includes(String(row.status ?? "new")),
       )
@@ -1003,7 +1038,8 @@ async function handleApi(route: Route, state: MockState, url: URL) {
         status: row.status ?? "new",
         created_at: row.created_at ?? "2026-10-08T00:00:00Z",
       }));
-    return json(route, { items, total: items.length });
+    const { items, total } = sortAndPage(filtered, url);
+    return json(route, { items, total });
   }
   const feedbackPatch = path.match(/^\/api\/admin-feedback\/([^/]+)$/);
   if (feedbackPatch) {
@@ -1052,9 +1088,9 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     return json(route, { status: "translated" });
   }
   if (path === "/api/upload-landmark-photo") {
-    state.buildingPhotoUploadAttempts += 1;
-    if (state.buildingPhotoFailuresRemaining > 0) {
-      state.buildingPhotoFailuresRemaining -= 1;
+    state.photoUploadAttempts += 1;
+    if (state.photoUploadFailuresRemaining > 0) {
+      state.photoUploadFailuresRemaining -= 1;
       return json(route, { error: "테스트 업로드 실패" }, 500);
     }
     const rawBody = route.request().postData() ?? "";
@@ -1069,9 +1105,9 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     return json(route, { photoUrl: "https://cdn.test/uploaded-landmark.webp" });
   }
   if (path === "/api/upload-building-photo") {
-    state.buildingPhotoUploadAttempts += 1;
-    if (state.buildingPhotoFailuresRemaining > 0) {
-      state.buildingPhotoFailuresRemaining -= 1;
+    state.photoUploadAttempts += 1;
+    if (state.photoUploadFailuresRemaining > 0) {
+      state.photoUploadFailuresRemaining -= 1;
       return json(route, { error: "테스트 업로드 실패" }, 500);
     }
     const rawBody = route.request().postData() ?? "";
@@ -1197,7 +1233,7 @@ export async function installMockBackend(
   page: Page,
   options: {
     authenticated?: boolean;
-    failBuildingPhotoUploads?: number;
+    failPhotoUploads?: number;
     failTranslations?: number;
     /** null이면 위치 권한 거부로 응답한다 */
     currentLocation?: { latitude: number; longitude: number } | null;
@@ -1206,7 +1242,7 @@ export async function installMockBackend(
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
-  state.buildingPhotoFailuresRemaining = options.failBuildingPhotoUploads ?? 0;
+  state.photoUploadFailuresRemaining = options.failPhotoUploads ?? 0;
   state.translationFailuresRemaining = options.failTranslations ?? 0;
   // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(

@@ -19,6 +19,7 @@ import {
   useWorkspaceCloseRequest,
   useWorkspaceSelection,
 } from "@/components/admin/workspace/useWorkspaceSelection";
+import { useWorkspaceLoad } from "@/components/admin/workspace/useWorkspaceLoad";
 import { getFacilityMarkerColor } from "@/components/map/facilityColors";
 import {
   INITIAL_ADMIN_COLLECTION_QUERY,
@@ -54,9 +55,6 @@ function currentSelection() {
 export default function StandaloneFacilitiesPage() {
   const [facilities, setFacilities] = useState<FacilityWithType[]>([]);
   const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
-  const [status, setStatus] = useState<"loading" | "error" | "ready">(
-    "loading",
-  );
   const [typesFailed, setTypesFailed] = useState(false);
   const [typeFilter, setTypeFilter] = useState("all");
   const [draft, setDraft] = useState<DetailDraftPin | null>(null);
@@ -67,9 +65,6 @@ export default function StandaloneFacilitiesPage() {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
-  const loadRequestRef = useRef(0);
-  const disposedRef = useRef(false);
-  const loadedRef = useRef(false);
   const locateSeqRef = useRef(0);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const { boundaries, error: boundariesError } = useCampusBoundaries();
@@ -101,70 +96,46 @@ export default function StandaloneFacilitiesPage() {
     if (!error) setFacilityTypes(data ?? []);
   }, []);
 
-  const loadFacilities = useCallback(async () => {
-    if (disposedRef.current) return;
-    loadRequestRef.current += 1;
-    const ticket = loadRequestRef.current;
+  const fetchRows = useCallback(async () => {
     const { data, error } = await supabase
       .from("building_facilities")
       .select(FACILITY_SELECT)
       .is("building_id", null)
       .order("id", { ascending: true });
-    // 저장·설치 변경 뒤의 다시 받기가 겹치면 마지막 요청만 그린다
-    if (ticket !== loadRequestRef.current) return;
-    if (error) {
-      if (loadedRef.current) {
-        setToast({
-          message: "시설 목록을 새로 불러오지 못했어요",
-          type: "error",
-        });
-      } else {
-        setStatus("error");
-      }
-      return;
-    }
-    const rows: FacilityWithType[] = data ?? [];
-    const firstLoad = !loadedRef.current;
-    loadedRef.current = true;
-    setFacilities(rows);
-    setStatus("ready");
-    // 존재 검사는 조회가 끝난 뒤에만 한다. 조회 전 빈 목록으로 판정하면 맞는 링크도 닫힌다(설계 2026-10-14 3.4)
-    const selection = currentSelection();
-    if (selection.mode !== "view") return;
-    if (!rows.some((row) => row.id === selection.id)) {
-      applyWorkspaceState({ mode: "closed" });
-      setToast({ message: NOT_FOUND_MESSAGE, type: "warning" });
-      return;
-    }
-    // 페이지는 첫 성공에서만 맞춘다. 저장 뒤 다시 받기는 보던 페이지를 두고, 첫 조회가 실패했으면 다시 시도가 첫 성공이다
-    if (firstLoad) {
-      const page = pageOfItem(
+    if (error) return null;
+    return (data ?? []) as FacilityWithType[];
+  }, []);
+
+  const load = useWorkspaceLoad<FacilityWithType>({
+    fetchRows,
+    onRows: setFacilities,
+    rowId: (row) => row.id,
+    selectedId: (selection) =>
+      selection.mode === "view" ? selection.id : null,
+    initialPageOf: (rows, id) =>
+      pageOfItem(
         viewAdminCollection(
           rows,
           FACILITY_COLLECTION_POLICY,
           INITIAL_ADMIN_COLLECTION_QUERY,
         ).matched,
-        selection.id,
+        id,
         FACILITY_COLLECTION_POLICY.id,
-      );
-      if (page !== null) setPage(page);
-    }
-  }, [setPage]);
+      ),
+    setPage,
+    allowEdit: false,
+    messages: {
+      refreshFailed: "시설 목록을 새로 불러오지 못했어요",
+      notFound: NOT_FOUND_MESSAGE,
+    },
+    showToast,
+  });
+  const { status, reload: loadFacilities, isDisposed } = load;
 
   useEffect(() => {
-    disposedRef.current = false;
-    const timer = window.setTimeout(() => {
-      void loadTypes();
-      void loadFacilities();
-    }, 0);
-    return () => {
-      window.clearTimeout(timer);
-      // 떠난 뒤에 끝난 조회가 그때의 주소(다른 화면)에서 ?id=를 지우지 않게 진행 중인 요청을 버린다.
-      // 떠난 뒤 끝난 저장·삭제가 새로 시작하는 다시 받기와 그 뒤의 주소 갱신도 disposedRef가 막는다
-      disposedRef.current = true;
-      loadRequestRef.current += 1;
-    };
-  }, [loadFacilities, loadTypes]);
+    const timer = window.setTimeout(() => void loadTypes(), 0);
+    return () => window.clearTimeout(timer);
+  }, [loadTypes]);
 
   // 저장 중에는 선택을 바꾸지 않는다 — 행·마커·닫기·칩을 막는다(설계 2026-10-14 3.4)
   function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
@@ -216,7 +187,7 @@ export default function StandaloneFacilitiesPage() {
 
   async function handleSaved(facilityId: string, created: boolean) {
     await loadFacilities();
-    if (disposedRef.current) return;
+    if (isDisposed()) return;
     // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 새로 만들기 패널일 때만 바꾼다(설계 2026-10-14 3.4)
     if (created && currentSelection().mode === "new") {
       applyWorkspaceState({ mode: "view", id: facilityId });
@@ -224,7 +195,7 @@ export default function StandaloneFacilitiesPage() {
   }
 
   async function handleDeleted(facilityId: string) {
-    if (disposedRef.current) return;
+    if (isDisposed()) return;
     // 삭제는 선택을 잠그지 않는다. 기다리는 사이 다른 항목이나 새로 만들기로 옮겼으면 그 패널을 닫지 않는다(설계 2026-10-14 3.4)
     const selection = currentSelection();
     if (selection.mode === "view" && selection.id === facilityId) {
@@ -234,11 +205,9 @@ export default function StandaloneFacilitiesPage() {
   }
 
   function retry() {
-    // 목록을 받은 뒤에 "loading"으로 가면, 이번 조회가 실패할 때 loadFacilities가 토스트만 띄워 패널이 거기 멈춘다
-    if (!loadedRef.current) setStatus("loading");
     setTypesFailed(false);
     void loadTypes();
-    void loadFacilities();
+    load.retry();
   }
 
   const focus: WorkspaceFocus | null =

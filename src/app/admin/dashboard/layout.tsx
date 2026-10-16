@@ -54,7 +54,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
   const pathname = usePathname();
-  const { dirty, guard } = useUnsavedChangesGuard();
+  const { blocked, guard } = useUnsavedChangesGuard();
 
   useEffect(() => {
     let cancelled = false;
@@ -138,7 +138,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         event.preventDefault();
         return;
       }
-      if (!dirty) return;
+      if (!blocked) return;
       event.preventDefault();
       navigate(href);
     };

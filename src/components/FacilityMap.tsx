@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -59,12 +59,15 @@ export default function FacilityMap({
   onMapClick,
   highlightId,
   highlightColor = PUBLIC_HIGHLIGHT_COLOR,
+  height = 250,
 }: {
   center: [number, number];
   markerPosition: [number, number] | null;
   onMapClick: (lat: number, lng: number) => void;
   highlightId?: number;
   highlightColor?: string;
+  /** 지도 높이(px). 공개 등록 요청 모달은 기본값을 쓴다 */
+  height?: number;
 }) {
   const prefersDarkMode = usePrefersDarkMode();
   const [map, setMap] = useState<L.Map | null>(null);
@@ -87,13 +90,19 @@ export default function FacilityMap({
     };
   }, []);
 
+  // 위치 응답은 몇 초 뒤에 온다. 누른 때의 콜백을 부르면 그 사이 바뀐 상태(저장 중·끝남)를 보지 못한다.
+  const onMapClickRef = useRef(onMapClick);
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  });
+
   function handleLocate() {
     if (!navigator.geolocation) return;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
         map?.flyTo([coords.latitude, coords.longitude], 18);
-        onMapClick(coords.latitude, coords.longitude);
+        onMapClickRef.current(coords.latitude, coords.longitude);
         setLocating(false);
       },
       () => setLocating(false),
@@ -106,7 +115,7 @@ export default function FacilityMap({
       <MapContainer
         center={center}
         zoom={18}
-        style={{ width: "100%", height: 250 }}
+        style={{ width: "100%", height }}
         scrollWheelZoom={true}
       >
         <TileLayer
@@ -154,6 +163,7 @@ export default function FacilityMap({
         )}
       </MapContainer>
       <button
+        className="ku-facility-map-locate"
         onClick={handleLocate}
         disabled={locating}
         title="현재 위치로 이동"

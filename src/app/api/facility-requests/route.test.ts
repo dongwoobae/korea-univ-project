@@ -235,6 +235,7 @@ describe("GET /api/facility-requests", () => {
       building_id: 1,
       facility_code: "elevator",
       name: null,
+      description: "1층 로비 옆 엘리베이터",
       floor_info: "3층",
       lat: 37.5,
       lng: 127.0,
@@ -293,6 +294,7 @@ describe("GET /api/facility-requests", () => {
       photo_count: 2,
       has_location: true,
       thumbnail_url: "https://signed/a",
+      description: "1층 로비 옆 엘리베이터",
     });
     expect(calls()).toContainEqual({
       method: "in",

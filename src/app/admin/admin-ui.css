@@ -60,6 +60,13 @@
   color: var(--ku-text-3);
   font-size: 12px;
 }
+/* 메뉴로 접히기 전(768~899px)에는 브랜드·메뉴 링크·버튼이 한 줄에 다 들어가지 않아 로그아웃이 화면 밖으로 밀린다.
+   이메일만 뺀다. 메뉴로 접는 767px 경계는 아래 nav 등 다른 모바일 규칙과 같이 써서 따로 올리지 않는다 */
+@media (min-width: 768px) and (max-width: 899px) {
+  .ku-admin-email {
+    display: none;
+  }
+}
 .ku-admin-account .ku-admin-button {
   min-height: 34px;
   padding: 0 12px;
@@ -774,20 +781,6 @@ button.ku-admin-overview-item {
   margin-top: 20px;
 }
 
-/* 지도 작업 화면으로 아직 옮기지 않은 탭(제보함)의 입력 색과 버튼 반경을 맞춘다.
-   작업 화면은 자기 클래스가 값을 정하므로 뺀다. 명소의 이모지 피커는 작업 화면 안에 있어 이 규칙 밖이다.
-   피커 입력의 색은 후속으로 다룬다. 마지막 탭을 옮기는 PR이 이 규칙을 지운다(설계 2026-10-14 3.1). */
-.ku-admin-content > :not(.ku-map-workspace) input,
-.ku-admin-content > :not(.ku-map-workspace) textarea,
-.ku-admin-content > :not(.ku-map-workspace) select {
-  color: var(--ku-text-1) !important;
-  border-color: var(--ku-border-input) !important;
-  background: var(--ku-surface) !important;
-}
-.ku-admin-content > :not(.ku-map-workspace) button {
-  border-radius: 8px !important;
-}
-
 @media (max-width: 767px) {
   .ku-admin-shell {
     --ku-admin-header-height: 54px;
@@ -1218,42 +1211,6 @@ button.ku-admin-overview-item {
   line-height: 18px;
   text-align: center;
 }
-.ku-inbox-tabs {
-  display: inline-flex;
-  margin-bottom: 12px;
-  overflow: hidden;
-  border: 1px solid var(--ku-border);
-  border-radius: 8px;
-}
-.ku-inbox-tabs button {
-  padding: 7px 14px;
-  border: 0;
-  background: var(--ku-surface);
-  color: var(--ku-text-2);
-  cursor: pointer;
-}
-.ku-inbox-tabs button[aria-selected="true"] {
-  background: var(--ku-text-1);
-  color: var(--ku-surface);
-}
-.ku-inbox-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.ku-inbox-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 4px;
-  border: 0;
-  border-bottom: 1px solid var(--ku-border);
-  background: none;
-  color: var(--ku-text-1);
-  text-align: left;
-  cursor: pointer;
-}
 .ku-inbox-thumb {
   flex: none;
   width: 44px;
@@ -1263,15 +1220,6 @@ button.ku-admin-overview-item {
 }
 .ku-inbox-thumb--empty {
   background: var(--ku-surface-raised);
-}
-.ku-inbox-row-main {
-  flex: 1;
-  min-width: 0;
-}
-.ku-inbox-row-meta {
-  display: block;
-  color: var(--ku-text-3);
-  font-size: 12px;
 }
 .ku-inbox-status {
   padding: 2px 8px;
@@ -1290,146 +1238,696 @@ button.ku-admin-overview-item {
   background: var(--ku-status-missing-bg);
   color: var(--ku-status-missing-fg);
 }
-.ku-review-modal-title {
-  margin-bottom: 6px;
-  font-size: 16px;
+/* 제보함 보드 — 열마다 따로 스크롤한다 */
+.ku-inbox-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: calc(100dvh - var(--ku-admin-header-height));
+  padding: 22px 24px 20px;
+}
+.ku-inbox-board-head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ku-inbox-caption {
+  margin-top: 5px;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+}
+.ku-inbox-board-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ku-inbox-kind-segment button {
+  height: 32px;
+}
+.ku-inbox-building-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 4px 0 11px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: 999px;
+  color: var(--ku-primary-text);
+  background: var(--ku-surface);
+  font-size: 12px;
   font-weight: 600;
 }
-.ku-review-modal-meta {
+.ku-inbox-building-chip button {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  color: inherit;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+}
+.ku-inbox-columns {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  min-height: 0;
+}
+.ku-inbox-column {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: 12px;
+  background: var(--ku-board-column);
+}
+.ku-inbox-column-head {
+  display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  padding: 12px 14px;
+}
+.ku-inbox-column-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ku-dot-new);
+}
+.ku-inbox-column[data-filter="reviewing"] .ku-inbox-column-dot {
+  background: var(--ku-status-review-fg);
+}
+.ku-inbox-column[data-filter="done"] .ku-inbox-column-dot {
+  background: var(--ku-success-fg);
+}
+.ku-inbox-column-name {
+  color: var(--ku-text-1);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.ku-inbox-column-count {
   color: var(--ku-text-3);
-  font-size: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
 }
-.ku-review-modal-meta a {
-  color: var(--ku-primary-text);
-}
-.ku-review-photos {
+.ku-inbox-column-body {
   display: flex;
-  flex-wrap: wrap;
+  flex: 1;
+  flex-direction: column;
   gap: 8px;
-  margin: 0 0 8px;
+  min-height: 0;
+  padding: 0 10px 12px;
+  overflow-y: auto;
+}
+.ku-inbox-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
-.ku-review-photos img,
-.ku-review-photo-missing {
-  display: block;
-  width: 96px;
-  height: 96px;
-  border-radius: 8px;
-  object-fit: cover;
+.ku-inbox-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  box-shadow: var(--ku-shadow-raised);
+  cursor: pointer;
+  text-align: left;
 }
-.ku-review-photo-missing {
+.ku-inbox-card:hover {
+  border-color: var(--ku-border-input);
+}
+.ku-inbox-card-top,
+.ku-inbox-card-foot {
   display: flex;
   align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  border: 1.5px dashed var(--ku-border-input);
-  background: var(--ku-bg);
+  gap: 6px;
+}
+.ku-inbox-kind-tag {
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: var(--ku-text-2);
+  background: var(--ku-divider);
+  font-size: 11px;
+  font-weight: 700;
+}
+.ku-inbox-new-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ku-primary);
+}
+.ku-inbox-card-time {
+  margin-left: auto;
   color: var(--ku-text-3);
-  font-size: 12px;
+  font-size: 11.5px;
 }
-.ku-review-photos label {
+.ku-inbox-card-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.ku-inbox-card-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.ku-inbox-card-title {
+  color: var(--ku-text-1);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+.ku-inbox-card-title[data-unread="true"] {
+  font-weight: 700;
+}
+.ku-inbox-card-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.ku-inbox-card-meta {
+  color: var(--ku-text-3);
+  font-size: 11.5px;
+}
+.ku-inbox-column-hint {
+  padding: 16px 0;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+  text-align: center;
+}
+.ku-inbox-column-empty {
+  padding: 28px 12px;
+  border: 1px dashed var(--ku-border-input);
+  border-radius: 10px;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+  text-align: center;
+}
+.ku-inbox-column-notice {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  font-size: 12px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--ku-status-warn-fg);
+  background: var(--ku-status-warn-bg);
+  font-size: 12.5px;
 }
-.ku-review-actions {
-  flex-wrap: wrap;
-}
-.ku-review-actions button {
-  flex: 1 1 auto;
-  min-height: 40px;
-  padding: 8px 12px;
+.ku-inbox-retry,
+.ku-inbox-more {
   border: 1px solid var(--ku-border-input);
   border-radius: 8px;
-  background: var(--ku-surface);
   color: var(--ku-text-1);
-  font-size: 13px;
+  background: var(--ku-surface);
   cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 600;
 }
-.ku-review-actions button:disabled {
-  opacity: 0.6;
-  cursor: default;
+.ku-inbox-retry {
+  flex: none;
+  height: 28px;
+  padding: 0 10px;
 }
-.ku-review-actions .ku-review-reject {
-  border-color: var(--ku-danger);
-  color: var(--ku-danger);
+.ku-inbox-more {
+  flex: none;
+  height: 34px;
 }
-.ku-review-actions .ku-review-approve {
-  border-color: var(--ku-primary);
-  background: var(--ku-primary);
-  color: #fff;
+.ku-inbox-more:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }
-.ku-feedback-row {
-  padding: 10px 4px;
-  border-bottom: 1px solid var(--ku-border);
+.ku-inbox-board-head h1:focus {
+  outline: none;
 }
-.ku-feedback-head {
+
+/* 제보함 검토 드로어. 층은 이 레이어 하나다 — 관리자 헤더(z-index 100) 아래, 보드 위.
+   안쪽 요소는 z-index를 두지 않고, Leaflet이 내부에서 쓰는 큰 z-index는 지도 상자의 isolation이 가둔다. */
+.ku-inbox-drawer-layer {
+  position: fixed;
+  z-index: 90;
+  inset: var(--ku-admin-header-height) 0 0 0;
+}
+.ku-inbox-drawer-dim {
+  position: absolute;
+  inset: 0;
+  background: var(--ku-drawer-dim);
+}
+.ku-inbox-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100%);
+  background: var(--ku-surface);
+  box-shadow: var(--ku-shadow-overlay);
+}
+.ku-inbox-drawer-head {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 22px 20px 0 28px;
+}
+.ku-inbox-drawer-head-main {
+  flex: 1;
+  min-width: 0;
+}
+.ku-inbox-drawer-close {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ku-text-3);
+  background: none;
+  cursor: pointer;
+  font-size: 18px;
+}
+.ku-inbox-drawer-close:hover {
+  background: var(--ku-bg);
+}
+.ku-inbox-drawer-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.ku-inbox-drawer-title h2 {
+  font-size: 19px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.ku-inbox-drawer-title p {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  margin-top: 5px;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
 }
-.ku-feedback-head .ku-inbox-row-meta {
-  display: inline;
-}
-.ku-feedback-head select {
-  margin-left: auto;
-  padding: 4px 8px;
-  border: 1px solid var(--ku-border-input);
-  border-radius: 6px;
-  background: var(--ku-surface);
-  color: var(--ku-text-1);
-}
-.ku-feedback-type {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--ku-surface-raised);
-  color: var(--ku-text-2);
-  font-size: 11px;
-}
-.ku-feedback-preview {
-  display: -webkit-box;
-  width: 100%;
-  margin: 6px 0 0;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  background: none;
-  color: var(--ku-text-1);
-  font: inherit;
-  text-align: left;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  cursor: pointer;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-.ku-feedback-preview:hover {
+.ku-inbox-drawer-title a {
   color: var(--ku-primary-text);
 }
-.ku-feedback-detail-content {
-  margin: 0;
-  color: var(--ku-text-1);
-  line-height: 1.6;
+.ku-inbox-drawer-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  color: #fff;
+}
+.ku-inbox-drawer-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 20px;
+  min-height: 0;
+  padding: 20px 28px 24px;
+  overflow: auto;
+}
+.ku-inbox-drawer-foot {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 28px;
+  border-top: 1px solid var(--ku-border);
+  background: var(--ku-surface);
+}
+.ku-inbox-drawer-foot:empty {
+  display: none;
+}
+.ku-inbox-drawer-foot .ku-workspace-button {
+  height: 38px;
+}
+.ku-inbox-drawer-foot .ku-workspace-primary {
+  height: 38px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.ku-inbox-feedback-title {
+  font-size: 12px;
+}
+.ku-inbox-feedback-title .ku-inbox-kind-tag {
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.ku-inbox-feedback-content {
+  max-width: 640px;
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+.ku-inbox-feedback-page {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+}
+.ku-inbox-feedback-page a,
+.ku-inbox-feedback-page span {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
   overflow-wrap: anywhere;
 }
-.ku-feedback-detail-status {
-  flex: 1 1 auto;
-  min-height: 40px;
-  padding: 0 10px;
-  border: 1px solid var(--ku-border-input);
-  border-radius: 8px;
-  background: var(--ku-surface);
+.ku-inbox-feedback-page a {
+  color: var(--ku-primary-text);
+}
+.ku-inbox-foot-label {
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-inbox-status-segment button {
+  height: 32px;
+}
+.ku-inbox-status-segment button[aria-pressed="true"][data-status="new"] {
+  color: var(--ku-status-warn-fg);
+}
+.ku-inbox-status-segment button[aria-pressed="true"][data-status="reviewing"] {
+  color: var(--ku-status-review-fg);
+}
+.ku-inbox-status-segment button[aria-pressed="true"][data-status="resolved"] {
+  color: var(--ku-success-fg);
+}
+.ku-inbox-reject {
+  border-color: color-mix(in srgb, var(--ku-danger) 45%, var(--ku-surface));
+  color: var(--ku-danger);
+}
+.ku-inbox-reject-confirm {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--ku-status-missing-fg);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ku-inbox-reject-confirm > span {
+  flex: 1;
+  min-width: 200px;
+}
+.ku-inbox-end-note {
+  color: var(--ku-success-fg);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ku-inbox-end-note[data-status="rejected"] {
+  color: var(--ku-status-missing-fg);
+}
+.ku-inbox-end-link {
+  color: var(--ku-primary-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+.ku-inbox-photos-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-inbox-photos-head > :first-child {
   color: var(--ku-text-1);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ku-inbox-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ku-inbox-photo {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 132px;
+  height: 132px;
+  overflow: hidden;
+  border: 2px solid var(--ku-border);
+  border-radius: 10px;
+  background: var(--ku-bg);
+}
+.ku-inbox-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+label.ku-inbox-photo {
+  cursor: pointer;
+}
+label.ku-inbox-photo[data-selected="true"] {
+  border-color: var(--ku-primary);
+}
+label.ku-inbox-photo[data-selected="false"] {
+  opacity: 0.6;
+}
+label.ku-inbox-photo[data-disabled="true"] {
+  cursor: not-allowed;
+}
+label.ku-inbox-photo:has(input:focus-visible) {
+  outline: 2px solid var(--ku-crimson-700);
+  outline-offset: 2px;
+}
+.ku-inbox-photo-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-inbox-photo-check {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--ku-border-input);
+  border-radius: 6px;
+  color: #fff;
+  background: var(--ku-surface);
+  font-size: 13px;
+  font-weight: 700;
+}
+label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
+  border-color: var(--ku-primary);
+  background: var(--ku-primary);
+}
+.ku-inbox-photo input {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+.ku-inbox-drawer-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+}
+.ku-inbox-drawer-location {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-top: 12px;
+}
+.ku-inbox-drawer-location .ku-detail-label {
+  margin-bottom: 0;
+}
+.ku-inbox-drawer-map {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border: 1px solid var(--ku-border);
+  border-radius: 10px;
+}
+.ku-inbox-drawer .ku-facility-map-locate {
+  border-color: var(--ku-border-input) !important;
+  color: var(--ku-text-1) !important;
+  background: var(--ku-surface) !important;
+  box-shadow: var(--ku-shadow-floating) !important;
+}
+.ku-inbox-location-note {
+  color: var(--ku-text-1);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.ku-inbox-location-note[data-tone="reporter"] {
+  color: var(--ku-success-fg);
+}
+.ku-inbox-location-note[data-tone="none"] {
+  color: var(--ku-status-warn-fg);
+}
+@media (max-width: 767px) {
+  .ku-inbox-page {
+    height: auto;
+    padding: 20px 14px calc(82px + env(safe-area-inset-bottom));
+  }
+  /* 모바일 목록. 종류 세그먼트와 상태 칩 아래로 카드가 한 줄씩 쌓인다 */
+  .ku-inbox-mobile .ku-inbox-mobile-segment {
+    display: flex;
+  }
+  .ku-inbox-mobile-segment button {
+    flex: 1;
+    height: 44px;
+  }
+  .ku-inbox-mobile-chips {
+    flex-wrap: nowrap;
+    margin: 0 -14px;
+    padding: 0 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ku-inbox-mobile-chips .ku-chip {
+    flex: none;
+    min-height: 44px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+  .ku-inbox-mobile-chips .ku-inbox-building-chip {
+    flex: none;
+    height: 44px;
+    padding-left: 14px;
+  }
+  .ku-inbox-mobile-chips .ku-inbox-building-chip button {
+    width: 36px;
+    height: 36px;
+  }
+  /* 모바일 카드는 상태와 제목이 먼저다. 종류 표시·첨부 요약은 상세에서 본다 */
+  .ku-inbox-mobile-cards .ku-inbox-kind-tag,
+  .ku-inbox-mobile-cards .ku-inbox-card-meta {
+    display: none;
+  }
+  .ku-inbox-mobile-cards .ku-inbox-card {
+    min-height: 44px;
+  }
+  .ku-inbox-mobile .ku-inbox-retry,
+  .ku-inbox-mobile .ku-inbox-more {
+    min-height: 44px;
+  }
+  .ku-inbox-mobile .ku-inbox-more {
+    width: 100%;
+  }
+
+  /* 상세는 전체 화면이다. 헤더와 하단 nav(안전 영역 포함) 사이를 덮고 배경은 없다 */
+  .ku-inbox-drawer-layer {
+    bottom: calc(var(--ku-admin-nav-height) + env(safe-area-inset-bottom));
+  }
+  .ku-inbox-drawer {
+    width: 100%;
+    box-shadow: none;
+  }
+  .ku-inbox-drawer-head {
+    align-items: center;
+    gap: 4px;
+    min-height: 52px;
+    padding: 4px 14px 4px 6px;
+    border-bottom: 1px solid var(--ku-divider);
+  }
+  .ku-inbox-drawer-back {
+    flex: none;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    color: var(--ku-text-1);
+    background: none;
+    cursor: pointer;
+    font-size: 26px;
+    line-height: 1;
+  }
+  .ku-inbox-drawer-icon {
+    display: none;
+  }
+  .ku-inbox-drawer-title h2 {
+    font-size: 16px;
+  }
+  .ku-inbox-drawer-title p {
+    margin-top: 2px;
+    gap: 6px;
+  }
+  .ku-inbox-drawer-body {
+    gap: 16px;
+    padding: 16px 14px;
+  }
+  .ku-inbox-drawer-foot {
+    padding: 10px 14px;
+  }
+  .ku-inbox-drawer-foot .ku-detail-panel-spacer {
+    display: none;
+  }
+  .ku-inbox-drawer-foot .ku-workspace-button {
+    flex: 1;
+    height: 50px;
+  }
+  .ku-inbox-drawer-foot .ku-workspace-primary {
+    flex: 2;
+    height: 50px;
+  }
+  .ku-inbox-reject-confirm {
+    flex-basis: 100%;
+  }
+  .ku-inbox-reject-confirm > span {
+    flex-basis: 100%;
+  }
+  .ku-inbox-status-segment {
+    flex: 1;
+  }
+  .ku-inbox-status-segment button {
+    flex: 1;
+    height: 44px;
+  }
+  .ku-inbox-mobile-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+  }
+  .ku-inbox-mobile-actions .ku-workspace-button {
+    min-height: 44px;
+  }
+  .ku-inbox-drawer-columns {
+    grid-template-columns: 1fr;
+  }
 }
 .ku-facility-photo-manager {
   display: flex;

@@ -4,7 +4,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import LandmarkTranslationCard from "@/components/admin/landmarks/LandmarkTranslationCard";
-import { useUnsavedChanges } from "@/components/admin/UnsavedChangesGuard";
+import {
+  useBusyNavigation,
+  useUnsavedChanges,
+} from "@/components/admin/UnsavedChangesGuard";
 import DetailPanel from "@/components/admin/workspace/DetailPanel";
 import {
   ADMIN_MOBILE_QUERY,
@@ -94,6 +97,7 @@ export default function LandmarkDetailPanel({
   const pickBarRef = useRef<HTMLDivElement>(null);
   const pickReturnFocusRef = useRef(false);
   const busy = saving || photoBusy !== null;
+  useBusyNavigation(saving);
   // 지도를 바로 누를 수 있는 데스크톱에는 고르기가 없다. 고르는 중에 데스크톱 폭이 되면 상세를 다시 보인다
   const picking = mobile && pickStart !== null;
   const onDraftChangeRef = useRef(onDraftChange);
@@ -184,8 +188,9 @@ export default function LandmarkDetailPanel({
     authedFetch("/api/revalidate-landmarks", { method: "POST" }).catch(
       () => {},
     );
-    await onDeleted(landmark.id);
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
     showToast("명소가 삭제되었어요");
+    await onDeleted(landmark.id);
   }
 
   function replacePendingPhoto(next: File | null) {
@@ -253,13 +258,14 @@ export default function LandmarkDetailPanel({
       showToast("저장에 실패했어요", "error");
       return;
     }
-    await onSaved(result.landmarkId, result.created);
-    setSaving(false);
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
     if (result.photoFailed) {
       showToast("명소는 저장됐지만 사진 업로드에 실패했어요", "warning");
-      return;
+    } else {
+      showToast(result.created ? "명소가 추가되었어요" : "명소가 수정되었어요");
     }
-    showToast(result.created ? "명소가 추가되었어요" : "명소가 수정되었어요");
+    await onSaved(result.landmarkId, result.created);
+    setSaving(false);
   }
 
   function startPicking() {

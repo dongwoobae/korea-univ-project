@@ -205,4 +205,109 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
       ).toHaveLength(0);
     }
   });
+
+  test("명소 이모지 피커에 하드코딩 밝은 색이 남지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto(
+      "/admin/dashboard/landmarks?id=11111111-1111-1111-1111-111111111111",
+    );
+    const detail = page.getByRole("region", { name: "다람쥐길", exact: true });
+    await expect(detail).toBeVisible();
+    await detail.getByRole("button", { name: /이모지 .* 바꾸기/ }).click();
+    await expect(
+      page.getByRole("group", { name: "이모지 선택" }),
+    ).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    const result = await scanContrast(page);
+    expect(
+      result.nearWhiteBg,
+      `미이관 흰 배경: ${result.nearWhiteBg.join(", ")}`,
+    ).toHaveLength(0);
+    expect(
+      result.nearBlackText,
+      `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
+    ).toHaveLength(0);
+  });
+
+  test("제보함 등록 요청 드로어에 하드코딩 밝은 색이 남지 않고 승인 버튼 글자 대비를 지킨다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.facilityRequests.push({
+      id: "00000000-0000-4000-8000-000000000001",
+      building_id: 1,
+      facility_code: "elevator",
+      name: null,
+      description: "엘리베이터가 있어요",
+      floor_info: "3층",
+      lat: 37.5894,
+      lng: 127.0325,
+      status: "new",
+      created_at: "2026-10-08T00:00:00Z",
+      reviewed_at: null,
+      facility_id: null,
+    });
+    await page.goto("/admin/dashboard/inbox");
+    await page.getByRole("listitem").first().getByRole("button").click();
+    const drawer = page.getByRole("dialog", { name: /등록 요청/ });
+    await expect(drawer.getByLabel("시설 유형 *")).toHaveValue("elevator");
+    const locate = drawer.locator(".ku-facility-map-locate");
+    await expect(locate).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    const result = await scanContrast(page);
+    expect(
+      result.nearWhiteBg,
+      `미이관 흰 배경: ${result.nearWhiteBg.join(", ")}`,
+    ).toHaveLength(0);
+    expect(
+      result.nearBlackText,
+      `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
+    ).toHaveLength(0);
+    // 입력·위치 버튼은 토큰 색을 쓴다(밝은 글자·어두운 면).
+    await expect(drawer.getByLabel("층 정보 (선택)")).not.toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)",
+    );
+    await expect(locate).not.toHaveCSS(
+      "background-color",
+      "rgb(255, 255, 255)",
+    );
+
+    const approve = drawer.getByRole("button", { name: "승인하고 등록" });
+    await expect(approve).toHaveCSS("background-color", "rgb(204, 41, 54)");
+    await expect(approve).toHaveCSS("color", "rgb(255, 255, 255)");
+  });
+
+  test("제보함 피드백 드로어에 하드코딩 밝은 색이 남지 않는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.feedbackSubmissions.push({
+      id: "fb-1",
+      feedback_type: "error",
+      content: "중앙도서관 경사로 위치가 틀려요",
+      page_url: "https://campus.example/",
+      status: "new",
+      created_at: "2026-10-08T00:00:00Z",
+    });
+    await page.goto("/admin/dashboard/inbox?tab=feedback");
+    await page.getByRole("listitem").first().getByRole("button").click();
+    const drawer = page.getByRole("dialog", { name: "오류 제보", exact: true });
+    await expect(drawer).toBeVisible();
+    await page.waitForLoadState("networkidle");
+
+    const result = await scanContrast(page);
+    expect(
+      result.nearWhiteBg,
+      `미이관 흰 배경: ${result.nearWhiteBg.join(", ")}`,
+    ).toHaveLength(0);
+    expect(
+      result.nearBlackText,
+      `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
+    ).toHaveLength(0);
+  });
 });

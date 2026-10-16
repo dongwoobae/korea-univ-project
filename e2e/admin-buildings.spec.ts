@@ -344,7 +344,7 @@ test.describe("건물 관리자 흐름", () => {
   }) => {
     const state = await installMockBackend(page, {
       authenticated: true,
-      failBuildingPhotoUploads: 1,
+      failPhotoUploads: 1,
     });
     await page.goto("/admin/buildings/1");
     const photoSection = page.locator("#building-photos");
@@ -379,7 +379,7 @@ test.describe("건물 관리자 흐름", () => {
     await expect(
       progress.getByRole("button", { name: "업로드 결과 닫기" }),
     ).toBeVisible();
-    expect(state.buildingPhotoUploadAttempts).toBe(3);
+    expect(state.photoUploadAttempts).toBe(3);
     expect(state.photos).toHaveLength(3);
   });
 

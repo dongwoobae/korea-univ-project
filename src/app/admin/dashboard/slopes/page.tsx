@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import SlopeEditPanel from "@/components/admin/slopes/SlopeEditPanel";
@@ -19,6 +19,7 @@ import {
   useWorkspaceCloseRequest,
   useWorkspaceSelection,
 } from "@/components/admin/workspace/useWorkspaceSelection";
+import { useWorkspaceLoad } from "@/components/admin/workspace/useWorkspaceLoad";
 import type {
   SlopeEditDraft,
   SlopeEditorHandle,
@@ -71,7 +72,7 @@ function selectedRouteId(state: WorkspaceState) {
   return state.mode === "view" || state.mode === "edit" ? state.id : null;
 }
 
-/** 편집 패널과 편집 지도의 key이자 둘이 주고받는 초안·손잡이의 owner */
+/** 편집 패널과 편집 지도의 key이자 둘이 주고받는 초안·손잡이의 owner. 여기서만 만들고 둘에는 props로 넘긴다 */
 function editOwner(state: WorkspaceState) {
   if (state.mode === "edit") return `edit:${state.id}`;
   if (state.mode === "new") return "edit:new";
@@ -80,9 +81,6 @@ function editOwner(state: WorkspaceState) {
 
 export default function SlopesPage() {
   const [routes, setRoutes] = useState<SlopeListItem[]>([]);
-  const [status, setStatus] = useState<"loading" | "error" | "ready">(
-    "loading",
-  );
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -94,9 +92,6 @@ export default function SlopesPage() {
     owner: string;
     focus: WorkspaceFocus;
   } | null>(null);
-  const loadRequestRef = useRef(0);
-  const disposedRef = useRef(false);
-  const loadedRef = useRef(false);
   const fullMapSeqRef = useRef(0);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const { state, request } = useWorkspaceSelection({ allowEdit: true });
@@ -109,11 +104,12 @@ export default function SlopesPage() {
       : (routes.find(
           (item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId,
         ) ?? null);
-  // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다
-  const editing =
+  // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다(owner가 null)
+  const owner =
     state.mode === "new" ||
-    (state.mode === "edit" && Boolean(selected?.summary));
-  const owner = editing ? editOwner(state) : null;
+    (state.mode === "edit" && Boolean(selected?.summary))
+      ? editOwner(state)
+      : null;
   // 패널이 바뀐 뒤 늦게 끝난 저장의 잠금이 남지 않게 owner로 거른다(명소의 activeDraft와 같다)
   const activeDraft = draft && draft.owner === owner ? draft : null;
   const activeEditor = editor && editor.owner === owner ? editor : null;
@@ -124,52 +120,39 @@ export default function SlopesPage() {
     setToast({ message, type });
   }
 
-  const loadRoutes = useCallback(async () => {
-    if (disposedRef.current) return;
-    loadRequestRef.current += 1;
-    const ticket = loadRequestRef.current;
+  const fetchRows = useCallback(async () => {
     const { data, error } = await supabase
       .from("slope_segments")
       .select("*")
       .order("id", { ascending: true });
-    // 삭제 뒤의 다시 받기가 겹치면 마지막 요청만 그린다
-    if (ticket !== loadRequestRef.current) return;
-    if (error) {
-      if (loadedRef.current) {
-        setToast({
-          message: "경사도 경로 목록을 새로 불러오지 못했어요",
-          type: "error",
-        });
-      } else {
-        setStatus("error");
-      }
-      return;
-    }
-    const rows: SlopeListItem[] = (data ?? []).map((route) => ({
+    if (error) return null;
+    return (data ?? []).map((route) => ({
       route,
       summary: summarizeSlopeRoute(route.segments),
-    }));
-    const firstLoad = !loadedRef.current;
-    loadedRef.current = true;
-    setRoutes(rows);
-    setStatus("ready");
-    // 존재 검사는 조회가 끝난 뒤에만 한다. 조회 전 빈 목록으로 판정하면 맞는 링크도 닫힌다(설계 2026-10-14 3.4)
-    const selection = currentSelection();
-    const id = selectedRouteId(selection);
-    if (id === null) return;
-    const row = rows.find((item) => SLOPE_COLLECTION_POLICY.id(item) === id);
-    if (!row) {
-      applyWorkspaceState({ mode: "closed" });
-      setToast({ message: NOT_FOUND_MESSAGE, type: "warning" });
-      return;
-    }
+    })) as SlopeListItem[];
+  }, []);
+
+  const {
+    status,
+    reload: loadRoutes,
+    retry,
+    isDisposed,
+  } = useWorkspaceLoad<SlopeListItem>({
+    fetchRows,
+    onRows: setRoutes,
+    rowId: SLOPE_COLLECTION_POLICY.id,
+    selectedId: selectedRouteId,
     // 형식 오류 경로는 편집기가 읽지 못한다. 편집 주소로 들어와도 보기로 연다(설계 2026-10-14 6.2)
-    if (selection.mode === "edit" && !row.summary) {
-      applyWorkspaceState({ mode: "view", id });
-    }
-    // 페이지는 첫 성공에서만 맞춘다. 다시 받기는 보던 페이지를 둔다
-    if (firstLoad) {
-      const page = pageOfItem(
+    afterCheck: (_rows, selection, row) => {
+      if (selection.mode === "edit" && !row.summary) {
+        applyWorkspaceState({
+          mode: "view",
+          id: SLOPE_COLLECTION_POLICY.id(row),
+        });
+      }
+    },
+    initialPageOf: (rows, id) =>
+      pageOfItem(
         viewAdminCollection(
           rows,
           SLOPE_COLLECTION_POLICY,
@@ -177,22 +160,15 @@ export default function SlopesPage() {
         ).matched,
         id,
         SLOPE_COLLECTION_POLICY.id,
-      );
-      if (page !== null) setPage(page);
-    }
-  }, [setPage]);
-
-  useEffect(() => {
-    disposedRef.current = false;
-    const timer = window.setTimeout(() => void loadRoutes(), 0);
-    return () => {
-      window.clearTimeout(timer);
-      // 떠난 뒤에 끝난 조회가 그때의 주소(다른 화면)에서 ?id=를 지우지 않게 진행 중인 요청을 버린다.
-      // 떠난 뒤 끝난 삭제가 새로 시작하는 다시 받기와 그 뒤의 주소 갱신도 disposedRef가 막는다
-      disposedRef.current = true;
-      loadRequestRef.current += 1;
-    };
-  }, [loadRoutes]);
+      ),
+    setPage,
+    allowEdit: true,
+    messages: {
+      refreshFailed: "경사도 경로 목록을 새로 불러오지 못했어요",
+      notFound: NOT_FOUND_MESSAGE,
+    },
+    showToast,
+  });
 
   // 저장 중에는 선택을 바꾸지 않는다 — 행·선·칩·닫기를 막는다(설계 2026-10-14 3.4)
   function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
@@ -252,8 +228,9 @@ export default function SlopesPage() {
       showToast(error, "error");
       return;
     }
-    await handleDeleted(routeId);
+    // 성공 토스트를 먼저 띄운다. 뒤따르는 목록 다시 받기가 실패하면 그 오류 토스트가 마지막에 남아야 한다
     showToast(`"${slopeDisplayName(item.route)}" 경로를 삭제했어요`);
+    await handleDeleted(routeId);
   }
 
   // 편집을 마치거나 그만둔 뒤의 자리. 모바일은 행이 보기를 거치지 않아 목록으로 간다(설계 2026-10-14 6.4·6.6)
@@ -265,7 +242,7 @@ export default function SlopesPage() {
 
   async function handleSaved(routeId: string, created: boolean) {
     await loadRoutes();
-    if (disposedRef.current) return;
+    if (isDisposed()) return;
     // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 편집 상태일 때만 바꾼다(설계 2026-10-14 3.4)
     const selection = currentSelection();
     const stillEditing = created
@@ -275,18 +252,12 @@ export default function SlopesPage() {
   }
 
   async function handleDeleted(routeId: string) {
-    if (disposedRef.current) return;
+    if (isDisposed()) return;
     // 삭제는 선택을 잠그지 않는다. 기다리는 사이 다른 항목이나 새로 만들기로 옮겼으면 그 패널을 닫지 않는다(설계 2026-10-14 3.4)
     if (selectedRouteId(currentSelection()) === routeId) {
       applyWorkspaceState({ mode: "closed" });
     }
     await loadRoutes();
-  }
-
-  function retry() {
-    // 목록을 받은 뒤에 "loading"으로 가면, 이번 조회가 실패할 때 토스트만 뜨고 패널이 거기 멈춘다
-    if (!loadedRef.current) setStatus("loading");
-    void loadRoutes();
   }
 
   const focus: WorkspaceFocus | null =
@@ -314,35 +285,37 @@ export default function SlopesPage() {
       }
     : undefined;
 
-  const detail = editing ? (
-    <SlopeEditPanel
-      key={owner}
-      route={selected && state.mode === "edit" ? selected.route : null}
-      summary={selected && state.mode === "edit" ? selected.summary : null}
-      editor={activeEditor}
-      onDraftChange={setDraft}
-      onSaved={handleSaved}
-      onCancel={() =>
-        requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
-      }
-      remove={remove}
-      onFullMapChange={handleFullMapChange}
-      showToast={showToast}
-    />
-  ) : selected ? (
-    <SlopeViewPanel
-      key={SLOPE_COLLECTION_POLICY.id(selected)}
-      item={selected}
-      onEdit={() =>
-        requestSelection({
-          mode: "edit",
-          id: SLOPE_COLLECTION_POLICY.id(selected),
-        })
-      }
-      onClose={() => requestSelection({ mode: "closed" })}
-      remove={remove}
-    />
-  ) : null;
+  const detail =
+    owner !== null ? (
+      <SlopeEditPanel
+        key={owner}
+        owner={owner}
+        route={selected && state.mode === "edit" ? selected.route : null}
+        summary={selected && state.mode === "edit" ? selected.summary : null}
+        editor={activeEditor}
+        onDraftChange={setDraft}
+        onSaved={handleSaved}
+        onCancel={() =>
+          requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
+        }
+        remove={remove}
+        onFullMapChange={handleFullMapChange}
+        showToast={showToast}
+      />
+    ) : selected ? (
+      <SlopeViewPanel
+        key={SLOPE_COLLECTION_POLICY.id(selected)}
+        item={selected}
+        onEdit={() =>
+          requestSelection({
+            mode: "edit",
+            id: SLOPE_COLLECTION_POLICY.id(selected),
+          })
+        }
+        onClose={() => requestSelection({ mode: "closed" })}
+        remove={remove}
+      />
+    ) : null;
 
   return (
     <>
@@ -353,9 +326,10 @@ export default function SlopesPage() {
         mobilePickingTop={MOBILE_TOOLBAR_BOTTOM}
         renderMap={(slot) =>
           // 편집하면 지도 자리에 편집 지도를 바꿔 끼운다. 보기와 focus key가 같아 화면을 이어받는다(설계 2026-10-14 2.6·3.2)
-          editing ? (
+          owner !== null ? (
             <SlopeRouteMap
               key={owner}
+              owner={owner}
               {...slot}
               initialVertices={
                 state.mode === "edit"

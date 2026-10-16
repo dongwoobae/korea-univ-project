@@ -5,6 +5,7 @@ import {
   formatMeters,
   formatSlopeRouteMeta,
   SLOPE_COLLECTION_POLICY,
+  SLOPE_GRADE_TONES,
   slopeRouteBadge,
   summarizeSlopeRoute,
   verticesBounds,
@@ -78,6 +79,34 @@ describe("summarizeSlopeRoute", () => {
     ).toBeNull();
     expect(summarizeSlopeRoute([{ lat: 1, lng: 2 }])).toBeNull();
     expect(summarizeSlopeRoute({ lat: 1 })).toBeNull();
+  });
+});
+
+describe("SLOPE_GRADE_TONES", () => {
+  it("판정마다 관리자 배지 tone을 하나 둔다", () => {
+    expect(SLOPE_GRADE_TONES).toEqual({
+      ok: "ok",
+      over: "warn",
+      extreme: "missing",
+    });
+  });
+
+  it("행 배지와 구간 표 배지가 같은 판정에 같은 tone을 쓴다", () => {
+    const extreme = summarizeSlopeRoute([
+      { lat: 37.58, lng: 127.02 },
+      { lat: 37.581, lng: 127.021, slope: 30, distance: 5 },
+    ]);
+    const over = summarizeSlopeRoute([
+      { lat: 37.58, lng: 127.02 },
+      { lat: 37.581, lng: 127.021, slope: 10, distance: 5 },
+    ]);
+    const ok = summarizeSlopeRoute([
+      { lat: 37.58, lng: 127.02 },
+      { lat: 37.581, lng: 127.021, slope: 2, distance: 5 },
+    ]);
+    expect(slopeRouteBadge(extreme).tone).toBe(SLOPE_GRADE_TONES.extreme);
+    expect(slopeRouteBadge(over).tone).toBe(SLOPE_GRADE_TONES.over);
+    expect(slopeRouteBadge(ok).tone).toBe(SLOPE_GRADE_TONES.ok);
   });
 });
 

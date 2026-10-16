@@ -11,22 +11,15 @@ import {
   degToPercent,
   formatDeg,
   formatPercent,
-  type SlopeGrade,
 } from "@/lib/slopeScale";
 import {
   formatMeters,
+  SLOPE_GRADE_TONES,
   slopeDisplayName,
   type SlopeListItem,
   type SlopeRouteSummary,
 } from "@/lib/slopeWorkspace";
 import { useMediaQuery } from "@/lib/useMediaQuery";
-
-/** 행 배지(slopeRouteBadge)와 같은 색 짝을 구간 하나에 쓴다 */
-const GRADE_TONES: Record<SlopeGrade, "ok" | "warn" | "missing"> = {
-  ok: "ok",
-  over: "warn",
-  extreme: "missing",
-};
 
 function SegmentTable({ summary }: { summary: SlopeRouteSummary }) {
   return (
@@ -59,7 +52,7 @@ function SegmentTable({ summary }: { summary: SlopeRouteSummary }) {
             <td>
               <span
                 className="ku-row-badge"
-                data-tone={GRADE_TONES[segment.grade]}
+                data-tone={SLOPE_GRADE_TONES[segment.grade]}
               >
                 {SLOPE_GRADE_LABELS[segment.grade]}
               </span>

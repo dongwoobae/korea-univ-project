@@ -57,6 +57,7 @@ export interface FacilityRequestListItem {
   building_name: string | null;
   facility_code: string;
   name: string | null;
+  description: string | null;
   floor_info: string | null;
   has_location: boolean;
   status: RequestStatus;
