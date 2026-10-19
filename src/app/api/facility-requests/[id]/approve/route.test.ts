@@ -19,9 +19,8 @@ const from = vi.fn((table: string) =>
   queryStub({ data: tables[table], error: errors[table] ?? null }),
 );
 const rpc = vi.fn();
-vi.mock("@/lib/server/supabaseAdmin", () => ({
-  supabaseAdmin: () => ({ from, rpc }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from, rpc }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 const ID = "5b0c1d2e-0000-4000-8000-000000000001";
 const fields = {
@@ -85,6 +84,7 @@ describe("POST .../approve", () => {
     const { POST } = await import("./route");
     const response = await POST(...call({ fields, photoIds: ["p2"] }));
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     const { facilityId, cleanupFailed } = await response.json();
     expect(facilityId).toMatch(/^[0-9a-f-]{36}$/);
     expect(cleanupFailed).toBe(false);

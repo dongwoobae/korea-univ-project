@@ -1,15 +1,9 @@
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import type { Database } from "@supabase-types";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { r2, R2_BUCKET, getR2KeyFromPublicUrl } from "@/lib/r2";
-
-const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -17,6 +11,7 @@ const UUID_RE =
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
     const { landmarkId, photoUrl } = await request.json();
@@ -39,7 +34,7 @@ export async function POST(request: Request) {
     if (!key) {
       return NextResponse.json({ error: "잘못된 사진 URL" }, { status: 400 });
     }
-    const { data: updated, error: dbError } = await supabaseAdmin
+    const { data: updated, error: dbError } = await db
       .from("landmarks")
       .update({ photo_url: null })
       .eq("id", landmarkId)
@@ -62,7 +57,7 @@ export async function POST(request: Request) {
     try {
       await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
     } catch (storageError) {
-      await supabaseAdmin
+      await db
         .from("landmarks")
         .update({ photo_url: photoUrl })
         .eq("id", landmarkId)

@@ -1,15 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@supabase-types";
-
-const supabase = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 export const revalidate = 3600;
 
 export async function GET() {
-  const { data, error } = await supabase
+  const db = supabaseAdmin();
+  const { data, error } = await db
     .from("landmarks")
     .select("*")
     .order("created_at", { ascending: true });

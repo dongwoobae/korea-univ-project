@@ -34,7 +34,7 @@ async function translateAndStore(facility: Source): Promise<Outcome> {
   }
 
   // updated_at이 아니라 원문으로 잠근다 — 설계 문서 2026-10-14-server-side-facility-translation-design.md
-  let query = supabaseAdmin()
+  let query = supabaseAdmin({ system: "translation" })
     .from("building_facilities")
     .update(update)
     .eq("id", facility.id);

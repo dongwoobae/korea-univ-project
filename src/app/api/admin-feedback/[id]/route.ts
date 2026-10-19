@@ -22,7 +22,7 @@ export async function PATCH(
       { status: 400 },
     );
   }
-  const { data, error } = await supabaseAdmin()
+  const { data, error } = await supabaseAdmin({ userId: auth.user.id })
     .from("feedback_submissions")
     .update({ status: body.status })
     .eq("id", id)

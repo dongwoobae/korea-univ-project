@@ -12,14 +12,16 @@ export async function POST(request: Request) {
   if (!result.ok)
     return Response.json({ error: result.errors[0] }, { status: 400 });
 
-  const { error } = await supabaseAdmin().from("app_settings").upsert(
-    {
-      key: SLOPE_BANDS_SETTING_KEY,
-      value: result.value,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "key" },
-  );
+  const { error } = await supabaseAdmin({ userId: auth.user.id })
+    .from("app_settings")
+    .upsert(
+      {
+        key: SLOPE_BANDS_SETTING_KEY,
+        value: result.value,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" },
+    );
   if (error) {
     console.error("[slope-bands] upsert failed", {
       code: error.code,

@@ -1,14 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 export const revalidate = 3600;
 
 export async function GET() {
-  const { data, error } = await supabase
+  const db = supabaseAdmin();
+  const { data, error } = await db
     .from("building_facilities")
     .select(
       "*, facility_types(code, label, label_en, label_zh), buildings(name, name_en, is_deleted)",

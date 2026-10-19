@@ -13,7 +13,7 @@ export async function POST(
   if (!isUuid(id))
     return Response.json({ error: "요청이 없어요" }, { status: 404 });
 
-  const { data, error } = await supabaseAdmin()
+  const { data, error } = await supabaseAdmin({ userId: auth.user.id })
     .from("facility_requests")
     .update({ status: "rejected", reviewed_at: new Date().toISOString() })
     .eq("id", id)

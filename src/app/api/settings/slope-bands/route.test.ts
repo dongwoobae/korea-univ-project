@@ -5,9 +5,8 @@ import { queryStub } from "@/test/queryStub";
 const requireAdmin = vi.fn();
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const from = vi.fn();
-vi.mock("@/lib/server/supabaseAdmin", () => ({
-  supabaseAdmin: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 function post(body: unknown) {
   return new Request("https://local.test/api/settings/slope-bands", {
@@ -47,6 +46,7 @@ describe("POST /api/settings/slope-bands", () => {
     const response = await POST(post(TWO_BANDS));
 
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({
       ok: true,
       value: TWO_BANDS_NORMALIZED,

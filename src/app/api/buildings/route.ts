@@ -1,12 +1,9 @@
-import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import type { Database } from "@supabase-types";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 export const revalidate = 86400;
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
 
 const OVERPASS_SERVERS = [
   "https://overpass-api.de/api/interpreter",
@@ -40,6 +37,11 @@ function toGeoJSONFeature(element: OverpassElement) {
   };
 }
 
+type BuildingFeature = {
+  geometry?: { type?: string };
+  properties?: Record<string, unknown>;
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
@@ -50,11 +52,11 @@ export async function GET(request: Request) {
     if (secret !== process.env.SYNC_SECRET)
       return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    return handleSync();
+    return handleSync(supabaseAdmin({ system: "osm_sync" }));
   }
 
   // 일반 모드 → Supabase에서 GeoJSON FeatureCollection 반환
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin()
     .from("buildings")
     .select("id, name, name_en, geojson")
     .not("geojson", "is", null)
@@ -62,14 +64,20 @@ export async function GET(request: Request) {
 
   if (error) return Response.json({ error: error.message }, { status: 500 });
 
+  const rows = data as unknown as {
+    id: number;
+    name: string | null;
+    name_en: string | null;
+    geojson: BuildingFeature | null;
+  }[];
   const featureCollection = {
     type: "FeatureCollection",
-    features: data
+    features: rows
       .filter((b) => b.geojson?.geometry?.type === "Polygon")
       .map((b) => ({
         ...b.geojson,
         properties: {
-          ...b.geojson.properties,
+          ...b.geojson?.properties,
           id: b.id,
           name: b.name,
           name_en: b.name_en,
@@ -90,7 +98,7 @@ interface OverpassResponse {
   elements: OverpassElement[];
 }
 
-async function handleSync() {
+async function handleSync(db: SupabaseClient<Database>) {
   let data: OverpassResponse | null = null;
 
   for (const server of OVERPASS_SERVERS) {
@@ -120,7 +128,7 @@ async function handleSync() {
   let failed = 0;
 
   // geojson이 없는 건물만 업데이트
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from("buildings")
     .select("id, is_deleted")
     .not("geojson", "is", null);
@@ -135,7 +143,7 @@ async function handleSync() {
       continue; // geojson 있으면 패스
     }
     const geojson = toGeoJSONFeature(building);
-    const { error } = await supabase.from("buildings").upsert(
+    const { error } = await db.from("buildings").upsert(
       {
         id: building.id,
         name: building.tags.name,

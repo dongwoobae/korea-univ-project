@@ -1,11 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const admin = createClient(supabaseUrl, serviceKey);
 
 function isEmail(s: unknown): boolean {
   return typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
@@ -26,6 +24,7 @@ async function verifyAdmin(request: Request) {
 export async function POST(request: Request) {
   const user = await verifyAdmin(request);
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const db = supabaseAdmin({ userId: user.id });
 
   const body = await request.json().catch(() => null);
   if (!body) return Response.json({ error: "Invalid JSON" }, { status: 400 });
@@ -48,7 +47,7 @@ export async function POST(request: Request) {
 
   const value = { to, cc, subject };
 
-  const { error } = await admin
+  const { error } = await db
     .from("app_settings")
     .upsert(
       { key: "feedback_emails", value, updated_at: new Date().toISOString() },

@@ -2,9 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { queryStub } from "@/test/queryStub";
 
 const from = vi.fn();
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 const facility = (id: string, buildings: unknown) => ({
   id,
@@ -33,6 +32,7 @@ describe("GET /api/facilities", () => {
     );
     const { GET } = await import("./route");
     const body = (await (await GET()).json()) as { id: string }[];
+    expect(supabaseAdmin).toHaveBeenCalledWith();
     expect(body.map((row) => row.id)).toEqual([
       "alive",
       "legacy",

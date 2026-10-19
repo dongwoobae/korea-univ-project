@@ -1,15 +1,9 @@
 import { DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
-import type { Database } from "@supabase-types";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { r2, R2_BUCKET, getPublicR2Url, getR2KeyFromPublicUrl } from "@/lib/r2";
-
-const supabaseAdmin = createClient<Database>(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -26,6 +20,7 @@ function extensionFor(contentType: string): string {
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
     const formData = await request.formData();
@@ -43,7 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "잘못된 명소 ID" }, { status: 400 });
     }
 
-    const { data: existing, error: fetchError } = await supabaseAdmin
+    const { data: existing, error: fetchError } = await db
       .from("landmarks")
       .select("id, photo_url")
       .eq("id", landmarkId)
@@ -92,7 +87,7 @@ export async function POST(request: Request) {
     );
 
     const photoUrl = getPublicR2Url(key);
-    const { data: updated, error: dbError } = await supabaseAdmin
+    const { data: updated, error: dbError } = await db
       .from("landmarks")
       .update({ photo_url: photoUrl })
       .eq("id", landmarkId)

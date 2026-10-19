@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "사진이 없어요" }, { status: 404 });
   }
 
-  const db = supabaseAdmin();
+  const db = supabaseAdmin({ userId: auth.user.id });
   const { data: photo, error: lookupError } = await db
     .from("facility_photos")
     .select("id, storage_path")

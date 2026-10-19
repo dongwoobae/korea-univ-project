@@ -10,9 +10,8 @@ vi.mock("@/lib/server/requestPhotoStorage", () => ({ cleanupRequestPhotos }));
 let updated: unknown[] = [{ id: ID }];
 let queryError: unknown = null;
 const from = vi.fn(() => queryStub({ data: updated, error: queryError }));
-vi.mock("@/lib/server/supabaseAdmin", () => ({
-  supabaseAdmin: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 type Calls = { method: string; args: unknown[] }[];
 const callsOf = (index: number) =>
@@ -94,6 +93,7 @@ describe("POST .../reject", () => {
     const { POST } = await import("./route");
     const response = await POST(...call());
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({ ok: true, cleanupFailed: true });
   });
 

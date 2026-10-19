@@ -15,9 +15,8 @@ query.select.mockReturnValue(query);
 query.is.mockReturnValue(query);
 const from = vi.fn(() => query);
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 vi.mock("@/lib/requireAdmin", () => ({
   requireAdmin: vi.fn().mockResolvedValue({ user: { id: "admin" } }),
 }));
@@ -71,6 +70,7 @@ describe("delete landmark photo route", () => {
     const response = await POST(request());
 
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(query.eq).toHaveBeenCalledWith("photo_url", photoUrl);
     expect(send).toHaveBeenCalledOnce();
   });

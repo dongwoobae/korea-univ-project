@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
-  const { error } = await supabaseAdmin()
+  const { error } = await supabaseAdmin({ userId: auth.user.id })
     .from("facility_photos")
     .delete()
     .eq("facility_id", body.facilityId);

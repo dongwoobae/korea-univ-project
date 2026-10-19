@@ -13,9 +13,8 @@ vi.mock("@/lib/server/requestPhotoStorage", () => ({
 // 테이블마다 응답을 호출 순서대로 꺼낸다(facility_photos: 기존 목록 조회 → insert).
 const queue: Record<string, unknown[]> = {};
 const from = vi.fn((table: string) => queryStub(queue[table].shift()));
-vi.mock("@/lib/server/supabaseAdmin", () => ({
-  supabaseAdmin: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 const FACILITY_ID = "11111111-1111-4111-8111-111111111111";
 
@@ -72,6 +71,7 @@ describe("POST /api/upload-facility-photo", () => {
     const { POST } = await import("./route");
     const response = await POST(post());
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({
       id: "fp1",
       storage_path: "f1/x.webp",

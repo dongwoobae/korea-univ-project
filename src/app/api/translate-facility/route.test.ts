@@ -32,9 +32,8 @@ const writeCalls = () =>
       calls: { method: string; args: unknown[] }[];
     }
   ).calls;
-vi.mock("@/lib/server/supabaseAdmin", () => ({
-  supabaseAdmin: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 const post = (facilityId: unknown = FACILITY_ID) =>
   new Request("https://local.test/api/translate-facility", {
@@ -65,6 +64,7 @@ describe("POST /api/translate-facility", () => {
     const response = await POST(post());
 
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ system: "translation" });
     expect(await response.json()).toEqual({ status: "translated" });
     expect(translateKoTexts).toHaveBeenCalledWith({
       name: "엘리베이터",
