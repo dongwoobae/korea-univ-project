@@ -24,6 +24,7 @@ const JOURNAL = ".media-migration/building-photos.jsonl";
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { global: { headers: { "x-actor-system": "script" } } },
 );
 const bucket = supabase.storage.from(BUILDING_PHOTO_BUCKET);
 
