@@ -3354,6 +3354,10 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   .ku-bottom-sheet-foot .ku-workspace-button {
     min-height: 44px;
   }
+  /* 접힌 시트(높이 150px)에 아랫줄까지 두면 목록 칸이 행 하나도 못 보인다 */
+  .ku-bottom-sheet:not([data-expanded]) .ku-bottom-sheet-foot {
+    display: none;
+  }
   .ku-bottom-sheet .ku-workspace-row {
     min-height: 64px;
   }
@@ -3559,6 +3563,9 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   }
 }
 
+.ku-bands-modal h2:focus {
+  outline: none;
+}
 .ku-bands-modal-backdrop {
   position: fixed;
   z-index: 2000;

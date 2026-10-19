@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import SlopeBandsLegend from "@/components/map/SlopeBandsLegend";
 import {
   SLOPE_UNIT_OPTIONS,
@@ -55,8 +55,11 @@ export default function SlopeBandsModal({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const titleId = useId();
+  const titleRef = useRef<HTMLHeadingElement>(null);
   const dialogRef = useModalFocus<HTMLDivElement>({
     onClose,
+    // 첫 포커스를 맨 위 미리보기 칸에 두면 그 포커스가 툴팁을 열어, 아래로 뜬 툴팁이 단위 버튼을 덮는다
+    initialFocusRef: titleRef,
     // 이 훅은 document 캡처 단계에서 Esc를 먼저 받아 모달을 닫는다. 툴팁이 열린 동안의 Esc는 툴팁만 닫게 끈다
     closeOnEscape: !saving && !tooltipOpen,
   });
@@ -119,7 +122,9 @@ export default function SlopeBandsModal({
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <h2 id={titleId}>범례 편집</h2>
+        <h2 id={titleId} ref={titleRef} tabIndex={-1}>
+          범례 편집
+        </h2>
 
         <div className="ku-bands-modal-preview">
           {validation.ok ? (

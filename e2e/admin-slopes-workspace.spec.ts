@@ -2371,7 +2371,11 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
     await expect(page.getByRole("group", { name: "목록 필터" })).toHaveCount(0);
-    await listPanel(page).getByRole("button", { name: "범례 편집" }).click();
+    const edit = listPanel(page).getByRole("button", { name: "범례 편집" });
+    // 접힌 시트는 첫 행을 보이려고 아랫줄을 숨긴다
+    await expect(edit).toBeHidden();
+    await listPanel(page).getByRole("button", { name: "목록 펼치기" }).click();
+    await edit.click();
     const dialog = page.getByRole("dialog", { name: "범례 편집" });
     await expect(dialog).toBeVisible();
     const box = (await dialog.boundingBox())!;
@@ -2662,10 +2666,10 @@ test.describe("경사도 작업 화면 — 범례 편집", () => {
       .getByRole("group", { name: "경사도 범례" })
       .getByRole("button", { name: /^평지,/ });
     await cell.focus();
-    await expect(page.getByRole("tooltip")).toContainText("평지");
+    await expect(dialog.getByRole("tooltip")).toContainText("평지");
 
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await expect(dialog.getByRole("tooltip")).toHaveCount(0);
     await expect(dialog).toBeVisible();
     await expect(dialog.getByLabel("구간 1 이름")).toHaveValue("평지");
 
