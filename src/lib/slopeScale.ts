@@ -11,7 +11,7 @@ export const MAX_SLOPE_DEG = 45;
 const EXTREME_SLOPE_PERCENT = 30;
 
 // tan(atan(x)) 왕복의 부동소수 오차가 정확한 경계값을 넘기지 않게 한다(설계 2.2).
-const BOUNDARY_TOLERANCE = 1e-9;
+export const BOUNDARY_TOLERANCE = 1e-9;
 
 export function degToPercent(deg: number): number {
   return Math.tan((deg * Math.PI) / 180) * 100;
