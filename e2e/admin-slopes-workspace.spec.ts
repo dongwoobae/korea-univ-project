@@ -1224,22 +1224,22 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     ]);
 
     await detail.getByLabel("경로 이름").fill("끝단 시험 경사로");
-    await detail.getByLabel("구간 1 경사도").fill("10");
+    await detail.getByLabel("구간 1 경사도").fill("4");
     await detail.getByRole("button", { name: "저장", exact: true }).click();
     await expect(page).toHaveURL(/\?id=3$/);
 
     await page.goto("/");
     await page.getByRole("checkbox", { name: "경사도" }).check();
 
-    // 10°(17.63%)의 공개 지도 연속 색. 픽스처의 두 행(3°, 7.2°)은 다른 색이라 방금 저장한 경로만 잡힌다.
-    const saved = page.locator('path[stroke="#AD2936"]').first();
+    // 4°(6.99%)는 기본 구간의 둘째 노랑이다. 픽스처의 두 행(3°, 7.2°)은 다른 구간이라 방금 저장한 경로만 잡힌다
+    const saved = page.locator('path[stroke="#FFD600"]').first();
     await expect(saved).toBeVisible();
 
     await saved.dispatchEvent("click");
     const popup = page.locator(".leaflet-popup");
     await expect(popup).toContainText("끝단 시험 경사로");
-    await expect(popup).toContainText("17.6%");
-    await expect(popup).toContainText("10.0°");
+    await expect(popup).toContainText("7.0%");
+    await expect(popup).toContainText("4.0°");
   });
 
   test("퍼센트로 입력하면 도로 바꿔 저장한다", async ({ page }) => {

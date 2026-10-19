@@ -145,8 +145,8 @@
   구분되지 않는다. 비교는 `상한 − 앞 상한 ≥ 0.01 − 1e-9`다 — 부동소수로 `5.01 − 5`는 `0.009999999999999787`이라
   허용오차 없이 비교하면 사람이 친 `5.01`이 거부된다.
 - 이 검증은 % 값을 받는다. 도로 친 값은 폼이 % 로 바꾸기 **전에** 도 범위로 검사한다(6.2).
-- 6은 데스크톱 막대 폭 약 200px(4.2)에서 경계 눈금이 약 33px 간격이 되는 수다. 눈금 글자(`12.5%`)가 겹치지 않는지는
-  구현에서 확인한다(11장). 겹치면 상한 개수를 줄인다.
+- 6은 데스크톱 막대 폭 240px(4.2)에서 경계 눈금이 40px 간격이 되는 수다. 2026-10-19 구현 — 200px에서는 6구간 눈금
+  글자(예: `16.67%`·`18.43°`)가 칸 간격(약 33px)과 거의 같아 240px로 넓혔고, 겹치지 않는지는 e2e가 잰다(9.3).
 
 `readSlopeBands(value)`는 DB 값을 같은 검증에 넣는다. 실패하면 **기본값 전체로** 대체하고 콘솔에 경고를 남긴다.
 일부 구간만 살리면 경계가 끊기거나 마지막 구간이 상한을 갖게 된다.
@@ -212,13 +212,16 @@
 ### 4.2 범례 막대와 툴팁 — `SlopeBandsLegend`
 
 - 구간마다 같은 폭의 칸을 이은 막대다. 칸 너비를 %에 비례시키지 않는다 — 마지막 구간에 끝이 없다.
-- 크기는 대충 확인할 정도로 작게 — 막대 높이 약 8px, 데스크톱 폭 약 200px, 눈금 글자 10px. 정확한 값은 구현에서
-  `map-ui.css`에 둔다.
+- 크기는 대충 확인할 정도로 작게 — 막대 높이 약 8px, 데스크톱 폭 240px(2.4), 눈금 글자 10px. 막대·눈금·툴팁 규칙은
+  컴포넌트가 불러오는 `slope-bands-legend.css`에 둔다 — 관리자 모달도 같은 컴포넌트를 쓰는데 `map-ui.css`는 공개
+  지도(`Map.tsx`)만 불러온다. 지도 위 위치 규칙만 `map-ui.css`다.
 - **늘 보이는 것은 막대와 칸 사이 경계 눈금(`5.56%` 위, `3.18°` 아래)뿐이다.** 제목·구간 이름·기준선 줄은 두지 않는다.
   눈금은 지금 범례처럼 소수 둘째 자리까지 끝 0을 떼고 보인다.
 - **툴팁**: 칸 위로 마우스를 올리거나 칸을 탭·클릭하면 그 칸의 이름(굵게)과 설명이 뜬다. 설명이 비어 있으면 이름만.
   - 마우스가 칸을 떠나면 닫힌다. 탭으로 연 툴팁은 같은 칸을 다시 탭하거나 다른 곳을 누르면 닫힌다.
   - 한 번에 하나만 열린다.
+  - 툴팁은 범례 폭 전체에 걸린다 — 칸 가운데에 붙이면 끝 칸 툴팁이 화면 밖으로 나간다. 공개 지도는 막대 위, 모달
+    미리보기는 아래(`tooltipPlacement`)다.
 - 같은 컴포넌트를 관리자 모달의 미리보기(6.1)가 초안을 넣어 쓴다. 그래서 컴포넌트는 저장소를 직접 읽지 않고 구간을
   props로 받는다. 지도 위 범례(`SlopeLegend`)가 저장소에서 읽어 넘긴다.
 
@@ -376,11 +379,12 @@
 | `src/app/api/settings/slope-bands/route.ts`                    | 신규 (6.3)                                                                                                      |
 | `src/app/api/settings/slope-bands/route.test.ts`               | 신규. 다른 관리자 라우트 테스트(`admin-feedback/route.test.ts` 등)와 같은 꼴                                    |
 | `src/components/map/SlopeBandsLegend.tsx`                      | 신규. 막대·눈금·툴팁 (4.2)                                                                                      |
+| `src/components/map/slope-bands-legend.css`                    | 신규. 막대·눈금·툴팁                                                                                            |
 | `src/components/map/SlopeLegend.tsx`                           | 지도 위 범례로 바꿈 — 저장소에서 읽어 `SlopeBandsLegend`에 넘김                                                 |
 | `src/components/map/SlopeLayer.tsx`                            | 구간 색, 외곽선                                                                                                 |
 | `src/components/map/FilterPanel.tsx`                           | 범례 제거                                                                                                       |
 | `src/components/map/Map.tsx`                                   | 범례를 지도 버튼 열 컨테이너에                                                                                  |
-| `src/components/map/map-ui.css`                                | 옛 범례 규칙 제거, 새 범례·툴팁·위치                                                                            |
+| `src/components/map/map-ui.css`                                | 옛 범례 규칙 제거, 범례 상자·지도 모서리 컨테이너·모바일 위치                                                   |
 | `src/components/admin/slopes/*`                                | `SlopeListRow`·`SlopeViewPanel`·`SlopeWorkspaceMap` — 5장                                                       |
 | `src/components/admin/slopes/SlopeBandsModal.tsx`              | 신규 (6.1)                                                                                                      |
 | `src/components/admin/workspace/WorkspaceListPanel.tsx`        | 칩이 없으면 칩 줄 생략, `legendAction` props(데스크톱 범례 옆·모바일 시트 맨 아래)                              |
@@ -485,6 +489,9 @@
   굵어 선 바깥 1.5px에서 클릭이 지도로 가는 것은 지금과 같다(선 굵기는 그대로).
 - react-leaflet에서 외곽선을 선보다 먼저 마운트해도, 구간 설정이 바뀌어 선만 다시 그려질 때 순서가 유지되는지 —
   SVG 렌더러는 레이어를 추가 순서대로 붙인다. 순서가 깨지면 외곽선과 선을 별도 pane으로 나눈다.
+  - 2026-10-19 — 공개 지도(`SlopeLayer`)는 선이 다시 붙는 경우가 없어 외곽선을 먼저 마운트하는 것으로 순서가 지켜진다.
+    `className`·`interactive`는 `Polyline`의 최상위 prop으로 넘긴다 — react-leaflet 5는 `pathOptions`를 선을 붙인
+    뒤 `setStyle`로 넘겨 Leaflet이 읽지 않는다. 작업 화면·편집 지도는 Task 6·7.
 - `useSyncExternalStore`의 서버 스냅샷과 첫 클라이언트 스냅샷이 같은 객체인지(기본값 상수) — 다르면 hydration 경고.
 - 목록 패널의 칩 줄 생략이 시설·명소 탭에 영향이 없는지 — 두 탭은 칩이 있다.
 - 6구간일 때 데스크톱·모바일 막대 폭에서 경계 눈금 글자가 겹치지 않는지(2.4).

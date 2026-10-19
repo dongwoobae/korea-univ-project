@@ -392,73 +392,11 @@
 }
 
 .ku-slope-legend {
-  padding-top: 12px;
-}
-.ku-slope-legend-title {
-  margin-bottom: 8px;
-  color: var(--ku-text-2);
-  font-size: 12px;
-  font-weight: 700;
-}
-.ku-slope-scale {
-  /* 양 끝 눈금 라벨이 패널 가장자리로 넘치지 않게 좌우 여백을 둔다 */
-  margin: 0 14px 6px;
-}
-.ku-slope-scale-levels {
-  position: relative;
-  height: 16px;
-  margin-bottom: 2px;
-}
-.ku-slope-scale-level {
-  position: absolute;
-  top: 0;
-  color: var(--ku-text-2);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-  text-align: center;
-  white-space: nowrap;
-}
-.ku-slope-scale-bar {
-  height: 10px;
+  padding: 2px 10px 4px;
+  border: 1px solid color-mix(in srgb, var(--ku-border) 78%, transparent);
   border-radius: var(--ku-radius);
-}
-.ku-slope-scale-ticks {
-  position: relative;
-  height: 34px;
-}
-.ku-slope-scale-tick {
-  position: absolute;
-  top: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transform: translateX(-50%);
-  color: var(--ku-text-2);
-  font-size: 11px;
-  line-height: 1.3;
-  white-space: nowrap;
-}
-.ku-slope-scale-tick::before {
-  width: 1px;
-  height: 5px;
-  margin-bottom: 2px;
-  background: var(--ku-text-2);
-  content: "";
-}
-.ku-slope-threshold {
-  margin-top: 5px;
-  padding-top: 7px;
-  border-top: 1px dashed var(--ku-crimson-600);
-  color: var(--ku-crimson-600);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.ku-slope-threshold + .ku-slope-threshold {
-  margin-top: 2px;
-  padding-top: 0;
-  border-top: 0;
+  background: var(--ku-map-control);
+  box-shadow: var(--ku-shadow-raised);
 }
 
 .ku-language {
@@ -502,19 +440,24 @@
   display: none;
 }
 
-.ku-map-actions {
+.ku-map-corner {
   position: absolute;
   z-index: 1000;
   right: 20px;
   bottom: 20px;
   display: flex;
-  flex-direction: column;
   align-items: flex-end;
   gap: 10px;
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.ku-map-actions[data-panel-open="true"] {
+.ku-map-corner[data-panel-open="true"] {
   right: 360px;
+}
+.ku-map-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
 }
 .ku-map-zoom {
   display: grid;
@@ -1426,14 +1369,31 @@
   .ku-chip {
     min-height: 40px;
   }
+  /* 모바일은 범례가 버튼 열 옆이 아니라 둘러보기 위에 선다. 컨테이너를 풀어 둘을 지도 셸 기준으로 놓는다 */
+  .ku-map-corner {
+    display: contents;
+  }
   .ku-map-actions {
+    position: absolute;
+    z-index: 1000;
     right: 16px;
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     gap: 10px;
   }
-  .ku-map-actions[data-panel-open="true"],
-  .ku-map-actions[data-overlay-open="true"] {
+  .ku-map-corner[data-panel-open="true"] > *,
+  .ku-map-corner[data-overlay-open="true"] > * {
     display: none;
+  }
+  /* 바닥은 둘러보기 트리거(.ku-map-browse의 bottom 44px + 높이 44px) 위 8px, 오른쪽은 버튼 열(16px + 48px)과 10px 띄운다 */
+  .ku-slope-legend {
+    position: absolute;
+    z-index: 1000;
+    right: 74px;
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+    left: 16px;
+  }
+  .ku-slope-legend .ku-slope-bands {
+    width: auto;
   }
   .ku-map-action {
     width: 48px;
@@ -1453,7 +1413,8 @@
     display: none;
   }
   /* 한 줄로 눕힌 출처 표기(아래 12 + 높이 24)를 8px 띄우고 그 위에 앉는다.
-     패널 bottom·max-height는 트리거가 내려온 만큼 따라 내려오고 늘어난다. */
+     패널 bottom·max-height는 트리거가 내려온 만큼 따라 내려오고 늘어난다.
+     bottom을 바꾸면 .ku-slope-legend의 bottom도 같이 바꾼다. */
   .ku-map-browse {
     bottom: calc(44px + env(safe-area-inset-bottom, 0px));
     left: 16px;

@@ -15,7 +15,6 @@ import {
   SLOPE_GRADE_LABELS,
   SLOPE_GRADE_ON_COLORS,
   SLOPE_GRADES,
-  slopeColorFromDeg,
   slopeGradeFromDeg,
   slopeWarningFromDeg,
   toDegrees,
@@ -68,40 +67,6 @@ describe("isSlopeDegInRange", () => {
   it("유한하지 않은 값을 거부한다", () => {
     expect(isSlopeDegInRange(NaN)).toBe(false);
     expect(isSlopeDegInRange(Infinity)).toBe(false);
-  });
-});
-
-// 기대값은 slopeScale.ts를 거치지 않고 OKLab 보간을 따로 계산한 값이다.
-describe("slopeColorFromDeg", () => {
-  it("기준점에서는 그 기준색이다", () => {
-    expect(slopeColorFromDeg(0)).toBe("#0465AF");
-    expect(slopeColorFromDeg(percentToDeg(100 / 12))).toBe("#36A980");
-    expect(slopeColorFromDeg(percentToDeg(10))).toBe("#E6B816");
-    expect(slopeColorFromDeg(percentToDeg(12.5))).toBe("#D75A07");
-    expect(slopeColorFromDeg(percentToDeg(20))).toBe("#9A023C");
-  });
-
-  it("기준점 사이는 OKLab으로 섞은 중간색이다", () => {
-    expect(slopeColorFromDeg(percentToDeg(100 / 24))).toBe("#17899B");
-    expect(slopeColorFromDeg(percentToDeg(55 / 6))).toBe("#9DB360");
-    expect(slopeColorFromDeg(percentToDeg(11.25))).toBe("#E18B0E");
-    expect(slopeColorFromDeg(percentToDeg(16.25))).toBe("#B83731");
-  });
-
-  it("마지막 기준점을 넘으면 그 색에 머문다", () => {
-    expect(slopeColorFromDeg(percentToDeg(30))).toBe("#9A023C");
-    expect(slopeColorFromDeg(MAX_SLOPE_DEG)).toBe("#9A023C");
-  });
-
-  it("내리막은 같은 크기의 오르막과 같은 색이다", () => {
-    expect(slopeColorFromDeg(-percentToDeg(10))).toBe("#E6B816");
-  });
-
-  it("E2E가 쓰는 값의 색", () => {
-    expect(slopeColorFromDeg(1)).toBe("#0775A7");
-    expect(slopeColorFromDeg(3)).toBe("#1F9195");
-    expect(slopeColorFromDeg(7.2)).toBe("#D6590B");
-    expect(slopeColorFromDeg(10)).toBe("#AD2936");
   });
 });
 
