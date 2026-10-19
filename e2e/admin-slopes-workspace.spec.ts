@@ -2655,6 +2655,29 @@ test.describe("경사도 작업 화면 — 범례 편집", () => {
     await expect(saveButton(again)).toBeDisabled();
   });
 
+  test("미리보기 툴팁을 누르면 툴팁만 닫히고 그 아래 단위 버튼은 눌리지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    const dialog = await openBands(page);
+    const percent = dialog.getByRole("button", { name: "퍼센트(%)" });
+    await expect(percent).toHaveAttribute("aria-pressed", "false");
+
+    await dialog
+      .getByRole("group", { name: "경사도 범례" })
+      .getByRole("button", { name: /^보도 기준 이내,/ })
+      .click();
+    const tooltip = dialog.getByRole("tooltip");
+    await expect(tooltip).toContainText("보도 기준 1/18 이하");
+    await tooltip.click();
+    await expect(tooltip).toHaveCount(0);
+    await expect(percent).toHaveAttribute("aria-pressed", "false");
+
+    await percent.click();
+    await expect(percent).toHaveAttribute("aria-pressed", "true");
+  });
+
   test("미리보기 툴팁의 Esc는 툴팁만 닫고, 한 번 더 누르면 모달이 닫힌다", async ({
     page,
   }) => {

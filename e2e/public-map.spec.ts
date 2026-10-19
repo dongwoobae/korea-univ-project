@@ -676,6 +676,19 @@ test.describe("공개 지도 — 경사도 범례", () => {
     await expect(tooltip).toHaveCount(0);
   });
 
+  test("열린 툴팁을 누르면 닫힌다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    const legend = legendOf(page);
+    const tooltip = legend.getByRole("tooltip");
+
+    await legend.getByRole("button", { name: /^완화 범위,/ }).click();
+    await expect(tooltip).toContainText("완화 한도 1/12 이하");
+    await tooltip.click();
+    await expect(tooltip).toHaveCount(0);
+  });
+
   test("데스크톱 범례는 지도 버튼 열 왼쪽에 바닥을 맞추고 건물 패널을 열면 같이 비킨다", async ({
     page,
   }) => {
@@ -849,6 +862,9 @@ test.describe("공개 지도 — 경사도 범례 (모바일)", () => {
       "완화 한도 1/12 이하",
     );
     await cell.tap();
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await cell.tap();
+    await page.getByRole("tooltip").tap();
     await expect(page.getByRole("tooltip")).toHaveCount(0);
 
     const legendBox = (await page.locator(".ku-slope-legend").boundingBox())!;
