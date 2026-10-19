@@ -95,7 +95,9 @@ export default function SlopeRouteMap({
   const previewRef = useRef<L.LayerGroup | null>(null);
   const othersRef = useRef<L.LayerGroup | null>(null);
   // 행이 도착하면 그리기 effect가 돌아야 해서 ref가 아니라 상태다
-  const [otherSegments, setOtherSegments] = useState<OtherSegment[] | null>(null);
+  const [otherSegments, setOtherSegments] = useState<OtherSegment[] | null>(
+    null,
+  );
   const { bands } = useSlopeBands();
   const labelsRef = useRef<L.LayerGroup | null>(null);
   const verticesRef = useRef<Vertex[]>([]);
@@ -203,8 +205,6 @@ export default function SlopeRouteMap({
           );
         }
         setOtherSegments(segments);
-      });
-        }
       });
 
     // 편집선(overlayPane, z-index 400)보다 아래에 둔다. "아래에 그린다"를 말로만
@@ -434,7 +434,11 @@ export default function SlopeRouteMap({
     if (!group || !otherSegments) return;
     group.clearLayers();
     // 다른 경로는 늘 흐린 선이라 외곽선도 그 비율로 흐린다
-    const casing = slopeCasingStyle(OTHER_WEIGHT, prefersDarkMode, OTHER_OPACITY);
+    const casing = slopeCasingStyle(
+      OTHER_WEIGHT,
+      prefersDarkMode,
+      OTHER_OPACITY,
+    );
     const common = {
       interactive: false,
       pmIgnore: true,
