@@ -323,7 +323,7 @@
 
 - 초안은 구간마다 `upperPercent`(숫자)와 입력 문자열을 따로 든다. 숫자는 **그 칸을 사용자가 고쳤을 때만** 문자열을
   읽어 바꾼다.
-- 단위를 바꾸면 숫자는 그대로 두고 문자열만 새 단위로 다시 쓴다(2026-10-06 설계 3.3과 같은 규칙).
+- 단위를 바꾸면 숫자는 그대로 두고 문자열만 새 단위로 다시 쓴다(2026-10-06 설계 3.3과 같은 규칙). 범위 밖 입력이 남은 칸은 그 입력을 버리고 마지막으로 받아들인 숫자로 다시 쓴다 — 문구가 옛 단위를 말하는 상태가 남지 않는다.
 - % 입력은 친 그대로, ° 입력은 `degToPercent` 결과를 반올림하지 않고 숫자로 든다.
 - **도로 친 값은 바꾸기 전에 `0 < 값 ≤ 45`로 검사한다.** `tan`은 주기 함수라 `190°`가 약 17.6%로 바뀌어 2.4의 %
   검사를 통과한다(2026-10-06 설계 3.2와 같은 실패). % 로 친 값은 `0 < 값 ≤ 100`. 범위 밖이면 그 칸 아래에 문구를 두고
@@ -369,6 +369,8 @@
 | `src/lib/slopeBands.ts`                                        | 신규. 형, 기본값, `validateSlopeBands`, `readSlopeBands`, `slopeBandIndexFromDeg`, `readableTextOn`, 범위 표기  |
 | `src/lib/slopeBands.test.ts`                                   | 신규                                                                                                            |
 | `src/lib/slopeBandsStore.ts`                                   | 신규. 저장소와 `useSlopeBands`·`setSlopeBands` (3장)                                                            |
+| `src/lib/slopeBandsDraft.ts`                                   | 신규. 모달 초안 행과 그 변환(6.2). vitest가 node 환경이라 컴포넌트 대신 순수 함수로 뺀다                        |
+| `src/lib/slopeBandsDraft.test.ts`                              | 신규                                                                                                            |
 | `src/lib/slopeScale.ts`, `slopeScale.test.ts`                  | 7장                                                                                                             |
 | `src/lib/slopeWorkspace.ts`, `slopeWorkspace.test.ts`          | 판정·칩·배지 정리 (5장)                                                                                         |
 | `src/app/api/settings/slope-bands/route.ts`                    | 신규 (6.3)                                                                                                      |
