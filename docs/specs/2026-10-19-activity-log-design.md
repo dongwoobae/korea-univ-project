@@ -150,13 +150,14 @@
 
 트리거는 PostgREST가 요청마다 설정하는 `request.jwt.claims`와 `request.headers`를 읽는다.
 
-| 요청                                                | `actor_kind` | `actor_label`                                                                                   |
-| --------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
-| JWT `role = authenticated` (브라우저 직접 쓰기)     | `admin`      | `auth.uid()`의 `admin_users.display_name`                                                       |
-| JWT `role = service_role` + `x-actor-id`            | `admin`      | 그 계정의 `display_name`                                                                        |
-| JWT `role = service_role` + `x-actor-system`        | `system`     | 코드별 이름: `translation` → `자동 번역`, `osm_sync` → `OSM 동기화`, `script` → `운영 스크립트` |
-| JWT `role = service_role`, 헤더 없음                | `system`     | `시스템(미상)`                                                                                  |
-| `request.jwt.claims` 없음 (SQL Editor 등 직접 접속) | `system`     | `DB 직접 변경`                                                                                  |
+| 요청                                              | `actor_kind` | `actor_label`                                                                                   |
+| ------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
+| JWT `role = authenticated` (브라우저 직접 쓰기)   | `admin`      | `auth.uid()`의 `admin_users.display_name`                                                       |
+| JWT `role = service_role` + `x-actor-id`          | `admin`      | 그 계정의 `display_name`                                                                        |
+| JWT `role = service_role` + `x-actor-system`      | `system`     | 코드별 이름: `translation` → `자동 번역`, `osm_sync` → `OSM 동기화`, `script` → `운영 스크립트` |
+| JWT `role = service_role`, 헤더 없음              | `system`     | `시스템(미상)`                                                                                  |
+| JWT `role = anon`                                 | `visitor`    | `방문자`                                                                                        |
+| `request.jwt.claims` 없음 또는 빈 문자열 (11장 1) | `system`     | `DB 직접 변경` (SQL Editor·Table Editor 등 직접 접속)                                           |
 
 - **헤더는 `service_role` 요청일 때만 믿는다.** `authenticated` 요청에 `x-actor-id`가 붙어 와도 무시하고
   `auth.uid()`를 쓴다. 브라우저는 아무 헤더나 붙일 수 있기 때문이다.
@@ -181,8 +182,9 @@ supabaseAdmin(actor?: Actor) // actor가 있으면 global.headers에 x-actor-id 
 - 읽기만 하는 라우트는 `actor` 없이 부른다. 그 클라이언트로 쓰기가 일어나면 `시스템(미상)`으로 남아 누락이 보인다.
 - 지금 여러 라우트가 `createClient(..., SUPABASE_SERVICE_ROLE_KEY)`를 각자 부른다. 모두 `supabaseAdmin()`으로
   옮긴다. 완료 조건: `git grep -n SUPABASE_SERVICE_ROLE_KEY src/app src/lib`가 `supabaseAdmin.ts`만 가리킨다.
-- `src/scripts/`의 스크립트는 Next 밖에서 돌아 각자 클라이언트를 만든다. 그 자리에서
-  `global.headers`에 `x-actor-system: script`를 싣는다.
+- `src/scripts/`의 스크립트는 Next 밖에서 돌아 각자 클라이언트를 만든다. service_role 키를 쓰는 스크립트는
+  그 자리에서 `global.headers`에 `x-actor-system: script`를 싣는다. anon 키를 쓰는 `syncBuildings.ts`는
+  헤더를 실어도 믿지 않으므로(3.3) 손대지 않는다.
 - 클라이언트를 요청마다 만들면 지금의 모듈 캐시(`client ??=`)가 깨진다. `actor`별로 만들고 `actor` 없는 것만
   캐시한다. `createClient`는 연결을 열지 않아 요청마다 만들어도 비용이 작다.
 
@@ -231,7 +233,8 @@ supabaseAdmin(actor?: Actor) // actor가 있으면 global.headers에 x-actor-id 
 
 다만 `raise warning`만 남기면 아무도 보지 않는다. Postgres 로그를 읽는 사람이 없다. 그래서 예외 블록 안에서
 최소 정보만 담은 행을 한 번 더 넣어 본다: `level = error`, `kind = failure`, `reason_code = audit_write_failed`,
-`target_table`·`target_id`·`action`, `message`에 오류 문장. 칸 이름 변경이나 이름 조회 실패처럼 **내용을 만드는
+`target_table`·`target_id`, `action`에 `<테이블>.<insert|update|delete>`(4.3의 직접 쓰기 작업 키와 같은 모양),
+`message`에 오류 문장. 행위자를 판별하다 난 오류일 수도 있어 행위자는 `system`·`변경 기록`으로 둔다. 칸 이름 변경이나 이름 조회 실패처럼 **내용을 만드는
 단계**의 오류는 이 행으로 로그 화면에 드러난다. 이 행마저 실패하면(기록 테이블 자체의 문제) 그때 `raise warning`으로
 끝낸다. 두 동작 모두 DB 검증에서 시험한다(8.3).
 
@@ -253,7 +256,8 @@ supabaseAdmin(actor?: Actor) // actor가 있으면 global.headers에 x-actor-id 
 | 공개 API 라우트의 5xx·예상 못 한 예외                          | 서버 (`visitor`)    |
 
 Vercel이 만든 응답인지는 `x-vercel-error` 응답 헤더로 가린다. 우리 라우트가 돌려준 413(예: 사진 용량 검사)은
-JSON 본문을 갖고 이 헤더가 없다. 그 경우는 서버가 이미 기록했으므로 브라우저는 보고하지 않는다.
+JSON 본문을 갖고 이 헤더가 없다. 그 경우는 서버가 이미 기록했으므로 브라우저는 보고하지 않는다. 이 헤더는 Vercel
+공식 문서에 없다(11장 3). 우리 라우트는 504를 돌려주지 않으므로 504는 헤더가 없어도 브라우저가 보고한다.
 
 ### 4.2 서버: `logFailure()`
 
@@ -269,7 +273,18 @@ JSON 본문을 갖고 이 헤더가 없다. 그 경우는 서버가 이미 기�
 
 ### 4.3 브라우저: `reportFailure()`와 `POST /api/activity-logs`
 
-`src/lib/activityReport.ts`. 실패 토스트를 띄우는 자리에서 함께 부른다.
+`src/lib/activityReport.ts`. 실패 토스트를 띄우는 자리마다 부르지 않고, 브라우저 실패가 지나가는 관문에서 부른다.
+토스트 자리는 화면마다 흩어져 있어 3.1에서 기각한 대안과 같은 이유로 하나를 빠뜨리면 조용히 누락된다.
+
+- `authedFetch`: 관리자 API 호출 중 서버 코드에 닿지 못한 실패(`fetch`가 던짐, `x-vercel-error`, 504, 401)를
+  보고한다. 작업 키는 요청 경로로 정하고, 경로 표에 없는 호출(읽기)은 보고하지 않는다. 서버가 받은 실패는 서버가
+  기록한다(4.1).
+- 브라우저 Supabase 클라이언트(`src/lib/supabaseClient.ts`)의 `global.fetch`: `/rest/v1/<테이블>`로 가는
+  쓰기(`POST`·`PATCH`·`DELETE`, `rpc/` 제외)가 실패하면 보고한다. 작업 키는 `<테이블>.<insert|update|delete>`다.
+- 관문을 지나지 않는 실패만 그 자리에서 부른다: 사진 WebP 변환 실패(`FacilityPhotoManager`,
+  `BuildingPhotoManager`)와 변환 뒤 크기 초과(`FacilityPhotoManager`), 동영상 변환 실패·크기 초과와 R2 직접
+  업로드(`FacilityVideoModal`).
+- 관문은 대상 이름을 모른다. 관문 보고는 `target_label`이 비고, 직접 쓰기는 테이블과 기본 키만 남는다.
 
 - 보고마다 `client_event_id`(UUID), `occurred_at`(브라우저 시각), `owner_user_id`(실패가 났을 때 로그인한 계정)를
   붙인다.
@@ -312,12 +327,12 @@ PostgREST 오류, Storage 오류)과 맥락(작업 키, 대상, 파일 크기·�
 | `conflict`          | `23505`(중복), `23503`(연결된 항목) | 같은 항목이 이미 있음 / 연결된 항목이 있어 지울 수 없음 |
 | `not_found`         | 404, 대상 없음                      | 대상이 이미 지워졌거나 없음                             |
 | `storage_error`     | R2·Supabase Storage 오류            | 파일 저장소가 거부함: <error_message>                   |
-| `translation_error` | 번역 API 오류                       | 자동 번역 실패: <error_message>                         |
+| `translation_error` | 번역 API 오류                       | 번역 API 오류: <error_message>                          |
 | `server_error`      | 위에 없는 5xx                       | 서버 내부 오류: <error_message>                         |
 | `unknown`           | 위 어디에도 해당하지 않음           | 알 수 없는 오류: <error_message>                        |
 
-- 문장 앞에는 작업 이름이, 뒤에는 대상이 붙는다:
-  `시설 사진 업로드 실패 — 파일 5.2MB가 서버 한도 4.5MB를 넘음 (하나스퀘어 · 1층 경사로)`.
+- 문장 앞에 작업 이름이 붙는다: `시설 사진 업로드 실패: 파일 5.2MB가 서버 한도 4.5MB를 넘음`. 대상은
+  `target_label`에만 두고 문장에 넣지 않는다. 목록의 `대상` 칸(5.2)과 겹치기 때문이다.
 - 상태 코드로 사유를 추정하는 것은 **브라우저 쪽**(서버 코드에 닿지 못한 실패)의 일이다. 라우트 안에서 난 실패는
   그 라우트가 사유를 알고 있으므로 `logFailure`에 `reason_code`를 직접 넘긴다. 예: 명소 사진 자체 한도(`MAX_SIZE`)
   초과는 400을 돌려주지만 라우트가 `payload_too_large`와 자기 한도를 넘긴다. 브라우저의 413은 Vercel 함수 요청 본문
@@ -361,7 +376,7 @@ PostgREST 오류, Storage 오류)과 맥락(작업 키, 대상, 파일 크기·�
 | 시각        | 로그 유형 | 사람              | 대상                           | 내용                                                       |
 | ----------- | --------- | ----------------- | ------------------------------ | ---------------------------------------------------------- |
 | 10/19 14:02 | info      | 성웅              | 시설 · 하나스퀘어 · 1층 경사로 | 수정: 설치 여부 설치됨 → 미설치 외 2칸                     |
-| 10/19 14:02 | warning   | 자동 번역         | 시설 · 하나스퀘어 · 1층 경사로 | 자동 번역 실패: 번역 API 응답 없음                         |
+| 10/19 14:02 | warning   | 자동 번역         | 시설 · 하나스퀘어 · 1층 경사로 | 자동 번역 실패: 번역 API 오류: 응답 없음                   |
 | 10/19 13:40 | error     | 김지원 선임연구원 | 시설 사진 · 중앙광장 · 승강기  | 시설 사진 업로드 실패: 파일 5.2MB가 서버 한도 4.5MB를 넘음 |
 
 - `로그 유형` 칸은 글자와 색을 함께 쓴다. 색만으로 구분하지 않는다.
@@ -411,8 +426,9 @@ PostgREST 오류, Storage 오류)과 맥락(작업 키, 대상, 파일 크기·�
 PR 2(7장)의 내용이다.
 
 - **`requireAdmin`:** 토큰의 사용자를 확인한 뒤 `isListedAdmin(userId)`(4.3)로 `admin_users`에 있는지 조회한다.
-  없으면 403과 `forbidden`(warning) 로그를 남긴다. 401은 지금처럼 기록하지 않는다(누군지 모른다).
-  `/api/activity-logs`의 자체 확인은 이때 지운다.
+  없으면 403과 `forbidden`(warning) 로그(작업 키 `admin.access`)를 남긴다. 401은 지금처럼 기록하지 않는다(누군지
+  모른다). 조회 자체가 실패하면 목록에 없다고 단정하지 않고 500으로 끝낸다. `/api/activity-logs`의 자체 확인은 이때
+  지운다.
 - **가드를 따로 쓰는 라우트:** `src/app/api/settings/feedback-emails/route.ts`는 `requireAdmin` 대신 자체
   `verifyAdmin()`(로그인 여부만 확인)을 쓴다. `requireAdmin`만 고치면 이 경로가 빠진다. `requireAdmin`으로 옮기고
   `verifyAdmin()`을 지운다.
@@ -422,7 +438,9 @@ PR 2(7장)의 내용이다.
   `for f in $(git ls-files 'src/app/api/**/route.ts'); do grep -q requireAdmin "$f" || echo "$f"; done`
 - **브라우저 쓰기 RLS:** 브라우저가 바로 쓰는 테이블(`buildings`, `building_facilities`, `building_photos`,
   `landmarks`, `slope_segments`)의 쓰기 정책을 `public.is_admin()`으로 바꾼다. 이 마이그레이션은 첫 문장에서
-  `admin_users`가 비어 있으면 예외를 던져 통째로 실패한다(빈 목록으로 정책이 바뀌는 것을 막는다). 이 중 일부
+  `admin_users`가 비어 있으면 예외를 던져 통째로 실패한다(빈 목록으로 정책이 바뀌는 것을 막는다). DB 검증 잡(8.3)은
+  데이터 없는 스냅샷 위에서 돌아 목록이 늘 비어 있으므로, 그 잡의 적용 스크립트만 `PGOPTIONS=-c app.db_test=on`을
+  주고 이 확인은 그 설정이 있을 때 건너뛴다. 이 중 일부
   정책은 마이그레이션에 없고 예전에 콘솔에서 만든 것이다. PR 2를 쓰기 전에 운영에서 아래를 실행해 현재 정책을
   받아 그 이름으로 교체한다.
 
@@ -432,7 +450,8 @@ PR 2(7장)의 내용이다.
   ```
 
 - **관리자 화면 진입:** 대시보드 레이아웃이 `getUser()` 다음에 `is_admin()` RPC를 부른다. `false`면 로그아웃하고
-  로그인 화면에 `관리자 목록에 없는 계정입니다`를 보인다.
+  로그인 화면에 `관리자 목록에 없는 계정입니다`를 보인다. RPC가 실패하면 로그아웃하지 않고 `다시 시도`를 보인다 —
+  일시적인 오류로 관리자를 내보내지 않는다.
 - 이 단계로 `require-admin-role-check.md`의 "관리자를 무엇으로 식별할지"는 `admin_users`로 정해진다. TODO
   파일을 지우고 결론은 이 문서에 남는다(TODO README 규칙 4).
 
@@ -498,12 +517,19 @@ PR 1이 커지면 구현 계획에서 DB(스냅샷·검증 잡·테이블·트�
 **해법: 운영 스키마 스냅샷 위에 새 마이그레이션만 얹는다.**
 
 1. PR 0: `workflow_dispatch` 워크플로가 `production` 환경 비밀값으로 `supabase db dump --schema public`(스키마만,
-   데이터 없음)을 떠서 산출물로 올린다. 받은 파일을 PR 1에서 `supabase/tests/baseline/schema.sql`로 커밋하고,
-   첫 줄에 덤프 시점의 마지막 적용 마이그레이션 버전을 적는다.
-2. `supabase/config.toml`을 둔다(`supabase init`). `supabase db start`에 필요하고 비밀값은 없다.
-3. CI 잡 `DB test`: `supabase db start` → 스냅샷 적용 → 스냅샷 버전보다 새 마이그레이션만 순서대로 적용 →
-   `supabase test db`로 `supabase/tests/*.sql`(pgTAP) 실행.
-4. 운영 적용 잡(`Apply Supabase migrations`)은 `DB test`가 통과해야 돈다(`needs`).
+   데이터 없음)을 떠서 산출물로 올린다. 받은 파일을 PR 1에서 `supabase/baseline/schema.sql`로 커밋하고,
+   첫 줄에 덤프 시점의 마지막 적용 마이그레이션 버전을 적는다. `supabase/tests/` 아래에 두지 않는다.
+   `supabase test db`는 그 폴더를 하위까지 훑어 스냅샷을 테스트로 실행한다.
+2. `supabase/config.toml`을 둔다. `supabase db start`에 필요하고 비밀값은 없다. `[db] major_version`은 운영
+   Postgres와 맞춘다. `[db.migrations] enabled = false`는 쓰지 않는다. 운영 적용 잡의 `supabase db push`도 이
+   파일을 읽어 운영 적용까지 건너뛴다.
+3. CI 잡 `DB test`: `supabase/migrations`를 잠시 옮김 → `supabase db start` → `psql`로 스냅샷 적용 → 스냅샷
+   버전보다 새 마이그레이션만 순서대로 `psql`로 적용 → `supabase test db`로 `supabase/tests/*.sql`(pgTAP) 실행.
+   `db start`는 새 DB에 `supabase/migrations` 전체를 적용하므로 그대로 두면 첫 파일부터 실패한다.
+4. `--schema public` 덤프에는 `CREATE EXTENSION`이 없다. 스냅샷이 로컬 이미지에 기본으로 없는 확장을 쓰면
+   `supabase/baseline/prelude.sql`에서 먼저 만든다.
+5. pg_prove는 테스트 파일을 트랜잭션으로 감싸지 않는다. 테스트 파일마다 `begin; … rollback;`으로 감싼다.
+6. 운영 적용 잡(`Apply Supabase migrations`)은 `DB test`가 통과해야 돈다(`needs`).
 
 스냅샷은 마이그레이션이 쌓여도 다시 뜰 필요가 없다. 스냅샷 버전 이후 파일만 얹기 때문이다. 콘솔에서 운영 스키마를
 직접 바꾸는 일이 생기면 그때 다시 뜬다(`docs/database-migrations.md`는 이미 그것을 금지한다).
@@ -558,6 +584,8 @@ pgTAP 검사 항목:
   날짜와 함께 덧붙인다. "로깅 유틸을 만들지 않은 이유" 문단도 같이 고친다.
 - `docs/database-migrations.md`: `DB test` 잡과 스냅샷 규칙(8.3)을 PR 1에서 더한다.
 - `docs/TODO_list/auth/require-admin-role-check.md`: PR 2에서 지운다(6장).
+- `docs/TODO_list/auth/admin-account-management.md`의 `막힌 이유`: `admin_users`·`is_admin()`이 운영에 없다고
+  적혀 있다. 그 마이그레이션이 든 PR에서 고친다.
 
 ---
 
@@ -579,17 +607,45 @@ pgTAP 검사 항목:
 1. 트리거 안에서 `current_setting('request.headers', true)`와 `current_setting('request.jwt.claims', true)`가
    이 프로젝트의 PostgREST에서 기대한 형태(JSON 문자열, 헤더 이름 소문자)로 보이는지. 새 형식 API 키(`sb_secret_…`)를
    쓰는 경우에도 `role = service_role`이 클레임에 실리는지.
+   - **2026-10-19 확인.** PostgREST 소스(v12~v14)에서 `request.jwt.claims`는 클레임 전체를 담은 JSON 문자열,
+     `request.headers`는 이름을 소문자로 바꾼 JSON(쿠키 제외)이고, 둘 다 `set_config(..., true)`로 들어간다.
+     PostgREST가 클레임에 `role`을 늘 넣는다. 새 형식 키는 게이트웨이가 짧은 JWT로 바꿔 넘기므로
+     `role = service_role`이 실리고 `sub`는 없다. 이 프로젝트의 서비스 키는 이날 기준 레거시 JWT 형식이다.
+   - **덧붙인 사실.** 트랜잭션 로컬 값은 트랜잭션이 끝난 뒤 같은 세션에서 NULL이 아니라 `''`로 남는다(Postgres
+     동작, PGlite의 Postgres 17.5로 재현). 그래서 3.3의 "클레임 없음"은 빈 문자열을 포함하고, 트리거는
+     `nullif(..., '')`로 읽는다. 헤더 JSON에는 `authorization`·`apikey`도 들어 있어 헤더 전체를 저장하지 않는다.
 2. `security definer` 함수 안에서도 1의 설정 값이 그대로인지.
+   - **2026-10-19 확인.** Postgres 문서와 PGlite(Postgres 17.5) 실험: `set search_path`를 단 `security definer`
+     함수와 트리거 안에서도 두 값은 호출한 요청의 것이고, `current_user`만 소유자로 바뀐다.
 3. Vercel이 만든 413·504 응답에 `x-vercel-error`가 실리고, 같은 출처 `fetch`에서 읽히는지.
+   - **2026-10-19, 413 확인.** 운영 관리자 라우트에 4.5MB를 넘는 본문을 보내 `413`,
+     `X-Vercel-Error: FUNCTION_PAYLOAD_TOO_LARGE`, `text/plain` 본문을 받았다. 같은 라우트의 401은 JSON이고 이
+     헤더가 없다. 같은 출처 `fetch`는 `Set-Cookie`를 빼고 모든 응답 헤더를 읽는다(Fetch 명세).
+   - **504는 실측하지 못했다.** 이 헤더는 Vercel 공식 문서에 없고, 504에 실리는 것은 Vercel 저장소의 테스트
+     픽스처와 이슈 보고로만 확인했다. 그래서 4.1에 504 대체 규칙을 두었다.
 4. `supabase db start`가 GitHub 호스팅 러너에서 도는지. `supabase db dump --schema public` 결과가 그 로컬 DB에
    그대로 적용되는지(소유자·권한 구문).
+   - **2026-10-19, 전제 일부가 틀렸다.** 러너에서 `db start`는 돈다(supabase/setup-cli 문서). 그러나
+     `db start`는 새 DB에 `supabase/migrations` 전체를 적용하고, `supabase test db`는 `supabase/tests/`를 하위까지
+     실행하며, `--schema public` 덤프에는 `CREATE EXTENSION`이 빠진다. 8.3을 고쳤다.
+   - 덤프가 로컬 DB에 그대로 적용되는지는 PR 0 산출물로 PR 1 첫 단계에서 확인한다.
 5. 운영 RLS 정책 목록(6장의 SQL) — PR 2 착수 전.
+   - 2026-10-19 미확인. PR 0 스냅샷에 정책이 들어 있어 그것으로 먼저 보고, PR 2 착수 직전에 6장의 SQL로 다시 받는다.
 6. Next 16의 `after()` 동작 — `node_modules/next/dist/docs/`에서 확인.
+   - **2026-10-19 확인.** `after.md`: 라우트 핸들러에서 쓸 수 있고, 응답이 끝난 뒤 실행되며, 오류 응답이어도
+     실행되고, 라우트의 maxDuration 동안 함수가 살아 있다.
 7. Supabase Table Editor로 넣은 행이 PostgREST를 거치지 않는지. 거치지 않으면 첫 두 관리자 행(7장)의 행위자는
    `DB 직접 변경`으로 남는다. 거친다면 그때 실리는 클레임을 보고 3.3 표를 고친다.
+   - **2026-10-19 확인.** Table Editor는 pg-meta로 SQL을 `postgres` 역할로 실행한다(Studio 소스, Supabase 역할
+     문서). 요청 클레임이 없어 첫 두 관리자 행의 행위자는 `DB 직접 변경`이다. 역할 사칭을 켜면 Studio가
+     `request.jwt.claims`를 넣지만 `x-actor-*` 헤더는 넣지 않는다.
 
 ---
 
 ## 12. 이력
 
 - 2026-10-19 — 최초 작성.
+- 2026-10-19 — 11장 전제를 확인해 결과를 적고, 3.3(빈 문자열·`anon`), 3.4(스크립트), 4.1(504), 4.3(보고를
+  관문에서), 4.4(문장 형식), 3.7(기록 실패 행의 행위자·작업 키), 8.3(DB 검증 잡 절차), 9장을 고쳤다.
+- 2026-10-19 — 6장: 빈 목록 확인이 DB 검증 잡에서 늘 실패하던 것을 `app.db_test` 설정으로 풀고, 목록 조회 실패와
+  화면 진입 확인 실패의 처리를 정했다.
