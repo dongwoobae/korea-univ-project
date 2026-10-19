@@ -437,7 +437,9 @@ PR 2(7장)의 내용이다.
   `feedback`(의견 제보), `facility-requests/[id]/photos`(방문자 요청 사진). 확인 명령:
   `for f in $(git ls-files 'src/app/api/**/route.ts'); do grep -q requireAdmin "$f" || echo "$f"; done`
 - **브라우저 쓰기 RLS:** 브라우저가 바로 쓰는 테이블(`buildings`, `building_facilities`, `building_photos`,
-  `landmarks`, `slope_segments`)의 쓰기 정책을 `public.is_admin()`으로 바꾼다. 이 마이그레이션은 첫 문장에서
+  `landmarks`, `slope_segments`)과 `colleges`, `facility_types`의 쓰기 정책을 `public.is_admin()`으로 바꾼다. 뒤의
+  둘은 앱에 쓰기 경로가 없지만 콘솔에서 만든 정책이 로그인 계정 누구에게나 쓰기를 열어 두고 있었다(11장 5).
+  이 마이그레이션은 첫 문장에서
   `admin_users`가 비어 있으면 예외를 던져 통째로 실패한다(빈 목록으로 정책이 바뀌는 것을 막는다). DB 검증 잡(8.3)은
   데이터 없는 스냅샷 위에서 돌아 목록이 늘 비어 있으므로, 그 잡의 적용 스크립트만 `PGOPTIONS=-c app.db_test=on`을
   주고 이 확인은 그 설정이 있을 때 건너뛴다. 이 중 일부
@@ -630,7 +632,11 @@ pgTAP 검사 항목:
      실행하며, `--schema public` 덤프에는 `CREATE EXTENSION`이 빠진다. 8.3을 고쳤다.
    - 덤프가 로컬 DB에 그대로 적용되는지는 PR 0 산출물로 PR 1 첫 단계에서 확인한다.
 5. 운영 RLS 정책 목록(6장의 SQL) — PR 2 착수 전.
-   - 2026-10-19 미확인. PR 0 스냅샷에 정책이 들어 있어 그것으로 먼저 보고, PR 2 착수 직전에 6장의 SQL로 다시 받는다.
+   - 2026-10-19, PR 0 스냅샷(run `39217944227`)으로 먼저 봤다. 쓰기 정책 17개가 모두 `authenticated`에게 `true`로
+     열려 있다. `buildings`·`building_facilities`·`building_photos`·`colleges`·`facility_types`에 콘솔에서 만든
+     `authenticated can <insert|update|delete> <테이블>`이 테이블마다 셋, `landmarks`·`slope_segments`에 마이그레이션이
+     만든 `authenticated write`가 하나씩이다. 그래서 `colleges`·`facility_types`를 6장 대상에 더했다.
+   - PR 2 착수 직전에 6장의 SQL로 운영을 다시 받아 이 목록과 같은지 본다.
 6. Next 16의 `after()` 동작 — `node_modules/next/dist/docs/`에서 확인.
    - **2026-10-19 확인.** `after.md`: 라우트 핸들러에서 쓸 수 있고, 응답이 끝난 뒤 실행되며, 오류 응답이어도
      실행되고, 라우트의 maxDuration 동안 함수가 살아 있다.
@@ -649,3 +655,5 @@ pgTAP 검사 항목:
   관문에서), 4.4(문장 형식), 3.7(기록 실패 행의 행위자·작업 키), 8.3(DB 검증 잡 절차), 9장을 고쳤다.
 - 2026-10-19 — 6장: 빈 목록 확인이 DB 검증 잡에서 늘 실패하던 것을 `app.db_test` 설정으로 풀고, 목록 조회 실패와
   화면 진입 확인 실패의 처리를 정했다.
+- 2026-10-19 — 운영 스키마 스냅샷으로 11장 5를 먼저 확인하고, 6장의 쓰기 RLS 대상에 `colleges`·`facility_types`를
+  더했다.

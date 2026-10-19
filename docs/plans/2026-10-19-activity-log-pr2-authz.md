@@ -8,8 +8,9 @@
 이상 관리자 기능을 쓰지 못한다. `docs/TODO_list/auth/require-admin-role-check.md`를 닫는다.
 
 **Architecture:** 서버는 `requireAdmin`이 토큰 확인 뒤 `findListedAdmin`(PR 1b)으로 목록을 조회하고 표시 이름을 함께 돌려준다.
-자체 가드를 쓰던 `settings/feedback-emails`를 `requireAdmin`으로 옮긴다. DB는 브라우저가 바로 쓰는 다섯 테이블의 쓰기 정책을
-`public.is_admin()`으로 바꾸는 마이그레이션 하나 — 목록이 비면 통째로 실패한다. 화면은 대시보드 레이아웃이 `is_admin()` RPC로
+자체 가드를 쓰던 `settings/feedback-emails`를 `requireAdmin`으로 옮긴다. DB는 로그인 계정이면 누구나 쓸 수 있던 일곱 테이블 —
+브라우저가 바로 쓰는 다섯과, 앱이 쓰지 않지만 콘솔 정책이 쓰기를 열어 둔 `colleges`·`facility_types` — 의 쓰기 정책을
+`public.is_admin()`으로 바꾸는 마이그레이션 하나다. 목록이 비면 통째로 실패한다. 화면은 대시보드 레이아웃이 `is_admin()` RPC로
 진입을 막는다.
 
 **Tech Stack:** Next.js 16.2.4, `@supabase/supabase-js` 2.105, Supabase CLI `2.109.1`·pgTAP, Vitest 3, Playwright 1.61.
@@ -22,9 +23,9 @@
 
 **이 계획의 코드:** 2026-10-19에 PR 1a·1b를 임시로 얹은 작업 사본에서 확인했다 — 바꾼 vitest(`requireAdmin`·`activity-logs`·
 `settings/feedback-emails`·`activityLabels`) 28개 통과, `npm run typecheck`·eslint 깨끗, `e2e/admin-auth.spec.ts`와
-`e2e/admin-activity-logs.spec.ts` 13개 통과. RLS 마이그레이션은 마이그레이션이 만든 정책이 있는 두 테이블(`landmarks`,
-`slope_segments`)만 PGlite(Postgres 17.5)에서 돌렸다 — 목록이 비면 예외, `app.db_test=on`이면 통과, 정책 테스트 6개가 마이그레이션
-없이 3개 실패하고 있으면 모두 통과. 콘솔에서 만든 세 테이블의 정책 이름은 Task 0에서 운영을 보고 정한다.
+`e2e/admin-activity-logs.spec.ts` 13개 통과. RLS 마이그레이션은 PGlite(Postgres 17.5)에 PR 0 스냅샷(2026-10-19 07:45Z)의 정책을
+그대로 옮겨 깔고 돌렸다 — 목록이 비면 예외, `app.db_test=on`이면 통과. 정책 테스트 16개 중 "목록에 없는 계정" 단언 8개가 마이그레이션
+없이 모두 실패(지금 운영의 구멍이 재현됨)하고, 마이그레이션을 얹으면 16개와 PR 1a의 pgTAP 51개가 모두 통과했다.
 
 ## 진행 상황
 
@@ -76,10 +77,15 @@ pgTAP은 PR CI의 `DB test`로 돌린다(draft PR).
    스냅샷에는 데이터가 없어 목록이 늘 비기 때문이다(설계 6장). 적용 스크립트가 마이그레이션에만 `PGOPTIONS="-c app.db_test=on"`을
    준다. 정책은 `"admin write"`, `for all to authenticated using (public.is_admin()) with check (public.is_admin())` — 마이그레이션이
    만든 지금의 `"authenticated write"`와 같은 꼴이고 읽기 정책은 건드리지 않는다.
-5. **화면 진입(설계 6장).** `is_admin()` RPC가 `false`면 `signOut()` 뒤 `/admin?reason=not-admin`. 로그인 화면은 그 사유를 읽어
+5. **대상 테이블(2026-10-19 결정, 설계 6장).** PR 0 스냅샷의 쓰기 정책 17개가 모두 `authenticated`에게 `true`로 열려 있다. 그중
+   마이그레이션이 만든 것은 `landmarks`·`slope_segments`의 `"authenticated write"` 둘이고, 나머지 15개는 콘솔에서 만든
+   `"authenticated can <insert|update|delete> <테이블>"`이다. 대상은 `buildings`·`building_facilities`·`building_photos`·
+   `landmarks`·`slope_segments`와 `colleges`·`facility_types`. 뒤의 둘은 앱에 쓰기 경로가 없지만 로그인 계정이면 PostgREST로
+   바로 바꿀 수 있어 같이 좁힌다. 콘솔·SQL Editor는 `postgres`로 돌아 정책과 무관하다(설계 11장 7).
+6. **화면 진입(설계 6장).** `is_admin()` RPC가 `false`면 `signOut()` 뒤 `/admin?reason=not-admin`. 로그인 화면은 그 사유를 읽어
    `관리자 목록에 없는 계정입니다`를 기존 오류 자리(`#admin-login-error`)에 보인다. RPC가 실패하면 로그아웃하지 않고
    `관리자 권한을 확인하지 못했어요` + `다시 시도`. 사유 문자열과 문구는 `src/lib/adminAccess.ts` 한 곳에 둔다.
-6. **목 백엔드(설계 8.4).** `MockState.listedAdmin`(기본 `true`)과 `installMockBackend(page, { listedAdmin })`. `rpc/is_admin`이
+7. **목 백엔드(설계 8.4).** `MockState.listedAdmin`(기본 `true`)과 `installMockBackend(page, { listedAdmin })`. `rpc/is_admin`이
    이 값을 그대로 돌려준다. 이 처리가 없으면 공통 POST가 배열을 돌려주고 레이아웃이 그것을 참으로 읽는다.
 
 ---
@@ -97,10 +103,18 @@ select tablename, policyname, cmd, roles, qual, with_check
 from pg_policies where schemaname = 'public' order by 1, 2;
 ```
 
-- [ ] **Step 3: 고칠 정책을 고른다.** 결과에서 `tablename`이 `buildings`·`building_facilities`·`building_photos`·`landmarks`·
-      `slope_segments`이고, `cmd`가 `INSERT`·`UPDATE`·`DELETE`·`ALL` 중 하나이며, `roles`에 `authenticated` 또는 `public`이 든 행을
-      모두 적는다. 이 목록이 Task 3의 `drop policy` 줄이 된다. PR 0 스냅샷(`supabase/baseline/schema.sql`의 `CREATE POLICY`)과 다르면
-      운영이 마이그레이션 밖에서 바뀐 것이다 — 멈추고 보고한다(스냅샷을 다시 떠야 할 수 있다, `docs/database-migrations.md`).
+- [ ] **Step 3: 쓰기 정책이 스냅샷과 같은지 본다.** 결과에서 `cmd`가 `INSERT`·`UPDATE`·`DELETE`·`ALL` 중 하나이고 `roles`에
+      `authenticated` 또는 `public`이 든 행을 모두 적는다. 2026-10-19 PR 0 스냅샷 기준으로는 아래 17개이고, 이것이 Task 3
+      마이그레이션의 `drop policy` 줄이다.
+
+  | 테이블                                                                              | 정책 이름                                                                                                                |
+  | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+  | `buildings`, `building_facilities`, `building_photos`, `colleges`, `facility_types` | 테이블마다 `authenticated can insert <테이블>`, `authenticated can update <테이블>`, `authenticated can delete <테이블>` |
+  | `landmarks`, `slope_segments`                                                       | `authenticated write`(`ALL`)                                                                                             |
+
+  운영 결과가 이 표와 다르면(정책이 더 있거나 이름이 다르면) 운영이 마이그레이션 밖에서 바뀐 것이다 — 멈추고 보고한다. 스냅샷을 다시
+  떠야 할 수 있다(`docs/database-migrations.md`).
+
 - [ ] **Step 4:** 결과 표와 고른 목록을 PR 본문 초안에 붙이고, 설계 11장 5에 "2026-xx-xx 확인 — <요약>"을 한 줄 더한다.
 
 ### Task 1: `requireAdmin`이 관리자 목록을 본다
@@ -604,15 +618,14 @@ Expected: `buildings`, `facilities`, `landmarks`, `slopes`, `feedback`, `facilit
     PGOPTIONS="-c app.db_test=on" psql "$db_url" --quiet --no-psqlrc -v ON_ERROR_STOP=1 --file "$file"
 ```
 
-- [ ] **Step 2: 테스트를 쓴다** — `supabase/tests/admin_write_policies.test.sql`. 아래는 `landmarks`·`slope_segments` 몫이다. Task 0
-      Step 3에서 고른 `buildings`·`building_facilities`·`building_photos`도 같은 꼴로 단언을 더하고(목록에 없는 계정은 넣지 못함,
-      관리자는 넣음) `plan(N)`을 단언 수로 맞춘다. 수는 파일의 `select throws_ok|lives_ok|is(` 줄을 세어 정한다
-      (`rg -c "^select (throws_ok|lives_ok|is)\(" supabase/tests/admin_write_policies.test.sql`).
+- [ ] **Step 2: 테스트를 쓴다** — `supabase/tests/admin_write_policies.test.sql`. 일곱 테이블마다 "목록에 없는 계정은 넣지
+      못함"과 "관리자는 넣음"을 보고, `landmarks`는 수정도 본다. 스냅샷의 실제 제약이 아래 `insert`를 막으면 그 칸을 넣도록 `insert`만
+      고친다.
 
 ```sql
 -- 설계: docs/specs/2026-10-19-activity-log-design.md 6장
 begin;
-select plan(6);
+select plan(16);
 
 insert into auth.users (id, email) values
   ('00000000-0000-4000-8000-000000000001', 'admin@example.com'),
@@ -621,6 +634,7 @@ insert into public.admin_users (user_id, display_name)
 values ('00000000-0000-4000-8000-000000000001', '관리자');
 insert into public.landmarks (id, name, lat, lng)
 values ('10000000-0000-4000-8000-000000000001', '중앙광장', 37.5, 127.0);
+insert into public.buildings (id, name) values (900001, '시험 건물');
 
 create function pg_temp.act_as(person uuid) returns void
 language plpgsql as $$
@@ -643,6 +657,21 @@ select is(
 select throws_ok(
   $$insert into public.slope_segments (name, segments) values ('새 경로', '[]')$$,
   '42501', null, '목록에 없는 계정은 경사도 경로를 넣지 못한다');
+select throws_ok(
+  $$insert into public.buildings (id, name) values (900002, '새 건물')$$,
+  '42501', null, '목록에 없는 계정은 건물을 넣지 못한다');
+select throws_ok(
+  $$insert into public.building_facilities (building_id, name) values (900001, '새 시설')$$,
+  '42501', null, '목록에 없는 계정은 시설을 넣지 못한다');
+select throws_ok(
+  $$insert into public.building_photos (building_id, url) values (900001, 'https://cdn.test/new.webp')$$,
+  '42501', null, '목록에 없는 계정은 건물 사진을 넣지 못한다');
+select throws_ok(
+  $$insert into public.colleges (name) values ('새 단과대학')$$,
+  '42501', null, '목록에 없는 계정은 단과대학을 넣지 못한다');
+select throws_ok(
+  $$insert into public.facility_types (code, label) values ('new_type', '새 종류')$$,
+  '42501', null, '목록에 없는 계정은 시설 종류를 넣지 못한다');
 
 select pg_temp.act_as('00000000-0000-4000-8000-000000000001');
 select lives_ok(
@@ -656,6 +685,21 @@ select is(
 select lives_ok(
   $$insert into public.slope_segments (name, segments) values ('새 경로', '[]')$$,
   '관리자는 경사도 경로를 넣는다');
+select lives_ok(
+  $$insert into public.buildings (id, name) values (900002, '새 건물')$$,
+  '관리자는 건물을 넣는다');
+select lives_ok(
+  $$insert into public.building_facilities (building_id, name) values (900001, '새 시설')$$,
+  '관리자는 시설을 넣는다');
+select lives_ok(
+  $$insert into public.building_photos (building_id, url) values (900001, 'https://cdn.test/new.webp')$$,
+  '관리자는 건물 사진을 넣는다');
+select lives_ok(
+  $$insert into public.colleges (name) values ('새 단과대학')$$,
+  '관리자는 단과대학을 넣는다');
+select lives_ok(
+  $$insert into public.facility_types (code, label) values ('new_type', '새 종류')$$,
+  '관리자는 시설 종류를 넣는다');
 
 reset role;
 select * from finish();
@@ -663,14 +707,13 @@ rollback;
 ```
 
 draft PR로 푸시해 `DB test`가 `목록에 없는 계정은 명소를 넣지 못한다`부터 실패하는 것을 본다. 커밋:
-`test(db): 관리자 목록에 없는 계정의 브라우저 쓰기가 막히는지 시험한다`.
+`test(db): 관리자 목록에 없는 계정의 쓰기가 일곱 테이블에서 막히는지 시험한다`.
 
-- [ ] **Step 3: 마이그레이션** — `supabase/migrations/<버전>_restrict_admin_writes.sql`. 아래는 마이그레이션이 만든 정책 둘이다.
-      Task 0 Step 3의 목록에서 `buildings`·`building_facilities`·`building_photos`의 쓰기 정책마다
-      `drop policy "<운영 이름>" on public.<테이블>;`(`if exists` 없이)을 두고, 테이블마다 같은 `"admin write"` 정책을 만든다.
+- [ ] **Step 3: 마이그레이션** — `supabase/migrations/<버전>_restrict_admin_writes.sql`. `drop policy` 줄은 Task 0 Step 3의 표와
+      같다. Task 0에서 운영이 표와 달랐다면 이 단계 전에 멈췄어야 한다.
 
 ```sql
--- 브라우저가 바로 쓰는 테이블의 쓰기를 관리자 목록 기준으로 좁힌다.
+-- 로그인 계정이면 누구나 쓰던 테이블의 쓰기를 관리자 목록 기준으로 좁힌다.
 -- 설계: docs/specs/2026-10-19-activity-log-design.md 6장·7장
 
 do $$
@@ -683,23 +726,44 @@ begin
 end;
 $$;
 
-drop policy if exists "authenticated write" on public.landmarks;
-create policy "admin write"
-  on public.landmarks for all
-  to authenticated
-  using (public.is_admin())
-  with check (public.is_admin());
+-- 콘솔에서 만든 정책이라 마이그레이션에 없다. 이름은 운영 pg_policies 기준이다.
+drop policy "authenticated can insert buildings" on public.buildings;
+drop policy "authenticated can update buildings" on public.buildings;
+drop policy "authenticated can delete buildings" on public.buildings;
+drop policy "authenticated can insert building_facilities" on public.building_facilities;
+drop policy "authenticated can update building_facilities" on public.building_facilities;
+drop policy "authenticated can delete building_facilities" on public.building_facilities;
+drop policy "authenticated can insert building_photos" on public.building_photos;
+drop policy "authenticated can update building_photos" on public.building_photos;
+drop policy "authenticated can delete building_photos" on public.building_photos;
+drop policy "authenticated can insert colleges" on public.colleges;
+drop policy "authenticated can update colleges" on public.colleges;
+drop policy "authenticated can delete colleges" on public.colleges;
+drop policy "authenticated can insert facility_types" on public.facility_types;
+drop policy "authenticated can update facility_types" on public.facility_types;
+drop policy "authenticated can delete facility_types" on public.facility_types;
 
-drop policy if exists "authenticated write" on public.slope_segments;
-create policy "admin write"
-  on public.slope_segments for all
-  to authenticated
-  using (public.is_admin())
-  with check (public.is_admin());
+drop policy "authenticated write" on public.landmarks;
+drop policy "authenticated write" on public.slope_segments;
+
+create policy "admin write" on public.buildings for all
+  to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "admin write" on public.building_facilities for all
+  to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "admin write" on public.building_photos for all
+  to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "admin write" on public.colleges for all
+  to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "admin write" on public.facility_types for all
+  to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "admin write" on public.landmarks for all
+  to authenticated using (public.is_admin()) with check (public.is_admin());
+create policy "admin write" on public.slope_segments for all
+  to authenticated using (public.is_admin()) with check (public.is_admin());
 ```
 
 - [ ] **Step 4:** 푸시해 `DB test` 초록(기존 pgTAP 두 파일 포함). 커밋:
-      `feat(db): 브라우저가 바로 쓰는 테이블의 쓰기를 관리자 목록으로 좁힌다`.
+      `feat(db): 로그인 계정이면 누구나 쓰던 테이블의 쓰기를 관리자 목록으로 좁힌다`.
 
 ### Task 4: 관리자 화면 진입
 
