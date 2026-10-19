@@ -28,9 +28,10 @@ interface WorkspaceListPanelProps {
   searchPlaceholder: string;
   /** 검색 옆에 두는 추가 필터(유형 드롭다운 등) */
   filters?: ReactNode;
-  chips: WorkspaceChip[];
-  activeChip: string;
-  onChipChange: (key: string) => void;
+  /** 없거나 비면 칩 줄(`전체` 포함)을 그리지 않는다 */
+  chips?: WorkspaceChip[];
+  activeChip?: string;
+  onChipChange?: (key: string) => void;
   sort: AdminListSort;
   onSortChange: (sort: AdminListSort) => void;
   sortLabel: string;
@@ -41,6 +42,8 @@ interface WorkspaceListPanelProps {
   page: number;
   onPageChange: (page: number) => void;
   legend: WorkspaceLegendItem[];
+  /** 범례 옆(모바일은 바텀시트 맨 아래)에 두는 동작. 경사도 탭만 넘긴다 */
+  legendAction?: ReactNode;
   children: ReactNode;
 }
 
@@ -73,6 +76,7 @@ export default function WorkspaceListPanel({
   page,
   onPageChange,
   legend,
+  legendAction,
   children,
 }: WorkspaceListPanelProps) {
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
@@ -117,25 +121,26 @@ export default function WorkspaceListPanel({
     </div>
   );
 
-  const chipRow = (
-    <div className="ku-chip-row" role="group" aria-label="목록 필터">
-      {chips.map((chip) => (
-        <button
-          key={chip.key}
-          type="button"
-          className="ku-chip"
-          aria-pressed={chip.key === activeChip}
-          aria-label={`${chip.label} ${chip.count}개`}
-          onClick={() => onChipChange(chip.key)}
-        >
-          {chip.label}
-          <span className="ku-chip-count" aria-hidden="true">
-            {chip.count}
-          </span>
-        </button>
-      ))}
-    </div>
-  );
+  const chipRow =
+    chips && chips.length > 0 ? (
+      <div className="ku-chip-row" role="group" aria-label="목록 필터">
+        {chips.map((chip) => (
+          <button
+            key={chip.key}
+            type="button"
+            className="ku-chip"
+            aria-pressed={chip.key === activeChip}
+            aria-label={`${chip.label} ${chip.count}개`}
+            onClick={() => onChipChange?.(chip.key)}
+          >
+            {chip.label}
+            <span className="ku-chip-count" aria-hidden="true">
+              {chip.count}
+            </span>
+          </button>
+        ))}
+      </div>
+    ) : null;
 
   const sortSelect = (
     <select
@@ -185,6 +190,9 @@ export default function WorkspaceListPanel({
             </button>
           </div>
           <div className="ku-bottom-sheet-list">{body}</div>
+          {legendAction && (
+            <div className="ku-bottom-sheet-foot">{legendAction}</div>
+          )}
         </section>
       </>
     );
@@ -214,15 +222,20 @@ export default function WorkspaceListPanel({
         {sortSelect}
       </div>
       <div className="ku-float-panel-list">{body}</div>
-      {legend.length > 0 && (
-        <ul className="ku-float-panel-legend" aria-label="범례">
-          {legend.map((item) => (
-            <li key={item.label}>
-              <span aria-hidden="true" style={{ background: item.color }} />
-              {item.label}
-            </li>
-          ))}
-        </ul>
+      {(legend.length > 0 || legendAction) && (
+        <div className="ku-float-panel-legend-bar">
+          {legend.length > 0 && (
+            <ul className="ku-float-panel-legend" aria-label="범례">
+              {legend.map((item, index) => (
+                <li key={index}>
+                  <span aria-hidden="true" style={{ background: item.color }} />
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          )}
+          {legendAction}
+        </div>
       )}
     </section>
   );

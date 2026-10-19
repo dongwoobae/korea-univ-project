@@ -23,7 +23,7 @@ export interface SlopeRouteStart {
 
 /** 시작 다음 꼭짓점. 앞 꼭짓점에서 여기까지 구간의 값을 싣는다 */
 export interface SlopeRoutePoint extends SlopeRouteStart {
-  /** 구간 경사. 단위는 도(°), 0~45. 판정은 src/lib/slopeScale.ts */
+  /** 구간 경사. 단위는 도(°), 0~45. 색 구간은 src/lib/slopeBands.ts, 입력 경고는 src/lib/slopeScale.ts */
   slope: number;
   /** 구간 길이(m) */
   distance: number;

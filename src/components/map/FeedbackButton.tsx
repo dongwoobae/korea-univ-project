@@ -110,7 +110,7 @@ export default function FeedbackButton() {
         <span className="ku-map-action-label">{t("feedback")}</span>
       </button>
 
-      {/* 실행 버튼이 있는 .ku-map-actions는 z-index로 쌓임 맥락을 만들어
+      {/* 실행 버튼을 감싼 지도 모서리(.ku-map-corner, 모바일은 .ku-map-actions)는 z-index로 쌓임 맥락을 만들어
           모달의 z-index를 그 안에 가둔다. body로 빼내 검색·필터·목록 컨트롤 위에 띄운다. */}
       {open &&
         createPortal(

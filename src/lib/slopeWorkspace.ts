@@ -6,11 +6,7 @@ import {
   readStoredVertices,
   type Vertex,
 } from "@/lib/slopeRoute";
-import {
-  formatDeg,
-  slopeGradeFromDeg,
-  type SlopeGrade,
-} from "@/lib/slopeScale";
+import { formatDeg } from "@/lib/slopeScale";
 import type { SlopeSegment } from "@/types/domain";
 
 export interface SlopeSegmentSummary {
@@ -19,7 +15,6 @@ export interface SlopeSegmentSummary {
   distance: number;
   /** 도 */
   slope: number;
-  grade: SlopeGrade;
   from: [number, number];
   to: [number, number];
 }
@@ -30,7 +25,6 @@ export interface SlopeRouteSummary {
   /** 0.1m 반올림 */
   totalDistance: number;
   maxSlope: number;
-  gradeCounts: Record<SlopeGrade, number>;
   bounds: [[number, number], [number, number]];
 }
 
@@ -56,23 +50,13 @@ export function summarizeSlopeRoute(raw: unknown): SlopeRouteSummary | null {
   if (!bounds) return null;
   const slopes = readStoredSlopes(points);
   const [, ...measured] = points;
-  const gradeCounts: Record<SlopeGrade, number> = {
-    ok: 0,
-    over: 0,
-    extreme: 0,
-  };
-  const segments = slopes.map((slope, index): SlopeSegmentSummary => {
-    const grade = slopeGradeFromDeg(slope);
-    gradeCounts[grade] += 1;
-    return {
-      index,
-      distance: measured[index].distance,
-      slope,
-      grade,
-      from: [vertices[index].lat, vertices[index].lng],
-      to: [vertices[index + 1].lat, vertices[index + 1].lng],
-    };
-  });
+  const segments = slopes.map((slope, index): SlopeSegmentSummary => ({
+    index,
+    distance: measured[index].distance,
+    slope,
+    from: [vertices[index].lat, vertices[index].lng],
+    to: [vertices[index + 1].lat, vertices[index + 1].lng],
+  }));
   const distanceSum = segments.reduce(
     (sum, segment) => sum + segment.distance,
     0,
@@ -82,7 +66,6 @@ export function summarizeSlopeRoute(raw: unknown): SlopeRouteSummary | null {
     segments,
     totalDistance: Math.round(distanceSum * 10) / 10,
     maxSlope: Math.max(...slopes),
-    gradeCounts,
     bounds,
   };
 }
@@ -92,59 +75,28 @@ export interface SlopeListItem {
   summary: SlopeRouteSummary | null;
 }
 
-export type SlopeChip = "over" | "extreme";
-
-export const SLOPE_CHIPS: { key: SlopeChip; label: string }[] = [
-  { key: "over", label: "1/12 초과 포함" },
-  { key: "extreme", label: "확인 필요" },
-];
-
 export function slopeDisplayName(route: Pick<SlopeSegment, "name">): string {
   return route.name?.trim() || "이름 없는 경로";
 }
 
+// 구간 색은 관리자가 고치는 값이라 칩 조건으로 두지 않는다(설계 2026-10-19 5장)
 export const SLOPE_COLLECTION_POLICY: AdminCollectionPolicy<
   SlopeListItem,
-  SlopeChip
+  never
 > = {
   // 목 백엔드는 id를 숫자로 돌려준다
   id: ({ route }) => String(route.id),
   name: ({ route }) => slopeDisplayName(route),
   updatedAt: ({ route }) => route.updated_at,
   searchText: ({ route }) => [route.name],
-  chips: {
-    over: ({ summary }) =>
-      Boolean(
-        summary && summary.gradeCounts.over + summary.gradeCounts.extreme,
-      ),
-    extreme: ({ summary }) => Boolean(summary?.gradeCounts.extreme),
-  },
+  chips: {},
 };
 
-/** 우선순위는 확인 필요 → 1/12 초과 → 기준 이내다 */
-export type SlopeBadgeTone = "missing" | "warn" | "ok";
-
-/** 판정의 관리자 배지 색(`.ku-row-badge[data-tone]`). 목록 행 배지와 보기 패널의 구간 표 배지가 같이 쓴다 */
-export const SLOPE_GRADE_TONES: Record<SlopeGrade, SlopeBadgeTone> = {
-  ok: "ok",
-  over: "warn",
-  extreme: "missing",
-};
-
-export function slopeRouteBadge(summary: SlopeRouteSummary | null): {
-  label: string;
-  tone: SlopeBadgeTone;
-} {
-  if (!summary) return { label: "형식 오류", tone: "missing" };
-  const { extreme, over } = summary.gradeCounts;
-  if (extreme > 0)
-    return {
-      label: `확인 필요 ${extreme}구간`,
-      tone: SLOPE_GRADE_TONES.extreme,
-    };
-  if (over > 0)
-    return { label: `1/12 초과 ${over}구간`, tone: SLOPE_GRADE_TONES.over };
-  return { label: "기준 이내", tone: SLOPE_GRADE_TONES.ok };
+/** 판정 배지는 없다. 형식 오류는 판정이 아니라 읽기 실패 표시라 남긴다(설계 2026-10-19 5장) */
+export function slopeRouteBadge(
+  summary: SlopeRouteSummary | null,
+): { label: "형식 오류"; tone: "missing" } | null {
+  return summary ? null : { label: "형식 오류", tone: "missing" };
 }
 
 export function formatMeters(value: number): string {

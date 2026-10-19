@@ -16,10 +16,12 @@ import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
 import { addNeighborLayer } from "@/lib/neighborLayer";
 import { readRoutePoints, type Vertex } from "@/lib/slopeRoute";
 import {
-  SLOPE_GRADE_COLORS,
-  isSlopeDegInRange,
-  slopeGradeFromDeg,
-} from "@/lib/slopeScale";
+  SLOPE_CASING_CLASS,
+  slopeBandFromDeg,
+  slopeCasingStyle,
+} from "@/lib/slopeBands";
+import { useSlopeBands } from "@/lib/slopeBandsStore";
+import { isSlopeDegInRange } from "@/lib/slopeScale";
 import { supabase } from "@/lib/supabaseClient";
 import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import type {
@@ -41,6 +43,16 @@ const EDIT_OPTIONS = {
 // 기존 선과 geoman이 새로 그리는 선이 같은 모양이어야 한다. 색은 CSS가 칠한다(설계 2026-10-14 6.4).
 // Leaflet은 className을 선을 만들 때만 붙인다
 const EDIT_LINE_OPTIONS = { className: "ku-slope-edit-line", weight: 3 };
+
+const PREVIEW_WEIGHT = 9;
+const OTHER_WEIGHT = 4;
+const OTHER_OPACITY = 0.55;
+
+interface OtherSegment {
+  positions: [number, number][];
+  /** 도 */
+  slope: number;
+}
 
 // geoman 2.19.3 dist/leaflet-geoman.js의 Draw.Line 비공개 메서드다. geoman 자기 액션 버튼(끝내기·마지막
 // 꼭지점 제거)이 이것을 부른다. 타입 선언에 없어 좁은 타입으로 단언하므로 geoman을 올릴 때 다시 확인한다
@@ -81,6 +93,12 @@ export default function SlopeRouteMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const tileLayerRef = useRef<L.TileLayer | null>(null);
   const previewRef = useRef<L.LayerGroup | null>(null);
+  const othersRef = useRef<L.LayerGroup | null>(null);
+  // 행이 도착하면 그리기 effect가 돌아야 해서 ref가 아니라 상태다
+  const [otherSegments, setOtherSegments] = useState<OtherSegment[] | null>(
+    null,
+  );
+  const { bands } = useSlopeBands();
   const labelsRef = useRef<L.LayerGroup | null>(null);
   const verticesRef = useRef<Vertex[]>([]);
   const controllerRef = useRef<EditorController | null>(null);
@@ -164,33 +182,29 @@ export default function SlopeRouteMap({
     // 이미 그린 곳과 안 그린 곳을 보는 용도라 스냅·드래그 모드 대상(pmIgnore)에서 뺀다.
     const othersPane = map.createPane("slopeOthers");
     othersPane.style.zIndex = "320";
+    othersRef.current = L.layerGroup().addTo(map);
     void supabase
       .from("slope_segments")
       .select("id, segments")
       .then(({ data, error }) => {
         if (disposed || error) return;
+        const segments: OtherSegment[] = [];
         for (const route of data ?? []) {
           if (String(route.id) === skipRouteId) continue;
           const points = readRoutePoints(route.segments);
           if (!points) continue;
           const [, ...measured] = points;
-          measured.forEach((point, i) => {
-            L.polyline(
-              [
+          measured.forEach((point, i) =>
+            segments.push({
+              positions: [
                 [points[i].lat, points[i].lng],
                 [point.lat, point.lng],
               ],
-              {
-                color: SLOPE_GRADE_COLORS[slopeGradeFromDeg(point.slope)],
-                weight: 4,
-                opacity: 0.55,
-                interactive: false,
-                pmIgnore: true,
-                pane: "slopeOthers",
-              },
-            ).addTo(map);
-          });
+              slope: point.slope,
+            }),
+          );
         }
+        setOtherSegments(segments);
       });
 
     // 편집선(overlayPane, z-index 400)보다 아래에 둔다. "아래에 그린다"를 말로만
@@ -392,6 +406,7 @@ export default function SlopeRouteMap({
       workspace.dispose();
       tileLayerRef.current = null;
       previewRef.current = null;
+      othersRef.current = null;
       labelsRef.current = null;
     };
   }, []);
@@ -415,12 +430,44 @@ export default function SlopeRouteMap({
   }, [prefersDarkMode]);
 
   useEffect(() => {
+    const group = othersRef.current;
+    if (!group || !otherSegments) return;
+    group.clearLayers();
+    // 다른 경로는 늘 흐린 선이라 외곽선도 그 비율로 흐린다
+    const casing = slopeCasingStyle(
+      OTHER_WEIGHT,
+      prefersDarkMode,
+      OTHER_OPACITY,
+    );
+    const common = {
+      interactive: false,
+      pmIgnore: true,
+      pane: "slopeOthers",
+    };
+    // 외곽선을 전부 먼저 넣는다 — 번갈아 넣으면 다음 외곽선이 앞 선의 끝을 덮는다
+    for (const segment of otherSegments)
+      L.polyline(segment.positions, {
+        ...casing,
+        ...common,
+        className: SLOPE_CASING_CLASS,
+      }).addTo(group);
+    for (const segment of otherSegments)
+      L.polyline(segment.positions, {
+        ...common,
+        color: slopeBandFromDeg(bands, segment.slope).color,
+        weight: OTHER_WEIGHT,
+        opacity: OTHER_OPACITY,
+      }).addTo(group);
+  }, [otherSegments, bands, prefersDarkMode]);
+
+  useEffect(() => {
     const group = previewRef.current;
     const labels = labelsRef.current;
     if (!group || !labels) return;
     group.clearLayers();
     labels.clearLayers();
     const vertices = verticesRef.current;
+    const lines: { positions: [number, number][]; color: string }[] = [];
     for (let i = 0; i < vertices.length - 1; i++) {
       const from = vertices[i];
       const to = vertices[i + 1];
@@ -445,25 +492,38 @@ export default function SlopeRouteMap({
         !isSlopeDegInRange(slope)
       )
         continue;
-      L.polyline(
-        [
+      lines.push({
+        positions: [
           [from.lat, from.lng],
           [to.lat, to.lng],
         ],
-        {
-          color: SLOPE_GRADE_COLORS[slopeGradeFromDeg(slope)],
-          weight: 9,
-          opacity: 0.85,
-          // geoman이 편집 대상으로 잡지 않게 한다. 없으면 색칠용 선에
-          // 꼭짓점 핸들이 붙는다.
-          pmIgnore: true,
-          // 편집선으로 가야 할 클릭을 가로채지 않게 한다.
-          interactive: false,
-          pane: "slopePreview",
-        },
-      ).addTo(group);
+        color: slopeBandFromDeg(bands, slope).color,
+      });
     }
-  }, [slopes, vertexVersion]);
+    const common = {
+      // geoman이 편집 대상으로 잡지 않게 한다. 없으면 색칠용 선에
+      // 꼭짓점 핸들이 붙는다.
+      pmIgnore: true,
+      // 편집선으로 가야 할 클릭을 가로채지 않게 한다.
+      interactive: false,
+      pane: "slopePreview",
+    };
+    const casing = slopeCasingStyle(PREVIEW_WEIGHT, prefersDarkMode);
+    // 외곽선을 전부 먼저 넣는다 — 번갈아 넣으면 다음 외곽선이 앞 선의 끝을 덮는다
+    for (const line of lines)
+      L.polyline(line.positions, {
+        ...casing,
+        ...common,
+        className: SLOPE_CASING_CLASS,
+      }).addTo(group);
+    for (const line of lines)
+      L.polyline(line.positions, {
+        ...common,
+        color: line.color,
+        weight: PREVIEW_WEIGHT,
+        opacity: 0.85,
+      }).addTo(group);
+  }, [slopes, vertexVersion, bands, prefersDarkMode]);
 
   return (
     <div

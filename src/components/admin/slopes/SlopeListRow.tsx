@@ -1,4 +1,7 @@
-import { SLOPE_GRADE_COLORS } from "@/lib/slopeScale";
+"use client";
+
+import { slopeBandFromDeg } from "@/lib/slopeBands";
+import { useSlopeBands } from "@/lib/slopeBandsStore";
 import {
   formatSlopeRouteMeta,
   slopeDisplayName,
@@ -17,6 +20,7 @@ export default function SlopeListRow({
   selected,
   onSelect,
 }: SlopeListRowProps) {
+  const { bands } = useSlopeBands();
   const { route, summary } = item;
   const badge = slopeRouteBadge(summary);
   return (
@@ -33,11 +37,13 @@ export default function SlopeListRow({
         >
           {slopeDisplayName(route)}
         </span>
-        <span className="ku-row-badge" data-tone={badge.tone}>
-          {badge.label}
-        </span>
+        {badge && (
+          <span className="ku-row-badge" data-tone={badge.tone}>
+            {badge.label}
+          </span>
+        )}
       </span>
-      {/* 배지가 글자로 판정을 말하므로 막대는 읽지 않는다 */}
+      {/* 색 막대는 읽지 않는다. 구간별 경사는 보기 패널의 구간 표가 글자로 말한다 */}
       {summary && (
         <span className="ku-slope-profile" aria-hidden="true">
           {summary.segments.map((segment) => (
@@ -45,7 +51,7 @@ export default function SlopeListRow({
               key={segment.index}
               style={{
                 flex: segment.distance,
-                background: SLOPE_GRADE_COLORS[segment.grade],
+                background: slopeBandFromDeg(bands, segment.slope).color,
               }}
             />
           ))}

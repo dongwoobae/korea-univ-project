@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
+import SlopeBandsModal from "@/components/admin/slopes/SlopeBandsModal";
 import SlopeEditPanel from "@/components/admin/slopes/SlopeEditPanel";
 import { MOBILE_TOOLBAR_BOTTOM } from "@/components/admin/slopes/SlopeEditToolbar";
 import SlopeListRow from "@/components/admin/slopes/SlopeListRow";
@@ -28,16 +29,13 @@ import {
   INITIAL_ADMIN_COLLECTION_QUERY,
   pageOfItem,
   viewAdminCollection,
-  type AdminChip,
 } from "@/lib/adminCollection";
-import { SLOPE_GRADE_COLORS } from "@/lib/slopeScale";
+import { useSlopeBands } from "@/lib/slopeBandsStore";
 import { deleteSlopeRoute } from "@/lib/slopeSave";
 import {
-  SLOPE_CHIPS,
   SLOPE_COLLECTION_POLICY,
   slopeDisplayName,
   summarizeSlopeRoute,
-  type SlopeChip,
   type SlopeListItem,
 } from "@/lib/slopeWorkspace";
 import { supabase } from "@/lib/supabaseClient";
@@ -57,12 +55,8 @@ const SlopeRouteMap = dynamic(
 const NOT_FOUND_MESSAGE = "경로를 찾지 못했어요. 삭제됐거나 주소가 틀렸어요.";
 
 const DELETE_CONFIRM_MESSAGE = "삭제한 경사도 경로는 복구할 수 없어요.";
-
-const LEGEND = [
-  { label: "1/12 이내", color: SLOPE_GRADE_COLORS.ok },
-  { label: "1/12 초과", color: SLOPE_GRADE_COLORS.over },
-  { label: "30%(16.7°) 초과", color: SLOPE_GRADE_COLORS.extreme },
-];
+const LEGEND_READ_FAILED =
+  "범례 설정을 읽지 못해 편집할 수 없어요. 새로 고친 뒤 다시 시도해 주세요";
 
 function currentSelection() {
   return readWorkspaceState(window.location.search, { allowEdit: true });
@@ -94,6 +88,30 @@ export default function SlopesPage() {
   } | null>(null);
   const fullMapSeqRef = useRef(0);
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
+  const slopeBands = useSlopeBands();
+  const [bandsModalOpen, setBandsModalOpen] = useState(false);
+  const legendBlockedId = useId();
+  const legendReadFailed = slopeBands.status === "error";
+  // ready가 아닐 때 열면 초안이 기본값에서 시작해, 저장하는 순간 DB의 실제 설정을 덮어쓴다(설계 3장)
+  const legendAction = (
+    <>
+      <button
+        type="button"
+        className="ku-workspace-button"
+        disabled={slopeBands.status !== "ready"}
+        title={legendReadFailed ? LEGEND_READ_FAILED : undefined}
+        aria-describedby={legendReadFailed ? legendBlockedId : undefined}
+        onClick={() => setBandsModalOpen(true)}
+      >
+        범례 편집
+      </button>
+      {legendReadFailed && (
+        <span id={legendBlockedId} className="ku-sr-only">
+          {LEGEND_READ_FAILED}
+        </span>
+      )}
+    </>
+  );
   const { state, request } = useWorkspaceSelection({ allowEdit: true });
   const collection = useAdminCollection(routes, SLOPE_COLLECTION_POLICY);
   const { view, setPage } = collection;
@@ -170,7 +188,7 @@ export default function SlopesPage() {
     showToast,
   });
 
-  // 저장 중에는 선택을 바꾸지 않는다 — 행·선·칩·닫기를 막는다(설계 2026-10-14 3.4)
+  // 저장 중에는 선택을 바꾸지 않는다 — 행·선·닫기를 막는다(설계 2026-10-14 3.4)
   function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
     if (saving) return;
     request(next, alsoApply);
@@ -180,7 +198,7 @@ export default function SlopesPage() {
     requestSelection({ mode: "closed" }),
   );
 
-  // 칩·검색·정렬은 설계 2026-10-14 3.3대로 선택을 푼다
+  // 검색·정렬은 설계 2026-10-14 3.3대로 선택을 푼다
   function clearSelectionThen(change: () => void) {
     requestSelection({ mode: "closed" }, change);
   }
@@ -270,14 +288,6 @@ export default function SlopesPage() {
           }
         : null;
 
-  const chips = [
-    { key: "all", label: "전체", count: view.chipCounts.all },
-    ...SLOPE_CHIPS.map((chip) => ({
-      ...chip,
-      count: view.chipCounts[chip.key],
-    })),
-  ];
-
   const remove = selected
     ? {
         confirmMessage: DELETE_CONFIRM_MESSAGE,
@@ -363,13 +373,6 @@ export default function SlopesPage() {
             }
             searchLabel="경사도 경로 검색"
             searchPlaceholder="경로명 검색"
-            chips={chips}
-            activeChip={collection.chip}
-            onChipChange={(key) =>
-              clearSelectionThen(() =>
-                collection.setChip(key as AdminChip<SlopeChip>),
-              )
-            }
             sort={collection.sort}
             onSortChange={(sort) =>
               clearSelectionThen(() => collection.setSort(sort))
@@ -381,7 +384,11 @@ export default function SlopesPage() {
             matchedCount={view.matched.length}
             page={view.page}
             onPageChange={(page) => clearSelectionThen(() => setPage(page))}
-            legend={LEGEND}
+            legend={slopeBands.bands.map((band) => ({
+              label: band.name,
+              color: band.color,
+            }))}
+            legendAction={legendAction}
           >
             {view.pageItems.map((item) => {
               const id = SLOPE_COLLECTION_POLICY.id(item);
@@ -398,6 +405,16 @@ export default function SlopesPage() {
         }
         detail={detail}
       />
+      {bandsModalOpen && (
+        <SlopeBandsModal
+          initialBands={slopeBands.bands}
+          onClose={() => setBandsModalOpen(false)}
+          onSaved={() => {
+            setBandsModalOpen(false);
+            showToast("범례를 저장했어요");
+          }}
+        />
+      )}
       {toast && (
         <Toast
           message={toast.message}
