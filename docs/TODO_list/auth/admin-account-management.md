@@ -18,11 +18,10 @@
 ## 막힌 이유
 
 차단 사유는 없다. 순서상 뒤로 미뤘다. 이 화면은 `admin_users` 허용 목록과
-`is_admin()` 위에 얹힌다. 둘 다 아직 운영에 없다.
+`is_admin()` 위에 얹힌다. 둘은 `supabase/migrations/20261019000000_create_activity_logs.sql`이 만든다.
 
 ## 트리거
 
-- `admin_users`와 `is_admin()`이 운영 DB에 반영되면 착수할 수 있다.
 - 지속관리원 이관 일정이 잡히면 **선택이 아니라 필수**가 된다.
 
 ## 착수 시 정할 것

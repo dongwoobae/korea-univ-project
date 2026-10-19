@@ -23,6 +23,9 @@ Vitest 3(node 환경), Playwright 1.61(목 백엔드).
 **앞선 일:** PR 1a(`2026-10-19-activity-log-pr1a-db.md`)가 병합돼 운영에 `activity_logs`·`admin_users`·`is_admin()`이 있고,
 `supabaseAdmin(actor)`와 생성 타입(`activity_logs`·`admin_users`)이 `main`에 있어야 한다.
 
+**계획 뒤에 생긴 라우트:** `POST /api/settings/slope-bands`(PR #44, `app_settings`의 `slope_bands` 행). Task 5의 라우트 표와
+Task 6의 경로 표에 없다. 실행할 때 `settings/feedback-emails` 줄을 본떠 더한다.
+
 **이 계획의 코드:** 아래 새 파일과 기존 파일 수정분은 2026-10-19에 PR 1a의 `supabaseAdmin`·생성 타입을 임시로 얹은 작업 사본에서
 `npm run typecheck`, 전체 vitest(87개 파일 686개 통과), 바꾼 파일의 eslint·prettier, `e2e/admin-activity-logs.spec.ts` 8개를 돌려
 확인했다. 라우트 실패 기록(Task 5)은 본보기 `delete-facility-photo` 하나만 그렇게 확인했다 — 나머지 라우트는 Task 5의 규칙과 표로

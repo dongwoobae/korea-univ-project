@@ -1227,6 +1227,7 @@ Run: `npx vitest run src/lib/server/supabaseAdmin.test.ts` → 4개 통과. 커�
   | `feedback`                       | 모듈 `admin`                   | `supabaseAdmin()` (방문자 등록은 기록 대상 아님)                                            |
   | `landmarks`                      | 모듈 `supabase<Database>`      | `supabaseAdmin()` (읽기)                                                                    |
   | `settings/feedback-emails`       | 모듈 `admin`                   | `supabaseAdmin({ userId: user.id })` (`verifyAdmin`의 `user`)                               |
+  | `settings/slope-bands`           | `supabaseAdmin()`              | `supabaseAdmin({ userId: auth.user.id })` — 계획 작성 뒤 PR #44로 생긴 라우트               |
   | `upload-building-photo`          | 모듈 `supabaseAdmin`           | `supabaseAdmin({ userId: auth.user.id })`                                                   |
   | `upload-facility-video`          | 모듈 `supabaseAdmin`           | `supabaseAdmin({ userId: auth.user.id })`                                                   |
   | `upload-landmark-photo`          | 모듈 `supabaseAdmin<Database>` | `supabaseAdmin({ userId: auth.user.id })`                                                   |
@@ -1307,7 +1308,7 @@ Run: `npx vitest run src/lib/server/supabaseAdmin.test.ts` → 4개 통과. 커�
 
 ```bash
 git grep -n SUPABASE_SERVICE_ROLE_KEY src/app src/lib
-# Expected: src/lib/server/supabaseAdmin.ts 한 줄만
+# Expected: src/lib/server/supabaseAdmin.ts와 그 테스트의 환경 변수 설정
 git grep -n "supabaseAdmin()" -- src/app/api
 # Expected: 읽기·방문자·정리 경로만 — admin-feedback/route.ts, buildings(GET), facilities, facility-requests/route.ts,
 #   facility-requests/[id]/route.ts, facility-requests/[id]/photos, facility-requests/[id]/cleanup, feedback, inbox-counts,

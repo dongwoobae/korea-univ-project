@@ -347,8 +347,9 @@
 
 ### 6.3 API — `POST /api/settings/slope-bands`
 
-- `requireAdmin`(`src/lib/requireAdmin.ts`) → `validateSlopeBands` → `supabaseAdmin()`(`src/lib/server/supabaseAdmin.ts`)으로
-  `app_settings` upsert(`key: "slope_bands"`, `updated_at` 갱신) → `{ ok, value }`. 다른 관리자 API 라우트와 같은 짝이다.
+- `requireAdmin`(`src/lib/requireAdmin.ts`) → `validateSlopeBands` → `supabaseAdmin({ userId })`(`src/lib/server/supabaseAdmin.ts`,
+  행위자는 `docs/specs/2026-10-19-activity-log-design.md` 3.4)으로 `app_settings` upsert(`key: "slope_bands"`,
+  `updated_at` 갱신) → `{ ok, value }`. 다른 관리자 API 라우트와 같은 짝이다.
 - 검증 실패는 400과 첫 오류 문구. 폼이 같은 검증을 먼저 하므로 정상 경로에서는 나오지 않는다.
 - `requireAdmin`은 로그인만 보고 역할을 보지 않는다 — `docs/TODO_list/auth/require-admin-role-check.md`. 이 라우트도
   같은 문턱이고, 그 TODO를 풀면 같이 좁혀진다.
