@@ -69,6 +69,8 @@ begin
 end;
 $$;
 
+revoke all on function public.reject_activity_log_change() from public, anon, authenticated;
+
 create trigger activity_logs_append_only
   before update or delete on public.activity_logs
   for each row execute function public.reject_activity_log_change();
