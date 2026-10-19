@@ -5,7 +5,6 @@ import {
   formatMeters,
   formatSlopeRouteMeta,
   SLOPE_COLLECTION_POLICY,
-  SLOPE_GRADE_TONES,
   slopeRouteBadge,
   summarizeSlopeRoute,
   verticesBounds,
@@ -50,7 +49,6 @@ describe("summarizeSlopeRoute", () => {
     expect(summary!.segments).toHaveLength(1);
     expect(summary!.totalDistance).toBe(12.4);
     expect(summary!.maxSlope).toBe(7.2);
-    expect(summary!.gradeCounts).toEqual({ ok: 0, over: 1, extreme: 0 });
     expect(summary!.vertices).toEqual([
       { lat: 37.5861, lng: 127.0268 },
       { lat: 37.5862, lng: 127.0269 },
@@ -59,11 +57,10 @@ describe("summarizeSlopeRoute", () => {
     expect(summary!.segments[0].to).toEqual([37.5862, 127.0269]);
   });
 
-  it("세 구간의 합계·최대·판정 수·경계", () => {
+  it("세 구간의 합계·최대·경계", () => {
     const summary = summarizeSlopeRoute(THREE_SEGMENTS)!;
     expect(summary.totalDistance).toBe(35.1);
     expect(summary.maxSlope).toBe(20);
-    expect(summary.gradeCounts).toEqual({ ok: 1, over: 1, extreme: 1 });
     expect(summary.bounds).toEqual([
       [37.579, 127.02],
       [37.582, 127.023],
@@ -82,65 +79,14 @@ describe("summarizeSlopeRoute", () => {
   });
 });
 
-describe("SLOPE_GRADE_TONES", () => {
-  it("판정마다 관리자 배지 tone을 하나 둔다", () => {
-    expect(SLOPE_GRADE_TONES).toEqual({
-      ok: "ok",
-      over: "warn",
-      extreme: "missing",
-    });
-  });
-
-  it("행 배지와 구간 표 배지가 같은 판정에 같은 tone을 쓴다", () => {
-    const extreme = summarizeSlopeRoute([
-      { lat: 37.58, lng: 127.02 },
-      { lat: 37.581, lng: 127.021, slope: 30, distance: 5 },
-    ]);
-    const over = summarizeSlopeRoute([
-      { lat: 37.58, lng: 127.02 },
-      { lat: 37.581, lng: 127.021, slope: 10, distance: 5 },
-    ]);
-    const ok = summarizeSlopeRoute([
-      { lat: 37.58, lng: 127.02 },
-      { lat: 37.581, lng: 127.021, slope: 2, distance: 5 },
-    ]);
-    expect(slopeRouteBadge(extreme).tone).toBe(SLOPE_GRADE_TONES.extreme);
-    expect(slopeRouteBadge(over).tone).toBe(SLOPE_GRADE_TONES.over);
-    expect(slopeRouteBadge(ok).tone).toBe(SLOPE_GRADE_TONES.ok);
-  });
-});
-
 describe("slopeRouteBadge", () => {
-  it("형식 오류, 확인 필요, 1/12 초과, 기준 이내", () => {
+  it("형식 오류만 배지가 있다", () => {
     expect(slopeRouteBadge(null)).toEqual({
       label: "형식 오류",
       tone: "missing",
     });
-    const mixed = summarizeSlopeRoute([
-      { lat: 37.58, lng: 127.02 },
-      { lat: 37.581, lng: 127.021, slope: 20, distance: 5 },
-      { lat: 37.582, lng: 127.022, slope: 30, distance: 5 },
-      { lat: 37.583, lng: 127.023, slope: 10, distance: 5 },
-    ]);
-    expect(slopeRouteBadge(mixed)).toEqual({
-      label: "확인 필요 2구간",
-      tone: "missing",
-    });
-    const over = summarizeSlopeRoute([
-      { lat: 37.58, lng: 127.02 },
-      { lat: 37.581, lng: 127.021, slope: 10, distance: 5 },
-      { lat: 37.582, lng: 127.022, slope: 10, distance: 5 },
-      { lat: 37.583, lng: 127.023, slope: 10, distance: 5 },
-    ]);
-    expect(slopeRouteBadge(over)).toEqual({
-      label: "1/12 초과 3구간",
-      tone: "warn",
-    });
-    const ok = summarizeSlopeRoute([
-      { lat: 37.58, lng: 127.02 },
-      { lat: 37.581, lng: 127.021, slope: 1, distance: 5 },
-    ]);
-    expect(slopeRouteBadge(ok)).toEqual({ label: "기준 이내", tone: "ok" });
+    expect(slopeRouteBadge(summarizeSlopeRoute(THREE_SEGMENTS))).toBeNull();
+    expect(slopeRouteBadge(summarizeSlopeRoute(MOCK_ROUTE_2))).toBeNull();
   });
 });
 
@@ -159,11 +105,6 @@ describe("SLOPE_COLLECTION_POLICY", () => {
     sort: "updated-desc",
     page: 1,
   } as const;
-
-  it("칩 개수는 전체 행 기준이고 형식 오류 행은 칩에 들지 않는다", () => {
-    const view = viewAdminCollection(items, SLOPE_COLLECTION_POLICY, query);
-    expect(view.chipCounts).toEqual({ all: 4, over: 2, extreme: 1 });
-  });
 
   it("검색은 이름으로 거른다", () => {
     const view = viewAdminCollection(items, SLOPE_COLLECTION_POLICY, {

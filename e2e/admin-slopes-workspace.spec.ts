@@ -205,8 +205,8 @@ function slopeRow(overrides: Record<string, unknown>) {
   };
 }
 
-/** 확인 필요·1/12 초과 구간이 섞인 경로와 저장 형식이 깨진 경로를 더한다 */
-function addChipRoutes(state: MockState) {
+/** 여러 구간 색이 섞인 경로와 저장 형식이 깨진 경로를 더한다 */
+function addMixedRoutes(state: MockState) {
   state.slopes.push(
     slopeRow({
       id: 3,
@@ -299,11 +299,11 @@ function slopeListGet(route: Route) {
 }
 
 test.describe("경사도 작업 화면 — 목록", () => {
-  test("칩·검색·정렬로 목록을 좁히고 칩 개수는 전체 기준이다", async ({
+  test("검색·정렬로 목록을 좁히고 칩 줄은 없으며 범례는 구간 이름이다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
-    addChipRoutes(state);
+    addMixedRoutes(state);
     await page.goto("/admin/dashboard/slopes");
     const list = listPanel(page);
     const names = list.getByTestId("admin-list-item-name");
@@ -312,33 +312,15 @@ test.describe("경사도 작업 화면 — 목록", () => {
       list.getByText("구간별 경사를 기록한 보행 경로 · 총 4개"),
     ).toBeVisible();
     await expect(list.getByRole("status")).toHaveText("4개 표시");
-    await expect(
-      list.getByRole("button", { name: "전체 4개" }),
-    ).toHaveAttribute("aria-pressed", "true");
-    // 형식 오류 행은 두 칩 어디에도 들지 않는다
-    await expect(
-      list.getByRole("button", { name: "1/12 초과 포함 2개" }),
-    ).toBeVisible();
-    await expect(
-      list.getByRole("button", { name: "확인 필요 1개" }),
-    ).toBeVisible();
+    await expect(list.getByRole("group", { name: "목록 필터" })).toHaveCount(0);
     await expect(
       list.getByRole("list", { name: "범례" }).getByRole("listitem"),
-    ).toHaveText(["1/12 이내", "1/12 초과", "30%(16.7°) 초과"]);
+    ).toHaveText(["보도 기준 이내", "완화 범위", "특례 범위", "초과"]);
 
-    await list.getByRole("button", { name: "1/12 초과 포함 2개" }).click();
-    await expect(names).toHaveText(["급경사 계단길", "안암병원 정문 경사로"]);
-    await expect(list.getByRole("status")).toHaveText("2개 표시");
-
-    await list.getByRole("button", { name: "확인 필요 1개" }).click();
-    await expect(names).toHaveText(["급경사 계단길"]);
-
-    await list.getByRole("button", { name: "전체 4개" }).click();
     const search = list.getByRole("searchbox", { name: "경사도 경로 검색" });
     await expect(search).toHaveAttribute("placeholder", "경로명 검색");
     await search.fill("중앙광장");
     await expect(names).toHaveText(["정문-중앙광장"]);
-    await expect(list.getByRole("button", { name: "전체 4개" })).toBeVisible();
 
     await search.fill("없는 경로입니다");
     await expect(list.getByText("조건에 맞는 항목이 없어요")).toBeVisible();
@@ -369,39 +351,45 @@ test.describe("경사도 작업 화면 — 목록", () => {
     await expect(page.getByRole("button", { name: "다운로드" })).toHaveCount(0);
   });
 
-  test("행에 판정 배지·메타·구간 거리 비례 프로파일 막대를 보인다", async ({
+  test("행에 메타·구간 거리 비례 프로파일 막대를 보이고 배지는 형식 오류 행에만 둔다", async ({
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
-    addChipRoutes(state);
+    addMixedRoutes(state);
     await page.goto("/admin/dashboard/slopes");
 
-    const ok = listRow(page, "정문-중앙광장");
-    await expect(ok.locator(".ku-row-badge")).toHaveText("기준 이내");
-    await expect(ok.locator(".ku-row-badge")).toHaveCSS(
+    const flat = listRow(page, "정문-중앙광장");
+    await expect(flat.locator(".ku-row-badge")).toHaveCount(0);
+    await expect(flat.locator(".ku-slope-profile span")).toHaveCSS(
       "background-color",
-      "rgb(234, 243, 237)",
+      "rgb(139, 195, 74)",
     );
 
     const over = listRow(page, "안암병원 정문 경사로");
-    await expect(over.locator(".ku-row-badge")).toHaveText("1/12 초과 1구간");
+    await expect(over.locator(".ku-row-badge")).toHaveCount(0);
     await expect(over).toContainText("1개 구간 · 12.4m · 최대 7.2° · 수정 ");
     const overProfile = over.locator(".ku-slope-profile");
     await expect(overProfile).toHaveAttribute("aria-hidden", "true");
     await expect(overProfile.locator("span")).toHaveCount(1);
+    // 7.2°(12.63%)는 기본 구간의 마지막 빨강이다
     await expect(overProfile.locator("span")).toHaveCSS(
       "background-color",
-      "rgb(230, 171, 2)",
+      "rgb(229, 57, 53)",
     );
 
-    const extreme = listRow(page, "급경사 계단길");
-    await expect(extreme.locator(".ku-row-badge")).toHaveText(
-      "확인 필요 1구간",
+    const steep = listRow(page, "급경사 계단길");
+    await expect(steep).toContainText("2개 구간 · 40.1m · 최대 20.0° · 수정 ");
+    const steepProfile = steep.locator(".ku-slope-profile span");
+    await expect(steepProfile).toHaveCount(2);
+    // 20°는 빨강, 6°(10.51%)는 주황이다
+    await expect(steepProfile.nth(0)).toHaveCSS(
+      "background-color",
+      "rgb(229, 57, 53)",
     );
-    await expect(extreme).toContainText(
-      "2개 구간 · 40.1m · 최대 20.0° · 수정 ",
+    await expect(steepProfile.nth(1)).toHaveCSS(
+      "background-color",
+      "rgb(255, 152, 0)",
     );
-    await expect(extreme.locator(".ku-slope-profile span")).toHaveCount(2);
 
     const broken = listRow(page, "깨진 경로");
     await expect(broken.locator(".ku-row-badge")).toHaveText("형식 오류");
@@ -527,21 +515,28 @@ test.describe("경사도 작업 화면 — 선택과 지도", () => {
     await expect(page).toHaveURL(/\?id=900$/);
   });
 
-  test("선은 판정 색이고 고르면 나머지가 흐려지며 고른 경로에만 구간 번호가 붙는다", async ({
+  test("선은 구간 색이고 외곽선 위에 그리며, 고르면 나머지가 흐려지고 고른 경로에만 구간 번호가 붙는다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
     const first = routeLine(page, 1);
     const second = routeLine(page, 2);
+    const casings = page.locator("path.ku-slope-casing");
 
-    // 픽스처 경로 1·2의 판정 색(설계 2026-10-14 2.1)
-    await expect(first).toHaveAttribute("stroke", "#1B9E77");
-    await expect(second).toHaveAttribute("stroke", "#E6AB02");
+    // 픽스처 경로 1(3°)·2(7.2°)의 기본 구간 색(설계 2026-10-19 2.2·2.3)
+    await expect(first).toHaveAttribute("stroke", "#8BC34A");
+    await expect(second).toHaveAttribute("stroke", "#E53935");
     await expect(first).toHaveAttribute("stroke-linecap", "round");
     await expect(first).toHaveAttribute("stroke-width", "5");
     await expect(first).toHaveAttribute("stroke-opacity", "1");
     await expect(page.locator(".ku-slope-segment-label")).toHaveCount(0);
+    await expect(casings).toHaveCount(2);
+    await expect(casings.first()).toHaveAttribute("stroke-width", "8");
+    await expect(casings.first()).toHaveAttribute("stroke-opacity", "0.5");
+    await expect(casings.and(page.locator(".leaflet-interactive"))).toHaveCount(
+      0,
+    );
 
     await listRow(page, "안암병원 정문 경사로").click();
     await expect(first).toHaveAttribute("stroke-opacity", "0.28");
@@ -551,6 +546,26 @@ test.describe("경사도 작업 화면 — 선택과 지도", () => {
     await expect(labels).toHaveCount(1);
     await expect(labels).toHaveText("1");
     await expect(labels).toHaveCSS("display", "flex");
+
+    // 흐린 경로의 외곽선은 같은 비율로 흐리고, 다시 붙은 고른 경로의 외곽선도 모든 선보다 아래에 있다
+    await expect(
+      page.locator("path.ku-slope-casing[stroke-width='10']"),
+    ).toHaveAttribute("stroke-opacity", "0.5");
+    await expect(
+      page.locator("path.ku-slope-casing[stroke-width='8']"),
+    ).toHaveAttribute("stroke-opacity", /^0\.14/);
+    const order = await page
+      .locator(".leaflet-overlay-pane path")
+      .evaluateAll((paths) =>
+        paths.map((path) =>
+          path.classList.contains("ku-slope-casing")
+            ? "casing"
+            : path.classList.contains("ku-slope-route")
+              ? "line"
+              : "other",
+        ),
+      );
+    expect(order.lastIndexOf("casing")).toBeLessThan(order.indexOf("line"));
   });
 
   test("목록 조회가 늦게 끝나도 ?id= 링크가 그 경로를 연다", async ({
@@ -601,7 +616,7 @@ test.describe("경사도 작업 화면 — 보기 패널", () => {
       "구간",
       "거리",
       "경사",
-      "판정",
+      "범례",
     ]);
     const rows = table.locator("tbody").getByRole("row");
     await expect(rows).toHaveCount(1);
@@ -609,7 +624,7 @@ test.describe("경사도 작업 화면 — 보기 패널", () => {
       "1",
       "12.4m",
       "7.2° · 12.6%",
-      "1/12 초과",
+      "초과",
     ]);
 
     await detail.getByRole("button", { name: "경로 편집" }).click();
@@ -2303,7 +2318,7 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     page,
   }) => {
     const state = await installMockBackend(page, { authenticated: true });
-    addChipRoutes(state);
+    addMixedRoutes(state);
     await page.goto("/admin/dashboard/slopes?id=2");
     const view = detailPanel(page, ROUTE_2);
     await expect(view.getByRole("table")).toBeVisible();
@@ -2355,23 +2370,6 @@ test.describe("경사도 작업 화면 — 저장 안 한 변경", () => {
     await expect(page).toHaveURL(/\?id=1$/);
     await expect(detailPanel(page, "정문-중앙광장")).toBeVisible();
     await expect.poll(() => unloadBlocked(page)).toBe(false);
-  });
-
-  test("값을 고친 채 칩을 바꾸면 묻는다", async ({ page }) => {
-    const state = await installMockBackend(page, { authenticated: true });
-    addChipRoutes(state);
-    const detail = await editValue(page);
-    const chip = listPanel(page).getByRole("button", { name: "확인 필요 1개" });
-
-    await chip.click();
-    await leaveDialog(page).getByRole("button", { name: "취소" }).click();
-    await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("9.4");
-    await expect(chip).toHaveAttribute("aria-pressed", "false");
-
-    await chip.click();
-    await leaveDialog(page).getByRole("button", { name: "나가기" }).click();
-    await expect(chip).toHaveAttribute("aria-pressed", "true");
-    await expect(detail).toHaveCount(0);
   });
 
   test("값을 고친 채 검색하면 묻는다", async ({ page }) => {
