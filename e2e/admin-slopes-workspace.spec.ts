@@ -43,7 +43,9 @@ function editMap(page: Page) {
 }
 
 function previewLines(page: Page) {
-  return page.locator(".leaflet-pane.slope-preview-pane path");
+  return page.locator(
+    ".leaflet-pane.slope-preview-pane path:not(.ku-slope-casing)",
+  );
 }
 
 function blueDot(page: Page) {
@@ -1428,6 +1430,29 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     await expect(detail.getByLabel("구간 1 경사도")).toBeVisible();
     await expect(detail.getByLabel("구간 1 경사도")).toHaveValue("");
   });
+
+  test("구간 카드 번호 원은 구간 색이고 글자색은 대비가 높은 쪽이다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addMixedRoutes(state);
+    await page.goto("/admin/dashboard/slopes?id=3&edit=1");
+    const indexes = editPanel(page, "급경사 계단길").locator(
+      ".ku-slope-card-index",
+    );
+    await expect(indexes).toHaveCount(2);
+    // 20°는 빨강 위 흰 글자, 6°는 주황 위 어두운 글자
+    await expect(indexes.nth(0)).toHaveCSS(
+      "background-color",
+      "rgb(229, 57, 53)",
+    );
+    await expect(indexes.nth(0)).toHaveCSS("color", "rgb(255, 255, 255)");
+    await expect(indexes.nth(1)).toHaveCSS(
+      "background-color",
+      "rgb(255, 152, 0)",
+    );
+    await expect(indexes.nth(1)).toHaveCSS("color", "rgb(28, 25, 23)");
+  });
 });
 
 test.describe("경사도 작업 화면 — 편집 지도", () => {
@@ -1569,20 +1594,25 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     expect(leafletErrors).toEqual([]);
   });
 
-  test("수정 화면을 열면 불러온 경사값으로 판정 색 미리보기 선이 그려진다", async ({
+  test("수정 화면을 열면 불러온 경사값으로 구간 색 미리보기 선을 외곽선 위에 그린다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes?id=2&edit=1");
 
-    // 7.2°는 1/12 초과(설계 2026-10-14 2.1)
+    // 7.2°(12.63%)는 기본 구간의 마지막 빨강이다
     await expect(previewLines(page).first()).toHaveAttribute(
       "stroke",
-      "#E6AB02",
+      "#E53935",
     );
+    const casing = page.locator(
+      ".leaflet-pane.slope-preview-pane path.ku-slope-casing",
+    );
+    await expect(casing).toHaveCount(1);
+    await expect(casing).toHaveAttribute("stroke-width", "12");
   });
 
-  test("입력한 경사도에 따라 미리보기 선이 판정 색으로 바뀐다", async ({
+  test("입력한 경사도에 따라 미리보기 선이 구간 색으로 바뀐다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
@@ -1590,15 +1620,18 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     const detail = newPanel(page);
     await drawRoute(page, TWO_POINTS);
     const preview = previewLines(page).first();
+    const input = detail.getByLabel("구간 1 경사도");
 
-    await detail.getByLabel("구간 1 경사도").fill("1");
-    await expect(preview).toHaveAttribute("stroke", "#1B9E77");
-
-    await detail.getByLabel("구간 1 경사도").fill("10");
-    await expect(preview).toHaveAttribute("stroke", "#E6AB02");
-
-    await detail.getByLabel("구간 1 경사도").fill("20");
-    await expect(preview).toHaveAttribute("stroke", "#A50F15");
+    // 1°·4°(6.99%)·6°(10.51%)·10°가 기본 네 구간에 하나씩 든다
+    for (const [value, color] of [
+      ["1", "#8BC34A"],
+      ["4", "#FFD600"],
+      ["6", "#FF9800"],
+      ["10", "#E53935"],
+    ] as const) {
+      await input.fill(value);
+      await expect(preview).toHaveAttribute("stroke", color);
+    }
   });
 
   test("꼭짓점을 드래그하면 미리보기 선과 구간 카드의 거리가 새 좌표를 따라간다", async ({
@@ -1894,20 +1927,20 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     await expect(blueDot(page)).toHaveCount(0);
   });
 
-  test("새 경로 편집기에 다른 경로를 판정 색으로 깔고 클릭을 가로채지 않는다", async ({
+  test("새 경로 편집기에 다른 경로를 구간 색과 외곽선으로 깔고 클릭을 가로채지 않는다", async ({
     page,
   }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes?new=1");
 
-    const others = page.locator(".leaflet-slopeOthers-pane path");
+    const pane = page.locator(".leaflet-slopeOthers-pane");
+    const others = pane.locator("path:not(.ku-slope-casing)");
     await expect(others).toHaveCount(2);
-    // 픽스처 경로 1(3°)·2(7.2°)의 판정 색(설계 2026-10-14 2.1)
-    await expect(others.and(page.locator('[stroke="#1B9E77"]'))).toHaveCount(1);
-    await expect(others.and(page.locator('[stroke="#E6AB02"]'))).toHaveCount(1);
-    await expect(others.and(page.locator(".leaflet-interactive"))).toHaveCount(
-      0,
-    );
+    // 픽스처 경로 1(3°)·2(7.2°)의 기본 구간 색
+    await expect(others.and(page.locator('[stroke="#8BC34A"]'))).toHaveCount(1);
+    await expect(others.and(page.locator('[stroke="#E53935"]'))).toHaveCount(1);
+    await expect(pane.locator("path.ku-slope-casing")).toHaveCount(2);
+    await expect(pane.locator("path.leaflet-interactive")).toHaveCount(0);
   });
 
   test("수정 화면은 편집 중인 경로를 빼고 깔며 다른 경로는 드래그 모드에 잡히지 않는다", async ({
@@ -1916,9 +1949,11 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes?id=2&edit=1");
 
-    const others = page.locator(".leaflet-slopeOthers-pane path");
+    const others = page.locator(
+      ".leaflet-slopeOthers-pane path:not(.ku-slope-casing)",
+    );
     await expect(others).toHaveCount(1);
-    await expect(others).toHaveAttribute("stroke", "#1B9E77");
+    await expect(others).toHaveAttribute("stroke", "#8BC34A");
 
     await tool(page, "통째로 옮기기").click();
     await expect(

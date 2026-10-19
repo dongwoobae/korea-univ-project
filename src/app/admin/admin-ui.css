@@ -3140,7 +3140,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   border: 1px solid var(--ku-border);
   border-radius: var(--ku-radius);
 }
-/* 채움은 판정 색(데이터 색)이라 SlopeSegmentList가 인라인으로 준다 */
+/* 채움은 관리자가 고치는 구간 색이라 SlopeSegmentList가 인라인으로 준다 */
 .ku-slope-card-index {
   display: grid;
   place-items: center;

@@ -11,11 +11,6 @@ import {
   fromDegrees,
   isSlopeDegInRange,
   percentToDeg,
-  SLOPE_GRADE_COLORS,
-  SLOPE_GRADE_LABELS,
-  SLOPE_GRADE_ON_COLORS,
-  SLOPE_GRADES,
-  slopeGradeFromDeg,
   slopeWarningFromDeg,
   toDegrees,
 } from "./slopeScale";
@@ -84,36 +79,6 @@ describe("slopeWarningFromDeg", () => {
   it("30%를 넘으면 강한 경고다", () => {
     expect(slopeWarningFromDeg(16.71)).toBe("extreme");
     expect(slopeWarningFromDeg(45)).toBe("extreme");
-  });
-});
-
-describe("slopeGradeFromDeg", () => {
-  it("1/12 이내는 ok, 30%까지는 over, 넘으면 extreme이다", () => {
-    expect(slopeGradeFromDeg(0)).toBe("ok");
-    expect(slopeGradeFromDeg(percentToDeg(100 / 12))).toBe("ok");
-    expect(slopeGradeFromDeg(percentToDeg(8.34))).toBe("over");
-    expect(slopeGradeFromDeg(percentToDeg(30))).toBe("over");
-    expect(slopeGradeFromDeg(16.71)).toBe("extreme");
-    expect(slopeGradeFromDeg(45)).toBe("extreme");
-  });
-
-  it("판정 색·글자색·이름", () => {
-    expect(SLOPE_GRADES).toEqual(["ok", "over", "extreme"]);
-    expect(SLOPE_GRADE_COLORS).toEqual({
-      ok: "#1B9E77",
-      over: "#E6AB02",
-      extreme: "#A50F15",
-    });
-    expect(SLOPE_GRADE_ON_COLORS).toEqual({
-      ok: "#1C1917",
-      over: "#1C1917",
-      extreme: "#FFFFFF",
-    });
-    expect(SLOPE_GRADE_LABELS).toEqual({
-      ok: "기준 이내",
-      over: "1/12 초과",
-      extreme: "확인 필요",
-    });
   });
 });
 
