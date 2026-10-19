@@ -495,17 +495,24 @@
 
 - Leaflet의 `interactive: false` 경로는 `leaflet-interactive` 클래스가 없고 클릭이 아래로 지나간다. 외곽선이 선보다
   굵어 선 바깥 1.5px에서 클릭이 지도로 가는 것은 지금과 같다(선 굵기는 그대로).
+  - 2026-10-19 — 공개 지도 e2e가 외곽선에 `leaflet-interactive`가 없고 선을 누르면 팝업이 뜨는 것을 본다.
 - react-leaflet에서 외곽선을 선보다 먼저 마운트해도, 구간 설정이 바뀌어 선만 다시 그려질 때 순서가 유지되는지 —
   SVG 렌더러는 레이어를 추가 순서대로 붙인다. 순서가 깨지면 외곽선과 선을 별도 pane으로 나눈다.
   - 2026-10-19 — 공개 지도(`SlopeLayer`)는 선이 다시 붙는 경우가 없어 외곽선을 먼저 마운트하는 것으로 순서가 지켜진다.
     `className`·`interactive`는 `Polyline`의 최상위 prop으로 넘긴다 — react-leaflet 5는 `pathOptions`를 선을 붙인
-    뒤 `setStyle`로 넘겨 Leaflet이 읽지 않는다. 작업 화면·편집 지도는 Task 6·7.
+    뒤 `setStyle`로 넘겨 Leaflet이 읽지 않는다. 편집 지도(`SlopeRouteMap`)는 레이어 묶음을 비우고 외곽선을 전부 넣은
+    뒤 선을 넣는다.
   - 2026-10-19 — 작업 화면 지도는 고른 경로를 key를 바꿔 다시 붙여(검색으로 돌아온 경로도 같다) 외곽선이 선 위로
     올라간다. 외곽선이 `add` 때 `bringToBack()`한다. 별도 pane은 쓰지 않는다 — 사용자 pane의 SVG는 `globals.css`의
     `will-change: auto` 규칙(`.leaflet-overlay-pane` 대상) 밖이라 드래그 끝 밀림(`d9e0a20`)이 돌아오고, Leaflet CSS가
     SVG 루트의 포인터 이벤트를 끄지 않아 위 pane이 아래 pane의 클릭을 가린다. 대가로 외곽선이 주변 건물 면보다 아래에
     깔릴 수 있다 — 주변 건물이 먼저 붙었을 때다(주변 건물과 경로 선의 순서는 지금도 조회 순서에 달려 있다).
 - `useSyncExternalStore`의 서버 스냅샷과 첫 클라이언트 스냅샷이 같은 객체인지(기본값 상수) — 다르면 hydration 경고.
+  - 2026-10-19 — 같은 객체다(`slopeBandsStore.test.ts`가 `toBe`로 본다).
 - 목록 패널의 칩 줄 생략이 시설·명소 탭에 영향이 없는지 — 두 탭은 칩이 있다.
+  - 2026-10-19 — 칩을 넘기는 시설·명소 화면의 칩 e2e가 그대로 통과한다.
 - 6구간일 때 데스크톱·모바일 막대 폭에서 경계 눈금 글자가 겹치지 않는지(2.4).
+  - 2026-10-19 — 데스크톱(1280px 화면, 막대 240px)·모바일(375px 화면) 모두 겹치지 않는다(공개 지도 e2e "6구간에서도 경계 눈금 글자가 겹치지 않는다").
 - `AGENTS.md` 지시대로 라우트 핸들러를 쓰기 전 `node_modules/next/dist/docs/`의 해당 가이드를 읽는다.
+  - 2026-10-19 — 로컬에 `node_modules`가 없어 unpkg의 `next@16.2.4` `route.md`로 읽었다. `export async function
+POST(request: Request)`와 `Response.json`을 그대로 쓴다.
