@@ -2058,11 +2058,7 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     await expect(
       page.getByRole("searchbox", { name: "경사도 경로 검색" }),
     ).toBeVisible();
-    await expect(
-      page
-        .getByRole("group", { name: "목록 필터" })
-        .getByRole("button", { name: "전체 2개" }),
-    ).toBeVisible();
+    await expect(page.getByRole("group", { name: "목록 필터" })).toHaveCount(0);
 
     await sheet.getByRole("button", { name: "목록 펼치기" }).click();
     const row = listRow(page, ROUTE_2);
