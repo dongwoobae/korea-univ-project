@@ -240,34 +240,6 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByRole("checkbox", { name: /경사도/ })).toBeChecked();
   });
 
-  test("경사도 범례는 그라데이션 막대에 세 단계와 경계 눈금(%·°)을 보여준다", async ({
-    page,
-  }) => {
-    await page.goto("/");
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
-
-    await expect(page.locator(".ku-slope-scale-bar")).toHaveCSS(
-      "background-image",
-      /linear-gradient/,
-    );
-    const levels = page.locator(".ku-slope-scale-levels");
-    for (const label of ["기준 이내", "특례 범위", "초과"]) {
-      await expect(levels.getByText(label, { exact: true })).toBeVisible();
-    }
-    const ticks = page.locator(".ku-slope-scale-tick");
-    for (const label of ["8.33%", "4.76°", "12.5%", "7.13°"]) {
-      await expect(ticks.getByText(label, { exact: true })).toBeVisible();
-    }
-
-    await page.setViewportSize({ width: 375, height: 800 });
-    await page.goto("/");
-    await page.getByRole("button", { name: /시설 필터/ }).click();
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
-    await expect(page.locator(".ku-slope-scale-bar")).toBeVisible();
-    await expect(ticks.getByText("12.5%", { exact: true })).toBeVisible();
-    await expect(levels.getByText("초과", { exact: true })).toBeVisible();
-  });
-
   test("낮은 줌에서 라벨과 가까운 마커를 정리하고 확대하면 펼친다", async ({
     page,
   }) => {
@@ -622,4 +594,289 @@ test("건물 사진을 크게 보고 내려받는다", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(open).toBeFocused();
+});
+
+test.describe("공개 지도 — 경사도 범례", () => {
+  function legendOf(page: Page) {
+    return page.getByRole("group", { name: "경사도 범례" });
+  }
+
+  test("경사도를 켜면 지도 위에 구간 범례가 뜨고 경계 눈금만 늘 보인다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    const legend = legendOf(page);
+    await expect(legend).toHaveCount(0);
+
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await expect(legend).toBeVisible();
+    for (const label of [
+      "5.56%",
+      "3.18°",
+      "8.33%",
+      "4.76°",
+      "12.5%",
+      "7.13°",
+    ]) {
+      await expect(legend.getByText(label, { exact: true })).toBeVisible();
+    }
+    for (const name of ["보도 기준 이내", "완화 범위", "특례 범위", "초과"]) {
+      await expect(legend.getByText(name, { exact: true })).toHaveCount(0);
+    }
+    await expect(legend.getByRole("button")).toHaveCount(4);
+    for (const name of [
+      "보도 기준 이내, 5.56% 이하 (3.18°)",
+      "완화 범위, 5.56–8.33% (3.18–4.76°)",
+      "특례 범위, 8.33–12.5% (4.76–7.13°)",
+      "초과, 12.5% 초과 (7.13°~)",
+    ]) {
+      await expect(
+        legend.getByRole("button", { name, exact: true }),
+      ).toBeVisible();
+    }
+
+    await page.getByRole("checkbox", { name: /경사도/ }).uncheck();
+    await expect(legend).toHaveCount(0);
+  });
+
+  test("칸에 마우스를 올리거나 누르거나 포커스하면 이름·설명 툴팁이 뜬다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    const legend = legendOf(page);
+    const tooltip = page.getByRole("tooltip");
+    const first = legend.getByRole("button", { name: /^보도 기준 이내,/ });
+    const last = legend.getByRole("button", { name: /^초과,/ });
+
+    await first.hover();
+    await expect(tooltip.locator("strong")).toHaveText("보도 기준 이내");
+    await expect(tooltip).toContainText("보도 기준 1/18 이하");
+    await expect(first).toHaveAccessibleDescription(/보도 기준 1\/18 이하/);
+    await page.mouse.move(700, 120);
+    await expect(tooltip).toHaveCount(0);
+
+    // 설명이 빈 마지막 칸은 이름만. 눌러 연 툴팁은 마우스가 떠나도 남는다
+    await last.click();
+    await expect(tooltip).toHaveText("초과");
+    await page.mouse.move(700, 120);
+    await expect(tooltip).toHaveText("초과");
+    await last.click();
+    await expect(tooltip).toHaveCount(0);
+
+    await last.click();
+    await page.mouse.click(700, 120);
+    await expect(tooltip).toHaveCount(0);
+
+    await first.focus();
+    await expect(tooltip.locator("strong")).toHaveText("보도 기준 이내");
+    await page.keyboard.press("Escape");
+    await expect(tooltip).toHaveCount(0);
+  });
+
+  test("열린 툴팁을 누르면 닫힌다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    const legend = legendOf(page);
+    const tooltip = legend.getByRole("tooltip");
+
+    await legend.getByRole("button", { name: /^완화 범위,/ }).click();
+    await expect(tooltip).toContainText("완화 한도 1/12 이하");
+    await tooltip.click();
+    await expect(tooltip).toHaveCount(0);
+  });
+
+  test("데스크톱 범례는 지도 버튼 열 왼쪽에 바닥을 맞추고 건물 패널을 열면 같이 비킨다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    const box = page.locator(".ku-slope-legend");
+    const actions = page.locator(".ku-map-actions");
+    await expect(box).toBeVisible();
+
+    const legendBox = (await box.boundingBox())!;
+    const actionsBox = (await actions.boundingBox())!;
+    expect(legendBox.x + legendBox.width).toBeLessThanOrEqual(actionsBox.x);
+    expect(
+      Math.abs(
+        legendBox.y + legendBox.height - (actionsBox.y + actionsBox.height),
+      ),
+    ).toBeLessThanOrEqual(1);
+
+    await page.getByPlaceholder("건물 검색...").fill("중앙도서관");
+    await page.getByText("중앙도서관", { exact: true }).last().click();
+    const panel = page.locator(".ku-side-panel");
+    await expect(panel).toBeVisible();
+    await expect
+      .poll(async () => {
+        const moved = (await box.boundingBox())!;
+        const panelBox = (await panel.boundingBox())!;
+        return moved.x + moved.width <= panelBox.x;
+      })
+      .toBe(true);
+  });
+
+  test("저장된 범례가 있으면 선 색과 눈금이 그 값을, 깨졌으면 기본값을 따른다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page);
+    state.slopeBands = {
+      bands: [
+        { name: "낮음", upperPercent: 6, color: "#2E7D32", description: "" },
+        { name: "중간", upperPercent: 12, color: "#F9A825", description: "" },
+        { name: "높음", upperPercent: null, color: "#6A1B9A", description: "" },
+      ],
+    };
+    await page.goto("/");
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    const legend = legendOf(page);
+    await expect(legend.getByRole("button")).toHaveCount(3);
+    await expect(legend.getByText("6%", { exact: true })).toBeVisible();
+    await expect(legend.getByText("12%", { exact: true })).toBeVisible();
+    // 목 경로 1은 3°(5.24%), 2는 7.2°(12.63%)다
+    await expect(
+      page.locator('.leaflet-overlay-pane path[stroke="#2E7D32"]'),
+    ).toHaveCount(1);
+    await expect(
+      page.locator('.leaflet-overlay-pane path[stroke="#6A1B9A"]'),
+    ).toHaveCount(1);
+
+    state.slopeBands = { bands: "broken" };
+    await page.goto("/");
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await expect(legend.getByRole("button")).toHaveCount(4);
+    await expect(
+      page.locator('.leaflet-overlay-pane path[stroke="#8BC34A"]'),
+    ).toHaveCount(1);
+    await expect(
+      page.locator('.leaflet-overlay-pane path[stroke="#E53935"]'),
+    ).toHaveCount(1);
+  });
+
+  test("선마다 밑에 외곽선을 먼저 깔고 클릭은 선이 받는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    const casings = page.locator(".leaflet-overlay-pane path.ku-slope-casing");
+    await expect(casings).toHaveCount(2);
+    await expect(casings.first()).toHaveAttribute("stroke", "#1C1917");
+    await expect(casings.first()).toHaveAttribute("stroke-width", "8");
+    await expect(casings.first()).toHaveAttribute("stroke-opacity", "0.5");
+    await expect(casings.and(page.locator(".leaflet-interactive"))).toHaveCount(
+      0,
+    );
+
+    const order = await page
+      .locator(".leaflet-overlay-pane path")
+      .evaluateAll((paths) =>
+        paths.map((path) =>
+          path.classList.contains("ku-slope-casing")
+            ? "casing"
+            : (path.getAttribute("stroke") ?? ""),
+        ),
+      );
+    expect(order.lastIndexOf("casing")).toBeLessThan(
+      order.findIndex((stroke) => stroke === "#8BC34A" || stroke === "#E53935"),
+    );
+
+    await page.locator('.leaflet-overlay-pane path[stroke="#8BC34A"]').click();
+    await expect(page.locator(".leaflet-popup")).toContainText("정문-중앙광장");
+
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(casings.first()).toHaveAttribute("stroke", "#FFFFFF");
+    await expect(casings.first()).toHaveAttribute("stroke-opacity", "0.6");
+  });
+
+  test("6구간에서도 경계 눈금 글자가 겹치지 않는다", async ({ page }) => {
+    const state = await installMockBackend(page);
+    state.slopeBands = {
+      bands: [16.67, 33.33, 41.67, 58.33, 83.33, null].map(
+        (upperPercent, index) => ({
+          name: `구간 ${index + 1}`,
+          upperPercent,
+          color: "#8BC34A",
+          description: "",
+        }),
+      ),
+    };
+    for (const viewport of [
+      { width: 1280, height: 720 },
+      { width: 375, height: 800 },
+    ]) {
+      const mobile = viewport.width < 768;
+      await page.setViewportSize(viewport);
+      await page.goto("/");
+      if (mobile) await page.getByRole("button", { name: /시설 필터/ }).click();
+      await page.getByRole("checkbox", { name: /경사도/ }).check();
+      if (mobile) await page.getByRole("button", { name: /시설 필터/ }).click();
+      const legend = legendOf(page);
+      await expect(legend.getByRole("button")).toHaveCount(6);
+
+      const rows = await legend
+        .locator(".ku-slope-bands-ticks")
+        .evaluateAll((elements) =>
+          elements.map((row) =>
+            Array.from(row.children).map((tick) => {
+              const box = tick.getBoundingClientRect();
+              return [box.left, box.right];
+            }),
+          ),
+        );
+      expect(rows).toHaveLength(2);
+      for (const ticks of rows) {
+        expect(ticks).toHaveLength(5);
+        for (let i = 1; i < ticks.length; i++)
+          expect(ticks[i - 1][1]).toBeLessThanOrEqual(ticks[i][0]);
+      }
+    }
+  });
+});
+
+test.describe("공개 지도 — 경사도 범례 (모바일)", () => {
+  test.use({ viewport: { width: 375, height: 800 }, hasTouch: true });
+
+  test("필터를 접어도 남고, 탭으로 툴팁을 열고 닫으며, 둘러보기와 버튼 열을 비키고 건물을 열면 숨는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    const filter = page.getByRole("button", { name: /시설 필터/ });
+    await filter.click();
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    const legend = page.getByRole("group", { name: "경사도 범례" });
+    // 필터가 열린 동안은 버튼 열과 같은 규칙으로 숨는다
+    await expect(legend).toBeHidden();
+    await filter.click();
+    await expect(legend).toBeVisible();
+
+    const cell = legend.getByRole("button", { name: /^완화 범위,/ });
+    await cell.tap();
+    await expect(page.getByRole("tooltip")).toContainText(
+      "완화 한도 1/12 이하",
+    );
+    await cell.tap();
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await cell.tap();
+    await page.getByRole("tooltip").tap();
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+
+    const legendBox = (await page.locator(".ku-slope-legend").boundingBox())!;
+    const browseBox = (await page
+      .locator(".ku-map-browse-trigger")
+      .boundingBox())!;
+    const actionsBox = (await page.locator(".ku-map-actions").boundingBox())!;
+    expect(legendBox.y + legendBox.height).toBeLessThanOrEqual(browseBox.y);
+    expect(legendBox.x + legendBox.width).toBeLessThanOrEqual(actionsBox.x);
+
+    await page.getByPlaceholder("건물 검색...").fill("중앙도서관");
+    await page.getByText("중앙도서관", { exact: true }).last().click();
+    await expect(legend).toBeHidden();
+  });
 });

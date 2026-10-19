@@ -13,7 +13,7 @@
  * 2) 라우팅: `installMockBackend()`가 전역 `page.route`로 모든 요청을 가로챈다.
  *      - `/rest/v1/<table>` → `handleRest()`: PostgREST 흉내.
  *          GET·HEAD·POST·PATCH·DELETE 지원,
- *          `?id=eq.|in.(…)` / `?building_id=eq.|is.null|in.(…)` 필터,
+ *          `?id=eq.|in.(…)` / `?building_id=eq.|is.null|in.(…)` 필터, `app_settings`의 `?key=eq.` 필터,
  *          `?select=…`의 임베드 투영(`projectEmbeds`),
  *          `Accept: object+json`이면 단건(.single()) 응답.
  *          `admin_building_flags` 뷰와 `rpc/get_admin_building_summary`는
@@ -44,6 +44,12 @@ export interface MockState {
   translationFailuresRemaining: number;
   /** 켜면 등록 요청 승인·거절이 요청 사진을 지우지 못하고 cleanupFailed로 답한다 */
   requestCleanupFails: boolean;
+  /** `app_settings`의 `slope_bands` 값. undefined면 행이 없다 */
+  slopeBands: unknown;
+  /** 켜면 `slope_bands` 조회가 500으로 실패한다 */
+  slopeBandsReadFails: boolean;
+  /** POST /api/settings/slope-bands가 받은 본문 */
+  slopeBandsPosts: unknown[];
   buildings: Row[];
   facilities: Row[];
   feedbackSubmissions: Row[];
@@ -133,6 +139,9 @@ function createState(authenticated: boolean): MockState {
     photoUploadFailuresRemaining: 0,
     translationFailuresRemaining: 0,
     requestCleanupFails: false,
+    slopeBands: undefined,
+    slopeBandsReadFails: false,
+    slopeBandsPosts: [],
     feedbackSubmissions: [],
     buildings: [
       {
@@ -445,13 +454,13 @@ function table(state: MockState, name: string): Row[] {
   return [];
 }
 
-// 테이블 조회: 정적 테이블(facility_types/colleges/app_settings)은 즉시 반환,
+// 테이블 조회: 정적 테이블(facility_types/colleges)은 즉시, app_settings는 `?key=eq.`로 거른 행을 반환,
 // 나머지는 id·building_id 필터를 PostgREST처럼 적용해 걸러낸다.
 function rows(state: MockState, name: string, url: URL): Row[] {
   if (name === "facility_types") return types;
   if (name === "colleges") return colleges;
-  if (name === "app_settings")
-    return [
+  if (name === "app_settings") {
+    const settings: Row[] = [
       {
         key: "feedback_emails",
         value: {
@@ -461,6 +470,13 @@ function rows(state: MockState, name: string, url: URL): Row[] {
         },
       },
     ];
+    if (state.slopeBands !== undefined)
+      settings.push({ key: "slope_bands", value: state.slopeBands });
+    const key = url.searchParams.get("key");
+    return key?.startsWith("eq.")
+      ? settings.filter((row) => row.key === key.slice(3))
+      : settings;
+  }
   if (name === "admin_building_flags") {
     let flagRows = buildingFlags(state);
     for (const key of FLAG_KEYS) {
@@ -669,6 +685,12 @@ async function handleRest(route: Route, state: MockState, url: URL) {
       translation_needed_building_count: countFlag("translation_needed"),
     });
   }
+  if (
+    name === "app_settings" &&
+    state.slopeBandsReadFails &&
+    url.searchParams.get("key") === "eq.slope_bands"
+  )
+    return json(route, { code: "XX000", message: "boom" }, 500);
   const result = projectEmbeds(
     rows(state, name, url),
     url.searchParams.get("select"),
@@ -1212,6 +1234,12 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       facility.video_poster_url = null;
     }
     return json(route, { ok: true });
+  }
+  if (path === "/api/settings/slope-bands") {
+    const body = route.request().postDataJSON() as unknown;
+    state.slopeBandsPosts.push(body);
+    state.slopeBands = body;
+    return json(route, { ok: true, value: body });
   }
   if (path === "/api/settings/feedback-emails") {
     return json(

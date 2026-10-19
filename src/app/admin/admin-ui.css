@@ -2247,6 +2247,24 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   height: 8px;
   border-radius: 50%;
 }
+.ku-float-panel-legend-bar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding-right: 12px;
+  border-top: 1px solid var(--ku-divider);
+  background: color-mix(in srgb, var(--ku-surface) 50%, var(--ku-bg));
+}
+.ku-float-panel-legend-bar .ku-float-panel-legend {
+  flex: 1;
+  border-top: 0;
+  background: transparent;
+}
+.ku-float-panel-legend-bar > .ku-workspace-button {
+  flex: none;
+  margin-left: auto;
+}
 .ku-workspace-row {
   display: flex;
   align-items: center;
@@ -3140,7 +3158,7 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   border: 1px solid var(--ku-border);
   border-radius: var(--ku-radius);
 }
-/* 채움은 판정 색(데이터 색)이라 SlopeSegmentList가 인라인으로 준다 */
+/* 채움은 관리자가 고치는 구간 색이라 SlopeSegmentList가 인라인으로 준다 */
 .ku-slope-card-index {
   display: grid;
   place-items: center;
@@ -3325,6 +3343,20 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
     flex: 1;
     min-height: 0;
     overflow: auto;
+  }
+  .ku-bottom-sheet-foot {
+    display: flex;
+    flex: none;
+    justify-content: flex-end;
+    padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--ku-divider);
+  }
+  .ku-bottom-sheet-foot .ku-workspace-button {
+    min-height: 44px;
+  }
+  /* 접힌 시트(높이 150px)에 아랫줄까지 두면 목록 칸이 행 하나도 못 보인다 */
+  .ku-bottom-sheet:not([data-expanded]) .ku-bottom-sheet-foot {
+    display: none;
   }
   .ku-bottom-sheet .ku-workspace-row {
     min-height: 64px;
@@ -3528,5 +3560,176 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
     height: 50px;
     font-size: 13px;
     font-weight: 700;
+  }
+}
+
+.ku-bands-modal h2:focus {
+  outline: none;
+}
+.ku-bands-modal-backdrop {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ku-backdrop);
+}
+.ku-bands-modal {
+  box-sizing: border-box;
+  width: 90%;
+  /* 한 구간을 한 줄(색·이름·상한·설명·삭제)에 놓을 폭. 560px에서는 이름 칸이 기본 이름도 자른다 */
+  max-width: 720px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid var(--ku-border);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  box-shadow: var(--ku-shadow-overlay);
+}
+.ku-bands-modal h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.ku-bands-modal-preview {
+  padding: 12px;
+  border: 1px solid var(--ku-divider);
+  border-radius: var(--ku-radius);
+  background: var(--ku-bg);
+}
+.ku-bands-modal-preview .ku-slope-bands {
+  width: 100%;
+}
+.ku-bands-modal-preview p {
+  margin: 0;
+  color: var(--ku-text-3);
+  font-size: 12.5px;
+}
+.ku-bands-modal-unit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-bands-modal-rows {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0;
+  padding: 0;
+  list-style: none;
+}
+.ku-bands-modal-row {
+  display: grid;
+  grid-template-areas:
+    "color name upper description remove"
+    "error error error error error";
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1.4fr) auto;
+  align-items: center;
+  gap: 6px 8px;
+}
+.ku-bands-modal input[type="text"],
+.ku-bands-modal input[type="number"] {
+  box-sizing: border-box;
+  min-width: 0;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font-size: 13px;
+}
+.ku-bands-modal-color {
+  display: flex;
+  grid-area: color;
+  gap: 4px;
+}
+.ku-bands-modal-color input[type="color"] {
+  width: 36px;
+  height: 36px;
+  padding: 2px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: var(--ku-radius);
+  background: var(--ku-surface);
+}
+.ku-bands-modal-color input[type="text"] {
+  width: 84px;
+}
+.ku-bands-modal-name {
+  grid-area: name;
+}
+.ku-bands-modal-upper {
+  display: flex;
+  grid-area: upper;
+  align-items: center;
+  gap: 4px;
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.ku-bands-modal-upper input {
+  width: 72px;
+}
+.ku-bands-modal-converted {
+  color: var(--ku-text-3);
+}
+.ku-bands-modal-description {
+  grid-area: description;
+}
+.ku-bands-modal-remove {
+  grid-area: remove;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-2);
+  background: var(--ku-surface);
+  cursor: pointer;
+}
+.ku-bands-modal-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.ku-bands-modal-field-error {
+  grid-area: error;
+  margin: 0;
+  color: var(--ku-danger);
+  font-size: 12px;
+}
+.ku-bands-modal-tools {
+  display: flex;
+  gap: 8px;
+}
+.ku-bands-modal-errors {
+  margin: 12px 0 0;
+  padding-left: 18px;
+  color: var(--ku-danger);
+  font-size: 12px;
+}
+.ku-bands-modal-save-error {
+  margin: 12px 0 0;
+  color: var(--ku-danger);
+  font-size: 12.5px;
+}
+.ku-bands-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+/* 이보다 좁으면 모달(폭 90%)에 한 줄이 들지 않아 두 줄(색·이름·삭제 / 상한·설명)로 접는다 */
+@media (max-width: 759px) {
+  .ku-bands-modal-row {
+    grid-template-areas:
+      "color name remove"
+      "upper description description"
+      "error error error";
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 }

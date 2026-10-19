@@ -1,14 +1,13 @@
 "use client";
 
+import { readableTextOn, slopeBandFromDeg } from "@/lib/slopeBands";
+import { useSlopeBands } from "@/lib/slopeBandsStore";
 import type { RouteSegment } from "@/lib/slopeRoute";
 import {
-  SLOPE_GRADE_COLORS,
-  SLOPE_GRADE_ON_COLORS,
   degToPercent,
   formatDeg,
   formatPercent,
   isSlopeDegInRange,
-  slopeGradeFromDeg,
   slopeWarningFromDeg,
   type SlopeUnit,
 } from "@/lib/slopeScale";
@@ -40,6 +39,7 @@ export default function SlopeSegmentList({
   onDraftChange,
   disabled = false,
 }: SlopeSegmentListProps) {
+  const { bands } = useSlopeBands();
   if (segments.length === 0) {
     return (
       <p className="ku-slope-card-empty">
@@ -58,7 +58,8 @@ export default function SlopeSegmentList({
             : null;
         const warning =
           measured === null ? null : slopeWarningFromDeg(measured);
-        const grade = measured === null ? null : slopeGradeFromDeg(measured);
+        const band =
+          measured === null ? null : slopeBandFromDeg(bands, measured);
         const converted =
           measured === null
             ? null
@@ -67,16 +68,16 @@ export default function SlopeSegmentList({
               : formatDeg(measured);
         return (
           <div key={segment.index} className="ku-slope-card">
-            {/* 번호는 옆 "구간 n"이 읽는다. 값이 없거나 범위 밖이면 판정 색 대신 테두리만 둔다 */}
+            {/* 번호는 옆 "구간 n"이 읽는다. 값이 없거나 범위 밖이면 구간 색 대신 테두리만 둔다 */}
             <span
               className="ku-slope-card-index"
               aria-hidden="true"
-              data-empty={grade === null || undefined}
+              data-empty={band === null || undefined}
               style={
-                grade
+                band
                   ? {
-                      background: SLOPE_GRADE_COLORS[grade],
-                      color: SLOPE_GRADE_ON_COLORS[grade],
+                      background: band.color,
+                      color: readableTextOn(band.color),
                     }
                   : undefined
               }

@@ -13,9 +13,11 @@ import type {
   SlopeEditDraft,
   SlopeEditorHandle,
 } from "@/components/slope/types";
-import { useSlopeRouteDraft } from "@/components/slope/useSlopeRouteDraft";
+import {
+  SLOPE_UNIT_OPTIONS,
+  useSlopeRouteDraft,
+} from "@/components/slope/useSlopeRouteDraft";
 import { toStoredSegments } from "@/lib/slopeRoute";
-import type { SlopeUnit } from "@/lib/slopeScale";
 import { saveSlopeRoute } from "@/lib/slopeSave";
 import {
   formatMeters,
@@ -25,11 +27,6 @@ import {
 } from "@/lib/slopeWorkspace";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import type { SlopeSegment } from "@/types/domain";
-
-const UNIT_OPTIONS: { unit: SlopeUnit; symbol: string; label: string }[] = [
-  { unit: "deg", symbol: "°", label: "도(°)" },
-  { unit: "percent", symbol: "%", label: "퍼센트(%)" },
-];
 
 interface SlopeEditPanelProps {
   /** 초안의 owner. 페이지가 만든다 */
@@ -211,7 +208,7 @@ export default function SlopeEditPanel({
         {segments.length}개 구간 · 총 {formatMeters(total)}
       </span>
       <div className="ku-detail-segment" role="group" aria-label="경사 단위">
-        {UNIT_OPTIONS.map((option) => (
+        {SLOPE_UNIT_OPTIONS.map((option) => (
           <button
             key={option.unit}
             type="button"

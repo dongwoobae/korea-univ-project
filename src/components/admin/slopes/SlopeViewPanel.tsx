@@ -5,16 +5,11 @@ import DetailPanel, {
 } from "@/components/admin/workspace/DetailPanel";
 import { ADMIN_MOBILE_QUERY } from "@/components/admin/workspace/types";
 import { formatAdminUpdatedAt } from "@/lib/adminList";
-import {
-  SLOPE_GRADE_COLORS,
-  SLOPE_GRADE_LABELS,
-  degToPercent,
-  formatDeg,
-  formatPercent,
-} from "@/lib/slopeScale";
+import { slopeBandFromDeg } from "@/lib/slopeBands";
+import { useSlopeBands } from "@/lib/slopeBandsStore";
+import { degToPercent, formatDeg, formatPercent } from "@/lib/slopeScale";
 import {
   formatMeters,
-  SLOPE_GRADE_TONES,
   slopeDisplayName,
   type SlopeListItem,
   type SlopeRouteSummary,
@@ -22,6 +17,7 @@ import {
 import { useMediaQuery } from "@/lib/useMediaQuery";
 
 function SegmentTable({ summary }: { summary: SlopeRouteSummary }) {
+  const { bands } = useSlopeBands();
   return (
     <table className="ku-slope-table">
       <thead>
@@ -29,36 +25,29 @@ function SegmentTable({ summary }: { summary: SlopeRouteSummary }) {
           <th scope="col">구간</th>
           <th scope="col">거리</th>
           <th scope="col">경사</th>
-          <th scope="col">판정</th>
+          <th scope="col">범례</th>
         </tr>
       </thead>
       <tbody>
-        {summary.segments.map((segment) => (
-          <tr key={segment.index}>
-            <td>
-              <span className="ku-slope-table-index">
-                <span
-                  aria-hidden="true"
-                  style={{ background: SLOPE_GRADE_COLORS[segment.grade] }}
-                />
-                {segment.index + 1}
-              </span>
-            </td>
-            <td>{formatMeters(segment.distance)}</td>
-            <td>
-              {formatDeg(segment.slope)} ·{" "}
-              {formatPercent(degToPercent(segment.slope))}
-            </td>
-            <td>
-              <span
-                className="ku-row-badge"
-                data-tone={SLOPE_GRADE_TONES[segment.grade]}
-              >
-                {SLOPE_GRADE_LABELS[segment.grade]}
-              </span>
-            </td>
-          </tr>
-        ))}
+        {summary.segments.map((segment) => {
+          const band = slopeBandFromDeg(bands, segment.slope);
+          return (
+            <tr key={segment.index}>
+              <td>
+                <span className="ku-slope-table-index">
+                  <span aria-hidden="true" style={{ background: band.color }} />
+                  {segment.index + 1}
+                </span>
+              </td>
+              <td>{formatMeters(segment.distance)}</td>
+              <td>
+                {formatDeg(segment.slope)} ·{" "}
+                {formatPercent(degToPercent(segment.slope))}
+              </td>
+              <td>{band.name}</td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );

@@ -42,6 +42,7 @@ import FeedbackButton from "./FeedbackButton";
 import FavoritesList from "./FavoritesList";
 import LanguageSwitcher from "./LanguageSwitcher";
 import SlopeLayer from "./SlopeLayer";
+import SlopeLegend from "./SlopeLegend";
 import FacilityMarkers from "./FacilityMarkers";
 import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
@@ -704,7 +705,12 @@ export default function Map() {
           zoom={viewport?.zoom ?? 16}
           onSelect={setSelectedBuilding}
         />
-        {showSlope && slopes.length > 0 && <SlopeLayer slopes={slopes} />}
+        {showSlope && slopes.length > 0 && (
+          <SlopeLayer
+            slopes={slopes}
+            darkMap={tileMode === "street" && prefersDarkMode}
+          />
+        )}
         {campusBoundaries && (
           <GeoJSON
             key={JSON.stringify(activeCampuses)}
@@ -792,66 +798,71 @@ export default function Map() {
       </div>
 
       <div
-        className="ku-map-actions"
+        className="ku-map-corner"
         data-panel-open={Boolean(selectedBuilding)}
         data-overlay-open={mobileFilterOpen || browseOpen}
       >
-        <div className="ku-map-zoom" aria-label="지도 확대 및 축소">
+        <SlopeLegend show={showSlope} />
+        <div className="ku-map-actions">
+          <div className="ku-map-zoom" aria-label="지도 확대 및 축소">
+            <button
+              className="ku-map-action"
+              type="button"
+              onClick={() => mapRef.current?.zoomIn()}
+              title="확대"
+              aria-label="확대"
+            >
+              <Plus size={19} aria-hidden="true" />
+            </button>
+            <button
+              className="ku-map-action"
+              type="button"
+              onClick={() => mapRef.current?.zoomOut()}
+              title="축소"
+              aria-label="축소"
+            >
+              <Minus size={19} aria-hidden="true" />
+            </button>
+          </div>
           <button
-            className="ku-map-action"
+            className="ku-map-action ku-map-action--labeled"
             type="button"
-            onClick={() => mapRef.current?.zoomIn()}
-            title="확대"
-            aria-label="확대"
+            onClick={locateUser}
+            title={t("myLocation")}
+            aria-label={t("myLocation")}
+            disabled={locating}
+            data-locating={locating}
+            aria-busy={locating}
           >
-            <Plus size={19} aria-hidden="true" />
+            <LocateFixed size={19} aria-hidden="true" />
+            <span className="ku-map-action-label">{t("myLocation")}</span>
           </button>
           <button
-            className="ku-map-action"
+            className="ku-map-action ku-map-action--labeled"
             type="button"
-            onClick={() => mapRef.current?.zoomOut()}
-            title="축소"
-            aria-label="축소"
+            onClick={() =>
+              setTileMode((mode) =>
+                mode === "street" ? "satellite" : "street",
+              )
+            }
+            title={
+              tileMode === "street" ? t("tileToSatellite") : t("tileToStreet")
+            }
+            aria-label={
+              tileMode === "street" ? t("tileToSatellite") : t("tileToStreet")
+            }
           >
-            <Minus size={19} aria-hidden="true" />
+            {tileMode === "street" ? (
+              <Satellite size={19} aria-hidden="true" />
+            ) : (
+              <MapIcon size={19} aria-hidden="true" />
+            )}
+            <span className="ku-map-action-label">
+              {tileMode === "street" ? t("tileSatellite") : t("tileStreet")}
+            </span>
           </button>
+          <FeedbackButton />
         </div>
-        <button
-          className="ku-map-action ku-map-action--labeled"
-          type="button"
-          onClick={locateUser}
-          title={t("myLocation")}
-          aria-label={t("myLocation")}
-          disabled={locating}
-          data-locating={locating}
-          aria-busy={locating}
-        >
-          <LocateFixed size={19} aria-hidden="true" />
-          <span className="ku-map-action-label">{t("myLocation")}</span>
-        </button>
-        <button
-          className="ku-map-action ku-map-action--labeled"
-          type="button"
-          onClick={() =>
-            setTileMode((mode) => (mode === "street" ? "satellite" : "street"))
-          }
-          title={
-            tileMode === "street" ? t("tileToSatellite") : t("tileToStreet")
-          }
-          aria-label={
-            tileMode === "street" ? t("tileToSatellite") : t("tileToStreet")
-          }
-        >
-          {tileMode === "street" ? (
-            <Satellite size={19} aria-hidden="true" />
-          ) : (
-            <MapIcon size={19} aria-hidden="true" />
-          )}
-          <span className="ku-map-action-label">
-            {tileMode === "street" ? t("tileSatellite") : t("tileStreet")}
-          </span>
-        </button>
-        <FeedbackButton />
       </div>
 
       <FavoritesList
