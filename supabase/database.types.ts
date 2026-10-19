@@ -14,6 +14,84 @@ export type Database = {
   };
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string;
+          actor_id: string | null;
+          actor_kind: string;
+          actor_label: string;
+          changes: Json | null;
+          client_event_id: string | null;
+          detail: Json | null;
+          id: number;
+          kind: string;
+          level: string;
+          message: string | null;
+          occurred_at: string;
+          reason_code: string | null;
+          recorded_at: string;
+          target_id: string | null;
+          target_label: string | null;
+          target_table: string | null;
+        };
+        Insert: {
+          action: string;
+          actor_id?: string | null;
+          actor_kind: string;
+          actor_label: string;
+          changes?: Json | null;
+          client_event_id?: string | null;
+          detail?: Json | null;
+          id?: never;
+          kind: string;
+          level: string;
+          message?: string | null;
+          occurred_at?: string;
+          reason_code?: string | null;
+          recorded_at?: string;
+          target_id?: string | null;
+          target_label?: string | null;
+          target_table?: string | null;
+        };
+        Update: {
+          action?: string;
+          actor_id?: string | null;
+          actor_kind?: string;
+          actor_label?: string;
+          changes?: Json | null;
+          client_event_id?: string | null;
+          detail?: Json | null;
+          id?: never;
+          kind?: string;
+          level?: string;
+          message?: string | null;
+          occurred_at?: string;
+          reason_code?: string | null;
+          recorded_at?: string;
+          target_id?: string | null;
+          target_label?: string | null;
+          target_table?: string | null;
+        };
+        Relationships: [];
+      };
+      admin_users: {
+        Row: {
+          created_at: string;
+          display_name: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          display_name: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          display_name?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       app_settings: {
         Row: {
           key: string;
@@ -530,6 +608,10 @@ export type Database = {
           translation_needed_building_count: number;
           translation_needed_count: number;
         }[];
+      };
+      is_admin: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
       };
     };
     Enums: {
