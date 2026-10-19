@@ -1,0 +1,57 @@
+name: Schema snapshot
+
+# PR 1a의 DB 검증 잡이 이 덤프를 바탕으로 쓴다. 설계: docs/specs/2026-10-19-activity-log-design.md 8.3
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    name: Dump production public schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    concurrency:
+      group: supabase-production-migrations
+      cancel-in-progress: false
+    env:
+      SUPABASE_DB_URL_TEMPLATE: ${{ secrets.SUPABASE_DB_URL }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Build masked database connection
+        shell: bash
+        run: bash scripts/build-supabase-db-url.sh
+
+      - name: Dump public schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(psql "$SUPABASE_MIGRATION_DB_URL" --no-align --tuples-only \
+            --command "select max(version) from supabase_migrations.schema_migrations")"
+          server="$(psql "$SUPABASE_MIGRATION_DB_URL" --no-align --tuples-only \
+            --command "show server_version")"
+          supabase db dump --db-url "$SUPABASE_MIGRATION_DB_URL" --schema public \
+            -f "$RUNNER_TEMP/dump.sql"
+          {
+            echo "-- baseline-migration: $version"
+            echo "-- server-version: $server"
+            echo "-- dumped-at: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            cat "$RUNNER_TEMP/dump.sql"
+          } > schema.sql
+          head -n 3 schema.sql
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-schema
+          path: schema.sql
+          retention-days: 7
