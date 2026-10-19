@@ -134,7 +134,13 @@ export default function SlopeBandsLegend({
         {ticks("deg")}
       </div>
       {openIndex !== null && (
-        <div id={tooltipId} role="tooltip" className="ku-slope-bands-tooltip">
+        // 툴팁은 범례 안이라 바깥 누르기로 닫히지 않는다. 모달에서는 아래 단위 버튼을 덮어, 누르면 툴팁만 닫는다
+        <div
+          id={tooltipId}
+          role="tooltip"
+          className="ku-slope-bands-tooltip"
+          onClick={() => setTooltip(null)}
+        >
           <strong>{bands[openIndex].name}</strong>
           {bands[openIndex].description && (
             <span>{bands[openIndex].description}</span>
