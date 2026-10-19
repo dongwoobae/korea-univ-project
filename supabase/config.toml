@@ -1,0 +1,7 @@
+# supabase db start(CI의 DB test 잡)가 쓴다. 운영 db push도 이 파일을 읽으므로
+# [db.migrations]를 끄지 않는다. 설계: docs/specs/2026-10-19-activity-log-design.md 8.3
+project_id = "korea-univ-project"
+
+[db]
+port = 54322
+major_version = 17
