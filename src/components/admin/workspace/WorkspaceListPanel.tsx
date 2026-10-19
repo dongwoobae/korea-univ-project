@@ -42,6 +42,8 @@ interface WorkspaceListPanelProps {
   page: number;
   onPageChange: (page: number) => void;
   legend: WorkspaceLegendItem[];
+  /** 범례 옆(모바일은 바텀시트 맨 아래)에 두는 동작. 경사도 탭만 넘긴다 */
+  legendAction?: ReactNode;
   children: ReactNode;
 }
 
@@ -74,6 +76,7 @@ export default function WorkspaceListPanel({
   page,
   onPageChange,
   legend,
+  legendAction,
   children,
 }: WorkspaceListPanelProps) {
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
@@ -187,6 +190,9 @@ export default function WorkspaceListPanel({
             </button>
           </div>
           <div className="ku-bottom-sheet-list">{body}</div>
+          {legendAction && (
+            <div className="ku-bottom-sheet-foot">{legendAction}</div>
+          )}
         </section>
       </>
     );
@@ -216,15 +222,20 @@ export default function WorkspaceListPanel({
         {sortSelect}
       </div>
       <div className="ku-float-panel-list">{body}</div>
-      {legend.length > 0 && (
-        <ul className="ku-float-panel-legend" aria-label="범례">
-          {legend.map((item, index) => (
-            <li key={index}>
-              <span aria-hidden="true" style={{ background: item.color }} />
-              {item.label}
-            </li>
-          ))}
-        </ul>
+      {(legend.length > 0 || legendAction) && (
+        <div className="ku-float-panel-legend-bar">
+          {legend.length > 0 && (
+            <ul className="ku-float-panel-legend" aria-label="범례">
+              {legend.map((item, index) => (
+                <li key={index}>
+                  <span aria-hidden="true" style={{ background: item.color }} />
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          )}
+          {legendAction}
+        </div>
       )}
     </section>
   );

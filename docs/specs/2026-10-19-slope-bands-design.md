@@ -298,9 +298,15 @@
   - 저장소가 `ready`가 아니면 버튼이 비활성이다(3장). `error`면 버튼의 `title`과 접근 설명이 `범례 설정을 읽지 못해
 편집할 수 없어요. 새로 고친 뒤 다시 시도해 주세요`다.
 - 모달은 `FeedbackEmailModal`과 같은 꼴이다(`useModalFocus`, 세션 토큰으로 API 호출). 화면 가운데에 뜨고, 폭 90%·최대
-  560px, 높이 최대 90vh에 본문이 스크롤된다. 데스크톱·모바일 같다. 좁은 폭에서는 구간 행이 두 줄(`색 · 이름 · ✕` /
+  720px, 높이 최대 90vh에 본문이 스크롤된다. 데스크톱·모바일 같다. 좁은 폭에서는 구간 행이 두 줄(`색 · 이름 · ✕` /
   `상한 · 설명`)로 접힌다.
+  - 2026-10-19 구현 — 한 줄 배치에 이름·설명 칸까지 쓸 만하게 주면 약 625px가 들어, 560px에서는 이름 칸이 기본 이름도
+    자른다. 760px보다 좁은 화면에서 두 줄로 접는다.
+  - 배경의 `mousedown` 대상이 배경일 때만 닫는다(`FeedbackButton`과 같다). `click`으로 받으면 안에서 끌다 밖에서
+    놓아도 초안째 닫힌다.
 - 맨 위: 미리보기 — `SlopeBandsLegend`(4.2)에 초안을 넣는다. 툴팁도 공개 지도와 같이 확인된다.
+  - 초안이 검증을 통과하지 못하면 범례 대신 "입력을 고치면 미리보기가 다시 보여요"다 — 상한이 없는 행은 눈금과 범위를
+    쓸 수 없다.
   - **툴팁이 열려 있는 동안 모달의 Esc 닫기를 끈다**(`useModalFocus`의 `closeOnEscape`). 그 훅은 document 캡처
     단계에서 Esc를 받아 전파를 멈추고 모달을 닫아, 툴팁을 닫으려던 Esc가 초안째 모달을 닫는다. 범례 컴포넌트가 툴팁
     열림을 콜백(`onTooltipOpenChange`)으로 알리고, 모달은 `closeOnEscape: !saving && !tooltipOpen`을 넘긴다.
@@ -387,6 +393,8 @@
 | `src/components/map/map-ui.css`                                | 옛 범례 규칙 제거, 범례 상자·지도 모서리 컨테이너·모바일 위치                                                   |
 | `src/components/admin/slopes/*`                                | `SlopeListRow`·`SlopeViewPanel`·`SlopeWorkspaceMap` — 5장                                                       |
 | `src/components/admin/slopes/SlopeBandsModal.tsx`              | 신규 (6.1)                                                                                                      |
+| `src/components/slope/useSlopeRouteDraft.ts`                   | 단위 선택지(`SLOPE_UNIT_OPTIONS`)와 기억값 읽기·쓰기를 내보낸다. 모달과 편집 패널이 같이 쓴다                   |
+| `src/components/admin/slopes/SlopeEditPanel.tsx`               | 단위 선택지를 위에서 가져온다                                                                                   |
 | `src/components/admin/workspace/WorkspaceListPanel.tsx`        | 칩이 없으면 칩 줄 생략, `legendAction` props(데스크톱 범례 옆·모바일 시트 맨 아래)                              |
 | `src/components/slope/SlopeRouteMap.tsx`                       | 구간 색, 외곽선, 다른 경로 그리기를 별도 effect로, 미리보기 effect 의존성 (5장)                                 |
 | `src/components/slope/SlopeSegmentList.tsx`                    | 번호 원 구간 색·자동 글자색                                                                                     |

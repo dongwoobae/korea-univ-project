@@ -48,6 +48,8 @@ export interface MockState {
   slopeBands: unknown;
   /** 켜면 `slope_bands` 조회가 500으로 실패한다 */
   slopeBandsReadFails: boolean;
+  /** POST /api/settings/slope-bands가 받은 본문 */
+  slopeBandsPosts: unknown[];
   buildings: Row[];
   facilities: Row[];
   feedbackSubmissions: Row[];
@@ -139,6 +141,7 @@ function createState(authenticated: boolean): MockState {
     requestCleanupFails: false,
     slopeBands: undefined,
     slopeBandsReadFails: false,
+    slopeBandsPosts: [],
     feedbackSubmissions: [],
     buildings: [
       {
@@ -1231,6 +1234,12 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       facility.video_poster_url = null;
     }
     return json(route, { ok: true });
+  }
+  if (path === "/api/settings/slope-bands") {
+    const body = route.request().postDataJSON() as unknown;
+    state.slopeBandsPosts.push(body);
+    state.slopeBands = body;
+    return json(route, { ok: true, value: body });
   }
   if (path === "/api/settings/feedback-emails") {
     return json(

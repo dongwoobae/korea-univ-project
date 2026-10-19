@@ -126,6 +126,26 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
     ).toHaveLength(0);
   });
 
+  test("범례 편집 모달에 하드코딩 밝은 색이 남지 않는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await page
+      .getByRole("region", { name: "경사도 경로", exact: true })
+      .getByRole("button", { name: "범례 편집" })
+      .click();
+    await expect(page.getByRole("dialog", { name: "범례 편집" })).toBeVisible();
+
+    const result = await scanContrast(page);
+    expect(
+      result.nearWhiteBg,
+      `미이관 흰 배경: ${result.nearWhiteBg.join(", ")}`,
+    ).toHaveLength(0);
+    expect(
+      result.nearBlackText,
+      `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
+    ).toHaveLength(0);
+  });
+
   test("크림슨 채움은 모드마다 흰 글자 대비를 지키는 값이다", async ({
     page,
   }) => {

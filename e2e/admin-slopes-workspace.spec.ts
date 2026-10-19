@@ -2368,6 +2368,20 @@ test.describe("경사도 작업 화면 — 모바일", () => {
       ),
     ).toBeVisible();
   });
+
+  test("바텀시트 맨 아래 범례 편집으로 같은 모달이 열린다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await expect(page.getByRole("group", { name: "목록 필터" })).toHaveCount(0);
+    await listPanel(page).getByRole("button", { name: "범례 편집" }).click();
+    const dialog = page.getByRole("dialog", { name: "범례 편집" });
+    await expect(dialog).toBeVisible();
+    const box = (await dialog.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+  });
 });
 
 test.describe("경사도 작업 화면 — 저장 안 한 변경", () => {
@@ -2542,5 +2556,211 @@ test.describe("경사도 작업 화면 — 저장 안 한 변경", () => {
 
     await detail.getByRole("button", { name: "취소", exact: true }).click();
     await expect(leaveDialog(page)).toBeVisible();
+  });
+});
+
+test.describe("경사도 작업 화면 — 범례 편집", () => {
+  function bandsDialog(page: Page) {
+    return page.getByRole("dialog", { name: "범례 편집" });
+  }
+
+  async function openBands(page: Page) {
+    await listPanel(page).getByRole("button", { name: "범례 편집" }).click();
+    await expect(bandsDialog(page)).toBeVisible();
+    return bandsDialog(page);
+  }
+
+  function saveButton(dialog: Locator) {
+    return dialog.getByRole("button", { name: "저장", exact: true });
+  }
+
+  function sentUppers(state: MockState, index = 0) {
+    return (
+      state.slopeBandsPosts[index] as {
+        bands: { upperPercent: number | null }[];
+      }
+    ).bands.map((band) => band.upperPercent);
+  }
+
+  test("상한 하나를 바꿔 저장하면 본문이 가고 작업 화면 선 색이 다시 조회하지 않고 바뀐다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    let listReads = 0;
+    await page.route(slopesRequest, async (route) => {
+      if (slopeListGet(route)) listReads += 1;
+      await route.fallback();
+    });
+    await page.goto("/admin/dashboard/slopes");
+    await expect(routeLine(page, 1)).toHaveAttribute("stroke", "#8BC34A");
+    const readsBefore = listReads;
+
+    const dialog = await openBands(page);
+    await dialog.getByRole("button", { name: "퍼센트(%)" }).click();
+    // 경로 1은 3°(5.24%)다. 첫 상한을 5%로 내리면 둘째 구간(노랑)이 된다
+    await dialog.getByLabel("구간 1 상한").fill("5");
+    await saveButton(dialog).click();
+
+    await expect(dialog).toHaveCount(0);
+    await expect(
+      page.locator(".ku-toast").filter({ hasText: "범례를 저장했어요" }),
+    ).toBeVisible();
+    expect(state.slopeBandsPosts).toHaveLength(1);
+    // 손대지 않은 상한은 비율 상수 그대로다. 100/12로 적지 않는다 — (1/12)*100과 다른 값이다
+    expect(sentUppers(state)).toEqual([5, (1 / 12) * 100, (1 / 8) * 100, null]);
+    await expect(routeLine(page, 1)).toHaveAttribute("stroke", "#FFD600");
+    expect(listReads).toBe(readsBefore);
+  });
+
+  test("아무것도 고치지 않고 저장하면 상한이 기본값 상수 그대로 간다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    const dialog = await openBands(page);
+    await saveButton(dialog).click();
+    await expect(dialog).toHaveCount(0);
+    expect(sentUppers(state)).toEqual([
+      (1 / 18) * 100,
+      (1 / 12) * 100,
+      (1 / 8) * 100,
+      null,
+    ]);
+  });
+
+  test("단위를 오가도 손대지 않은 상한이 그대로 가고, ° 단위에서 190을 치면 문구가 뜨고 저장이 비활성이다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    const dialog = await openBands(page);
+    await dialog.getByRole("button", { name: "퍼센트(%)" }).click();
+    await expect(dialog.getByLabel("구간 2 상한")).toHaveValue("8.33");
+    await dialog.getByRole("button", { name: "도(°)" }).click();
+    await expect(dialog.getByLabel("구간 2 상한")).toHaveValue("4.76");
+    await saveButton(dialog).click();
+    await expect(dialog).toHaveCount(0);
+    expect(sentUppers(state)).toEqual([
+      (1 / 18) * 100,
+      (1 / 12) * 100,
+      (1 / 8) * 100,
+      null,
+    ]);
+
+    const again = await openBands(page);
+    await again.getByLabel("구간 3 상한").fill("190");
+    await expect(
+      again.getByText("0°보다 크고 45° 이하로 적어 주세요"),
+    ).toBeVisible();
+    await expect(saveButton(again)).toBeDisabled();
+  });
+
+  test("미리보기 툴팁의 Esc는 툴팁만 닫고, 한 번 더 누르면 모달이 닫힌다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    const dialog = await openBands(page);
+    await dialog.getByLabel("구간 1 이름").fill("평지");
+    const cell = dialog
+      .getByRole("group", { name: "경사도 범례" })
+      .getByRole("button", { name: /^평지,/ });
+    await cell.focus();
+    await expect(page.getByRole("tooltip")).toContainText("평지");
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("tooltip")).toHaveCount(0);
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByLabel("구간 1 이름")).toHaveValue("평지");
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test("범례 설정을 읽지 못하면 범례 편집이 비활성이고 사유를 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.slopeBandsReadFails = true;
+    await page.goto("/admin/dashboard/slopes");
+    const button = listPanel(page).getByRole("button", { name: "범례 편집" });
+    const reason =
+      "범례 설정을 읽지 못해 편집할 수 없어요. 새로 고친 뒤 다시 시도해 주세요";
+    await expect(button).toBeDisabled();
+    await expect(button).toHaveAttribute("title", reason);
+    await expect(button).toHaveAccessibleDescription(reason);
+  });
+
+  test("상한을 역순으로 넣으면 검증 문구가 뜨고 저장과 미리보기가 멈춘다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    const dialog = await openBands(page);
+    await dialog.getByRole("button", { name: "퍼센트(%)" }).click();
+    await dialog.getByLabel("구간 2 상한").fill("3");
+    await expect(
+      dialog.getByText("구간 2의 상한은 앞 구간보다 0.01%p 이상 커야 해요"),
+    ).toBeVisible();
+    await expect(saveButton(dialog)).toBeDisabled();
+    await expect(
+      dialog.getByText("입력을 고치면 미리보기가 다시 보여요"),
+    ).toBeVisible();
+  });
+
+  test("2개일 때 삭제, 6개일 때 구간 추가가 비활성이고, 기본값으로는 기본값을 보낸다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    const dialog = await openBands(page);
+    const rows = dialog.locator(".ku-bands-modal-row");
+
+    await dialog.getByRole("button", { name: "구간 1 삭제" }).click();
+    await dialog.getByRole("button", { name: "구간 1 삭제" }).click();
+    await expect(rows).toHaveCount(2);
+    await expect(
+      dialog.getByRole("button", { name: "구간 1 삭제" }),
+    ).toBeDisabled();
+    await expect(
+      dialog.getByRole("button", { name: "구간 2 삭제" }),
+    ).toBeDisabled();
+
+    const add = dialog.getByRole("button", { name: "구간 추가" });
+    for (let i = 0; i < 4; i++) await add.click();
+    await expect(rows).toHaveCount(6);
+    await expect(add).toBeDisabled();
+    // 새 행은 마지막 바로 앞에 들어가고 색은 앞 구간(특례 범위)의 색이다
+    await expect(dialog.getByLabel("구간 2 색", { exact: true })).toHaveValue(
+      "#FF9800",
+    );
+
+    await dialog.getByRole("button", { name: "기본값으로" }).click();
+    await expect(rows).toHaveCount(4);
+    await saveButton(dialog).click();
+    await expect(dialog).toHaveCount(0);
+    expect(state.slopeBandsPosts[0]).toEqual({
+      bands: [
+        {
+          name: "보도 기준 이내",
+          upperPercent: (1 / 18) * 100,
+          color: "#8BC34A",
+          description: "보도 기준 1/18 이하",
+        },
+        {
+          name: "완화 범위",
+          upperPercent: (1 / 12) * 100,
+          color: "#FFD600",
+          description: "완화 한도 1/12 이하",
+        },
+        {
+          name: "특례 범위",
+          upperPercent: (1 / 8) * 100,
+          color: "#FF9800",
+          description: "경사로 특례 한도 1/8 이하",
+        },
+        { name: "초과", upperPercent: null, color: "#E53935", description: "" },
+      ],
+    });
   });
 });
