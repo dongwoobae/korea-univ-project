@@ -42,7 +42,13 @@ export interface FacilityVideoUploadDeps {
 export type FacilityVideoUploadResult =
   | { status: "uploaded"; videoUrl: string; usedOriginal: boolean }
   | { status: "cancelled" }
-  | { status: "failed"; message: string };
+  | {
+      status: "failed";
+      message: string;
+      /** 브라우저 안에서 멈춘 실패만 둔다. 서버·저장소 실패는 관문이 보고한다(설계 2026-10-19 4.3). */
+      reason?: "unsupported_type" | "payload_too_large";
+      size?: number;
+    };
 
 const CANCELLED = { status: "cancelled" } as const;
 
@@ -65,6 +71,7 @@ export async function uploadFacilityVideo(
         status: "failed",
         message:
           "이 영상은 브라우저에서 재생할 수 없고 변환도 실패했어요. H.264(mp4)로 저장해 다시 올려주세요",
+        reason: "unsupported_type",
       };
     }
     payload = file;
@@ -77,6 +84,8 @@ export async function uploadFacilityVideo(
     return {
       status: "failed",
       message: `${usedOriginal ? "파일이" : "변환 결과가"} 너무 커요 (${formatExcessSize(payload.size)}) · 최대 ${MAX_VIDEO_LABEL}`,
+      reason: "payload_too_large",
+      size: payload.size,
     };
   }
 

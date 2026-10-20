@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import ConfirmModal from "@/components/ConfirmModal";
+import { reportFailure } from "@/lib/activityReport";
 import { authedFetch } from "@/lib/authedFetch";
 import {
   MAX_FACILITY_PHOTOS,
@@ -41,11 +42,26 @@ export default function FacilityPhotoManager({
       let blob: Blob;
       try {
         blob = await convertToWebP(file);
-      } catch {
+      } catch (error) {
+        void reportFailure({
+          source: { kind: "known", reason: "unsupported_type", error },
+          action: "facility_photo.upload",
+          target: { table: "building_facilities", id: facilityId },
+          fileSize: file.size,
+          fileType: file.type,
+        });
         showToast("사진을 변환하지 못했어요", "error");
         return;
       }
       if (blob.size > MAX_FACILITY_PHOTO_BYTES) {
+        void reportFailure({
+          source: { kind: "known", reason: "payload_too_large" },
+          action: "facility_photo.upload",
+          target: { table: "building_facilities", id: facilityId },
+          fileSize: blob.size,
+          fileType: blob.type,
+          limit: MAX_FACILITY_PHOTO_BYTES,
+        });
         showToast("사진은 4MB까지 올릴 수 있어요", "warning");
         return;
       }

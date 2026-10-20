@@ -1,6 +1,6 @@
 "use client";
 import { useId, useState, type CSSProperties } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { authedFetch } from "@/lib/authedFetch";
 import { useModalFocus } from "@/lib/useModalFocus";
 import type { FeedbackEmails } from "@/lib/settings";
 
@@ -47,19 +47,10 @@ export default function FeedbackEmailModal({
     setError(null);
     setSaving(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) throw new Error("로그인 세션 없음");
-
       const cc = ccList.map((s) => s.trim()).filter(Boolean);
-      const res = await fetch("/api/settings/feedback-emails", {
+      const res = await authedFetch("/api/settings/feedback-emails", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: to.trim(), cc, subject: subject.trim() }),
       });
       const json = await res.json();
