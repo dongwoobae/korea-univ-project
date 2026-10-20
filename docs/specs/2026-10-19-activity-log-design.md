@@ -641,6 +641,8 @@ pgTAP 검사 항목:
      `authenticated can <insert|update|delete> <테이블>`이 테이블마다 셋, `landmarks`·`slope_segments`에 마이그레이션이
      만든 `authenticated write`가 하나씩이다. 그래서 `colleges`·`facility_types`를 6장 대상에 더했다.
    - PR 2 착수 직전에 6장의 SQL로 운영을 다시 받아 이 목록과 같은지 본다.
+   - **2026-10-20 확인.** 운영 정책은 스냅샷의 정책에 PR 1a가 만든 `activity_logs_admin_read` 하나가 더해진 것뿐이고, 쓰기
+     정책 17개는 테이블·이름·명령까지 스냅샷과 같다.
 6. Next 16의 `after()` 동작 — `node_modules/next/dist/docs/`에서 확인.
    - **2026-10-19 확인.** `after.md`: 라우트 핸들러에서 쓸 수 있고, 응답이 끝난 뒤 실행되며, 오류 응답이어도
      실행되고, 라우트의 maxDuration 동안 함수가 살아 있다.
