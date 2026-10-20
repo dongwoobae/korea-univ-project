@@ -12,7 +12,3 @@ export async function findListedAdmin(
   if (error) throw error;
   return data ? { displayName: data.display_name } : null;
 }
-
-export async function isListedAdmin(userId: string): Promise<boolean> {
-  return (await findListedAdmin(userId)) !== null;
-}

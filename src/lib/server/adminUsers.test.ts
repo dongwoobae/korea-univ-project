@@ -14,17 +14,15 @@ describe("adminUsers", () => {
 
   it("목록에 있으면 표시 이름을 돌려준다", async () => {
     result = { data: { display_name: "관리자" }, error: null };
-    const { findListedAdmin, isListedAdmin } = await import("./adminUsers");
+    const { findListedAdmin } = await import("./adminUsers");
     expect(await findListedAdmin("u1")).toEqual({ displayName: "관리자" });
-    expect(await isListedAdmin("u1")).toBe(true);
     expect(from).toHaveBeenCalledWith("admin_users");
   });
 
   it("목록에 없으면 null", async () => {
     result = { data: null, error: null };
-    const { findListedAdmin, isListedAdmin } = await import("./adminUsers");
+    const { findListedAdmin } = await import("./adminUsers");
     expect(await findListedAdmin("u2")).toBeNull();
-    expect(await isListedAdmin("u2")).toBe(false);
   });
 
   it("조회가 실패하면 던진다", async () => {
