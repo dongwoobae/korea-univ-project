@@ -86,7 +86,9 @@ export default function PolygonEditor({
     void fetchNeighborBuildings()
       .then((neighbors) => {
         if (cancelled || !mapRef.current) return;
-        addNeighborLayer(map, neighbors, initialExcludeId);
+        addNeighborLayer(map, neighbors, initialExcludeId, {
+          snapIgnore: true,
+        });
       })
       .catch(() => {
         // 주변 건물은 보조 정보다. 실패해도 편집 자체는 계속할 수 있다.
