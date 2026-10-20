@@ -4,6 +4,10 @@ const getUser = vi.fn();
 const createClient = vi.fn(() => ({ auth: { getUser } }));
 
 vi.mock("@supabase/supabase-js", () => ({ createClient }));
+const findListedAdmin = vi.fn();
+vi.mock("@/lib/server/adminUsers", () => ({ findListedAdmin }));
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 
 describe("requireAdmin", () => {
   beforeEach(() => {
@@ -69,9 +73,10 @@ describe("requireAdmin", () => {
     expect(serviceRoleResult.response.status).toBe(401);
   });
 
-  it("returns the user for a valid access token", async () => {
+  it("returns the user and display name when the account is listed", async () => {
     const user = { id: "admin-user" };
     getUser.mockResolvedValueOnce({ data: { user }, error: null });
+    findListedAdmin.mockResolvedValueOnce({ displayName: "관리자" });
     const { requireAdmin } = await loadRequireAdmin();
 
     const result = await requireAdmin(
@@ -80,6 +85,52 @@ describe("requireAdmin", () => {
       }),
     );
 
-    expect(result).toEqual({ user });
+    expect(result).toEqual({ user, admin: { displayName: "관리자" } });
+    expect(findListedAdmin).toHaveBeenCalledWith("admin-user");
+    expect(logFailure).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 and logs forbidden when the account is not listed", async () => {
+    const user = { id: "stranger", email: "stranger@example.com" };
+    getUser.mockResolvedValueOnce({ data: { user }, error: null });
+    findListedAdmin.mockResolvedValueOnce(null);
+    const { requireAdmin } = await loadRequireAdmin();
+
+    const result = (await requireAdmin(
+      new Request("https://local.test/api/upload-facility-photo", {
+        headers: { authorization: "Bearer valid-token" },
+      }),
+    )) as { response: Response };
+
+    expect(result.response.status).toBe(403);
+    await expect(result.response.json()).resolves.toEqual({
+      error: "관리자 목록에 없는 계정이에요",
+    });
+    expect(logFailure).toHaveBeenCalledWith({
+      route: "/api/upload-facility-photo",
+      action: "admin.access",
+      actor: { kind: "admin", user },
+      reason: "forbidden",
+      status: 403,
+    });
+  });
+
+  it("returns 500 without logging forbidden when the list lookup fails", async () => {
+    getUser.mockResolvedValueOnce({
+      data: { user: { id: "admin-user" } },
+      error: null,
+    });
+    findListedAdmin.mockRejectedValueOnce(new Error("db down"));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { requireAdmin } = await loadRequireAdmin();
+
+    const result = (await requireAdmin(
+      new Request("https://local.test/api", {
+        headers: { authorization: "Bearer valid-token" },
+      }),
+    )) as { response: Response };
+
+    expect(result.response.status).toBe(500);
+    expect(logFailure).not.toHaveBeenCalled();
   });
 });
