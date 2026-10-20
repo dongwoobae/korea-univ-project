@@ -4,6 +4,7 @@ import type { TablesUpdate } from "@supabase-types";
 import { getFacilityTranslationTexts } from "@/lib/facilityTranslationState";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { translateKoTexts } from "@/lib/server/googleTranslate";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isUuid } from "@/lib/uuid";
 import type { Facility } from "@/types/domain";
@@ -57,14 +58,21 @@ async function translateAndStore(facility: Source): Promise<Outcome> {
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const failures = routeFailures({
+    route: "/api/translate-facility",
+    action: "facility.translate",
+    actor: { kind: "system", system: "translation" },
+    followUp: true,
+  });
   const body = (await request.json().catch(() => null)) as {
     facilityId?: unknown;
   } | null;
   if (typeof body?.facilityId !== "string") {
-    return NextResponse.json({ error: "시설 ID 누락" }, { status: 400 });
+    return failures.respond(400, "시설 ID 누락", "invalid_input");
   }
+  failures.setTarget({ table: "building_facilities", id: body.facilityId });
   if (!isUuid(body.facilityId)) {
-    return NextResponse.json({ error: "시설이 없어요" }, { status: 404 });
+    return failures.respond(404, "시설이 없어요", "not_found");
   }
 
   const { data: facility, error } = await supabaseAdmin()
@@ -76,13 +84,15 @@ export async function POST(request: Request) {
     console.error("[translate-facility] lookup failed", {
       message: error.message,
     });
-    return NextResponse.json(
-      { error: "시설 정보를 불러오지 못했어요" },
-      { status: 500 },
+    return failures.respond(
+      500,
+      "시설 정보를 불러오지 못했어요",
+      "server_error",
+      { error },
     );
   }
   if (!facility) {
-    return NextResponse.json({ error: "시설이 없어요" }, { status: 404 });
+    return failures.respond(404, "시설이 없어요", "not_found");
   }
 
   const job = translateAndStore(facility);
@@ -94,10 +104,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ status: outcome });
   }
   if (outcome === "failed") {
-    return NextResponse.json({ error: "번역에 실패했어요" }, { status: 502 });
+    return failures.respond(502, "번역에 실패했어요", "translation_error");
   }
-  return NextResponse.json(
-    { error: "번역을 저장하지 못했어요" },
-    { status: 500 },
-  );
+  return failures.respond(500, "번역을 저장하지 못했어요", "server_error");
 }

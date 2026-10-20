@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { FACILITY_PHOTO_BUCKET } from "@/lib/facilityPhotos";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { removeFolder } from "@/lib/server/requestPhotoStorage";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isUuid } from "@/lib/uuid";
 
@@ -13,21 +14,28 @@ import { isUuid } from "@/lib/uuid";
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const failures = routeFailures({
+    route: "/api/delete-facility-photos",
+    action: "facility_photo.delete_all",
+    actor: { kind: "admin", user: auth.user },
+  });
   const body = (await request.json().catch(() => null)) as {
     facilityId?: unknown;
   } | null;
   if (typeof body?.facilityId !== "string") {
-    return NextResponse.json({ error: "시설 ID 누락" }, { status: 400 });
+    return failures.respond(400, "시설 ID 누락", "invalid_input");
   }
+  failures.setTarget({ table: "building_facilities", id: body.facilityId });
   if (!isUuid(body.facilityId)) {
-    return NextResponse.json({ error: "시설이 없어요" }, { status: 404 });
+    return failures.respond(404, "시설이 없어요", "not_found");
   }
 
   // 파일을 먼저, 행을 나중에 지운다. 행이 남아 있으면 다시 눌러 이어서 지울 수 있다.
   if (!(await removeFolder(FACILITY_PHOTO_BUCKET, body.facilityId))) {
-    return NextResponse.json(
-      { error: "사진 파일을 지우지 못했어요" },
-      { status: 500 },
+    return failures.respond(
+      500,
+      "사진 파일을 지우지 못했어요",
+      "storage_error",
     );
   }
   const { error } = await supabaseAdmin({ userId: auth.user.id })
@@ -39,9 +47,11 @@ export async function POST(request: Request) {
       facilityId: body.facilityId,
       message: error.message,
     });
-    return NextResponse.json(
-      { error: "사진 정보를 지우지 못했어요" },
-      { status: 500 },
+    return failures.respond(
+      500,
+      "사진 정보를 지우지 못했어요",
+      "server_error",
+      { error },
     );
   }
   return NextResponse.json({ ok: true });

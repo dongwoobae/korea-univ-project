@@ -1,23 +1,34 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { getR2KeyFromPublicUrl } from "@/lib/r2";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isFacilityVideoKey, isPosterKeyFor } from "@/lib/videoUpload";
 
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const failures = routeFailures({
+    route: "/api/facility-video-confirm",
+    action: "facility_video.upload",
+    actor: { kind: "admin", user: auth.user },
+  });
   const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
     const { facilityId, videoUrl, posterUrl } = await request.json();
 
     if (!facilityId || !videoUrl) {
-      return NextResponse.json(
-        { error: "facilityId 또는 videoUrl 누락" },
-        { status: 400 },
+      return failures.respond(
+        400,
+        "facilityId 또는 videoUrl 누락",
+        "invalid_input",
       );
     }
+    failures.setTarget({
+      table: "building_facilities",
+      id: String(facilityId),
+    });
 
     // 검증 없이 저장하면 임의 URL이 시설에 심긴다. 그 값은 두 곳으로 흘러간다:
     // 공개 화면의 <video src>, 그리고 delete-facility-video가 지울 R2 키.
@@ -25,9 +36,10 @@ export async function POST(request: Request) {
     // delete의 `.eq("video_url", ...)` 가드는 심어둔 값과도 일치해 막지 못한다.
     const key = getR2KeyFromPublicUrl(videoUrl);
     if (!key || !isFacilityVideoKey(key, String(facilityId))) {
-      return NextResponse.json(
-        { error: "이 시설의 동영상 주소가 아니에요" },
-        { status: 400 },
+      return failures.respond(
+        400,
+        "이 시설의 동영상 주소가 아니에요",
+        "invalid_input",
       );
     }
 
@@ -36,9 +48,10 @@ export async function POST(request: Request) {
       const posterKey =
         typeof posterUrl === "string" ? getR2KeyFromPublicUrl(posterUrl) : null;
       if (!posterKey || !isPosterKeyFor(posterKey, key)) {
-        return NextResponse.json(
-          { error: "이 동영상의 포스터 주소가 아니에요" },
-          { status: 400 },
+        return failures.respond(
+          400,
+          "이 동영상의 포스터 주소가 아니에요",
+          "invalid_input",
         );
       }
       posterValue = posterUrl;
@@ -51,12 +64,12 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("[facility-video-confirm] db error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return failures.respond(500, error.message, "server_error", { error });
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[facility-video-confirm]", err);
-    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    return failures.respond(500, "서버 오류", "server_error", { error: err });
   }
 }

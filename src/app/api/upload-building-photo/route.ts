@@ -5,12 +5,18 @@ import {
   buildingPhotoPath,
 } from "@/lib/buildingPhotos";
 import { requireAdmin } from "@/lib/requireAdmin";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isWebP } from "@/lib/webpBytes";
 
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const failures = routeFailures({
+    route: "/api/upload-building-photo",
+    action: "building_photo.upload",
+    actor: { kind: "admin", user: auth.user },
+  });
   const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
@@ -19,17 +25,16 @@ export async function POST(request: Request) {
     const buildingId = formData.get("buildingId");
 
     if (!(file instanceof File) || !buildingId) {
-      return NextResponse.json(
-        { error: "파일 또는 건물 ID 누락" },
-        { status: 400 },
-      );
+      return failures.respond(400, "파일 또는 건물 ID 누락", "invalid_input");
     }
+    failures.setTarget({ table: "buildings", id: String(buildingId) });
 
     const buffer = Buffer.from(await file.arrayBuffer());
     if (!isWebP(buffer, buffer.length)) {
-      return NextResponse.json(
-        { error: "WebP 이미지만 올릴 수 있어요" },
-        { status: 400 },
+      return failures.respond(
+        400,
+        "WebP 이미지만 올릴 수 있어요",
+        "unsupported_type",
       );
     }
     const fileName = buildingPhotoPath(
@@ -47,7 +52,9 @@ export async function POST(request: Request) {
 
     if (uploadError) {
       console.error("[upload-building-photo] storage error:", uploadError);
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+      return failures.respond(500, uploadError.message, "storage_error", {
+        error: uploadError,
+      });
     }
 
     const { data } = db.storage
@@ -64,12 +71,14 @@ export async function POST(request: Request) {
 
     if (dbError) {
       console.error("[upload-building-photo] db error:", dbError);
-      return NextResponse.json({ error: dbError.message }, { status: 500 });
+      return failures.respond(500, dbError.message, "server_error", {
+        error: dbError,
+      });
     }
 
     return NextResponse.json({ id: photo.id, url: photo.url });
   } catch (err) {
     console.error("[upload-building-photo] unexpected error:", err);
-    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    return failures.respond(500, "서버 오류", "server_error", { error: err });
   }
 }

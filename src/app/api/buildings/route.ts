@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import type { Database } from "@supabase-types";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 export const revalidate = 86400;
@@ -52,7 +53,12 @@ export async function GET(request: Request) {
     if (secret !== process.env.SYNC_SECRET)
       return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    return handleSync(supabaseAdmin({ system: "osm_sync" }));
+    const failures = routeFailures({
+      route: "/api/buildings",
+      action: "buildings.osm_sync",
+      actor: { kind: "system", system: "osm_sync" },
+    });
+    return handleSync(supabaseAdmin({ system: "osm_sync" }), failures);
   }
 
   // 일반 모드 → Supabase에서 GeoJSON FeatureCollection 반환
@@ -98,7 +104,10 @@ interface OverpassResponse {
   elements: OverpassElement[];
 }
 
-async function handleSync(db: SupabaseClient<Database>) {
+async function handleSync(
+  db: SupabaseClient<Database>,
+  failures: ReturnType<typeof routeFailures>,
+) {
   let data: OverpassResponse | null = null;
 
   for (const server of OVERPASS_SERVERS) {
@@ -117,7 +126,7 @@ async function handleSync(db: SupabaseClient<Database>) {
   }
 
   if (!data)
-    return Response.json({ error: "Overpass 서버 모두 실패" }, { status: 500 });
+    return failures.respond(500, "Overpass 서버 모두 실패", "server_error");
 
   const buildings = data.elements.filter(
     (el) => el.tags?.name && el.geometry?.length > 0,
@@ -158,6 +167,9 @@ async function handleSync(db: SupabaseClient<Database>) {
   }
 
   revalidatePath("/api/buildings");
+
+  if (failed > 0)
+    failures.record("server_error", { error: `${failed}건 저장 실패` });
 
   return Response.json({
     success: true,

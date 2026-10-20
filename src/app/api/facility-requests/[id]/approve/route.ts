@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { parseFacilityFields } from "@/lib/facilityFields";
+import type { ReasonCode } from "@/lib/failureReason";
 import {
   FACILITY_PHOTO_BUCKET,
   MAX_FACILITY_PHOTOS,
@@ -12,19 +13,9 @@ import {
   copyToFacility,
   removeFolder,
 } from "@/lib/server/requestPhotoStorage";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isUuid } from "@/lib/uuid";
-
-function badRequest(error: string) {
-  return NextResponse.json({ error }, { status: 400 });
-}
-
-function alreadyProcessed() {
-  return NextResponse.json(
-    { error: "이미 처리된 요청이에요" },
-    { status: 409 },
-  );
-}
 
 export async function POST(
   request: Request,
@@ -32,9 +23,18 @@ export async function POST(
 ) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const failures = routeFailures({
+    route: "/api/facility-requests/[id]/approve",
+    action: "facility_request.approve",
+    actor: { kind: "admin", user: auth.user },
+  });
+  const badRequest = (error: string) =>
+    failures.respond(400, error, "invalid_input");
+  const alreadyProcessed = () =>
+    failures.respond(409, "이미 처리된 요청이에요", "conflict");
   const { id } = await params;
-  if (!isUuid(id))
-    return Response.json({ error: "요청이 없어요" }, { status: 404 });
+  failures.setTarget({ table: "facility_requests", id });
+  if (!isUuid(id)) return failures.respond(404, "요청이 없어요", "not_found");
 
   const body = (await request.json().catch(() => null)) as {
     fields?: unknown;
@@ -63,9 +63,11 @@ export async function POST(
       id,
       code: typeError.code,
     });
-    return NextResponse.json(
-      { error: "시설 유형을 확인하지 못했어요" },
-      { status: 500 },
+    return failures.respond(
+      500,
+      "시설 유형을 확인하지 못했어요",
+      "server_error",
+      { error: typeError },
     );
   }
   if (!type) return badRequest("없는 시설 유형이에요");
@@ -82,17 +84,16 @@ export async function POST(
       id,
       code: targetError.code,
     });
-    return NextResponse.json(
-      { error: "요청을 확인하지 못했어요" },
-      { status: 500 },
-    );
+    return failures.respond(500, "요청을 확인하지 못했어요", "server_error", {
+      error: targetError,
+    });
   }
-  if (!target)
-    return Response.json({ error: "요청이 없어요" }, { status: 404 });
+  if (!target) return failures.respond(404, "요청이 없어요", "not_found");
   if (target.buildings?.is_deleted === true) {
-    return NextResponse.json(
-      { error: "삭제된 건물의 요청이에요. 건물을 복구한 뒤 승인해 주세요" },
-      { status: 409 },
+    return failures.respond(
+      409,
+      "삭제된 건물의 요청이에요. 건물을 복구한 뒤 승인해 주세요",
+      "conflict",
     );
   }
 
@@ -106,10 +107,9 @@ export async function POST(
       id,
       code: photoError.code,
     });
-    return NextResponse.json(
-      { error: "사진을 불러오지 못했어요" },
-      { status: 500 },
-    );
+    return failures.respond(500, "사진을 불러오지 못했어요", "server_error", {
+      error: photoError,
+    });
   }
   const selected = photoIds.map((photoId) =>
     (ownPhotos ?? []).find((photo) => photo.id === photoId),
@@ -150,6 +150,11 @@ export async function POST(
 
   async function finish() {
     const cleaned = await cleanupRequestPhotos(id);
+    if (!cleaned)
+      failures.record("storage_error", {
+        action: "facility_request.cleanup",
+        followUp: true,
+      });
     return NextResponse.json({ facilityId, cleanupFailed: !cleaned });
   }
 
@@ -157,7 +162,12 @@ export async function POST(
   // 이 호출의 승인이 커밋됐다면 폴더를 지우는 순간 공개 시설의 사진이 끊긴다.
   // outcomeUnknown: 함수 호출이 오류로 끝나 커밋 여부를 모른다.
   async function abort(
-    fallback: { error: string; status: number },
+    fallback: {
+      error: string;
+      status: number;
+      reason: ReasonCode;
+      cause?: unknown;
+    },
     outcomeUnknown = false,
   ) {
     const { current, failed } = await readRequest();
@@ -168,19 +178,19 @@ export async function POST(
         id,
         facilityId,
       });
-      return NextResponse.json(
-        { error: "승인 결과를 확인하지 못했어요. 목록을 다시 확인해 주세요" },
-        { status: 500 },
+      return failures.respond(
+        500,
+        "승인 결과를 확인하지 못했어요. 목록을 다시 확인해 주세요",
+        "server_error",
       );
     }
     await removeFacilityFolder();
     if (!failed && current && isEndStatus(current.status)) {
       return alreadyProcessed();
     }
-    return NextResponse.json(
-      { error: fallback.error },
-      { status: fallback.status },
-    );
+    return failures.respond(fallback.status, fallback.error, fallback.reason, {
+      error: fallback.cause,
+    });
   }
 
   // 모두 끝난 뒤에 판단한다 — 하나가 실패한 순간 폴더를 지우면 아직 도는 복사가 그 뒤에 파일을 남긴다.
@@ -190,7 +200,11 @@ export async function POST(
     ),
   );
   if (destinations.some((destination) => !destination))
-    return abort({ error: "사진을 옮기지 못했어요", status: 500 });
+    return abort({
+      error: "사진을 옮기지 못했어요",
+      status: 500,
+      reason: "storage_error",
+    });
   const copied = selected.map((photo, index) => ({
     request_photo_id: photo!.id,
     storage_path: destinations[index]!,
@@ -210,8 +224,20 @@ export async function POST(
         code: error.code,
       });
     if (result === "photo_mismatch")
-      return abort({ error: "이 요청의 사진이 아니에요", status: 400 });
-    return abort({ error: "승인하지 못했어요", status: 500 }, !!error);
+      return abort({
+        error: "이 요청의 사진이 아니에요",
+        status: 400,
+        reason: "invalid_input",
+      });
+    return abort(
+      {
+        error: "승인하지 못했어요",
+        status: 500,
+        reason: "server_error",
+        cause: error,
+      },
+      !!error,
+    );
   }
 
   return finish();

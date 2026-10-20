@@ -1,7 +1,13 @@
 import { parseFeedbackInput } from "@/lib/feedback";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 export async function POST(request: Request) {
+  const failures = routeFailures({
+    route: "/api/feedback",
+    action: "feedback.submit",
+    actor: { kind: "visitor" },
+  });
   const db = supabaseAdmin();
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > 10_000) {
@@ -39,9 +45,11 @@ export async function POST(request: Request) {
       code: error.code,
       message: error.message,
     });
-    return Response.json(
-      { error: "피드백을 저장하지 못했습니다." },
-      { status: 500 },
+    return failures.respond(
+      500,
+      "피드백을 저장하지 못했습니다.",
+      "server_error",
+      { error },
     );
   }
 
