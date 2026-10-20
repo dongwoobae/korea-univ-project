@@ -77,6 +77,7 @@ const SCREENS = [
   { name: "경사도 보기 패널", path: "/admin/dashboard/slopes?id=2" },
   { name: "명소 목록", path: "/admin/dashboard/landmarks" },
   { name: "제보함", path: "/admin/dashboard/inbox" },
+  { name: "로그", path: "/admin/dashboard/logs" },
   { name: "건물 상세", path: "/admin/buildings/1" },
   { name: "건물 신규 등록", path: "/admin/buildings/new" },
   { name: "경사도 경로 그리기", path: "/admin/dashboard/slopes?new=1" },
@@ -134,6 +135,27 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
       .getByRole("button", { name: "범례 편집" })
       .click();
     await expect(page.getByRole("dialog", { name: "범례 편집" })).toBeVisible();
+
+    const result = await scanContrast(page);
+    expect(
+      result.nearWhiteBg,
+      `미이관 흰 배경: ${result.nearWhiteBg.join(", ")}`,
+    ).toHaveLength(0);
+    expect(
+      result.nearBlackText,
+      `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
+    ).toHaveLength(0);
+  });
+
+  test("로그 상세 모달에 하드코딩 밝은 색이 남지 않는다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/logs");
+    await page
+      .getByRole("list", { name: "로그 목록" })
+      .getByRole("button")
+      .nth(2)
+      .click();
+    await page.getByRole("dialog").getByText("원문(개발자용)").click();
 
     const result = await scanContrast(page);
     expect(
