@@ -63,7 +63,7 @@ export default function BuildingVideoManager({
                 접근 이름이 `관리 ›`로 같아져 스크린리더가 구분하지 못한다. */}
             <button
               type="button"
-              className="ku-admin-row-action"
+              className="ku-admin-button ku-admin-row-action"
               aria-label={`${f.name ?? f.facility_types?.label} 동영상 관리`}
               onClick={() => setTarget(f)}
             >

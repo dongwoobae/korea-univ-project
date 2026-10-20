@@ -11,6 +11,24 @@ test.describe("건물 동영상 섹션", () => {
     await expect(section).toContainText("진입로 경사");
   });
 
+  test("관리 버튼이 동영상 추가 버튼과 같은 관리자 버튼 모양이다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/buildings/1");
+
+    const section = page.locator("#building-videos");
+    const manage = section.getByRole("button", {
+      name: "지하 주차장 진입로 동영상 관리",
+    });
+    const add = section.getByRole("button", { name: "+ 동영상 추가" });
+    const look = (el: Element) => {
+      const s = getComputedStyle(el);
+      return [s.fontSize, s.fontWeight, s.borderTop, s.backgroundColor];
+    };
+    expect(await manage.evaluate(look)).toEqual(await add.evaluate(look));
+  });
+
   test("시설을 고르면 업로드 모달이 열린다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/buildings/1");
