@@ -242,6 +242,51 @@ test.describe("건물 관리자 흐름", () => {
     ).toBeTruthy();
   });
 
+  test("폴리곤을 그릴 때 주변 건물 외곽선에 붙지 않는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    type Ring = { geometry: { coordinates: number[][][] } };
+    const ringOf = (geojson: unknown) =>
+      (geojson as Ring).geometry.coordinates[0];
+    const neighborRing = ringOf(state.buildings[0].geojson);
+    const neighborMaxLng = Math.max(...neighborRing.map(([lng]) => lng));
+    const neighborMaxLat = Math.max(...neighborRing.map(([, lat]) => lat));
+    await page.goto("/admin/buildings/new");
+    await page.getByPlaceholder("예: 신공학관").fill("E2E 스냅 확인");
+
+    const map = page.locator(".leaflet-container");
+    const neighbor = map.locator('path[stroke="#9ca3af"]');
+    await expect(neighbor).toHaveCount(1);
+    const mapBox = (await map.boundingBox())!;
+    const neighborBox = (await neighbor.boundingBox())!;
+    const cornerX = neighborBox.x + neighborBox.width - mapBox.x;
+    const cornerY = neighborBox.y - mapBox.y;
+
+    await page.locator(".leaflet-pm-icon-polygon").locator("..").click();
+    const first = { x: cornerX + 90, y: cornerY - 6 };
+    // 두 번째 꼭짓점은 주변 건물 오른쪽 위 모서리에서 geoman 기본 snapDistance 안쪽이다
+    const points = [
+      first,
+      { x: cornerX + 6, y: cornerY - 6 },
+      { x: cornerX + 90, y: cornerY + 70 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: first });
+    await expect(
+      page.getByText(
+        "✅ 폴리곤 입력 완료 — 아래 건물 저장 버튼으로 함께 저장됩니다.",
+      ),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "건물 저장" }).click();
+    await expect(page).toHaveURL(/admin\/buildings\/-\d+$/);
+    const saved = state.buildings.find(
+      (building) => building.name === "E2E 스냅 확인",
+    );
+    const [lng, lat] = ringOf(saved!.geojson)[1];
+    expect(lng).not.toBe(neighborMaxLng);
+    expect(lat).not.toBe(neighborMaxLat);
+  });
+
   test("점 데이터인 역은 프리뷰에 그 점을 찍어 그 자리에서 열고, 편집기는 점 없이 폴리곤이 없는 건물처럼 연다", async ({
     page,
   }) => {
