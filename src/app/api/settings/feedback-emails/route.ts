@@ -1,37 +1,21 @@
-import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/requireAdmin";
 import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 function isEmail(s: unknown): boolean {
   return typeof s === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 }
 
-async function verifyAdmin(request: Request) {
-  const token = request.headers.get("Authorization")?.replace(/^Bearer\s+/, "");
-  if (!token) return null;
-  const client = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
-  const {
-    data: { user },
-  } = await client.auth.getUser();
-  return user;
-}
-
 export async function POST(request: Request) {
-  const user = await verifyAdmin(request);
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const db = supabaseAdmin({ userId: user.id });
+  const auth = await requireAdmin(request);
+  if (auth.response) return auth.response;
   const failures = routeFailures({
     route: "/api/settings/feedback-emails",
     action: "settings.feedback_emails",
-    actor: { kind: "admin", user },
+    actor: { kind: "admin", user: auth.user },
+    target: { table: "app_settings", id: "feedback_emails" },
   });
-  failures.setTarget({ table: "app_settings", id: "feedback_emails" });
 
   const body = await request.json().catch(() => null);
   if (!body) return failures.respond(400, "Invalid JSON", "invalid_input");
@@ -56,15 +40,20 @@ export async function POST(request: Request) {
 
   const value = { to, cc, subject };
 
-  const { error } = await db
+  const { error } = await supabaseAdmin({ userId: auth.user.id })
     .from("app_settings")
     .upsert(
       { key: "feedback_emails", value, updated_at: new Date().toISOString() },
       { onConflict: "key" },
     );
 
-  if (error)
+  if (error) {
+    console.error("[settings/feedback-emails] save failed", {
+      code: error.code,
+      message: error.message,
+    });
     return failures.respond(500, error.message, "server_error", { error });
+  }
 
   revalidatePath("/");
   return Response.json({ ok: true, value });
