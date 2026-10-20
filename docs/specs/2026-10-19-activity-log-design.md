@@ -6,7 +6,7 @@
 
 관리자 화면에서 일어난 변경(누가, 언제, 무엇을, 어떻게 바꿨는지)과 실패(무엇이, 왜 실패했는지)를 DB에 남기고,
 관리자 헤더의 `로그` 탭에서 읽게 하는 설계다. 같은 변경으로 `requireAdmin`이 로그인 여부만 보던 문제
-([`docs/TODO_list/auth/require-admin-role-check.md`](../TODO_list/auth/require-admin-role-check.md))를 닫는다.
+(`docs/TODO_list/auth/require-admin-role-check.md`)를 닫는다 — 2026-10-20 PR 2에서 닫았다.
 
 ---
 
@@ -57,8 +57,8 @@
 | `created_at`   | `timestamptz` | 기본 `now()`                                               |
 
 관리 화면은 두지 않는다. Supabase Table Editor에서 행을 넣고 뺀다. 이 테이블은 `anon`·`authenticated`에
-아무 권한도 주지 않는다. 읽기는 아래 `is_admin()`, 트리거(정의자 권한), 서버의 `isListedAdmin()`(service_role,
-4.3)만 한다.
+아무 권한도 주지 않는다. 읽기는 아래 `is_admin()`, 트리거(정의자 권한), 서버의 `findListedAdmin()`(service_role,
+6장)만 한다.
 
 ### 2.2 `is_admin()`
 
@@ -299,10 +299,8 @@ JSON 본문을 갖고 이 헤더가 없다. 그 경우는 서버가 이미 기�
 
 `/api/activity-logs`:
 
-- `requireAdmin`을 통과한 뒤 그 계정이 `admin_users`에 있는지 **이 라우트가 직접** 확인한다
-  (`src/lib/server/adminUsers.ts`의 `isListedAdmin(userId)`). PR 1에서는 `requireAdmin`이 아직 로그인만 보므로(7장),
-  이 확인이 없으면 아무 로그인 계정이나 실패 기록을 지어내 넣을 수 있다. PR 2에서 같은 확인이 `requireAdmin`으로
-  옮겨 가면 이 라우트의 확인은 지운다.
+- 목록에 없는 계정의 보고는 `requireAdmin`이 403으로 막는다(6장). 행위자 이름은 `requireAdmin`이 돌려준 표시
+  이름이다. 2026-10-20 PR 2 전까지는 `requireAdmin`이 로그인만 봐서 이 라우트가 목록을 직접 확인했다.
 - **행위자는 본문이 아니라 토큰에서** 정한다. 항목의 `owner_user_id`가 토큰의 계정과 다르면 그 항목은 버린다.
 - `level`·`reason_code`·`action`은 허용 목록에 있는 값만 받고, 아니면 400.
 - `message`는 300자, `detail`은 4KB에서 자른다(2.3). `occurred_at`이 미래거나 30일보다 오래됐으면
@@ -427,7 +425,8 @@ PostgREST 오류, Storage 오류)과 맥락(작업 키, 대상, 파일 크기·�
 
 PR 2(7장)의 내용이다.
 
-- **`requireAdmin`:** 토큰의 사용자를 확인한 뒤 `isListedAdmin(userId)`(4.3)로 `admin_users`에 있는지 조회한다.
+- **`requireAdmin`:** 토큰의 사용자를 확인한 뒤 `findListedAdmin(userId)`(`src/lib/server/adminUsers.ts`)로
+  `admin_users`에 있는지 조회하고, 있으면 표시 이름을 함께 돌려준다.
   없으면 403과 `forbidden`(warning) 로그(작업 키 `admin.access`)를 남긴다. 401은 지금처럼 기록하지 않는다(누군지
   모른다). 조회 자체가 실패하면 목록에 없다고 단정하지 않고 500으로 끝낸다. `/api/activity-logs`의 자체 확인은 이때
   지운다.
@@ -665,3 +664,5 @@ pgTAP 검사 항목:
   더했다.
 - 2026-10-20 — 11장 4의 확인 결과를 적고, 3.4 완료 조건에 `supabaseAdmin`의 테스트 파일을 더했다.
 - 2026-10-20 — 4.4에 입력값이 섞인 사유 문장을 기록하는 규칙을 더했다.
+- 2026-10-20 — 6장의 목록 조회를 실제 함수(`findListedAdmin`, 표시 이름까지 돌려줌)로 맞추고, 4.3의 `/api/activity-logs`
+  자체 확인을 PR 2 뒤 상태로 고쳤다.

@@ -351,8 +351,8 @@
   행위자는 `docs/specs/2026-10-19-activity-log-design.md` 3.4)으로 `app_settings` upsert(`key: "slope_bands"`,
   `updated_at` 갱신) → `{ ok, value }`. 다른 관리자 API 라우트와 같은 짝이다.
 - 검증 실패는 400과 첫 오류 문구. 폼이 같은 검증을 먼저 하므로 정상 경로에서는 나오지 않는다.
-- `requireAdmin`은 로그인만 보고 역할을 보지 않는다 — `docs/TODO_list/auth/require-admin-role-check.md`. 이 라우트도
-  같은 문턱이고, 그 TODO를 풀면 같이 좁혀진다.
+- 문턱은 다른 관리자 API와 같은 `requireAdmin`이다. 2026-10-20부터 로그인에 더해 `admin_users` 목록을 본다
+  (`docs/specs/2026-10-19-activity-log-design.md` 6장).
 - 피드백 메일 라우트(`/api/settings/feedback-emails`)는 자기 안의 `verifyAdmin`을 쓴다. 이 변경에서는 손대지 않는다.
 - `revalidatePath`는 부르지 않는다. 공개 지도는 클라이언트에서 설정을 읽는다.
 - 동시 편집 검사는 하지 않는다. 나중에 저장한 쪽이 이긴다.
