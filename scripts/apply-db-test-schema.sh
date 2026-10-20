@@ -31,7 +31,8 @@ while IFS= read -r file; do
   version="$(basename "$file" | cut -d_ -f1)"
   if [[ "$version" > "$baseline_version" ]]; then
     echo "Applying $(basename "$file")"
-    run_sql "$db_url" "$file"
+    # app.db_test: docs/specs/2026-10-19-activity-log-design.md 6장
+    PGOPTIONS="-c app.db_test=on" psql "$db_url" --quiet --no-psqlrc -v ON_ERROR_STOP=1 --file "$file"
     applied=$((applied + 1))
   fi
 done < <(find "$migrations_dir" -maxdepth 1 -name '*.sql' | sort)

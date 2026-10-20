@@ -3,8 +3,6 @@ import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
-const findListedAdmin = vi.fn();
-vi.mock("@/lib/server/adminUsers", () => ({ findListedAdmin }));
 let writeResult: unknown;
 const from = vi.fn(() => queryStub(writeResult));
 vi.mock("@/lib/server/supabaseAdmin", () => ({
@@ -52,8 +50,10 @@ describe("POST /api/activity-logs", () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(NOW);
-    requireAdmin.mockResolvedValue({ user: { id: "u1" } });
-    findListedAdmin.mockResolvedValue({ displayName: "관리자" });
+    requireAdmin.mockResolvedValue({
+      user: { id: "u1" },
+      admin: { displayName: "관리자" },
+    });
     writeResult = { error: null };
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
   });
@@ -71,8 +71,13 @@ describe("POST /api/activity-logs", () => {
     expect(from).not.toHaveBeenCalled();
   });
 
-  it("로그인했지만 admin_users에 없는 계정은 403", async () => {
-    findListedAdmin.mockResolvedValue(null);
+  it("로그인했지만 admin_users에 없는 계정은 requireAdmin의 403을 그대로 돌려준다", async () => {
+    requireAdmin.mockResolvedValue({
+      response: Response.json(
+        { error: "관리자 목록에 없는 계정이에요" },
+        { status: 403 },
+      ),
+    });
     const { POST } = await import("./route");
     expect((await POST(post({ reports: [report()] }))).status).toBe(403);
     expect(from).not.toHaveBeenCalled();

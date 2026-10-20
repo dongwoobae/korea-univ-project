@@ -122,6 +122,7 @@ describe("activityLabels", () => {
     expect(actionLabel("facility_photo.upload")).toBe("시설 사진 업로드");
     expect(actionLabel("building_facilities.update")).toBe("시설 수정");
     expect(actionLabel("settings.slope_bands")).toBe("경사도 범례 저장");
+    expect(actionLabel("admin.access")).toBe("관리자 기능 접근");
     expect(actionLabel("mystery.key")).toBe("mystery.key");
     expect(isActionKey("slope_segments.delete")).toBe(true);
     expect(isActionKey("toString")).toBe(false);

@@ -1,33 +1,12 @@
 import { NextResponse } from "next/server";
 import { acceptedOccurredAt, parseReports } from "@/lib/failureReport";
 import { requireAdmin } from "@/lib/requireAdmin";
-import { findListedAdmin } from "@/lib/server/adminUsers";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 /** 브라우저 실패 보고를 받는다. 설계: docs/specs/2026-10-19-activity-log-design.md 4.3 */
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
-
-  // requireAdmin이 목록을 확인하게 되면(PR 2, 설계 6장) 이 확인을 지운다.
-  let admin: { displayName: string } | null;
-  try {
-    admin = await findListedAdmin(auth.user.id);
-  } catch (error) {
-    console.error("[activity-logs] admin lookup failed", {
-      message: (error as { message?: unknown } | null)?.message,
-    });
-    return NextResponse.json(
-      { error: "관리자 목록을 확인하지 못했어요" },
-      { status: 500 },
-    );
-  }
-  if (!admin) {
-    return NextResponse.json(
-      { error: "관리자 목록에 없는 계정이에요" },
-      { status: 403 },
-    );
-  }
 
   const reports = parseReports(await request.json().catch(() => null));
   if (!reports) {
@@ -37,7 +16,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const actorLabel = admin.displayName;
+  const actorLabel = auth.admin.displayName;
   const now = Date.now();
   const rows = reports
     .filter((report) => report.owner_user_id === auth.user.id)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { NOT_ADMIN_MESSAGE, NOT_ADMIN_REASON } from "@/lib/adminAccess";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -20,7 +21,10 @@ export default function AdminLogin() {
       } = await supabase.auth.getUser();
       if (user) {
         router.push("/admin/dashboard");
+        return;
       }
+      const reason = new URLSearchParams(window.location.search).get("reason");
+      if (reason === NOT_ADMIN_REASON) setError(NOT_ADMIN_MESSAGE);
     }
     checkSession();
   }, [router]);

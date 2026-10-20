@@ -7,6 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import { flushQueue } from "@/lib/activityReport";
+import { NOT_ADMIN_REASON } from "@/lib/adminAccess";
 import { authedFetch } from "@/lib/authedFetch";
 import {
   FEEDBACK_EMAILS_FALLBACK,
@@ -46,6 +47,7 @@ export default function DashboardLayout({
 function DashboardShell({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [accessCheckFailed, setAccessCheckFailed] = useState(false);
   const [feedbackEmails, setFeedbackEmails] = useState(
     FEEDBACK_EMAILS_FALLBACK,
   );
@@ -91,15 +93,30 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user: authenticatedUser } }) => {
+    async function checkAccess() {
+      const {
+        data: { user: authenticatedUser },
+      } = await supabase.auth.getUser();
       if (!authenticatedUser) {
         router.push("/admin");
+        return;
+      }
+      // API의 requireAdmin과 같은 기준(admin_users)으로 화면 진입을 막는다. 설계 2026-10-19 6장
+      const { data: listed, error } = await supabase.rpc("is_admin");
+      if (error) {
+        setAccessCheckFailed(true);
+        return;
+      }
+      if (!listed) {
+        await supabase.auth.signOut();
+        router.push(`/admin?reason=${NOT_ADMIN_REASON}`);
         return;
       }
       setUser(authenticatedUser);
       setAuthChecked(true);
       void flushQueue();
-    });
+    }
+    void checkAccess();
   }, [router]);
 
   useEffect(() => {
@@ -147,6 +164,19 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     };
   }
 
+  if (accessCheckFailed)
+    return (
+      <div className="ku-admin-loading" role="alert">
+        <p>관리자 권한을 확인하지 못했어요.</p>
+        <button
+          className="ku-admin-button"
+          type="button"
+          onClick={() => window.location.reload()}
+        >
+          다시 시도
+        </button>
+      </div>
+    );
   if (!authChecked)
     return <div className="ku-admin-loading">불러오는 중...</div>;
 

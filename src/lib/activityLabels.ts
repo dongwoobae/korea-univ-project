@@ -67,6 +67,7 @@ export const FAILURE_ACTION_LABELS = {
   "settings.feedback_emails": "제보 알림 메일 저장",
   "settings.slope_bands": "경사도 범례 저장",
   "buildings.osm_sync": "OSM 동기화",
+  "admin.access": "관리자 기능 접근",
 } as const;
 export type NamedActionKey = keyof typeof FAILURE_ACTION_LABELS;
 export type ActionKey = NamedActionKey | TableActionKey;

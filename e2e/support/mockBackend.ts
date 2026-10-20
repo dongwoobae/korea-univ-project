@@ -37,6 +37,8 @@ import type { Page, Route } from "@playwright/test";
 type Row = Record<string, unknown>;
 export interface MockState {
   authenticated: boolean;
+  /** `rpc/is_admin`의 답 */
+  listedAdmin: boolean;
   /** 건물 사진·명소 사진 업로드(`/api/upload-building-photo`·`/api/upload-landmark-photo`)가 같이 센다 */
   photoUploadAttempts: number;
   /** 남은 횟수만큼 건물·명소 사진 업로드가 500으로 실패한다 */
@@ -228,6 +230,7 @@ function seedActivityLogs(): Row[] {
 function createState(authenticated: boolean): MockState {
   return {
     authenticated,
+    listedAdmin: true,
     photoUploadAttempts: 0,
     photoUploadFailuresRemaining: 0,
     translationFailuresRemaining: 0,
@@ -785,6 +788,8 @@ function nextId(name: string, state: MockState) {
 async function handleRest(route: Route, state: MockState, url: URL) {
   const name = url.pathname.split("/rest/v1/")[1];
   const method = route.request().method();
+  // 이 처리가 없으면 아래 공통 POST가 배열을 돌려주고, 레이아웃은 그것을 참으로 읽어 확인 없이 통과한다(설계 2026-10-19 8.4).
+  if (name === "rpc/is_admin") return json(route, state.listedAdmin);
   if (name === "rpc/get_admin_building_summary") {
     // 프로덕션 함수와 같은 모양: 건물 단위 숫자는 플래그 뷰를 세고, 시설 단위
     // 숫자(등록된 시설·번역 필요 시설)는 시설을 뷰에 조인해 센다.
@@ -1395,9 +1400,12 @@ export async function installMockBackend(
     currentLocation?: { latitude: number; longitude: number } | null;
     /** 위치 응답을 늦춘다(ms) */
     geolocationDelayMs?: number;
+    /** false면 `rpc/is_admin`이 거짓을 돌려준다 — 로그인은 되지만 관리자 목록에 없는 계정 */
+    listedAdmin?: boolean;
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
+  state.listedAdmin = options.listedAdmin ?? true;
   state.photoUploadFailuresRemaining = options.failPhotoUploads ?? 0;
   state.translationFailuresRemaining = options.failTranslations ?? 0;
   // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.

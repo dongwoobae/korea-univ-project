@@ -36,6 +36,24 @@ test.describe("관리자 인증과 공통 기능", () => {
     await expect(page).toHaveURL("http://127.0.0.1:3100/admin");
   });
 
+  test("관리자 목록에 없는 계정은 안내와 함께 로그인 화면으로 돌아간다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { listedAdmin: false });
+    await page.goto("/admin");
+    await page.locator('input[type="email"]').fill("admin@example.com");
+    await page.locator('input[type="password"]').fill("secret");
+    await page.getByRole("button", { name: "로그인" }).click();
+
+    await expect(page).toHaveURL(/\/admin\?reason=not-admin$/);
+    await expect(page.locator("#admin-login-error")).toHaveText(
+      "관리자 목록에 없는 계정입니다",
+    );
+    await expect(page.getByRole("link", { name: /관리자 콘솔/ })).toHaveCount(
+      0,
+    );
+  });
+
   test("피드백 수신 이메일을 변경한다", async ({ page }) => {
     await installMockBackend(page);
     await page.goto("/admin");
