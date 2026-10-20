@@ -7,6 +7,8 @@ vi.mock("@/lib/supabaseClient", () => ({
     auth: { getSession },
   },
 }));
+const reportApiOutcome = vi.fn();
+vi.mock("@/lib/activityReport", () => ({ reportApiOutcome }));
 
 describe("authedFetch", () => {
   beforeEach(() => {
@@ -60,5 +62,36 @@ describe("authedFetch", () => {
     expect(headers.get("Content-Type")).toBe("application/json");
     expect(headers.get("X-Request-ID")).toBe("abc");
     expect(headers.get("Authorization")).toBe("Bearer token-1");
+  });
+
+  it("응답을 관문 보고에 넘긴다", async () => {
+    getSession.mockResolvedValueOnce({ data: { session: null } });
+    const response = new Response("{}");
+    vi.mocked(global.fetch).mockResolvedValueOnce(response);
+    const { authedFetch } = await import("./authedFetch");
+
+    await authedFetch("/api/upload-facility-photo", { method: "POST" });
+
+    expect(reportApiOutcome).toHaveBeenCalledWith(
+      "/api/upload-facility-photo",
+      expect.objectContaining({ method: "POST" }),
+      response,
+    );
+  });
+
+  it("fetch가 던지면 관문 보고에 넘기고 다시 던진다", async () => {
+    getSession.mockResolvedValueOnce({ data: { session: null } });
+    const error = new TypeError("Failed to fetch");
+    vi.mocked(global.fetch).mockRejectedValueOnce(error);
+    const { authedFetch } = await import("./authedFetch");
+
+    await expect(
+      authedFetch("/api/upload-facility-photo", { method: "POST" }),
+    ).rejects.toBe(error);
+    expect(reportApiOutcome).toHaveBeenCalledWith(
+      "/api/upload-facility-photo",
+      expect.objectContaining({ method: "POST" }),
+      error,
+    );
   });
 });
