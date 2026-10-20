@@ -4,9 +4,8 @@ import { queryStub } from "@/test/queryStub";
 const requireAdmin = vi.fn();
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const from = vi.fn();
-vi.mock("@/lib/server/supabaseAdmin", () => ({
-  supabaseAdmin: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 const ID = "5b0c1d2e-0000-4000-8000-000000000001";
 const call = (body: unknown, id = ID) =>
@@ -37,6 +36,7 @@ describe("PATCH /api/admin-feedback/[id]", () => {
     const { PATCH } = await import("./route");
     const response = await PATCH(...call({ status: "resolved" }));
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({ status: "resolved" });
     expect(stub.calls).toContainEqual({
       method: "update",

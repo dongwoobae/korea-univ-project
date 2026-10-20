@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const db = supabaseAdmin();
+  const db = supabaseAdmin({ userId: auth.user.id });
   const [facilityResult, existingResult] = await Promise.all([
     db
       .from("building_facilities")

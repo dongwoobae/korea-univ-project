@@ -29,13 +29,27 @@ secrets**에 다음 두 값을 등록한다. Repository secrets에 등록해도 
 
 2. 생성된 `YYYYMMDDHHMMSS_lower_snake_case.sql` 파일에 변경 SQL을 작성한다.
 3. PR을 열면 CI가 기존 마이그레이션의 수정·삭제·이름 변경을 거부한다.
-4. `main` 반영 후 일반 CI가 모두 통과하면 새 마이그레이션만 운영 DB에
+4. `main` 반영 후 일반 CI와 `DB test`가 모두 통과하면 새 마이그레이션만 운영 DB에
    타임스탬프 순으로 적용한다.
 5. 적용 후 로컬 파일과 원격 `supabase_migrations.schema_migrations` 이력이
    모두 일치하는지 자동 검증한다.
 
 적용된 마이그레이션은 절대 수정하지 않는다. 변경이나 보완이 필요하면 더 늦은
 타임스탬프의 새 마이그레이션을 추가한다.
+
+## DB 검증 잡
+
+기초 테이블(`buildings` 등)은 마이그레이션 이전에 콘솔에서 만들어져, 빈 DB에서 `supabase/migrations`를 처음부터 실행할 수
+없다. 그래서 `DB test` 잡은 운영 스키마 스냅샷 위에 스냅샷보다 새 마이그레이션만 얹고 pgTAP을 돌린다. 절차의 근거는
+`docs/specs/2026-10-19-activity-log-design.md` 8.3이다.
+
+- 스냅샷: `supabase/baseline/schema.sql`. 첫 줄 `-- baseline-migration:`이 덤프 시점의 마지막 적용 버전이다.
+- 적용: `scripts/apply-db-test-schema.sh`.
+- 테스트: `supabase/tests/*.test.sql`. 파일마다 `begin; … rollback;`으로 감싼다.
+- 로컬에 Docker가 없으면 PR CI로 확인한다.
+
+스냅샷은 마이그레이션이 쌓여도 다시 뜨지 않는다. 운영 스키마가 마이그레이션 밖에서 바뀐 일이 생겼을 때만 **Schema snapshot**
+워크플로(Actions → Run workflow)로 다시 떠서 `supabase/baseline/schema.sql`을 바꾼다.
 
 ## 수동 재실행과 실패 대응
 

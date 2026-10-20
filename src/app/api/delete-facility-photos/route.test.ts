@@ -9,9 +9,8 @@ vi.mock("@/lib/server/requestPhotoStorage", () => ({ removeFolder }));
 
 let rowResult: { error: unknown } = { error: null };
 const from = vi.fn(() => queryStub(rowResult));
-vi.mock("@/lib/server/supabaseAdmin", () => ({
-  supabaseAdmin: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 const FACILITY = "5b0c1d2e-0000-4000-8000-0000000000f1";
 const post = (body: unknown) =>
@@ -48,6 +47,7 @@ describe("POST /api/delete-facility-photos", () => {
     const { POST } = await import("./route");
     const response = await POST(post({ facilityId: FACILITY }));
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({ ok: true });
     expect(removeFolder).toHaveBeenCalledWith("facility-photos", FACILITY);
     const query = from.mock.results[0].value as {

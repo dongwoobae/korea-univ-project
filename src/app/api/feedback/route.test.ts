@@ -3,9 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const insert = vi.fn();
 const from = vi.fn(() => ({ insert }));
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 function request(body: unknown) {
   return new Request("https://local.test/api/feedback", {
@@ -32,6 +31,7 @@ describe("feedback route", () => {
     );
 
     expect(response.status).toBe(201);
+    expect(supabaseAdmin).toHaveBeenCalledWith();
     expect(from).toHaveBeenCalledWith("feedback_submissions");
     expect(insert).toHaveBeenCalledWith({
       feedback_type: "facility",

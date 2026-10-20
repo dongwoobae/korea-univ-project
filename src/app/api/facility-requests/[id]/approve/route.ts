@@ -52,7 +52,7 @@ export async function POST(
     return badRequest("사진 선택이 올바르지 않아요");
   }
 
-  const db = supabaseAdmin();
+  const db = supabaseAdmin({ userId: auth.user.id });
   const { data: type, error: typeError } = await db
     .from("facility_types")
     .select("code")

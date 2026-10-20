@@ -1,17 +1,13 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { getR2KeyFromPublicUrl } from "@/lib/r2";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isFacilityVideoKey, isPosterKeyFor } from "@/lib/videoUpload";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
 
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
     const { facilityId, videoUrl, posterUrl } = await request.json();
@@ -48,7 +44,7 @@ export async function POST(request: Request) {
       posterValue = posterUrl;
     }
 
-    const { error } = await supabaseAdmin
+    const { error } = await db
       .from("building_facilities")
       .update({ video_url: videoUrl, video_poster_url: posterValue })
       .eq("id", facilityId);

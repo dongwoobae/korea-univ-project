@@ -181,7 +181,7 @@ supabaseAdmin(actor?: Actor) // actor가 있으면 global.headers에 x-actor-id 
 - `/api/buildings`(OSM 동기화)는 `{ system: "osm_sync" }`.
 - 읽기만 하는 라우트는 `actor` 없이 부른다. 그 클라이언트로 쓰기가 일어나면 `시스템(미상)`으로 남아 누락이 보인다.
 - 지금 여러 라우트가 `createClient(..., SUPABASE_SERVICE_ROLE_KEY)`를 각자 부른다. 모두 `supabaseAdmin()`으로
-  옮긴다. 완료 조건: `git grep -n SUPABASE_SERVICE_ROLE_KEY src/app src/lib`가 `supabaseAdmin.ts`만 가리킨다.
+  옮긴다. 완료 조건: `git grep -n SUPABASE_SERVICE_ROLE_KEY src/app src/lib`가 `supabaseAdmin.ts`와 그 테스트만 가리킨다.
 - `src/scripts/`의 스크립트는 Next 밖에서 돌아 각자 클라이언트를 만든다. service_role 키를 쓰는 스크립트는
   그 자리에서 `global.headers`에 `x-actor-system: script`를 싣는다. anon 키를 쓰는 `syncBuildings.ts`는
   헤더를 실어도 믿지 않으므로(3.3) 손대지 않는다.
@@ -631,6 +631,8 @@ pgTAP 검사 항목:
      `db start`는 새 DB에 `supabase/migrations` 전체를 적용하고, `supabase test db`는 `supabase/tests/`를 하위까지
      실행하며, `--schema public` 덤프에는 `CREATE EXTENSION`이 빠진다. 8.3을 고쳤다.
    - 덤프가 로컬 DB에 그대로 적용되는지는 PR 0 산출물로 PR 1 첫 단계에서 확인한다.
+   - **2026-10-19 확인.** 스냅샷은 `prelude.sql`도 다른 접속 계정(`BASELINE_DB_URL`)도 없이 그대로 적용됐고, 그 위에서
+     PR 1a의 두 마이그레이션과 pgTAP이 `DB test` 잡에서 통과했다.
 5. 운영 RLS 정책 목록(6장의 SQL) — PR 2 착수 전.
    - 2026-10-19, PR 0 스냅샷(run `39217944227`)으로 먼저 봤다. 쓰기 정책 17개가 모두 `authenticated`에게 `true`로
      열려 있다. `buildings`·`building_facilities`·`building_photos`·`colleges`·`facility_types`에 콘솔에서 만든
@@ -657,3 +659,4 @@ pgTAP 검사 항목:
   화면 진입 확인 실패의 처리를 정했다.
 - 2026-10-19 — 운영 스키마 스냅샷으로 11장 5를 먼저 확인하고, 6장의 쓰기 RLS 대상에 `colleges`·`facility_types`를
   더했다.
+- 2026-10-20 — 11장 4의 확인 결과를 적고, 3.4 완료 조건에 `supabaseAdmin`의 테스트 파일을 더했다.

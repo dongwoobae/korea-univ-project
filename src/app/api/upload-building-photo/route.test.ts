@@ -7,12 +7,11 @@ const getPublicUrl = vi.fn(() => ({
 const single = vi.fn();
 const insertQuery = { insert: vi.fn(), select: vi.fn(), single };
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: () => ({
-    storage: { from: () => ({ upload, getPublicUrl }) },
-    from: () => insertQuery,
-  }),
+const supabaseAdmin = vi.fn(() => ({
+  storage: { from: () => ({ upload, getPublicUrl }) },
+  from: () => insertQuery,
 }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 vi.mock("@/lib/requireAdmin", () => ({
   requireAdmin: vi.fn().mockResolvedValue({ user: { id: "admin" } }),
 }));
@@ -76,6 +75,7 @@ describe("upload building photo route", () => {
     const response = await POST(request(webpBytes()));
 
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(upload).toHaveBeenCalledWith(
       expect.stringMatching(/^1\/\d+-[a-z0-9]+\.webp$/),
       expect.anything(),

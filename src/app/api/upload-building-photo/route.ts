@@ -1,4 +1,3 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import {
   BUILDING_PHOTO_BUCKET,
@@ -6,16 +5,13 @@ import {
   buildingPhotoPath,
 } from "@/lib/buildingPhotos";
 import { requireAdmin } from "@/lib/requireAdmin";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isWebP } from "@/lib/webpBytes";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
 
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
     const formData = await request.formData();
@@ -42,7 +38,7 @@ export async function POST(request: Request) {
       Math.random().toString(36).slice(2),
     );
 
-    const { error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await db.storage
       .from(BUILDING_PHOTO_BUCKET)
       .upload(fileName, buffer, {
         contentType: "image/webp",
@@ -54,13 +50,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
-    const { data } = supabaseAdmin.storage
+    const { data } = db.storage
       .from(BUILDING_PHOTO_BUCKET)
       .getPublicUrl(fileName);
 
     const url = `${data.publicUrl}?t=${Date.now()}`;
 
-    const { data: photo, error: dbError } = await supabaseAdmin
+    const { data: photo, error: dbError } = await db
       .from("building_photos")
       .insert({ building_id: Number(buildingId), url })
       .select("id, url")

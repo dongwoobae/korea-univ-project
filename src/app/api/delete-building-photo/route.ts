@@ -1,19 +1,15 @@
-import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import {
   BUILDING_PHOTO_BUCKET,
   buildingPhotoPathFromUrl,
 } from "@/lib/buildingPhotos";
 import { requireAdmin } from "@/lib/requireAdmin";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
     const { photoId, url } = await request.json();
@@ -28,7 +24,7 @@ export async function POST(request: Request) {
     const storagePath = buildingPhotoPathFromUrl(url);
 
     if (storagePath) {
-      const { error: removeError } = await supabaseAdmin.storage
+      const { error: removeError } = await db.storage
         .from(BUILDING_PHOTO_BUCKET)
         .remove([storagePath]);
       if (removeError) {
@@ -40,7 +36,7 @@ export async function POST(request: Request) {
       }
     }
 
-    const { error: dbError } = await supabaseAdmin
+    const { error: dbError } = await db
       .from("building_photos")
       .delete()
       .eq("id", photoId);

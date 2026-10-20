@@ -24,7 +24,7 @@ export async function POST(
     );
   }
 
-  const { data, error } = await supabaseAdmin()
+  const { data, error } = await supabaseAdmin({ userId: auth.user.id })
     .from("facility_requests")
     .update({ status })
     .eq("id", id)

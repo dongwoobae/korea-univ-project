@@ -1,13 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { r2, R2_BUCKET, getPublicR2Url } from "@/lib/r2";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 const MAX_SIZE = 200 * 1024 * 1024; // 200MB
@@ -15,13 +10,18 @@ const MAX_SIZE = 200 * 1024 * 1024; // 200MB
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
     const formData = await request.formData();
     const file = formData.get("file");
     const facilityId = formData.get("facilityId");
 
-    if (!(file instanceof File) || !facilityId) {
+    if (
+      !(file instanceof File) ||
+      typeof facilityId !== "string" ||
+      !facilityId
+    ) {
       return NextResponse.json(
         { error: "파일 또는 시설 ID 누락" },
         { status: 400 },
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
 
     const videoUrl = getPublicR2Url(key);
 
-    const { error: dbError } = await supabaseAdmin
+    const { error: dbError } = await db
       .from("building_facilities")
       .update({ video_url: videoUrl })
       .eq("id", facilityId);

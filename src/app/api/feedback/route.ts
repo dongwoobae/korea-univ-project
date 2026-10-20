@@ -1,12 +1,8 @@
-import { createClient } from "@supabase/supabase-js";
 import { parseFeedbackInput } from "@/lib/feedback";
-
-const admin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 export async function POST(request: Request) {
+  const db = supabaseAdmin();
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > 10_000) {
     return Response.json({ error: "요청이 너무 큽니다." }, { status: 413 });
@@ -32,7 +28,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { error } = await admin.from("feedback_submissions").insert({
+  const { error } = await db.from("feedback_submissions").insert({
     feedback_type: input.type,
     content: input.content,
     page_url: input.pageUrl,

@@ -1,19 +1,15 @@
-import { createClient } from "@supabase/supabase-js";
 import { DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { r2, R2_BUCKET, getR2KeyFromPublicUrl } from "@/lib/r2";
+import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { isFacilityVideoKey } from "@/lib/videoUpload";
-
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
 
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
     const { facilityId, videoUrl } = await request.json();
@@ -33,7 +29,7 @@ export async function POST(request: Request) {
     // 지울 키는 **DB에 저장된 값**에서 뽑는다. 클라이언트가 준 URL을 그대로
     // 키로 쓰면 남의 객체를 가리킬 수 있다. 클라이언트 값은 아래 update의
     // 조건으로만 써서 "그 사이 바뀌었는지"를 보는 용도로 남긴다.
-    const { data: current, error: readError } = await supabaseAdmin
+    const { data: current, error: readError } = await db
       .from("building_facilities")
       .select("video_url, video_poster_url")
       .eq("id", facilityId)
@@ -68,7 +64,7 @@ export async function POST(request: Request) {
         ? posterKey
         : null;
 
-    const { data: updated, error: dbError } = await supabaseAdmin
+    const { data: updated, error: dbError } = await db
       .from("building_facilities")
       .update({ video_url: null, video_poster_url: null })
       .eq("id", facilityId)
@@ -91,7 +87,7 @@ export async function POST(request: Request) {
     try {
       await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
     } catch (storageError) {
-      await supabaseAdmin
+      await db
         .from("building_facilities")
         .update({
           video_url: videoUrl,

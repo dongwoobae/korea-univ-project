@@ -121,12 +121,40 @@ jobs:
           path: test-results/
           retention-days: 7
 
+  db-test:
+    name: DB test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      # 옮기는 이유: docs/specs/2026-10-19-activity-log-design.md 8.3의 3
+      - name: Start local database without repository migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          mv supabase/migrations "$RUNNER_TEMP/migrations"
+          supabase db start
+
+      - name: Apply baseline snapshot and newer migrations
+        shell: bash
+        run: bash scripts/apply-db-test-schema.sh "$RUNNER_TEMP/migrations"
+
+      - name: Run pgTAP tests
+        run: supabase test db
+
   migrate:
     name: Apply Supabase migrations
     if: >-
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
       needs.migration-safety.outputs.has_changes == 'true'
-    needs: [migration-safety, lint, format, typecheck, test, e2e]
+    needs: [migration-safety, lint, format, typecheck, test, e2e, db-test]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production

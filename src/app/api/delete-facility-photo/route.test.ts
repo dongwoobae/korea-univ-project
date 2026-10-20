@@ -17,9 +17,8 @@ const queryAt = (index: number) =>
   from.mock.results[index].value as {
     calls: { method: string; args: unknown[] }[];
   };
-vi.mock("@/lib/server/supabaseAdmin", () => ({
-  supabaseAdmin: () => ({ from }),
-}));
+const supabaseAdmin = vi.fn(() => ({ from }));
+vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 const post = (photoId: unknown = PHOTO_ID) =>
   new Request("https://local.test/api/delete-facility-photo", {
@@ -45,6 +44,7 @@ describe("POST /api/delete-facility-photo", () => {
     const { POST } = await import("./route");
     const response = await POST(post());
     expect(response.status).toBe(200);
+    expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({ ok: true });
     expect(removeObject).toHaveBeenCalledWith("facility-photos", "f1/x.webp");
     expect(from).toHaveBeenCalledTimes(2);
