@@ -50,6 +50,30 @@ test.describe("관리자 셸", () => {
     await expect(page.locator(".ku-admin-email")).toBeVisible();
   });
 
+  test("한글 글꼴이 오기 전 대체 글꼴로 그려져도 태블릿 헤더가 넘치지 않는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    // Pretendard는 CDN에서 글자 묶음별로 늦게 온다. 목의 전체 가로채기보다 늦게 등록해야 이 라우트가 먼저 걸린다
+    await page.route("**/*", (route) =>
+      new URL(route.request().url()).hostname === "cdn.jsdelivr.net"
+        ? route.abort()
+        : route.fallback(),
+    );
+    await page.goto("/admin/dashboard/buildings");
+    const header = page.locator(".ku-admin-header");
+    const logout = page.getByRole("button", { name: "로그아웃", exact: true });
+
+    for (const width of [768, 800, 899]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(logout, `${width}px`).toBeVisible();
+      const overflow = await header.evaluate(
+        (element) => element.scrollWidth - element.clientWidth,
+      );
+      expect(overflow, `${width}px 헤더 넘침`).toBeLessThanOrEqual(0);
+    }
+  });
+
   test("건물 화면 카드 버튼은 모서리가 각지다", async ({ page }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/buildings");
