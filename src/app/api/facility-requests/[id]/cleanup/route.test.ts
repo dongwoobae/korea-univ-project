@@ -4,6 +4,8 @@ import { queryStub } from "@/test/queryStub";
 const ID = "5b0c1d2e-0000-4000-8000-000000000001";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const cleanupRequestPhotos = vi.fn();
 vi.mock("@/lib/server/requestPhotoStorage", () => ({ cleanupRequestPhotos }));
@@ -62,6 +64,7 @@ describe("POST .../cleanup", () => {
     const { POST } = await import("./route");
     const ok = await POST(...call());
     expect(ok.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(await ok.json()).toEqual({ ok: true });
     expect(callsOf(0)).toContainEqual({ method: "eq", args: ["id", ID] });
     expect(cleanupRequestPhotos).toHaveBeenCalledWith(ID);
@@ -100,6 +103,14 @@ describe("POST .../cleanup", () => {
     const { POST } = await import("./route");
     const response = await POST(...call());
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_request.cleanup",
+        reason: "storage_error",
+        status: 500,
+        followUp: true,
+      }),
+    );
     expect(await response.json()).toEqual({ error: "사진을 지우지 못했어요" });
   });
 });

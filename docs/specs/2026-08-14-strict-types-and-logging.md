@@ -18,13 +18,17 @@
 
 로그 싱크(집계·검색·보존)가 없어 stdout이 유일한 출력이다. 이 조건에서:
 
+2026-10-20 — 관리자 화면의 실패는 DB 감사 로그(`activity_logs`)에도 남는다(`docs/specs/2026-10-19-activity-log-design.md`
+4장). 아래 stdout 규칙은 그대로다. DB가 죽었을 때는 `console.error`가 유일한 기록이다.
+
 - **성공 로그를 두지 않는다.** 응답과 액세스 로그가 이미 말한다.
 - **진입 로그를 두지 않는다.** 실패 경로의 `console.error`가 같은 태그로 식별자를 다시 남긴다.
 - `console.error`는 태그(`[route-name]`)를 앞에 붙인다.
 
 `eslint.config.mjs`의 `no-console`(error, `warn`·`error` 허용)이 이 규칙을 강제한다. `src/scripts/**`는 stdout이 UI라 예외다.
 
-로깅 유틸을 만들지 않은 이유: 호출부가 소수이고 싱크가 없어 `console.error` 래퍼 한 겹에 그친다.
+로깅 유틸을 만들지 않은 이유(2026-08-14): 호출부가 소수이고 싱크가 없어 `console.error` 래퍼 한 겹에 그쳤다. 2026-10-20에 DB
+기록이 생겨 `logFailure()`·`routeFailures()`(`src/lib/server/`)를 두었다. 이것들은 `console.error`를 대신하지 않는다.
 
 ### 3. 폼 파일 필드는 `instanceof File`로 가른다
 

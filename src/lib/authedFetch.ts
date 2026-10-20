@@ -1,5 +1,7 @@
+import { reportApiOutcome } from "@/lib/activityReport";
 import { supabase } from "@/lib/supabaseClient";
 
+/** 관리자 API 호출. 서버 코드에 닿지 못한 실패는 감사 로그로 보고한다(설계 2026-10-19 4.3). */
 export async function authedFetch(
   input: RequestInfo | URL,
   options: RequestInit = {},
@@ -11,8 +13,13 @@ export async function authedFetch(
     headers.set("Authorization", `Bearer ${data.session.access_token}`);
   }
 
-  return fetch(input, {
-    ...options,
-    headers,
-  });
+  const init = { ...options, headers };
+  try {
+    const response = await fetch(input, init);
+    reportApiOutcome(input, init, response);
+    return response;
+  } catch (error) {
+    reportApiOutcome(input, init, error);
+    throw error;
+  }
 }

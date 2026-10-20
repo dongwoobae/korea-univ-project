@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { r2, R2_BUCKET, getPublicR2Url, getR2KeyFromPublicUrl } from "@/lib/r2";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
@@ -20,6 +21,11 @@ function extensionFor(contentType: string): string {
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const failures = routeFailures({
+    route: "/api/upload-landmark-photo",
+    action: "landmark_photo.upload",
+    actor: { kind: "admin", user: auth.user },
+  });
   const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
@@ -28,14 +34,12 @@ export async function POST(request: Request) {
     const landmarkId = formData.get("landmarkId");
 
     if (!(file instanceof File) || typeof landmarkId !== "string") {
-      return NextResponse.json(
-        { error: "파일 또는 명소 ID 누락" },
-        { status: 400 },
-      );
+      return failures.respond(400, "파일 또는 명소 ID 누락", "invalid_input");
     }
 
+    failures.setTarget({ table: "landmarks", id: landmarkId });
     if (!UUID_RE.test(landmarkId)) {
-      return NextResponse.json({ error: "잘못된 명소 ID" }, { status: 400 });
+      return failures.respond(400, "잘못된 명소 ID", "invalid_input");
     }
 
     const { data: existing, error: fetchError } = await db
@@ -46,30 +50,33 @@ export async function POST(request: Request) {
 
     if (fetchError) {
       console.error("[upload-landmark-photo] fetch error:", fetchError);
-      return NextResponse.json({ error: fetchError.message }, { status: 500 });
+      return failures.respond(500, fetchError.message, "server_error", {
+        error: fetchError,
+      });
     }
 
     if (!existing) {
-      return NextResponse.json(
-        { error: "명소를 찾을 수 없어요" },
-        { status: 404 },
-      );
+      return failures.respond(404, "명소를 찾을 수 없어요", "not_found");
     }
 
     const previousPhotoUrl = existing.photo_url;
 
     if (!ALLOWED_TYPES.includes(file.type)) {
-      return NextResponse.json(
-        { error: "jpg, png, webp, gif 형식만 업로드 가능해요" },
-        { status: 400 },
+      return failures.respond(
+        400,
+        "jpg, png, webp, gif 형식만 업로드 가능해요",
+        "unsupported_type",
+        { fileType: file.type },
       );
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     if (buffer.length > MAX_SIZE) {
-      return NextResponse.json(
-        { error: "사진 크기는 5MB 이하여야 해요" },
-        { status: 400 },
+      return failures.respond(
+        400,
+        "사진 크기는 5MB 이하여야 해요",
+        "payload_too_large",
+        { fileSize: buffer.length, limit: MAX_SIZE },
       );
     }
 
@@ -77,14 +84,21 @@ export async function POST(request: Request) {
       file.type,
     )}`;
 
-    await r2.send(
-      new PutObjectCommand({
-        Bucket: R2_BUCKET,
-        Key: key,
-        Body: buffer,
-        ContentType: file.type,
-      }),
-    );
+    try {
+      await r2.send(
+        new PutObjectCommand({
+          Bucket: R2_BUCKET,
+          Key: key,
+          Body: buffer,
+          ContentType: file.type,
+        }),
+      );
+    } catch (storageError) {
+      console.error("[upload-landmark-photo] unexpected error:", storageError);
+      return failures.respond(500, "서버 오류", "storage_error", {
+        error: storageError,
+      });
+    }
 
     const photoUrl = getPublicR2Url(key);
     const { data: updated, error: dbError } = await db
@@ -95,7 +109,9 @@ export async function POST(request: Request) {
 
     if (dbError) {
       console.error("[upload-landmark-photo] db error:", dbError);
-      return NextResponse.json({ error: dbError.message }, { status: 500 });
+      return failures.respond(500, dbError.message, "server_error", {
+        error: dbError,
+      });
     }
 
     if (!updated || updated.length === 0) {
@@ -106,11 +122,9 @@ export async function POST(request: Request) {
           "[upload-landmark-photo] orphan cleanup failed:",
           cleanupErr,
         );
+        failures.record("storage_error", { followUp: true, error: cleanupErr });
       }
-      return NextResponse.json(
-        { error: "명소를 찾을 수 없어요" },
-        { status: 404 },
-      );
+      return failures.respond(404, "명소를 찾을 수 없어요", "not_found");
     }
 
     if (previousPhotoUrl && previousPhotoUrl !== photoUrl) {
@@ -125,6 +139,10 @@ export async function POST(request: Request) {
             "[upload-landmark-photo] old photo cleanup failed:",
             cleanupErr,
           );
+          failures.record("storage_error", {
+            followUp: true,
+            error: cleanupErr,
+          });
         }
       }
     }
@@ -134,6 +152,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ photoUrl });
   } catch (err) {
     console.error("[upload-landmark-photo] unexpected error:", err);
-    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    return failures.respond(500, "서버 오류", "server_error", { error: err });
   }
 }

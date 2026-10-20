@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -25,9 +26,15 @@ export async function POST(request: Request) {
   const user = await verifyAdmin(request);
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const db = supabaseAdmin({ userId: user.id });
+  const failures = routeFailures({
+    route: "/api/settings/feedback-emails",
+    action: "settings.feedback_emails",
+    actor: { kind: "admin", user },
+  });
+  failures.setTarget({ table: "app_settings", id: "feedback_emails" });
 
   const body = await request.json().catch(() => null);
-  if (!body) return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  if (!body) return failures.respond(400, "Invalid JSON", "invalid_input");
 
   const to = body.to?.trim();
   const subject = body.subject?.trim();
@@ -35,13 +42,15 @@ export async function POST(request: Request) {
   const cc = ccRaw.map((s: unknown) => (s as string)?.trim()).filter(Boolean);
 
   if (!isEmail(to))
-    return Response.json({ error: "수신 이메일 형식 오류" }, { status: 400 });
-  if (!subject) return Response.json({ error: "제목 필수" }, { status: 400 });
+    return failures.respond(400, "수신 이메일 형식 오류", "invalid_input");
+  if (!subject) return failures.respond(400, "제목 필수", "invalid_input");
   for (const addr of cc) {
     if (!isEmail(addr))
-      return Response.json(
-        { error: `참조 이메일 형식 오류: ${addr}` },
-        { status: 400 },
+      return failures.respond(
+        400,
+        `참조 이메일 형식 오류: ${addr}`,
+        "invalid_input",
+        { reasonText: "참조 이메일 형식 오류" },
       );
   }
 
@@ -54,7 +63,8 @@ export async function POST(request: Request) {
       { onConflict: "key" },
     );
 
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error)
+    return failures.respond(500, error.message, "server_error", { error });
 
   revalidatePath("/");
   return Response.json({ ok: true, value });

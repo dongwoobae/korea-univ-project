@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const from = vi.fn();
 const supabaseAdmin = vi.fn(() => ({ from }));
@@ -36,6 +38,7 @@ describe("PATCH /api/admin-feedback/[id]", () => {
     const { PATCH } = await import("./route");
     const response = await PATCH(...call({ status: "resolved" }));
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({ status: "resolved" });
     expect(stub.calls).toContainEqual({
@@ -92,6 +95,13 @@ describe("PATCH /api/admin-feedback/[id]", () => {
     const { PATCH } = await import("./route");
     const response = await PATCH(...call({ status: "new" }));
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "feedback.status",
+        reason: "server_error",
+        status: 500,
+      }),
+    );
     expect(await response.json()).toEqual({ error: "상태를 바꾸지 못했어요" });
     expect(spy).toHaveBeenCalled();
   });

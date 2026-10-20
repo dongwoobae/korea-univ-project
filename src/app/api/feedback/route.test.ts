@@ -4,6 +4,8 @@ const insert = vi.fn();
 const from = vi.fn(() => ({ insert }));
 
 const supabaseAdmin = vi.fn(() => ({ from }));
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 
 function request(body: unknown) {
@@ -31,6 +33,7 @@ describe("feedback route", () => {
     );
 
     expect(response.status).toBe(201);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith();
     expect(from).toHaveBeenCalledWith("feedback_submissions");
     expect(insert).toHaveBeenCalledWith({
@@ -45,6 +48,7 @@ describe("feedback route", () => {
     const response = await POST(request({ type: "error", content: "짧" }));
 
     expect(response.status).toBe(400);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(insert).not.toHaveBeenCalled();
   });
 
@@ -73,6 +77,14 @@ describe("feedback route", () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "feedback.submit",
+        actor: { kind: "visitor" },
+        reason: "server_error",
+        status: 500,
+      }),
+    );
     expect(body.error).toBe("피드백을 저장하지 못했습니다.");
     consoleError.mockRestore();
   });

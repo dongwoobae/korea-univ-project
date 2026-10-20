@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/requireAdmin";
 import { r2, R2_BUCKET, getR2KeyFromPublicUrl } from "@/lib/r2";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 
 const UUID_RE =
@@ -11,28 +12,35 @@ const UUID_RE =
 export async function POST(request: Request) {
   const auth = await requireAdmin(request);
   if (auth.response) return auth.response;
+  const failures = routeFailures({
+    route: "/api/delete-landmark-photo",
+    action: "landmark_photo.delete",
+    actor: { kind: "admin", user: auth.user },
+  });
   const db = supabaseAdmin({ userId: auth.user.id });
 
   try {
     const { landmarkId, photoUrl } = await request.json();
 
     if (!landmarkId || !photoUrl) {
-      return NextResponse.json(
-        { error: "landmarkId 또는 photoUrl 누락" },
-        { status: 400 },
+      return failures.respond(
+        400,
+        "landmarkId 또는 photoUrl 누락",
+        "invalid_input",
       );
     }
+    failures.setTarget({ table: "landmarks", id: String(landmarkId) });
 
     if (typeof landmarkId !== "string" || !UUID_RE.test(landmarkId)) {
-      return NextResponse.json({ error: "잘못된 명소 ID" }, { status: 400 });
+      return failures.respond(400, "잘못된 명소 ID", "invalid_input");
     }
 
     if (typeof photoUrl !== "string") {
-      return NextResponse.json({ error: "잘못된 사진 URL" }, { status: 400 });
+      return failures.respond(400, "잘못된 사진 URL", "invalid_input");
     }
     const key = getR2KeyFromPublicUrl(photoUrl);
     if (!key) {
-      return NextResponse.json({ error: "잘못된 사진 URL" }, { status: 400 });
+      return failures.respond(400, "잘못된 사진 URL", "invalid_input");
     }
     const { data: updated, error: dbError } = await db
       .from("landmarks")
@@ -44,13 +52,16 @@ export async function POST(request: Request) {
 
     if (dbError) {
       console.error("[delete-landmark-photo] db error:", dbError);
-      return NextResponse.json({ error: dbError.message }, { status: 500 });
+      return failures.respond(500, dbError.message, "server_error", {
+        error: dbError,
+      });
     }
 
     if (!updated) {
-      return NextResponse.json(
-        { error: "사진이 이미 변경되었어요. 새로고침 후 다시 시도해주세요" },
-        { status: 409 },
+      return failures.respond(
+        409,
+        "사진이 이미 변경되었어요. 새로고침 후 다시 시도해주세요",
+        "conflict",
       );
     }
 
@@ -62,7 +73,10 @@ export async function POST(request: Request) {
         .update({ photo_url: photoUrl })
         .eq("id", landmarkId)
         .is("photo_url", null);
-      throw storageError;
+      console.error("[delete-landmark-photo] unexpected error:", storageError);
+      return failures.respond(500, "서버 오류", "storage_error", {
+        error: storageError,
+      });
     }
 
     revalidatePath("/api/landmarks");
@@ -70,6 +84,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[delete-landmark-photo] unexpected error:", err);
-    return NextResponse.json({ error: "서버 오류" }, { status: 500 });
+    return failures.respond(500, "서버 오류", "server_error", { error: err });
   }
 }

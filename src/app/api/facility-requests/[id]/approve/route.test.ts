@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 
 const copyToFacility = vi.fn();
@@ -84,6 +86,7 @@ describe("POST .../approve", () => {
     const { POST } = await import("./route");
     const response = await POST(...call({ fields, photoIds: ["p2"] }));
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     const { facilityId, cleanupFailed } = await response.json();
     expect(facilityId).toMatch(/^[0-9a-f-]{36}$/);
@@ -141,6 +144,13 @@ describe("POST .../approve", () => {
     const { POST } = await import("./route");
     const response = await POST(...call({ fields, photoIds: ["p1", "p2"] }));
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_request.approve",
+        reason: "storage_error",
+        status: 500,
+      }),
+    );
     expect(await response.json()).toEqual({ error: "사진을 옮기지 못했어요" });
     expect(rpc).not.toHaveBeenCalled();
     expect(removeFolder).toHaveBeenCalledWith(
@@ -205,6 +215,13 @@ describe("POST .../approve", () => {
     const { POST } = await import("./route");
     const body = await (await POST(...call({ fields, photoIds: [] }))).json();
     expect(body.cleanupFailed).toBe(true);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_request.cleanup",
+        reason: "storage_error",
+        followUp: true,
+      }),
+    );
   });
 
   it("필드가 잘못됐거나 없는 유형이면 400", async () => {

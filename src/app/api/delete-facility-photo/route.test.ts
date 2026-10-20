@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const removeObject = vi.fn();
 vi.mock("@/lib/server/requestPhotoStorage", () => ({ removeObject }));
@@ -44,6 +46,7 @@ describe("POST /api/delete-facility-photo", () => {
     const { POST } = await import("./route");
     const response = await POST(post());
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({ ok: true });
     expect(removeObject).toHaveBeenCalledWith("facility-photos", "f1/x.webp");
@@ -64,6 +67,16 @@ describe("POST /api/delete-facility-photo", () => {
     const { POST } = await import("./route");
     const response = await POST(post());
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        route: "/api/delete-facility-photo",
+        action: "facility_photo.delete",
+        actor: { kind: "admin", user: { id: "admin" } },
+        target: { table: "facility_photos", id: PHOTO_ID },
+        reason: "storage_error",
+        status: 500,
+      }),
+    );
     expect(await response.json()).toEqual({
       error: "사진 파일을 지우지 못했어요",
     });
@@ -115,6 +128,13 @@ describe("POST /api/delete-facility-photo", () => {
     const { POST } = await import("./route");
     const response = await POST(post(null));
     expect(response.status).toBe(400);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reason: "invalid_input",
+        status: 400,
+        reasonText: "사진 ID 누락",
+      }),
+    );
     expect(await response.json()).toEqual({ error: "사진 ID 누락" });
     expect(from).not.toHaveBeenCalled();
   });

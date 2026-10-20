@@ -59,6 +59,9 @@ export interface MockState {
   facilityPhotos: Row[];
   facilityRequests: Row[];
   facilityRequestPhotos: Row[];
+  activityLogs: Row[];
+  /** 브라우저가 `POST /api/activity-logs`로 보낸 실패 보고 */
+  activityReports: Row[];
 }
 
 // ── 픽스처(고정 데이터) ───────────────────────────────────────────────
@@ -129,6 +132,96 @@ export function stationBuildingRow(
     last_updated: "2026-07-22",
     colleges: null,
   };
+}
+
+/** 로그 화면 시나리오용 행. 칸 이름은 `activity_logs`와 같다. */
+export function activityLogRow(overrides: Row): Row {
+  return {
+    occurred_at: "2026-10-19T05:00:00Z",
+    recorded_at: overrides.occurred_at ?? "2026-10-19T05:00:00Z",
+    level: "info",
+    kind: "change",
+    actor_kind: "admin",
+    actor_id: "admin-user",
+    actor_label: "성웅",
+    action: "update",
+    target_table: null,
+    target_id: null,
+    target_label: null,
+    changes: null,
+    reason_code: null,
+    message: null,
+    detail: null,
+    client_event_id: null,
+    ...overrides,
+  };
+}
+
+function seedActivityLogs(): Row[] {
+  return [
+    activityLogRow({
+      id: 5,
+      occurred_at: "2026-10-19T05:02:00Z",
+      target_table: "building_facilities",
+      target_id: "f-ramp",
+      target_label: "하나스퀘어 · 1층 경사로",
+      changes: {
+        is_installed: [true, false],
+        floor_info: ["1층", "2층"],
+        description: [null, "정문 옆"],
+      },
+    }),
+    activityLogRow({
+      id: 4,
+      occurred_at: "2026-10-19T05:01:00Z",
+      level: "warning",
+      kind: "failure",
+      actor_kind: "system",
+      actor_id: null,
+      actor_label: "자동 번역",
+      action: "facility.translate",
+      target_table: "building_facilities",
+      target_label: "하나스퀘어 · 1층 경사로",
+      reason_code: "translation_error",
+      message: "자동 번역 실패: 번역 API 오류: 응답 없음",
+      detail: { status: 502, error_message: "응답 없음" },
+    }),
+    activityLogRow({
+      id: 3,
+      occurred_at: "2026-10-19T04:40:00Z",
+      recorded_at: "2026-10-19T04:52:00Z",
+      level: "error",
+      kind: "failure",
+      actor_label: "김지원 선임연구원",
+      action: "facility_photo.upload",
+      target_table: "building_facilities",
+      target_label: "중앙광장 · 승강기",
+      reason_code: "payload_too_large",
+      message: "시설 사진 업로드 실패: 파일 5.2MB가 서버 한도 4.5MB를 넘음",
+      detail: {
+        status: 413,
+        code: "FUNCTION_PAYLOAD_TOO_LARGE",
+        file_size: 5452595,
+        limit: 4718592,
+        route: "/api/upload-facility-photo",
+      },
+    }),
+    activityLogRow({
+      id: 2,
+      occurred_at: "2026-10-18T09:00:00Z",
+      action: "delete",
+      target_table: "landmarks",
+      target_label: "분수대",
+      changes: { name: "분수대", lat: 37.5895, lng: 127.0324, icon: "⛲" },
+    }),
+    activityLogRow({
+      id: 1,
+      occurred_at: "2025-12-01T03:00:00Z",
+      target_table: "buildings",
+      target_label: "옛 학생회관",
+      changes: { is_deleted: [false, true] },
+    }),
+  ];
 }
 
 // 테스트 1건의 초기 상태 생성(건물/시설/명소/경사/사진). 이후 in-memory로 변형됨.
@@ -345,6 +438,8 @@ function createState(authenticated: boolean): MockState {
     facilityPhotos: [],
     facilityRequests: [],
     facilityRequestPhotos: [],
+    activityLogs: seedActivityLogs(),
+    activityReports: [],
     photos: [
       {
         id: 1,
@@ -454,9 +549,37 @@ function table(state: MockState, name: string): Row[] {
   return [];
 }
 
+/**
+ * `activity_logs` 조회 흉내: `level=eq.`와 로그 화면의 `(occurred_at, id)` 커서(`or=`)만 읽고
+ * 최신순으로 돌려준다. 쪽 나누기(`limit`)는 공통 GET 처리가 한다.
+ */
+function activityLogRows(state: MockState, url: URL): Row[] {
+  let result = [...state.activityLogs];
+  const level = url.searchParams.get("level");
+  if (level?.startsWith("eq."))
+    result = result.filter((row) => row.level === level.slice(3));
+  const cursor = url.searchParams
+    .get("or")
+    ?.match(/occurred_at\.lt\."([^"]+)".*id\.lt\.(\d+)/);
+  if (cursor) {
+    const at = Date.parse(cursor[1]);
+    const id = Number(cursor[2]);
+    result = result.filter((row) => {
+      const time = Date.parse(String(row.occurred_at));
+      return time < at || (time === at && Number(row.id) < id);
+    });
+  }
+  return result.sort(
+    (a, b) =>
+      Date.parse(String(b.occurred_at)) - Date.parse(String(a.occurred_at)) ||
+      Number(b.id) - Number(a.id),
+  );
+}
+
 // 테이블 조회: 정적 테이블(facility_types/colleges)은 즉시, app_settings는 `?key=eq.`로 거른 행을 반환,
 // 나머지는 id·building_id 필터를 PostgREST처럼 적용해 걸러낸다.
 function rows(state: MockState, name: string, url: URL): Row[] {
+  if (name === "activity_logs") return activityLogRows(state, url);
   if (name === "facility_types") return types;
   if (name === "colleges") return colleges;
   if (name === "app_settings") {
@@ -814,6 +937,11 @@ const FEEDBACK_FILTER: Record<string, string[] | null> = {
 // 업로드·설정)을 상태 기반으로 응답. 매칭 안 되는 /api/*는 { ok: true }.
 async function handleApi(route: Route, state: MockState, url: URL) {
   const path = url.pathname;
+  if (path === "/api/activity-logs") {
+    const body = (route.request().postDataJSON() ?? {}) as { reports?: Row[] };
+    state.activityReports.push(...(body.reports ?? []));
+    return json(route, { accepted: body.reports?.length ?? 0 });
+  }
   if (path === "/api/buildings") {
     return json(route, {
       type: "FeatureCollection",

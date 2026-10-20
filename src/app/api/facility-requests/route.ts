@@ -14,6 +14,7 @@ import {
   clientIp,
   signUploadToken,
 } from "@/lib/server/requestSecurity";
+import { routeFailures } from "@/lib/server/routeFailures";
 import { supabaseAdmin } from "@/lib/server/supabaseAdmin";
 import { verifyTurnstile } from "@/lib/server/turnstile";
 
@@ -24,15 +25,26 @@ function fail(error: string, status: number) {
 }
 
 export async function POST(request: Request) {
+  const failures = routeFailures({
+    route: "/api/facility-requests",
+    action: "facility_request.submit",
+    actor: { kind: "visitor" },
+  });
+  // 공개 라우트라 5xx만 기록한다(설계 4.6).
+  const failed = (error: string, status: number, cause?: unknown) => {
+    if (status >= 500)
+      failures.record("server_error", { status, error: cause });
+    return fail(error, status);
+  };
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) {
-    return fail("invalid", 413);
+    return failed("invalid", 413);
   }
   const body = (await request.json().catch(() => null)) as Record<
     string,
     unknown
   > | null;
   if (!body || typeof body !== "object" || Array.isArray(body)) {
-    return fail("invalid", 400);
+    return failed("invalid", 400);
   }
 
   // 봇이 걸렸다는 걸 알아채지 못하게 성공으로 답한다(피드백 라우트와 같다).
@@ -42,13 +54,13 @@ export async function POST(request: Request) {
 
   const hashSecret = process.env.FACILITY_REQUEST_HASH_SECRET;
   const turnstileSecret = process.env.TURNSTILE_SECRET_KEY;
-  if (!hashSecret || !turnstileSecret) return fail("unavailable", 503);
+  if (!hashSecret || !turnstileSecret) return failed("unavailable", 503);
 
   const ip = clientIp(request);
   const token =
     typeof body.turnstileToken === "string" ? body.turnstileToken : "";
   if (!(await verifyTurnstile(token, ip, turnstileSecret)))
-    return fail("turnstile", 400);
+    return failed("turnstile", 400);
 
   const buildingId = body.buildingId;
   const fields = parseFacilityFields(body.fields);
@@ -58,7 +70,7 @@ export async function POST(request: Request) {
     buildingId <= 0 ||
     !fields
   ) {
-    return fail("invalid", 400);
+    return failed("invalid", 400);
   }
 
   const db = supabaseAdmin();
@@ -81,9 +93,9 @@ export async function POST(request: Request) {
       building: buildingResult.error?.code,
       type: typeResult.error?.code,
     });
-    return fail("server", 500);
+    return failed("server", 500, buildingResult.error ?? typeResult.error);
   }
-  if (!buildingResult.data || !typeResult.data) return fail("invalid", 400);
+  if (!buildingResult.data || !typeResult.data) return failed("invalid", 400);
 
   const { data: result, error } = await db.rpc("create_facility_request", {
     p_fields: {
@@ -103,9 +115,9 @@ export async function POST(request: Request) {
       code: error?.code,
       message: error?.message,
     });
-    return fail("server", 500);
+    return failed("server", 500, error);
   }
-  if (result === "rate_limited") return fail("rate_limited", 429);
+  if (result === "rate_limited") return failed("rate_limited", 429);
 
   return Response.json(
     {

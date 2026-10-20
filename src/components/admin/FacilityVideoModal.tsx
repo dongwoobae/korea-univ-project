@@ -15,7 +15,8 @@ import {
   type UploadPhase,
   uploadFacilityVideo,
 } from "@/lib/facilityVideoUpload";
-import { MAX_VIDEO_LABEL } from "@/lib/videoUpload";
+import { MAX_VIDEO_BYTES, MAX_VIDEO_LABEL } from "@/lib/videoUpload";
+import { reportFailure } from "@/lib/activityReport";
 
 export default function FacilityVideoModal({
   facility,
@@ -119,9 +120,28 @@ export default function FacilityVideoModal({
             onProgress(Math.round((ev.loaded / ev.total) * 100));
         };
       }
-      xhr.onload = () =>
-        xhr.status === 200 ? resolve() : reject(new Error("업로드 실패"));
-      xhr.onerror = () => reject(new Error("네트워크 오류가 발생했어요"));
+      // R2로 바로 올리는 PUT은 관문(authedFetch)을 지나지 않는다(설계 2026-10-19 4.3).
+      xhr.onload = () => {
+        if (xhr.status === 200) return resolve();
+        void reportFailure({
+          source: {
+            kind: "known",
+            reason: "storage_error",
+            status: xhr.status,
+          },
+          action: "facility_video.upload",
+          target: { table: "building_facilities", id: facility.id },
+        });
+        reject(new Error("업로드 실패"));
+      };
+      xhr.onerror = () => {
+        void reportFailure({
+          source: { kind: "known", reason: "network" },
+          action: "facility_video.upload",
+          target: { table: "building_facilities", id: facility.id },
+        });
+        reject(new Error("네트워크 오류가 발생했어요"));
+      };
       xhr.onabort = () => reject(new Error("업로드 취소됨"));
       xhr.open("PUT", url);
       xhr.setRequestHeader("Content-Type", contentType);
@@ -175,6 +195,18 @@ export default function FacilityVideoModal({
         else showToast("동영상이 업로드됐어요!");
         onUpdate();
       } else if (result.status === "failed") {
+        if (result.reason) {
+          void reportFailure({
+            source: { kind: "known", reason: result.reason },
+            action: "facility_video.upload",
+            target: { table: "building_facilities", id: facility.id },
+            fileSize: result.size ?? file.size,
+            fileType: file.type,
+            ...(result.reason === "payload_too_large"
+              ? { limit: MAX_VIDEO_BYTES }
+              : {}),
+          });
+        }
         showToast(result.message, "error");
       }
     } finally {

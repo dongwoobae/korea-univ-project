@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const uploadPhoto = vi.fn();
 const removeObject = vi.fn();
@@ -71,6 +73,7 @@ describe("POST /api/upload-facility-photo", () => {
     const { POST } = await import("./route");
     const response = await POST(post());
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({
       id: "fp1",
@@ -118,6 +121,13 @@ describe("POST /api/upload-facility-photo", () => {
     const { POST } = await import("./route");
     const response = await POST(post());
     expect(response.status).toBe(409);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_photo.upload",
+        reason: "conflict",
+        status: 409,
+      }),
+    );
     expect(await response.json()).toEqual({ error: "사진은 3장까지예요" });
     expect(uploadPhoto).not.toHaveBeenCalled();
   });
@@ -209,6 +219,9 @@ describe("POST /api/upload-facility-photo", () => {
       post(webp(), FACILITY_ID, { "content-length": String(10 * 1024 * 1024) }),
     );
     expect(response.status).toBe(413);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "payload_too_large", status: 413 }),
+    );
     expect(await response.json()).toEqual({
       error: "사진은 4MB까지 올릴 수 있어요",
     });

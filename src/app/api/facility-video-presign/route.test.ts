@@ -6,6 +6,8 @@ const getSignedUrl = vi.fn(
     `https://signed.test/${command.input.Key}`,
 );
 
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@aws-sdk/s3-request-presigner", () => ({ getSignedUrl }));
 vi.mock("@/lib/requireAdmin", () => ({
   requireAdmin: vi.fn().mockResolvedValue({ user: { id: "admin" } }),
@@ -41,6 +43,7 @@ describe("facility video presign route", () => {
     expect(data.posterPresignedUrl).toBeNull();
     expect(data.posterPublicUrl).toBeNull();
     expect(getSignedUrl).toHaveBeenCalledOnce();
+    expect(logFailure).not.toHaveBeenCalled();
   });
 
   it("posterSize가 있으면 짝 키를 크기·image/jpeg로 서명한다", async () => {
@@ -65,6 +68,13 @@ describe("facility video presign route", () => {
       const response = await POST(request({ posterSize }));
 
       expect(response.status).toBe(400);
+      expect(logFailure).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: "facility_video.upload",
+          reason: "invalid_input",
+          status: 400,
+        }),
+      );
       expect(getSignedUrl).not.toHaveBeenCalled();
     },
   );

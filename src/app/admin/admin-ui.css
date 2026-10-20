@@ -3733,3 +3733,207 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
 }
+
+/* 로그 탭. 설계: docs/specs/2026-10-19-activity-log-design.md 5장 */
+.ku-log-list {
+  border: 1px solid var(--ku-border);
+  border-radius: var(--ku-radius);
+  background: var(--ku-surface);
+}
+.ku-log-list ul,
+.ku-log-cards {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ku-log-head,
+.ku-log-row {
+  display: grid;
+  grid-template-columns:
+    96px 84px minmax(96px, 0.9fr) minmax(140px, 1.4fr)
+    minmax(200px, 2.6fr);
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+}
+.ku-log-head {
+  min-height: 42px;
+  border-bottom: 1px solid var(--ku-divider);
+  color: var(--ku-text-3);
+  background: var(--ku-bg);
+  font-size: 12px;
+  font-weight: 600;
+}
+.ku-log-row {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-bottom: 1px solid var(--ku-divider);
+  border-radius: 0;
+  color: var(--ku-text-1);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.ku-log-list li:last-child .ku-log-row {
+  border-bottom: 0;
+}
+.ku-log-row:hover {
+  background: var(--ku-bg);
+}
+.ku-log-row:focus-visible,
+.ku-log-card:focus-visible {
+  outline: 2px solid var(--ku-primary);
+  outline-offset: -2px;
+}
+.ku-log-cell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ku-log-time {
+  color: var(--ku-text-2);
+  font-variant-numeric: tabular-nums;
+}
+.ku-log-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+}
+.ku-log-more .ku-inbox-more {
+  padding: 0 16px;
+}
+.ku-log-cards {
+  display: grid;
+  gap: 9px;
+}
+.ku-log-card {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--ku-border);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ku-log-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  color: var(--ku-text-2);
+  font-size: 12px;
+}
+.ku-log-card-target {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.ku-log-card-summary {
+  overflow: hidden;
+  color: var(--ku-text-2);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ku-log-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--ku-backdrop);
+}
+.ku-log-modal {
+  box-sizing: border-box;
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+.ku-log-modal-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.ku-log-modal-title h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.ku-log-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 0 0 16px;
+  font-size: 13px;
+}
+.ku-log-meta dt {
+  color: var(--ku-text-3);
+}
+.ku-log-meta dd {
+  margin: 0;
+}
+.ku-log-reason {
+  margin: 0 0 6px;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.ku-log-reason-code {
+  margin: 0 0 12px;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-log-raw summary {
+  color: var(--ku-text-2);
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.ku-log-raw pre {
+  margin: 8px 0 0;
+  padding: 10px;
+  border: 1px solid var(--ku-divider);
+  color: var(--ku-text-1);
+  background: var(--ku-bg);
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ku-log-changes {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.ku-log-changes th,
+.ku-log-changes td {
+  padding: 8px;
+  border-bottom: 1px solid var(--ku-divider);
+  text-align: left;
+  vertical-align: top;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ku-log-changes thead th {
+  color: var(--ku-text-3);
+  font-weight: 600;
+}
+.ku-log-changes tbody th {
+  width: 28%;
+  color: var(--ku-text-2);
+  font-weight: 600;
+}

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
+import { flushQueue } from "@/lib/activityReport";
 import { authedFetch } from "@/lib/authedFetch";
 import {
   FEEDBACK_EMAILS_FALLBACK,
@@ -27,6 +28,7 @@ const NAV = [
   { label: "명소", href: "/admin/dashboard/landmarks" },
   { label: "경사도", href: "/admin/dashboard/slopes" },
   { label: "제보함", href: INBOX_HREF },
+  { label: "로그", href: "/admin/dashboard/logs" },
 ];
 
 export default function DashboardLayout({
@@ -96,6 +98,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       }
       setUser(authenticatedUser);
       setAuthChecked(true);
+      void flushQueue();
     });
   }, [router]);
 

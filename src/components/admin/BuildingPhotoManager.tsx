@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import NextImage from "next/image";
 import { supabase } from "@/lib/supabaseClient";
+import { reportFailure } from "@/lib/activityReport";
 import { authedFetch } from "@/lib/authedFetch";
 import { convertToWebP } from "@/lib/imageToWebP";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -122,6 +123,13 @@ export default function BuildingPhotoManager({
     try {
       blob = await convertToWebP(item.file);
     } catch (error) {
+      void reportFailure({
+        source: { kind: "known", reason: "unsupported_type", error },
+        action: "building_photo.upload",
+        target: { table: "buildings", id: String(buildingId) },
+        fileSize: item.file.size,
+        fileType: item.file.type,
+      });
       return {
         ...item,
         status: "error" as const,

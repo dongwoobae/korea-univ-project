@@ -5,6 +5,8 @@ query.update.mockReturnValue(query);
 const from = vi.fn(() => query);
 
 const supabaseAdmin = vi.fn(() => ({ from }));
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 vi.mock("@/lib/requireAdmin", () => ({
   requireAdmin: vi.fn().mockResolvedValue({ user: { id: "admin" } }),
@@ -39,6 +41,7 @@ describe("facility video confirm route", () => {
     const response = await POST(request());
 
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(query.update).toHaveBeenCalledWith({
       video_url: videoUrl,
@@ -68,6 +71,13 @@ describe("facility video confirm route", () => {
     const response = await POST(request(posterUrl));
 
     expect(response.status).toBe(400);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_video.upload",
+        reason: "invalid_input",
+        status: 400,
+      }),
+    );
     expect(query.update).not.toHaveBeenCalled();
   });
 });
