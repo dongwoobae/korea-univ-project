@@ -27,8 +27,13 @@ async function overflowAt(page: Page, width: number) {
 }
 
 test("진단: 대체 글꼴의 태블릿 헤더", async ({ page }) => {
-  await page.route("**/cdn.jsdelivr.net/**", (route) => route.abort());
   await installMockBackend(page, { authenticated: true });
+  // 목의 전체 가로채기보다 늦게 등록해야 먼저 걸린다.
+  await page.route("**/*", (route) =>
+    new URL(route.request().url()).hostname === "cdn.jsdelivr.net"
+      ? route.abort()
+      : route.fallback(),
+  );
   await page.goto("/admin/dashboard/buildings");
   await expect(
     page.getByRole("button", { name: "로그아웃", exact: true }),
