@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const translateKoTexts = vi.fn();
 vi.mock("@/lib/server/googleTranslate", () => ({ translateKoTexts }));
@@ -64,6 +66,7 @@ describe("POST /api/translate-facility", () => {
     const response = await POST(post());
 
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ system: "translation" });
     expect(await response.json()).toEqual({ status: "translated" });
     expect(translateKoTexts).toHaveBeenCalledWith({
@@ -120,6 +123,15 @@ describe("POST /api/translate-facility", () => {
     const response = await POST(post());
 
     expect(response.status).toBe(502);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility.translate",
+        actor: { kind: "system", system: "translation" },
+        reason: "translation_error",
+        status: 502,
+        followUp: true,
+      }),
+    );
     expect(writeCalls()).toContainEqual({
       method: "update",
       args: [{ translation_status: "failed" }],

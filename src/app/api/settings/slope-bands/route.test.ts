@@ -3,6 +3,8 @@ import { DEFAULT_SLOPE_BANDS } from "@/lib/slopeBands";
 import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const from = vi.fn();
 const supabaseAdmin = vi.fn(() => ({ from }));
@@ -46,6 +48,7 @@ describe("POST /api/settings/slope-bands", () => {
     const response = await POST(post(TWO_BANDS));
 
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({
       ok: true,
@@ -82,6 +85,9 @@ describe("POST /api/settings/slope-bands", () => {
     const { POST } = await import("./route");
     const response = await POST(post({ bands: [TWO_BANDS.bands[1]] }));
     expect(response.status).toBe(400);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: "invalid_input", status: 400 }),
+    );
     expect(await response.json()).toEqual({ error: "구간은 2~6개여야 해요" });
     expect(from).not.toHaveBeenCalled();
   });
@@ -113,6 +119,13 @@ describe("POST /api/settings/slope-bands", () => {
     const { POST } = await import("./route");
     const response = await POST(post(TWO_BANDS));
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "settings.slope_bands",
+        reason: "server_error",
+        status: 500,
+      }),
+    );
     expect(await response.json()).toEqual({
       error: "범례를 저장하지 못했어요",
     });

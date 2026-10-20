@@ -4,6 +4,8 @@ import { queryStub } from "@/test/queryStub";
 const ID = "5b0c1d2e-0000-4000-8000-000000000001";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 let updated: unknown[] = [{ id: ID }];
 let queryError: unknown = null;
@@ -59,6 +61,7 @@ describe("POST .../status", () => {
     const { POST } = await import("./route");
     const response = await POST(...call({ status: "reviewing" }));
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({ status: "reviewing" });
     const calls = callsOf(0);
@@ -118,6 +121,13 @@ describe("POST .../status", () => {
     const { POST } = await import("./route");
     const response = await POST(...call({ status: "new" }));
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_request.status",
+        reason: "server_error",
+        status: 500,
+      }),
+    );
     expect(await response.json()).toEqual({ error: "상태를 바꾸지 못했어요" });
     expect(spy).toHaveBeenCalled();
   });

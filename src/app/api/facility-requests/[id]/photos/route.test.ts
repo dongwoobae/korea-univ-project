@@ -3,6 +3,8 @@ import { signUploadToken } from "@/lib/server/requestSecurity";
 
 const uploadPhoto = vi.fn();
 const removeObject = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/server/requestPhotoStorage", () => ({
   uploadPhoto,
   removeObject,
@@ -68,6 +70,7 @@ describe("POST /api/facility-requests/[id]/photos", () => {
     const { POST } = await import("./route");
     const response = await POST(...post(ID, token()));
     expect(response.status).toBe(201);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(await response.json()).toEqual({ id: "photo-1" });
     expect(uploadPhoto).toHaveBeenCalledWith(
       "facility-request-photos",
@@ -106,6 +109,7 @@ describe("POST /api/facility-requests/[id]/photos", () => {
     png.set([0x89, 0x50, 0x4e, 0x47], 0);
     const response = await POST(...post(ID, token(), png));
     expect(response.status).toBe(400);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(await response.json()).toEqual({ error: "not_webp" });
     expect(uploadPhoto).not.toHaveBeenCalled();
   });
@@ -166,6 +170,14 @@ describe("POST /api/facility-requests/[id]/photos", () => {
     const { POST } = await import("./route");
     const response = await POST(...post(ID, token()));
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_request.photo_upload",
+        actor: { kind: "visitor" },
+        reason: "server_error",
+        status: 500,
+      }),
+    );
     expect(await response.json()).toEqual({ error: "server" });
     expect(rpc).not.toHaveBeenCalled();
   });

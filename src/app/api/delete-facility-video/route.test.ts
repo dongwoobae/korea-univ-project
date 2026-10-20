@@ -12,6 +12,8 @@ const query = {
 const from = vi.fn(() => query);
 
 const supabaseAdmin = vi.fn(() => ({ from }));
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 vi.mock("@/lib/requireAdmin", () => ({
   requireAdmin: vi.fn().mockResolvedValue({ user: { id: "admin" } }),
@@ -61,6 +63,7 @@ describe("delete facility video route", () => {
     const response = await POST(request());
 
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(query.update).toHaveBeenCalledWith({
       video_url: null,
@@ -79,6 +82,13 @@ describe("delete facility video route", () => {
     const response = await POST(request());
 
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_video.delete",
+        reason: "storage_error",
+        status: 500,
+      }),
+    );
     expect(deletedKeys()).toHaveLength(1);
     expect(query.update).toHaveBeenLastCalledWith({
       video_url: videoUrl,
@@ -94,6 +104,13 @@ describe("delete facility video route", () => {
     const response = await POST(request());
 
     expect(response.status).toBe(200);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_video.delete",
+        reason: "storage_error",
+        followUp: true,
+      }),
+    );
     expect(query.update).toHaveBeenCalledTimes(1);
   });
 

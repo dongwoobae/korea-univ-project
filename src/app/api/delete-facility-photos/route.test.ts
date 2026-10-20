@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 
 const removeFolder = vi.fn();
@@ -47,6 +49,7 @@ describe("POST /api/delete-facility-photos", () => {
     const { POST } = await import("./route");
     const response = await POST(post({ facilityId: FACILITY }));
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({ ok: true });
     expect(removeFolder).toHaveBeenCalledWith("facility-photos", FACILITY);
@@ -66,6 +69,13 @@ describe("POST /api/delete-facility-photos", () => {
     const { POST } = await import("./route");
     const response = await POST(post({ facilityId: FACILITY }));
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_photo.delete_all",
+        reason: "storage_error",
+        status: 500,
+      }),
+    );
     expect(await response.json()).toEqual({
       error: "사진 파일을 지우지 못했어요",
     });

@@ -16,6 +16,8 @@ query.is.mockReturnValue(query);
 const from = vi.fn(() => query);
 
 const supabaseAdmin = vi.fn(() => ({ from }));
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 vi.mock("@/lib/requireAdmin", () => ({
   requireAdmin: vi.fn().mockResolvedValue({ user: { id: "admin" } }),
@@ -56,6 +58,13 @@ describe("delete landmark photo route", () => {
     const response = await POST(request());
 
     expect(response.status).toBe(409);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "landmark_photo.delete",
+        reason: "conflict",
+        status: 409,
+      }),
+    );
     expect(send).not.toHaveBeenCalled();
   });
 
@@ -70,6 +79,7 @@ describe("delete landmark photo route", () => {
     const response = await POST(request());
 
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(query.eq).toHaveBeenCalledWith("photo_url", photoUrl);
     expect(send).toHaveBeenCalledOnce();

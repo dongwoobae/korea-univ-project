@@ -3,6 +3,8 @@ import { clientHash, verifyUploadToken } from "@/lib/server/requestSecurity";
 import { queryStub } from "@/test/queryStub";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const signedUrls = vi.fn();
 vi.mock("@/lib/server/requestPhotoStorage", () => ({ signedUrls }));
@@ -63,6 +65,7 @@ describe("POST /api/facility-requests", () => {
     const response = await POST(post(valid));
 
     expect(response.status).toBe(201);
+    expect(logFailure).not.toHaveBeenCalled();
     const body = await response.json();
     expect(body.id).toBe("5b0c1d2e-0000-4000-8000-000000000001");
     expect(body.uploadToken.split(".")[0]).toBe(body.id);
@@ -101,6 +104,7 @@ describe("POST /api/facility-requests", () => {
     });
     const response = await POST(request);
     expect(response.status).toBe(400);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(await response.json()).toEqual({ error: "invalid" });
     expect(verifyTurnstile).not.toHaveBeenCalled();
   });
@@ -196,6 +200,14 @@ describe("POST /api/facility-requests", () => {
     const { POST } = await import("./route");
     const response = await POST(post(valid));
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_request.submit",
+        actor: { kind: "visitor" },
+        reason: "server_error",
+        status: 500,
+      }),
+    );
     expect(await response.json()).toEqual({ error: "server" });
     expect(logged).toHaveBeenCalledWith("[facility-requests] create failed", {
       code: "XX000",

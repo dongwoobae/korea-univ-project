@@ -4,6 +4,8 @@ import { queryStub } from "@/test/queryStub";
 const ID = "5b0c1d2e-0000-4000-8000-000000000001";
 
 const requireAdmin = vi.fn();
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/requireAdmin", () => ({ requireAdmin }));
 const cleanupRequestPhotos = vi.fn();
 vi.mock("@/lib/server/requestPhotoStorage", () => ({ cleanupRequestPhotos }));
@@ -77,6 +79,7 @@ describe("POST .../reject", () => {
       args: ["status", ["new", "reviewing"]],
     });
     expect(cleanupRequestPhotos).toHaveBeenCalledWith(ID);
+    expect(logFailure).not.toHaveBeenCalled();
   });
 
   it("이미 처리된 요청은 409이고 정리하지 않는다", async () => {
@@ -93,6 +96,13 @@ describe("POST .../reject", () => {
     const { POST } = await import("./route");
     const response = await POST(...call());
     expect(response.status).toBe(200);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_request.cleanup",
+        reason: "storage_error",
+        followUp: true,
+      }),
+    );
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(await response.json()).toEqual({ ok: true, cleanupFailed: true });
   });
@@ -104,6 +114,13 @@ describe("POST .../reject", () => {
     const { POST } = await import("./route");
     const response = await POST(...call());
     expect(response.status).toBe(500);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "facility_request.reject",
+        reason: "server_error",
+        status: 500,
+      }),
+    );
     expect(await response.json()).toEqual({ error: "거절하지 못했어요" });
     expect(spy).toHaveBeenCalled();
     expect(cleanupRequestPhotos).not.toHaveBeenCalled();

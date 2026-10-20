@@ -11,6 +11,8 @@ const supabaseAdmin = vi.fn(() => ({
   storage: { from: () => ({ upload, getPublicUrl }) },
   from: () => insertQuery,
 }));
+const logFailure = vi.fn();
+vi.mock("@/lib/server/activityLog", () => ({ logFailure }));
 vi.mock("@/lib/server/supabaseAdmin", () => ({ supabaseAdmin }));
 vi.mock("@/lib/requireAdmin", () => ({
   requireAdmin: vi.fn().mockResolvedValue({ user: { id: "admin" } }),
@@ -57,6 +59,13 @@ describe("upload building photo route", () => {
     const response = await POST(request(pngBytes));
 
     expect(response.status).toBe(400);
+    expect(logFailure).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "building_photo.upload",
+        reason: "unsupported_type",
+        status: 400,
+      }),
+    );
     expect(upload).not.toHaveBeenCalled();
   });
 
@@ -75,6 +84,7 @@ describe("upload building photo route", () => {
     const response = await POST(request(webpBytes()));
 
     expect(response.status).toBe(200);
+    expect(logFailure).not.toHaveBeenCalled();
     expect(supabaseAdmin).toHaveBeenCalledWith({ userId: "admin" });
     expect(upload).toHaveBeenCalledWith(
       expect.stringMatching(/^1\/\d+-[a-z0-9]+\.webp$/),
