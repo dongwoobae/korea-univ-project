@@ -238,6 +238,7 @@ export type Database = {
           caption_zh: string | null;
           created_at: string | null;
           id: number;
+          sort_order: number;
           url: string;
         };
         Insert: {
@@ -247,6 +248,7 @@ export type Database = {
           caption_zh?: string | null;
           created_at?: string | null;
           id?: number;
+          sort_order?: number;
           url: string;
         };
         Update: {
@@ -256,6 +258,7 @@ export type Database = {
           caption_zh?: string | null;
           created_at?: string | null;
           id?: number;
+          sort_order?: number;
           url?: string;
         };
         Relationships: [
@@ -612,6 +615,13 @@ export type Database = {
       is_admin: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
+      };
+      swap_building_photo_order: {
+        Args: {
+          p_first: number;
+          p_second: number;
+        };
+        Returns: undefined;
       };
     };
     Enums: {
