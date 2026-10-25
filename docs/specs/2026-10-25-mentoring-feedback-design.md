@@ -2,6 +2,56 @@
 
 2026-10-25
 
+## 진행 상황 (다음 작업자는 여기부터 읽는다)
+
+마지막 갱신: 2026-10-25 밤. PR이 병합될 때마다 이 절을 고친다.
+
+| PR                 | 상태                                           | 수치·증거                                                                                                |
+| ------------------ | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| ①-1 사진 순서 DB   | **완료** — #55 병합(`c8999b0`), 운영 적용 완료 | pgTAP 4개 파일 90개 단언(새 23 + 기존 35·16·16) 통과, vitest 740/740, E2E 통과. 운영 적용 뒤 확인은 아래 |
+| ①-2 사진 순서 화면 | **다음 할 일** — 계획 문서부터                 |                                                                                                          |
+| ② ~ ⑦              | 대기                                           |                                                                                                          |
+
+**①-1 운영 확인 (2026-10-25)**
+
+- `Apply Supabase migrations`가 `20261025000000_add_building_photo_sort_order.sql`을 적용했고 `Verify migration history`가 통과했다(run
+  40202968315, 재실행 후).
+- 공개 읽기로 본 채우기 결과: 사진 165장, 건물 56곳, 건물마다 `sort_order` 순서가 `created_at, id` 순서와 같고 0부터 빈틈없다
+  (어긋남 0, 빈 번호 0).
+- 공개 상세가 쓰는 조회(`created_at` 순)는 HTTP 200이고 `sort_order` 순서와 같다. 방문자 키로 맞바꾸기 RPC를 부르면 401(`42501`)이다.
+- **아직 안 본 것:** 관리자 활동 기록 화면에서 적용 시각(2026-10-25 23:46 KST) 근처에 "건물 사진 수정"이 무더기로 쌓이지 않았는지.
+  채우기 동안 기록 트리거를 껐으니 없어야 한다. 방문자 키로는 볼 수 없어 관리자 로그인이 필요하다.
+
+**다음에 할 일 — ①-2 사진 순서 화면(3.2·3.4장)**
+
+1. main을 받고 `docs/plans/<날짜>-mentoring-pr1-2-photo-order-ui.md` 계획을 쓴다(Codex 계획 비판 → 사용자 승인).
+2. 계약(①-1에서 운영에 들어간 것):
+   - RPC `swap_building_photo_order(p_first integer, p_second integer)`. 인자는 **화면 순서(앞 사진, 뒤 사진)**. ◀는 (왼쪽 사진, 누른 사진),
+     ▶는 (누른 사진, 오른쪽 사진).
+   - 오류: `PT409` 뒤 사진 바로 앞이 아님(사이에 사진, 또는 앞뒤 뒤집힘) · `P0002` 사진 없음 · `42501` 권한 없음 · `22023` 다른 건물·같은 사진.
+     `PT409`·`P0002`면 목록을 다시 불러오고 "순서가 바뀌어 다시 불러왔어요" 토스트, 그 밖은 화면 되돌림 + 오류 토스트.
+   - 새 사진 번호는 DB 트리거가 매긴다. 업로드 라우트는 바꾸지 않는다.
+3. 바꿀 곳: `SidePanel.tsx`·`BuildingPhotoManager.tsx`의 `.order("created_at")` → `sort_order`, 두 번째 기준 `id`. 관리자 사진 칸에 ◀▶,
+   저장 중 그 건물 화살표 잠금. E2E 목 백엔드(`e2e/support/mockBackend.ts`)에 `sort_order` 정렬과 RPC 흉내.
+
+**알아야 할 상황**
+
+- **CI `DB test`가 인프라 문제로 깨질 때가 있다.** `toomanyrequests: Data limit exceeded`(Docker Hub 내려받기 한도)나
+  `port 54322 ... address already in use`로 테스트 전에 죽는다(2026-10-25에 세 번). 코드 문제가 아니다 → `gh run rerun <run id> --failed`.
+  main에서 깨지면 `Apply Supabase migrations`가 건너뛰어지고 `Verify migration history`가 "differ"로 실패한다 — 재실행하면 적용까지 이어진다.
+- **로컬 DB 테스트.** 집 PC에는 Docker가 없어 PGlite(`@electric-sql/pglite@0.5.8`)로 대신 돌렸다: Supabase 역할·`auth` 흉내 →
+  `supabase/baseline/schema.sql` → `set search_path = "$user", public; set row_security = on;`(스냅샷이 둘 다 꺼 둔다) → 새 마이그레이션 →
+  pgTAP 흉내 함수 → 테스트 파일. 이 도구는 집 PC 임시 폴더에만 있다. Docker가 있는 PC면 CI처럼 `supabase db start` 뒤
+  `scripts/apply-db-test-schema.sh` → `supabase test db`.
+- **손으로 고친 타입.** `supabase/database.types.ts`의 `building_photos.Insert.sort_order`는 트리거가 매기므로 선택(`?`)으로 손 수정했다. 타입
+  생성기를 다시 돌리면 필수로 바뀌어 업로드 라우트 타입 검사가 깨진다 — 그때 이 자리를 되돌린다.
+- **미뤄 둔 작은 지적(①-1 리뷰).** 급하지 않다. 필요하면 뒤 PR에서.
+  1. 마이그레이션에 `lock_timeout`이 없다(사진 165장이라 잠금은 순간이었다).
+  2. 맞바꾸기 함수가 잠금 전 읽은 `building_id`가 그사이 바뀌는 경우를 다시 보지 않는다(사진을 옮기는 코드는 없다).
+  3. 테스트 보강: 번호를 직접 준 삽입이 그 번호를 지키는지, `p_first`가 없을 때 `P0002`.
+  4. 위 "손으로 고친 타입" 사실을 `docs/database-migrations.md`에도 적기.
+- **정리 대기 원격 브랜치:** `feat/building-photo-order-db`(#55), `feat/guard-busy-navigation`(#40). 둘 다 병합됐다 — 지우기 전에 사용자 확인.
+
 ## 이 문서의 목적
 
 2026-10-24(토) 체인지메이커스 이원준 선생님 멘토링에서 받은 일곱 가지와, 같은 시기 팀에서 나온 세 가지를 한 문서에 모은다.
