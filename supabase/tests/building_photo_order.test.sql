@@ -1,6 +1,6 @@
 -- 설계: docs/specs/2026-10-25-mentoring-feedback-design.md 3.3
 begin;
-select plan(22);
+select plan(23);
 
 insert into auth.users (id, email) values
   ('00000000-0000-4000-8000-000000000001', 'admin@example.com'),
@@ -76,6 +76,9 @@ set local role authenticated;
 select pg_temp.act_as('00000000-0000-4000-8000-000000000001');
 select throws_ok($$select public.swap_building_photo_order(800003, 800004)$$,
   'PT409', null, '사이에 다른 사진이 있으면 바꾸지 않는다');
+-- 오래된 화면에서 같은 쌍을 다시 누르면 앞뒤가 뒤집혀 들어온다. 그대로 바꾸면 앞서 바꾼 것을 몰래 되돌린다.
+select throws_ok($$select public.swap_building_photo_order(800001, 800003)$$,
+  'PT409', null, '앞 사진이 지금 뒤에 있으면 바꾸지 않는다');
 select throws_ok($$select public.swap_building_photo_order(800001, 800011)$$,
   '22023', null, '다른 건물의 사진과는 바꾸지 않는다');
 select throws_ok($$select public.swap_building_photo_order(800001, 800001)$$,
