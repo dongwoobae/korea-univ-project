@@ -83,15 +83,16 @@ begin
     raise exception 'photos belong to different buildings' using errcode = '22023';
   end if;
 
-  -- 다른 관리자가 그사이 순서를 바꿨다. 화면은 이 코드를 받으면 다시 불러온다.
-  if exists (
+  -- 화면은 p_first를 바로 앞(왼쪽) 사진으로 넘긴다. 지금 그렇지 않으면 다른 관리자가 그사이 순서를 바꾼 것이다 — 방향까지 봐야
+  -- 오래된 화면이 같은 쌍을 다시 눌러 앞서 바꾼 것을 몰래 되돌리는 것도 잡는다. 화면은 이 코드를 받으면 다시 불러온다.
+  if v_first.sort_order > v_second.sort_order or exists (
     select 1
     from public.building_photos
     where building_id = v_first.building_id
-      and sort_order > least(v_first.sort_order, v_second.sort_order)
-      and sort_order < greatest(v_first.sort_order, v_second.sort_order)
+      and sort_order > v_first.sort_order
+      and sort_order < v_second.sort_order
   ) then
-    raise exception 'photos are no longer adjacent' using errcode = 'PT409';
+    raise exception 'photos are no longer adjacent in this order' using errcode = 'PT409';
   end if;
 
   update public.building_photos
