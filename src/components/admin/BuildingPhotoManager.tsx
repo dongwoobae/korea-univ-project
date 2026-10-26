@@ -11,6 +11,7 @@ import { convertToWebP } from "@/lib/imageToWebP";
 import {
   focusDirectionAfterMove,
   swapArgsFor,
+  swapFailureAction,
   swapPhotos,
   type PhotoMoveDirection,
 } from "@/lib/buildingPhotoOrder";
@@ -67,21 +68,24 @@ export default function BuildingPhotoManager({
   const [savingCaption, setSavingCaption] = useState<number | null>(null);
   const [reordering, setReordering] = useState(false);
   const orderButtons = useRef(new Map<string, HTMLButtonElement>());
-  const busy = reordering;
+  const busy = reordering || uploading;
 
   const fetchPhotos = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("building_photos")
       .select("*")
       .eq("building_id", buildingId)
       .order("sort_order")
       .order("id");
+    // 실패를 빈 목록으로 그리면 사진이 지워진 것처럼 보이고 입력 중인 설명도 사라진다
+    if (error) return false;
     setPhotos(data ?? []);
     const initial: Record<string, string> = {};
     (data ?? []).forEach((p) => {
       initial[p.id] = p.caption ?? "";
     });
     setDraftCaptions(initial);
+    return true;
   }, [buildingId]);
 
   useEffect(() => {
@@ -302,7 +306,34 @@ export default function BuildingPhotoManager({
       )
       ?.focus();
 
-    await supabase.rpc("swap_building_photo_order", args);
+    const { error, status } = await supabase.rpc(
+      "swap_building_photo_order",
+      args,
+    );
+    if (error) {
+      const action = swapFailureAction(error.code);
+      if (action === "reload" && (await fetchPhotos())) {
+        showToast("순서가 바뀌어 다시 불러왔어요", "warning");
+      } else {
+        // 다시 읽기마저 실패하면 서버 순서를 모르니 누르기 전 화면으로 둔다
+        setPhotos((current) =>
+          swapPhotos(current, args.p_first, args.p_second),
+        );
+        showToast("사진 순서를 바꾸지 못했어요", "error");
+      }
+      if (action === "revert") {
+        // 브라우저 쓰기 실패를 보고하는 관문(reportingFetch)이 rpc/를 건너뛴다
+        void reportFailure({
+          source: {
+            kind: "postgrest",
+            status,
+            error: { code: error.code, message: error.message },
+          },
+          action: "building_photos.update",
+          target: { table: "building_photos", id: String(movedId) },
+        });
+      }
+    }
     setReordering(false);
   }
 
@@ -425,7 +456,7 @@ export default function BuildingPhotoManager({
       )}
       <label
         className="ku-file-trigger ku-file-trigger--filled"
-        data-disabled={uploading}
+        data-disabled={busy}
         style={{ marginTop: 12 }}
       >
         {uploading ? "업로드 중..." : "사진 추가"}
@@ -434,7 +465,7 @@ export default function BuildingPhotoManager({
           accept="image/*"
           multiple
           onChange={handleUpload}
-          disabled={uploading}
+          disabled={busy}
         />
       </label>
       {uploadItems.length > 0 && (
@@ -475,6 +506,7 @@ export default function BuildingPhotoManager({
               <button
                 type="button"
                 className="ku-photo-upload-retry"
+                disabled={busy}
                 onClick={handleRetryFailed}
               >
                 실패한 사진 다시 시도
