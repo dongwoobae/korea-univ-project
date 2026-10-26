@@ -11,7 +11,6 @@ export const FALLBACK_PALETTE = [
   "#15803D",
   "#B45309",
   "#6D28D9",
-  "#0F766E",
   "#C2410C",
   "#1D4ED8",
   "#7E22CE",

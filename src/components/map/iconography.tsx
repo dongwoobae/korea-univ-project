@@ -3,6 +3,7 @@
 import {
   Accessibility,
   GripVertical,
+  Sofa,
   Sparkles,
   SquareParking,
   Toilet,
@@ -30,6 +31,7 @@ export const FACILITY_ICON: Record<FacilityIconKey, LucideIcon> = {
   ramp: TrendingUp,
   parking: SquareParking,
   braille: GripVertical,
+  student_lounge: Sofa,
   fallback: Accessibility,
 };
 
