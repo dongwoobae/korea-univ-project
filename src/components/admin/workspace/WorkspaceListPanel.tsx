@@ -42,7 +42,7 @@ interface WorkspaceListPanelProps {
   page: number;
   onPageChange: (page: number) => void;
   legend: WorkspaceLegendItem[];
-  /** 범례 옆(모바일은 바텀시트 맨 아래)에 두는 동작. 경사도 탭만 넘긴다 */
+  /** 범례 옆(모바일은 펼친 바텀시트 맨 아래)에 두는 동작. 경사도 탭의 "범례 편집", 독립 시설 탭의 "종류 관리" */
   legendAction?: ReactNode;
   children: ReactNode;
 }
