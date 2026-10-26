@@ -566,6 +566,7 @@ test("건물 사진을 크게 보고 내려받는다", async ({ page }) => {
     caption: "열람실",
     caption_en: "Reading room",
     caption_zh: "阅览室",
+    sort_order: 1,
   });
   await page.goto("/");
   await page.getByPlaceholder("건물 검색...").fill("중앙도서관");
