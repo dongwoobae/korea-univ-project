@@ -93,14 +93,17 @@
 
 ### 2.1 `useFacilityTypes()`
 
-새 파일 `src/lib/facilityTypes.ts`. 모듈 하나가 종류 목록을 받아 둔다.
+새 파일 `src/lib/facilityTypesStore.ts`(`slopeBandsStore.ts`와 같은 `useSyncExternalStore` 모양). 모듈 하나가 종류 목록을 받아 둔다.
 
 - 조회: `facility_types`를 `select("*")`, `sort_order, code` 순. 여러 컴포넌트가 동시에 불러도 요청은 하나다.
-- 돌려주는 것: 종류 목록, 상태(`loading` | `ready` | `error`), 다시 불러오기, `styleOf(code)` → `{ icon, color }`.
-- `styleOf`는 목록에 없거나 아직 받지 못한 코드에 대체값(`accessibility`, `#666666`)을 준다. 아이콘 키가 목록(1.3)에 없어도 대체
-  아이콘이다.
-- `invalidateFacilityTypes()`: 다시 받는다. ②-2b 관리 화면이 쓰기 뒤에 부른다. **다시 받는 동안에도 직전 목록을 그대로 쓴다** —
-  비우면 모든 아이콘이 잠깐 대체 아이콘으로 바뀐다. 다시 받기가 실패하면 직전 목록을 두고 상태만 `error`로 둔다.
+- 돌려주는 것: 종류 목록, 상태(`loading` | `ready` | `error`), `loaded`(한 번이라도 받았는지 — 빈 자리(받기 전)와 대체 아이콘(받은 뒤
+  모르는 코드)을 가른다). 코드로 아이콘·색을 찾는 것은 카탈로그의 `facilityStyleOf(types, code)` → `{ icon, color }`, 컴포넌트에서는
+  `useFacilityStyle(code)`.
+- `facilityStyleOf`는 목록에 없거나 아직 받지 못한 코드에 대체값(`accessibility`, `#666666`)을 준다. 아이콘 키가 목록(1.3)에 없거나 색
+  형식이 틀리거나 칸이 없는 행(2.4)도 그 칸만 대체값이다.
+- `reloadFacilityTypes()`: 다시 받는다. 받기 실패 뒤 다시 시도와 ②-2b 관리 화면의 쓰기 뒤에 부른다. **다시 받는 동안에도 직전 목록을
+  그대로 쓴다** — 비우면 모든 아이콘이 잠깐 대체 아이콘으로 바뀐다. 다시 받기가 실패하면 직전 목록을 두고 상태만 `error`로 둔다. 먼저
+  시작한 받기가 나중에 끝나면 그 결과는 버린다.
 - **처음 받기 전**(직전 목록이 없을 때) `<FacilityTypeIcon>`은 같은 크기의 빈 자리를 그린다. 대체 아이콘은 목록을 받은 뒤에도 모르는
   코드일 때만 쓴다 — 받기 전에 휠체어가 번쩍이지 않게. 색을 쓰는 곳도 받기 전에는 `styleOf`의 대체 회색이 잠깐 보일 수 있다.
   공개 지도 마커는 필터 칩을 켜야 보이고 칩은 목록을 받은 뒤에 그려져 이 경우가 없다.
@@ -115,7 +118,7 @@
   제보함 `admin/dashboard/inbox/page.tsx`. 등록 요청 API 두 곳(`eq("code", …)`로 한 행 확인)은 그대로다.
 - `<FacilityTypeIcon code>`: 겉모습을 그대로 두고 안에서 훅으로 아이콘을 찾는다. JSX로 쓰는 곳(공개 시설 목록·지도 안 목록·필터
   칩, 관리자 건물 상세 시설 카드·시설 목록 행·상세·동영상 모달·제보함)은 손대지 않는다.
-- 색을 쓰는 곳 → `styleOf(code).color`: 공개 필터 칩(`FilterPanel.tsx`), 관리자 시설 목록 행(`FacilityListRow.tsx`)·상세
+- 색을 쓰는 곳 → `facilityStyleOf(types, code).color`: 공개 필터 칩(`FilterPanel.tsx`), 관리자 시설 목록 행(`FacilityListRow.tsx`)·상세
   (`FacilityDetailPanel.tsx`)·제보함 드로어(`FacilityRequestDrawer.tsx`)·시설 탭의 종류 표시(`facilities/page.tsx`).
 - 마커 HTML을 만드는 두 곳 — 공개 `FacilityMarkers.tsx`, 관리자 `FacilityWorkspaceMap.tsx` — 은 컴포넌트에서 받은 스타일을 넘긴다.
 - **위험:** 마커 divIcon 캐시 두 곳의 키에 아이콘이 없다. 공개 `FacilityMarkers.tsx`의 `cachedIcon`은 `facility|코드|시설id`, 관리자
@@ -162,7 +165,7 @@
     `service_role`에서 회수).
   - 화면: `PT409`·`P0002`면 목록을 다시 불러오고 "순서가 바뀌어 다시 불러왔어요", 그 밖은 화면을 되돌리고 오류 토스트. 되돌린 실패는
     활동 기록에 실패로 보고한다(작업 키 `facility_types.update`, 대상은 누른 종류의 `code`, HTTP 상태 포함) — 브라우저 쓰기 관문이
-    `rpc/`를 건너뛰기 때문이다(사진 순서와 같은 이유, 멘토링 설계 3.4). 성공하면 `invalidateFacilityTypes()`.
+    `rpc/`를 건너뛰기 때문이다(사진 순서와 같은 이유, 멘토링 설계 3.4). 성공하면 `reloadFacilityTypes()`.
 - **번호가 겹치지 않음을 DB가 보장한다.** ②-2b 마이그레이션이 `facility_types`에 `unique (sort_order) deferrable initially immediate`를
   더하고(맞바꾸기 한 문장이 중간 상태에서 걸리지 않게 문장 끝에 검사), identity 시퀀스를 지금 가장 큰 번호로 맞춘다(`setval`). 멘토링 ②
   마이그레이션이 identity가 채운 번호를 손으로 덮어써 시퀀스와 실제 번호의 관계가 보장되지 않기 때문이다(운영은 2026-10-26 기준
@@ -181,7 +184,7 @@
 - 색: 1.3의 10개 견본. 이름을 접근 가능한 이름으로 단다.
 - 미리보기: 고른 아이콘·색으로 지도 마커 모양과 필터 칩 모양을 보여 준다.
 - 저장: 추가는 `insert`(1.5의 `code`, `sort_order`는 비워 맨 뒤), 수정은 `update`(이름·아이콘·색). 성공하면
-  `invalidateFacilityTypes()` 후 목록으로 돌아가 토스트. 실패하면 폼을 그대로 두고 오류 토스트.
+  `reloadFacilityTypes()` 후 목록으로 돌아가 토스트. 실패하면 폼을 그대로 두고 오류 토스트.
 - 실패 보고는 브라우저 쓰기 관문(`reportingFetch`)이 한다. 다만 관문(`supabaseWriteReporting.ts`의 `restWrite`)은 대상 키를 `?id=eq.`에서만
   읽어, `code`로 고르는 `facility_types`의 수정·삭제 실패는 대상이 빈다. `facility_types`는 `?code=eq.`를 대상 키로 읽게 고친다.
 - **시설 쪽에 붙은 옛 이름.** 시설 조회는 종류 이름을 시설에 붙여 가져온다(`facility_types(code, label, …)` 임베드 — 공개
