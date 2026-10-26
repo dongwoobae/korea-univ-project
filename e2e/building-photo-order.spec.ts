@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { serverError } from "./support/adminWorkspace";
 import { installMockBackend, type MockState } from "./support/mockBackend";
 
 // 설계: docs/specs/2026-10-25-mentoring-feedback-design.md 3.2·3.4
@@ -224,5 +225,197 @@ test.describe("건물 사진 순서 — 화살표", () => {
         );
       }
     }
+  });
+});
+
+function photoById(state: MockState, id: number) {
+  return state.photos.find((photo) => photo.id === id)!;
+}
+
+function swapRequest(url: URL) {
+  return url.pathname.endsWith("/rest/v1/rpc/swap_building_photo_order");
+}
+
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9WlAAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+test.describe("건물 사진 순서 — 실패와 잠금", () => {
+  test("다른 관리자가 그사이 순서를 바꿨으면 다시 불러오고 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedThreePhotos(state);
+    await page.goto("/admin/buildings/1");
+    const section = photoSection(page);
+    await expectCaptionOrder(section, ["정문", "로비", "야간"]);
+    // 다른 관리자가 정문과 로비를 바꿨다. 이 화면은 아직 모른다
+    photoById(state, 1).sort_order = 1;
+    photoById(state, 2).sort_order = 0;
+
+    // (로비, 야간) — 지금 둘 사이에 정문이 있다
+    await moveButton(section, 3, "앞으로").click();
+
+    await expect(
+      page
+        .locator(".ku-toast[role='status']")
+        .filter({ hasText: "순서가 바뀌어 다시 불러왔어요" }),
+    ).toBeVisible();
+    await expectCaptionOrder(section, ["로비", "정문", "야간"]);
+    expect(state.activityReports).toHaveLength(0);
+  });
+
+  test("그사이 지워진 사진이면 다시 불러오고 알린다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedThreePhotos(state);
+    await page.goto("/admin/buildings/1");
+    const section = photoSection(page);
+    await expectCaptionOrder(section, ["정문", "로비", "야간"]);
+    state.photos.splice(
+      state.photos.findIndex((photo) => photo.id === 3),
+      1,
+    );
+
+    await moveButton(section, 3, "앞으로").click();
+
+    await expect(
+      page
+        .locator(".ku-toast[role='status']")
+        .filter({ hasText: "순서가 바뀌어 다시 불러왔어요" }),
+    ).toBeVisible();
+    await expectCaptionOrder(section, ["정문", "로비"]);
+  });
+
+  test("다시 불러오기마저 실패하면 누르기 전 순서로 두고 오류로 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedThreePhotos(state);
+    let failReads = false;
+    await page.route(
+      (url) => url.pathname.endsWith("/rest/v1/building_photos"),
+      (route) =>
+        failReads && route.request().method() === "GET"
+          ? serverError(route)
+          : route.fallback(),
+    );
+    await page.goto("/admin/buildings/1");
+    const section = photoSection(page);
+    await expectCaptionOrder(section, ["정문", "로비", "야간"]);
+    photoById(state, 1).sort_order = 1;
+    photoById(state, 2).sort_order = 0;
+    failReads = true;
+
+    await moveButton(section, 3, "앞으로").click();
+
+    await expect(
+      page
+        .locator(".ku-toast[role='alert']")
+        .filter({ hasText: "사진 순서를 바꾸지 못했어요" }),
+    ).toBeVisible();
+    await expectCaptionOrder(section, ["정문", "로비", "야간"]);
+    expect(state.activityReports).toHaveLength(0);
+  });
+
+  for (const failure of [
+    { status: 403, code: "42501", reason: "forbidden" },
+    { status: 500, code: "XX000", reason: "server_error" },
+  ]) {
+    test(`그 밖의 실패(${failure.code})는 순서를 되돌리고 오류로 알리며 실패를 보고한다`, async ({
+      page,
+    }) => {
+      const state = await installMockBackend(page, { authenticated: true });
+      seedThreePhotos(state);
+      await page.route(swapRequest, (route) =>
+        route.request().method() !== "POST"
+          ? route.fallback()
+          : route.fulfill({
+              status: failure.status,
+              headers: { "access-control-allow-origin": "*" },
+              contentType: "application/json",
+              body: JSON.stringify({
+                code: failure.code,
+                message: "swap failed",
+                details: null,
+                hint: null,
+              }),
+            }),
+      );
+      await page.goto("/admin/buildings/1");
+      const section = photoSection(page);
+
+      await moveButton(section, 3, "앞으로").click();
+
+      await expect(
+        page
+          .locator(".ku-toast[role='alert']")
+          .filter({ hasText: "사진 순서를 바꾸지 못했어요" }),
+      ).toBeVisible();
+      await expectCaptionOrder(section, ["정문", "로비", "야간"]);
+      await expect.poll(() => state.activityReports.length).toBe(1);
+      expect(state.activityReports[0]).toMatchObject({
+        action: "building_photos.update",
+        reason_code: failure.reason,
+        target_table: "building_photos",
+        target_id: "3",
+      });
+    });
+  }
+
+  test("사진을 올리는 동안에도 화살표를 잠그고, 올린 사진은 맨 뒤에 붙는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedThreePhotos(state);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/upload-building-photo", async (route) => {
+      await held;
+      await route.fallback();
+    });
+    await page.goto("/admin/buildings/1");
+    const section = photoSection(page);
+    await expectCaptionOrder(section, ["정문", "로비", "야간"]);
+
+    await section
+      .locator('input[type="file"]')
+      .setInputFiles([
+        { name: "새 사진.png", mimeType: "image/png", buffer: PNG },
+      ]);
+    await expect(moveButton(section, 2, "앞으로")).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+
+    release();
+    await expectCaptionOrder(section, ["정문", "로비", "야간", ""]);
+    await expect(moveButton(section, 4, "뒤로")).toBeDisabled();
+    await expect(moveButton(section, 4, "앞으로")).toBeEnabled();
+  });
+
+  test("맞바꾸기를 저장하는 동안에는 사진을 올릴 수 없다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    seedThreePhotos(state);
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route(swapRequest, async (route) => {
+      if (route.request().method() !== "POST") return route.fallback();
+      await held;
+      await route.fallback();
+    });
+    await page.goto("/admin/buildings/1");
+    const section = photoSection(page);
+    const fileInput = section.locator('input[type="file"]');
+
+    await moveButton(section, 3, "앞으로").click();
+    await expect(fileInput).toBeDisabled();
+
+    release();
+    await expect(fileInput).toBeEnabled();
   });
 });
