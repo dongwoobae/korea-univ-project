@@ -14,6 +14,11 @@ const OPERATIONS = {
 } as const;
 type WriteMethod = keyof typeof OPERATIONS;
 
+// 기본 키가 id가 아닌 기록 대상 테이블. 실패 보고의 대상 키를 이 칸의 `eq.` 필터에서 읽는다.
+const KEY_COLUMNS: Partial<Record<AuditTable, string>> = {
+  facility_types: "code",
+};
+
 export type RestWrite = {
   action: TableActionKey;
   table: AuditTable;
@@ -26,7 +31,7 @@ export function restWrite(url: URL, method: string): RestWrite | null {
   if (!(upper in OPERATIONS)) return null;
   const table = url.pathname.match(/\/rest\/v1\/([a-z_]+)$/)?.[1];
   if (!isAuditTable(table)) return null;
-  const filter = url.searchParams.get("id");
+  const filter = url.searchParams.get(KEY_COLUMNS[table] ?? "id");
   return {
     action: `${table}.${OPERATIONS[upper as WriteMethod]}`,
     table,
