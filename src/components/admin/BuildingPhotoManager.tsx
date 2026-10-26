@@ -49,7 +49,8 @@ export default function BuildingPhotoManager({
       .from("building_photos")
       .select("*")
       .eq("building_id", buildingId)
-      .order("created_at");
+      .order("sort_order")
+      .order("id");
     setPhotos(data ?? []);
     const initial: Record<string, string> = {};
     (data ?? []).forEach((p) => {

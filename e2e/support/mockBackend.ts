@@ -451,6 +451,7 @@ function createState(authenticated: boolean): MockState {
         caption: "정문",
         caption_en: "Main entrance",
         caption_zh: "正门",
+        sort_order: 0,
       },
     ],
   };
@@ -721,7 +722,11 @@ function rows(state: MockState, name: string, url: URL): Row[] {
         if (a == null && b == null) continue;
         if (a == null) return rule.nullsFirst ? -1 : 1;
         if (b == null) return rule.nullsFirst ? 1 : -1;
-        const comparison = String(a).localeCompare(String(b), "ko");
+        // 문자열로만 비교하면 숫자 칸(sort_order·id)이 "10" < "9"로 놓인다
+        const comparison =
+          typeof a === "number" && typeof b === "number"
+            ? a - b
+            : String(a).localeCompare(String(b), "ko");
         if (comparison !== 0) return rule.ascending ? comparison : -comparison;
       }
       return 0;
@@ -1270,6 +1275,14 @@ async function handleApi(route: Route, state: MockState, url: URL) {
     const buildingId = Number(buildingIdMatch?.[1] ?? 1);
     const id =
       Math.max(0, ...state.photos.map((photo) => Number(photo.id))) + 1;
+    // 운영은 DB 트리거가 그 건물의 마지막 번호 + 1을 매긴다
+    const sortOrder =
+      Math.max(
+        -1,
+        ...state.photos
+          .filter((photo) => photo.building_id === buildingId)
+          .map((photo) => Number(photo.sort_order ?? -1)),
+      ) + 1;
     const photo = {
       id,
       building_id: buildingId,
@@ -1277,6 +1290,7 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       caption: null,
       caption_en: null,
       caption_zh: null,
+      sort_order: sortOrder,
       created_at: "2026-07-23T00:00:00Z",
     };
     state.photos.push(photo);
