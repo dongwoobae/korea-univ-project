@@ -106,6 +106,8 @@ export function useMapData() {
     supabase
       .from("facility_types")
       .select("code, label, label_en, label_zh")
+      .order("sort_order")
+      .order("code")
       .then(({ data, error }) => {
         if (error || !data) {
           if (error) console.error("facility_types fetch 실패:", error);

@@ -98,6 +98,8 @@ export default function FacilityRequestModal({
     void supabase
       .from("facility_types")
       .select("code, label, label_en, label_zh")
+      .order("sort_order")
+      .order("code")
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error || !data) {

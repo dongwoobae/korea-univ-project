@@ -122,7 +122,11 @@ export default function BuildingDetail() {
         .eq("building_id", id)
         .order("created_at", { nullsFirst: true })
         .order("id"),
-      supabase.from("facility_types").select("*"),
+      supabase
+        .from("facility_types")
+        .select("*")
+        .order("sort_order")
+        .order("code"),
       supabase.from("colleges").select("*").order("name"),
     ]);
     setBuilding(buildingData);

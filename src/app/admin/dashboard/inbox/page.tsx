@@ -111,6 +111,8 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
     void supabase
       .from("facility_types")
       .select("code, label")
+      .order("sort_order")
+      .order("code")
       .then(({ data }) => setTypes(data ?? []));
   }, []);
 
