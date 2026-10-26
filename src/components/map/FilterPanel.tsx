@@ -13,7 +13,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import type { LangCode } from "@/lib/translations";
 import type { FacilityType } from "@/types/domain";
 import { campusColor } from "@/lib/theme";
-import { getFacilityColor } from "./facilityColors";
+import { facilityStyleOf } from "@/lib/facilityStyleCatalog";
 import { FacilityTypeIcon, LandmarkCategoryIcon } from "./iconography";
 
 export type CampusKey = "인문사회계" | "자연계" | "녹지캠퍼스" | "의료원";
@@ -21,10 +21,10 @@ export type CampusKey = "인문사회계" | "자연계" | "녹지캠퍼스" | "�
 /** 캠퍼스 필터 토글 맵. 키는 CAMPUS_LIST의 campus 값과 같다. */
 export type CampusFlags = Record<CampusKey, boolean>;
 
-/** FilterPanel이 그리는 시설 유형 — useMapData가 select하는 열만 온다. */
+/** FilterPanel이 그리는 시설 유형 — 종류 저장소의 행 */
 type FilterFacilityType = Pick<
   FacilityType,
-  "code" | "label" | "label_en" | "label_zh"
+  "code" | "label" | "label_en" | "label_zh" | "icon" | "color"
 >;
 
 type CampusItem = {
@@ -211,9 +211,9 @@ export default function FilterPanel({
         </button>
         {facilitySectionOpen && (
           <div className="ku-chip-group">
-            {facilityTypes.map((item, index) => {
+            {facilityTypes.map((item) => {
               const active = activeTypes[item.code] ?? false;
-              const itemColor = getFacilityColor(item.code, index);
+              const itemColor = facilityStyleOf(facilityTypes, item.code).color;
               return (
                 <Chip
                   key={item.code}

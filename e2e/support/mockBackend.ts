@@ -77,18 +77,24 @@ const types = [
     label: "엘리베이터",
     label_en: "Elevator",
     label_zh: "电梯",
+    icon: "elevator",
+    color: "#2D5FB0",
   },
   {
     code: "ramp",
     label: "경사로",
     label_en: "Ramp",
     label_zh: "坡道",
+    icon: "trending-up",
+    color: "#B25617",
   },
   {
     code: "parking",
     label: "장애인 주차",
     label_en: "Accessible parking",
     label_zh: "无障碍停车",
+    icon: "square-parking",
+    color: "#6D4AB0",
   },
 ];
 const colleges = [

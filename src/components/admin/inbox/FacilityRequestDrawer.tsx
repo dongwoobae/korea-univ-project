@@ -23,7 +23,6 @@ import { useWorkspaceCloseRequest } from "@/components/admin/workspace/useWorksp
 import FacilityFields, {
   ADMIN_FACILITY_FIELD_LABELS,
 } from "@/components/facility/FacilityFields";
-import { getFacilityMarkerColor } from "@/components/map/facilityColors";
 import { FacilityTypeIcon } from "@/components/map/iconography";
 import { formatAdminReceivedSuffix } from "@/lib/adminList";
 import { authedFetch } from "@/lib/authedFetch";
@@ -47,6 +46,7 @@ import {
 import { getPolygonRingCenter } from "@/lib/polygonCenter";
 import { readErrorMessage } from "@/lib/responseError";
 import { color } from "@/lib/theme";
+import { useFacilityStyle } from "@/lib/facilityTypesStore";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import InboxDrawer from "./InboxDrawer";
 
@@ -370,6 +370,7 @@ export default function FacilityRequestDrawer({
       : getPolygonRingCenter(
           (detail?.building?.geojson as Feature<Polygon> | null) ?? null,
         );
+  const typeStyle = useFacilityStyle(detail?.facility_code);
   const typeLabel =
     facilityTypes.find((type) => type.code === detail?.facility_code)?.label ??
     "시설";
@@ -381,7 +382,7 @@ export default function FacilityRequestDrawer({
       <span
         className="ku-inbox-drawer-icon"
         style={{
-          background: getFacilityMarkerColor(detail?.facility_code ?? ""),
+          background: typeStyle.color,
         }}
         aria-hidden="true"
       >

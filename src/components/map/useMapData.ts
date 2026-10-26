@@ -2,14 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { FeatureCollection } from "geojson";
-import { supabase } from "@/lib/supabaseClient";
 import { assignCampusesToBuildings } from "@/lib/campusGeometry";
-import type {
-  FacilityType,
-  Landmark,
-  MapFacility,
-  SlopeSegment,
-} from "@/types/domain";
+import {
+  reloadFacilityTypes,
+  useFacilityTypes,
+} from "@/lib/facilityTypesStore";
+import type { Landmark, MapFacility, SlopeSegment } from "@/types/domain";
 
 /** 개별 데이터 소스의 로드 상태. */
 export type SourceStatus = "loading" | "error" | "ready";
@@ -23,6 +21,7 @@ export type MapDataRetry = Record<MapDataSource, () => void>;
 /**
  * 지도에 필요한 원격 데이터(건물 GeoJSON·시설·시설유형·경사·캠퍼스 경계)를
  * 로드하는 훅. 지도 상호작용 로직(refs/이벤트)과 분리하기 위해 추출.
+ * 시설 유형은 관리자 화면과 같이 쓰는 facilityTypesStore에서 받는다.
  *
  * 소스별로 status(loading|error|ready)와 retry를 노출한다. 접근성 데이터
  * (facilities/slopes)의 실패는 빈 배열로 대체하지 않고 error 상태로 유지해
@@ -35,9 +34,7 @@ export function useMapData() {
   const [geoDataVersion, setGeoDataVersion] = useState(0);
   const [loadingMap, setLoadingMap] = useState(true);
   const [facilities, setFacilities] = useState<MapFacility[]>([]);
-  const [facilityTypes, setFacilityTypes] = useState<
-    Pick<FacilityType, "code" | "label" | "label_en" | "label_zh">[]
-  >([]);
+  const facilityTypesSnapshot = useFacilityTypes();
   const [activeTypes, setActiveTypes] = useState<Record<string, boolean>>({});
   const [slopes, setSlopes] = useState<SlopeSegment[]>([]);
   const [campusBoundaries, setCampusBoundaries] =
@@ -47,8 +44,6 @@ export function useMapData() {
   const [buildingsStatus, setBuildingsStatus] =
     useState<SourceStatus>("loading");
   const [facilitiesStatus, setFacilitiesStatus] =
-    useState<SourceStatus>("loading");
-  const [facilityTypesStatus, setFacilityTypesStatus] =
     useState<SourceStatus>("loading");
   const [slopesStatus, setSlopesStatus] = useState<SourceStatus>("loading");
   const [landmarksStatus, setLandmarksStatus] =
@@ -101,25 +96,6 @@ export function useMapData() {
       });
   }, []);
 
-  const loadFacilityTypes = useCallback(() => {
-    setFacilityTypesStatus("loading");
-    supabase
-      .from("facility_types")
-      .select("code, label, label_en, label_zh")
-      .order("sort_order")
-      .order("code")
-      .then(({ data, error }) => {
-        if (error || !data) {
-          if (error) console.error("facility_types fetch 실패:", error);
-          setFacilityTypesStatus("error");
-          return;
-        }
-        setFacilityTypes(data);
-        setActiveTypes(Object.fromEntries(data.map((ft) => [ft.code, false])));
-        setFacilityTypesStatus("ready");
-      });
-  }, []);
-
   const loadSlopes = useCallback(() => {
     setSlopesStatus("loading");
     fetch("/api/slopes")
@@ -159,25 +135,18 @@ export function useMapData() {
     const timer = window.setTimeout(() => {
       loadBuildings();
       loadFacilities();
-      loadFacilityTypes();
       loadSlopes();
       loadLandmarks();
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [
-    loadBuildings,
-    loadFacilities,
-    loadFacilityTypes,
-    loadLandmarks,
-    loadSlopes,
-  ]);
+  }, [loadBuildings, loadFacilities, loadLandmarks, loadSlopes]);
 
   const statuses: MapDataStatuses = {
     buildings: buildingsStatus,
     facilities: facilitiesStatus,
     slopes: slopesStatus,
     landmarks: landmarksStatus,
-    facilityTypes: facilityTypesStatus,
+    facilityTypes: facilityTypesSnapshot.status,
   };
 
   const retry: MapDataRetry = {
@@ -185,7 +154,7 @@ export function useMapData() {
     facilities: loadFacilities,
     slopes: loadSlopes,
     landmarks: loadLandmarks,
-    facilityTypes: loadFacilityTypes,
+    facilityTypes: reloadFacilityTypes,
   };
 
   return {
@@ -193,7 +162,7 @@ export function useMapData() {
     geoDataVersion,
     loadingMap,
     facilities,
-    facilityTypes,
+    facilityTypes: facilityTypesSnapshot.types,
     activeTypes,
     setActiveTypes,
     slopes,

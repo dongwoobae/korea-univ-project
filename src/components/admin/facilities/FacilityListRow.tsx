@@ -1,7 +1,7 @@
-import { getFacilityMarkerColor } from "@/components/map/facilityColors";
 import { FacilityTypeIcon } from "@/components/map/iconography";
 import { formatAdminUpdatedAt } from "@/lib/adminList";
 import { facilityNeedsTranslation } from "@/lib/facilityTranslationState";
+import { useFacilityStyle } from "@/lib/facilityTypesStore";
 import { facilityDisplayName } from "@/lib/facilityWorkspace";
 import type { FacilityWithType } from "@/types/domain";
 
@@ -17,6 +17,7 @@ export default function FacilityListRow({
   onSelect,
 }: FacilityListRowProps) {
   const code = facility.facility_types?.code ?? facility.facility_code;
+  const style = useFacilityStyle(code);
   return (
     <button
       type="button"
@@ -26,7 +27,7 @@ export default function FacilityListRow({
     >
       <span
         className="ku-workspace-row-icon"
-        style={{ background: getFacilityMarkerColor(code ?? "") }}
+        style={{ background: style.color }}
       >
         <FacilityTypeIcon code={code} size={16} />
       </span>
