@@ -1152,6 +1152,32 @@ button.ku-admin-overview-item {
   inset: -11px;
 }
 
+.ku-photo-order-controls {
+  display: flex;
+  justify-content: space-between;
+}
+
+.ku-photo-order-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--ku-border);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  cursor: pointer;
+}
+
+/* 저장 중 잠금(aria-disabled)도 끝 화살표(disabled)와 같은 꺼진 모양이다 */
+.ku-photo-order-button:disabled,
+.ku-photo-order-button[aria-disabled="true"] {
+  color: var(--ku-text-3);
+  cursor: default;
+}
+
 /* A11Y-P2-01: 모바일에서 행 동작(수정·삭제·상태·동영상 등) 버튼의
    최소 터치 영역 44px 확보. 위험 동작은 인접 버튼과 간격을 추가로 벌린다. */
 @media (max-width: 767px) {
@@ -1162,6 +1188,10 @@ button.ku-admin-overview-item {
   .ku-file-trigger {
     min-width: 44px;
     min-height: 44px;
+  }
+  .ku-photo-order-button {
+    width: 44px;
+    height: 44px;
   }
   .ku-admin-row-action--danger {
     margin-left: 6px;
