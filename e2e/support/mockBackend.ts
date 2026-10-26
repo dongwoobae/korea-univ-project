@@ -3,7 +3,7 @@
  * 실제 서버 없이 공개 지도·관리자 흐름을 결정론적으로 테스트하기 위한 것.
  *
  * ┌─ 구조 ──────────────────────────────────────────────────────────────┐
- * 1) 픽스처(고정 데이터): `types`(시설 유형) · `colleges` · `polygon`(건물 형상).
+ * 1) 픽스처(고정 데이터): `types`(시설 유형 — 테스트마다 `state.facilityTypes`로 복사한다) · `colleges` · `polygon`(건물 형상).
  *    `createState()`가 이들을 조합해 테스트 1건의 초기 상태 `MockState`를 만든다.
  *      - 건물 1: 중앙도서관(id 1, 인문사회계)
  *      - 시설: `f-installed`(설치 경사로·건물 미소속) · `f-building`(건물 1 소속 엘리베이터)
@@ -19,6 +19,8 @@
  *          `admin_building_flags` 뷰와 `rpc/get_admin_building_summary`는
  *          `buildingFlags()` **한 곳**에서 나온다(아래 주석 참고).
  *          `rpc/swap_building_photo_order`는 `swapBuildingPhotos()`가 운영 함수의 판정을 흉내 낸다.
+ *          `facility_types` 쓰기는 `?code=eq.`로 고르고(`writeFacilityType()`), `rpc/swap_facility_type_order`는
+ *          `swapFacilityTypes()`가 흉내 낸다. 시설 행의 `facility_types` 임베드는 읽을 때 상태의 종류에서 만든다.
  *      - `/api/<route>`     → `handleApi()`: Next 라우트 핸들러 흉내(/api/buildings 등).
  *      - `/storage/v1/object/public/*` → 공개 버킷 이미지(빈 WebP 200).
  *      - `/auth/v1/*`       → 로그인·로그아웃·현재 유저 조회.
@@ -67,10 +69,14 @@ export interface MockState {
   activityReports: Row[];
   /** 브라우저가 보낸 맞바꾸기 RPC 인자(화면 순서) */
   photoSwapRequests: { p_first: number; p_second: number }[];
+  /** 시설 종류. 픽스처 `types`의 복사본이라 관리 화면의 쓰기가 반영된다 */
+  facilityTypes: Row[];
+  /** 브라우저가 보낸 종류 맞바꾸기 RPC 인자(화면 순서) */
+  facilityTypeSwapRequests: { p_first: string; p_second: string }[];
 }
 
 // ── 픽스처(고정 데이터) ───────────────────────────────────────────────
-// facility_types / colleges 조회에 그대로 반환되고, 시설 POST 시 code로 매칭된다.
+// `types`는 테스트마다 `state.facilityTypes`로 복사해 쓰기를 반영하고, `colleges`는 조회에 그대로 돌려준다.
 const types = [
   {
     code: "elevator",
@@ -79,6 +85,7 @@ const types = [
     label_zh: "电梯",
     icon: "elevator",
     color: "#2D5FB0",
+    sort_order: 1,
   },
   {
     code: "ramp",
@@ -87,6 +94,7 @@ const types = [
     label_zh: "坡道",
     icon: "trending-up",
     color: "#B25617",
+    sort_order: 2,
   },
   {
     code: "parking",
@@ -95,6 +103,7 @@ const types = [
     label_zh: "无障碍停车",
     icon: "square-parking",
     color: "#6D4AB0",
+    sort_order: 3,
   },
 ];
 const colleges = [
@@ -453,6 +462,8 @@ function createState(authenticated: boolean): MockState {
     activityLogs: seedActivityLogs(),
     activityReports: [],
     photoSwapRequests: [],
+    facilityTypes: types.map((type) => ({ ...type })),
+    facilityTypeSwapRequests: [],
     photos: [
       {
         id: 1,
@@ -560,7 +571,16 @@ function table(state: MockState, name: string): Row[] {
   if (name === "landmarks") return state.landmarks;
   if (name === "slope_segments") return state.slopes;
   if (name === "building_photos") return state.photos;
+  if (name === "facility_types") return state.facilityTypes;
   return [];
+}
+
+/** 시설 행의 종류 임베드를 상태의 종류에서 만든다 — 종류 이름을 고치면 시설 목록에도 보여야 한다. 상태에 없는 코드는 행이 든 값을 둔다 */
+function withTypeEmbed(state: MockState, row: Row): Row {
+  const type = state.facilityTypes.find(
+    (item) => item.code === row.facility_code,
+  );
+  return type ? { ...row, facility_types: { ...type } } : row;
 }
 
 /**
@@ -590,11 +610,10 @@ function activityLogRows(state: MockState, url: URL): Row[] {
   );
 }
 
-// 테이블 조회: 정적 테이블(facility_types/colleges)은 즉시, app_settings는 `?key=eq.`로 거른 행을 반환,
+// 테이블 조회: 정적 테이블(colleges)은 즉시, app_settings는 `?key=eq.`로 거른 행을 반환,
 // 나머지는 id·building_id 필터를 PostgREST처럼 적용해 걸러낸다.
 function rows(state: MockState, name: string, url: URL): Row[] {
   if (name === "activity_logs") return activityLogRows(state, url);
-  if (name === "facility_types") return types;
   if (name === "colleges") return colleges;
   if (name === "app_settings") {
     const settings: Row[] = [
@@ -649,6 +668,7 @@ function rows(state: MockState, name: string, url: URL): Row[] {
       const ids = parseInList(parent);
       result = result.filter((row) => ids.has(String(row.building_id)));
     }
+    result = result.map((row) => withTypeEmbed(state, row));
   }
   if (
     name === "building_facilities" &&
@@ -825,6 +845,96 @@ function swapBuildingPhotos(
   });
 }
 
+/**
+ * `rpc/swap_facility_type_order` 흉내. 판정 순서와 SQLSTATE는 운영 함수(`20261026020000_add_facility_type_order_swap.sql`)를,
+ * HTTP 상태는 `swapBuildingPhotos()`와 같은 규칙을 따른다. RLS 거부(`42501`)는 흉내 내지 않는다 — 그 경우는 테스트가 응답을 덮어쓴다.
+ */
+function swapFacilityTypes(
+  route: Route,
+  state: MockState,
+  firstCode: string,
+  secondCode: string,
+) {
+  const fail = (status: number, code: string, message: string) =>
+    json(route, { code, message, details: null, hint: null }, status);
+  if (firstCode === secondCode)
+    return fail(400, "22023", "cannot swap a facility type with itself");
+  const first = state.facilityTypes.find((type) => type.code === firstCode);
+  const second = state.facilityTypes.find((type) => type.code === secondCode);
+  if (!first || !second) return fail(500, "P0002", "facility type not found");
+  const firstOrder = Number(first.sort_order);
+  const secondOrder = Number(second.sort_order);
+  const between = state.facilityTypes.some(
+    (type) =>
+      Number(type.sort_order) > firstOrder &&
+      Number(type.sort_order) < secondOrder,
+  );
+  if (firstOrder > secondOrder || between)
+    return fail(
+      409,
+      "PT409",
+      "facility types are no longer adjacent in this order",
+    );
+  first.sort_order = secondOrder;
+  second.sort_order = firstOrder;
+  return route.fulfill({
+    status: 204,
+    headers: { "access-control-allow-origin": "*" },
+    body: "",
+  });
+}
+
+/**
+ * `facility_types` 쓰기 흉내. 기본 키가 `code`라 `?code=eq.`로 고른다. 코드가 겹치면 `23505`, 시설이 쓰는 종류를 지우면 외래 키
+ * `23503`(둘 다 PostgREST 409)이다. 번호 없이 들어온 종류는 운영 identity처럼 맨 뒤 번호를 받는다.
+ */
+function writeFacilityType(
+  route: Route,
+  state: MockState,
+  url: URL,
+  method: string,
+) {
+  const fail = (code: string, message: string) =>
+    json(route, { code, message, details: null, hint: null }, 409);
+  if (method === "POST") {
+    const body = route.request().postDataJSON() as Row | Row[];
+    const input = Array.isArray(body) ? body[0] : body;
+    if (state.facilityTypes.some((type) => type.code === input.code))
+      return fail(
+        "23505",
+        'duplicate key value violates unique constraint "facility_types_pkey"',
+      );
+    const created: Row = {
+      label_en: null,
+      label_zh: null,
+      icon: "accessibility",
+      color: "#666666",
+      sort_order:
+        Math.max(
+          0,
+          ...state.facilityTypes.map((type) => Number(type.sort_order)),
+        ) + 1,
+      ...input,
+    };
+    state.facilityTypes.push(created);
+    return json(route, [created], 201);
+  }
+  const filter = url.searchParams.get("code");
+  const code = filter?.startsWith("eq.") ? filter.slice(3) : null;
+  const index = state.facilityTypes.findIndex((type) => type.code === code);
+  if (index < 0) return json(route, []);
+  if (method === "PATCH") {
+    Object.assign(state.facilityTypes[index], route.request().postDataJSON());
+    return json(route, [state.facilityTypes[index]]);
+  }
+  if (state.facilities.some((facility) => facility.facility_code === code))
+    return fail(
+      "23503",
+      'update or delete on table "facility_types" violates foreign key constraint',
+    );
+  return json(route, state.facilityTypes.splice(index, 1));
+}
+
 // POST로 생성되는 새 행의 id 생성 규칙(테이블별).
 function nextId(name: string, state: MockState) {
   if (name === "buildings")
@@ -852,6 +962,16 @@ async function handleRest(route: Route, state: MockState, url: URL) {
     state.photoSwapRequests.push(args);
     return swapBuildingPhotos(route, state, args.p_first, args.p_second);
   }
+  if (name === "rpc/swap_facility_type_order" && method === "POST") {
+    const args = route.request().postDataJSON() as {
+      p_first: string;
+      p_second: string;
+    };
+    state.facilityTypeSwapRequests.push(args);
+    return swapFacilityTypes(route, state, args.p_first, args.p_second);
+  }
+  if (name === "facility_types" && method !== "GET" && method !== "HEAD")
+    return writeFacilityType(route, state, url, method);
   if (name === "rpc/get_admin_building_summary") {
     // 프로덕션 함수와 같은 모양: 건물 단위 숫자는 플래그 뷰를 세고, 시설 단위
     // 숫자(등록된 시설·번역 필요 시설)는 시설을 뷰에 조인해 센다.
@@ -938,7 +1058,9 @@ async function handleRest(route: Route, state: MockState, url: URL) {
     };
     if (name === "building_facilities") {
       created.facility_types =
-        types.find((type) => type.code === created.facility_code) ?? null;
+        state.facilityTypes.find(
+          (type) => type.code === created.facility_code,
+        ) ?? null;
       created.buildings = null;
     }
     target.push(created);
@@ -1066,6 +1188,27 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       ).length,
     });
   }
+  if (path === "/api/facility-types/usage") {
+    // 운영 라우트와 같은 기준: 시설은 모두, 등록 요청은 검토 대기(new·reviewing)만 센다
+    return json(
+      route,
+      Object.fromEntries(
+        state.facilityTypes.map((type) => [
+          type.code,
+          {
+            facilities: state.facilities.filter(
+              (facility) => facility.facility_code === type.code,
+            ).length,
+            pendingRequests: state.facilityRequests.filter(
+              (request) =>
+                request.facility_code === type.code &&
+                ["new", "reviewing"].includes(String(request.status)),
+            ).length,
+          },
+        ]),
+      ),
+    );
+  }
   if (
     path === "/api/facility-requests" &&
     route.request().method() === "POST"
@@ -1187,7 +1330,9 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       ...fields,
       translation_status: "pending",
       facility_types:
-        types.find((type) => type.code === fields.facility_code) ?? null,
+        state.facilityTypes.find(
+          (type) => type.code === fields.facility_code,
+        ) ?? null,
       created_at: "2026-10-08T00:00:00Z",
       updated_at: "2026-10-08T00:00:00Z",
     });
@@ -1211,12 +1356,14 @@ async function handleApi(route: Route, state: MockState, url: URL) {
   if (path === "/api/facilities")
     return json(
       route,
-      state.facilities.filter(
-        (row) =>
-          row.is_installed &&
-          !state.buildings.find((building) => building.id === row.building_id)
-            ?.is_deleted,
-      ),
+      state.facilities
+        .filter(
+          (row) =>
+            row.is_installed &&
+            !state.buildings.find((building) => building.id === row.building_id)
+              ?.is_deleted,
+        )
+        .map((row) => withTypeEmbed(state, row)),
     );
   if (path === "/api/landmarks") return json(route, state.landmarks);
   // 실제 라우트는 id·name·segments만 select한다. 넓게 돌려주면 공개 지도가
