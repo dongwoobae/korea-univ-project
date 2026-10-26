@@ -16,7 +16,6 @@ import {
   type DetailDraftPin,
   type LatLngTuple,
 } from "@/components/admin/workspace/types";
-import { getFacilityMarkerColor } from "@/components/map/facilityColors";
 import { FacilityTypeIcon } from "@/components/map/iconography";
 import { formatAdminUpdatedAt } from "@/lib/adminList";
 import { authedFetch } from "@/lib/authedFetch";
@@ -29,6 +28,7 @@ import { validateFacilityForm } from "@/lib/facilityForm";
 import { buildFacilityPayload, saveFacility } from "@/lib/facilitySave";
 import { translateFacility } from "@/lib/facilityTranslation";
 import { facilityNeedsTranslation } from "@/lib/facilityTranslationState";
+import { useFacilityStyle } from "@/lib/facilityTypesStore";
 import {
   facilityDisplayName,
   facilityFormDirty,
@@ -135,6 +135,7 @@ export default function FacilityDetailPanel({
     facility?.facility_types?.code ??
     facility?.facility_code ??
     form.facility_code;
+  const typeStyle = useFacilityStyle(code);
 
   function locate() {
     if (!navigator.geolocation) {
@@ -263,7 +264,7 @@ export default function FacilityDetailPanel({
         <div className="ku-detail-title">
           <span
             className="ku-detail-title-icon"
-            style={{ background: getFacilityMarkerColor(code ?? "") }}
+            style={{ background: typeStyle.color }}
             aria-hidden="true"
           >
             <FacilityTypeIcon code={code} size={20} />

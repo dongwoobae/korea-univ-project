@@ -7,11 +7,12 @@ import type { MapFacility } from "@/types/domain";
 import { useLanguage } from "@/lib/LanguageContext";
 import { groupByPixelGrid } from "@/lib/mapMarkerLayout";
 import {
-  FACILITY_CLUSTER_ICON_SVG,
   facilityIconSvg,
-  sizedIconSvg,
-} from "@/lib/mapIcons";
-import { getFacilityMarkerColor } from "./facilityColors";
+  facilityStyleOf,
+  type FacilityStyle,
+} from "@/lib/facilityStyleCatalog";
+import { useFacilityTypes } from "@/lib/facilityTypesStore";
+import { FACILITY_CLUSTER_ICON_SVG, sizedIconSvg } from "@/lib/mapIcons";
 
 // divIcon은 키별로 캐시해 참조를 유지 — 렌더마다 새 인스턴스를 만들면
 // react-leaflet이 매번 setIcon으로 마커 DOM을 교체한다.
@@ -26,11 +27,12 @@ function cachedIcon(key: string, create: () => L.DivIcon) {
   return icon;
 }
 
-const facilityMarkerIcon = (code: string, id: string) =>
-  cachedIcon(`facility|${code}|${id}`, () =>
+const facilityMarkerIcon = (style: FacilityStyle, id: string) =>
+  // 키에 아이콘·색이 없으면 종류를 받기 전에 만든 대체 아이콘이 이 키로 남는다
+  cachedIcon(`facility|${style.icon}|${style.color}|${id}`, () =>
     L.divIcon({
       className: "",
-      html: `<div data-testid="facility-marker-${id}" style="width:34px;height:34px;background:${getFacilityMarkerColor(code)};border:2px solid white;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 7px rgba(28,25,23,0.28);transform:rotate(-45deg);"><span aria-hidden="true" style="display:flex;transform:rotate(45deg)">${facilityIconSvg(code, 17)}</span></div>`,
+      html: `<div data-testid="facility-marker-${id}" style="width:34px;height:34px;background:${style.color};border:2px solid white;border-radius:50% 50% 50% 4px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 2px 7px rgba(28,25,23,0.28);transform:rotate(-45deg);"><span aria-hidden="true" style="display:flex;transform:rotate(45deg)">${facilityIconSvg(style.icon, 17)}</span></div>`,
       iconAnchor: [17, 30],
       popupAnchor: [0, -30],
     }),
@@ -68,6 +70,7 @@ function FacilityMarkers({
 }: FacilityMarkersProps) {
   const { lang } = useLanguage();
   const map = useMap();
+  const { types } = useFacilityTypes();
   const visibleFacilities = facilities.filter(
     (facility) => activeTypes[facility.facility_types?.code ?? ""],
   );
@@ -119,7 +122,10 @@ function FacilityMarkers({
             key={f.id}
             // lat/lng는 /api/facilities에서 not-null 필터를 거쳐 항상 존재
             position={[f.lat!, f.lng!]}
-            icon={facilityMarkerIcon(f.facility_types?.code ?? "", f.id)}
+            icon={facilityMarkerIcon(
+              facilityStyleOf(types, f.facility_types?.code),
+              f.id,
+            )}
             title={name}
             alt={name}
             zIndexOffset={500}

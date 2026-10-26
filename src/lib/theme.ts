@@ -32,15 +32,6 @@ export const satelliteCampusColor: Record<string, string> = {
   의료원: "#E650C5",
 };
 
-export const facilityColor = {
-  elevator: "#2D5FB0",
-  restroom: "#2F7A4F",
-  ramp: "#B25617",
-  parking: "#6D4AB0",
-  braille: "#8A6A00",
-  student_lounge: "#0F766E",
-} as const;
-
 export const focusRing = {
   borderColor: color.crimson700,
   boxShadow: `0 0 0 3px ${color.crimson100}`,

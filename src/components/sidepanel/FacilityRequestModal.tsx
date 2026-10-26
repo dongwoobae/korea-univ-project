@@ -20,7 +20,7 @@ import {
   uploadRequestPhoto,
 } from "@/lib/facilityRequestClient";
 import { convertToWebP } from "@/lib/imageToWebP";
-import { supabase } from "@/lib/supabaseClient";
+import { useFacilityTypes } from "@/lib/facilityTypesStore";
 import type { LangCode } from "@/lib/translations";
 import { useModalFocus } from "@/lib/useModalFocus";
 
@@ -58,8 +58,20 @@ export default function FacilityRequestModal({
   const [fields, setFields] = useState<FacilityFieldValues>(
     EMPTY_FACILITY_FIELDS,
   );
-  const [types, setTypes] = useState<{ code: string; label: string }[]>([]);
-  const [typesFailed, setTypesFailed] = useState(false);
+  const facilityTypesSnapshot = useFacilityTypes();
+  const types = facilityTypesSnapshot.types.map((type) => ({
+    code: type.code,
+    label:
+      (lang === "en"
+        ? type.label_en
+        : lang === "zh"
+          ? type.label_zh
+          : type.label) ??
+      type.label ??
+      type.code,
+  }));
+  const typesFailed =
+    facilityTypesSnapshot.status === "error" && !facilityTypesSnapshot.loaded;
   const [slots, setSlots] = useState<PhotoSlot[]>([]);
   const [token, setToken] = useState<string | null>(null);
   const [widgetKey, setWidgetKey] = useState(0);
@@ -92,41 +104,6 @@ export default function FacilityRequestModal({
     },
     [],
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    void supabase
-      .from("facility_types")
-      .select("code, label, label_en, label_zh")
-      .order("sort_order")
-      .order("code")
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error || !data) {
-          if (error)
-            console.error("[facility-request] 시설 유형 조회 실패", error);
-          setTypesFailed(true);
-          return;
-        }
-        setTypesFailed(false);
-        setTypes(
-          data.map((type) => ({
-            code: type.code,
-            label:
-              (lang === "en"
-                ? type.label_en
-                : lang === "zh"
-                  ? type.label_zh
-                  : type.label) ??
-              type.label ??
-              type.code,
-          })),
-        );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [lang]);
 
   const updateSlot = useCallback((key: string, patch: Partial<PhotoSlot>) => {
     setSlots((previous) =>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import FacilityDetailPanel from "@/components/admin/facilities/FacilityDetailPanel";
@@ -20,7 +20,6 @@ import {
   useWorkspaceSelection,
 } from "@/components/admin/workspace/useWorkspaceSelection";
 import { useWorkspaceLoad } from "@/components/admin/workspace/useWorkspaceLoad";
-import { getFacilityMarkerColor } from "@/components/map/facilityColors";
 import {
   INITIAL_ADMIN_COLLECTION_QUERY,
   pageOfItem,
@@ -32,11 +31,16 @@ import {
   FACILITY_COLLECTION_POLICY,
   type FacilityChip,
 } from "@/lib/facilityWorkspace";
+import { facilityStyleOf } from "@/lib/facilityStyleCatalog";
+import {
+  reloadFacilityTypes,
+  useFacilityTypes,
+} from "@/lib/facilityTypesStore";
 import { supabase } from "@/lib/supabaseClient";
 import { useCampusBoundaries } from "@/lib/useCampusBoundaries";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { readWorkspaceState, type WorkspaceState } from "@/lib/workspaceUrl";
-import type { FacilityType, FacilityWithType } from "@/types/domain";
+import type { FacilityWithType } from "@/types/domain";
 
 const FacilityWorkspaceMap = dynamic(
   () => import("@/components/admin/facilities/FacilityWorkspaceMap"),
@@ -54,8 +58,9 @@ function currentSelection() {
 
 export default function StandaloneFacilitiesPage() {
   const [facilities, setFacilities] = useState<FacilityWithType[]>([]);
-  const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
-  const [typesFailed, setTypesFailed] = useState(false);
+  const facilityTypesSnapshot = useFacilityTypes();
+  const facilityTypes = facilityTypesSnapshot.types;
+  const typesFailed = facilityTypesSnapshot.status === "error";
   const [typeFilter, setTypeFilter] = useState("all");
   const [draft, setDraft] = useState<DetailDraftPin | null>(null);
   const [locateFocus, setLocateFocus] = useState<{
@@ -89,16 +94,6 @@ export default function StandaloneFacilitiesPage() {
   function showToast(message: string, type = "success") {
     setToast({ message, type });
   }
-
-  const loadTypes = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("facility_types")
-      .select("*")
-      .order("sort_order")
-      .order("code");
-    setTypesFailed(Boolean(error));
-    if (!error) setFacilityTypes(data ?? []);
-  }, []);
 
   const fetchRows = useCallback(async () => {
     const { data, error } = await supabase
@@ -135,11 +130,6 @@ export default function StandaloneFacilitiesPage() {
     showToast,
   });
   const { status, reload: loadFacilities, isDisposed } = load;
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => void loadTypes(), 0);
-    return () => window.clearTimeout(timer);
-  }, [loadTypes]);
 
   // 저장 중에는 선택을 바꾸지 않는다 — 행·마커·닫기·칩을 막는다(설계 2026-10-14 3.4)
   function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
@@ -209,8 +199,7 @@ export default function StandaloneFacilitiesPage() {
   }
 
   function retry() {
-    setTypesFailed(false);
-    void loadTypes();
+    reloadFacilityTypes();
     load.retry();
   }
 
@@ -321,7 +310,7 @@ export default function StandaloneFacilitiesPage() {
             onPageChange={(page) => clearSelectionThen(() => setPage(page))}
             legend={facilityTypes.map((type) => ({
               label: type.label ?? type.code,
-              color: getFacilityMarkerColor(type.code),
+              color: facilityStyleOf(facilityTypes, type.code).color,
             }))}
           >
             {view.pageItems.map((facility) => (

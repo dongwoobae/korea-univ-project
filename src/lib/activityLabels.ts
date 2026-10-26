@@ -96,6 +96,7 @@ const COLUMN_LABELS = new Map<string, string>([
   ["geojson", "건물 형상"],
   ["segments", "경로 형상"],
   ["icon", "아이콘"],
+  ["color", "색"],
   ["photo_url", "사진"],
   ["image_url", "이미지"],
   ["url", "사진 주소"],

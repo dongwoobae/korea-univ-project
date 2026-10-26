@@ -466,6 +466,8 @@ export type Database = {
       facility_types: {
         Row: {
           code: string;
+          color: string;
+          icon: string;
           label: string | null;
           label_en: string | null;
           label_zh: string | null;
@@ -473,6 +475,8 @@ export type Database = {
         };
         Insert: {
           code: string;
+          color?: string;
+          icon?: string;
           label?: string | null;
           label_en?: string | null;
           label_zh?: string | null;
@@ -480,6 +484,8 @@ export type Database = {
         };
         Update: {
           code?: string;
+          color?: string;
+          icon?: string;
           label?: string | null;
           label_en?: string | null;
           label_zh?: string | null;

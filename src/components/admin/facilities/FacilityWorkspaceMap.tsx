@@ -8,27 +8,28 @@ import type {
   LatLngTuple,
   WorkspaceMapSlotProps,
 } from "@/components/admin/workspace/types";
-import { getFacilityMarkerColor } from "@/components/map/facilityColors";
 import { facilityDisplayName } from "@/lib/facilityWorkspace";
-import { facilityIconSvg } from "@/lib/mapIcons";
+import {
+  FALLBACK_FACILITY_STYLE,
+  facilityIconSvg,
+  facilityStyleOf,
+  type FacilityStyle,
+} from "@/lib/facilityStyleCatalog";
+import { useFacilityTypes } from "@/lib/facilityTypesStore";
 import type { FacilityWithType } from "@/types/domain";
 
 // 렌더마다 새 아이콘을 만들면 react-leaflet이 마커 DOM을 매번 갈아 끼운다(FacilityMarkers와 같은 이유).
 const iconCache = new Map<string, L.DivIcon>();
 
-function markerIcon(
-  id: string,
-  code: string | null,
-  fill: string,
-  selected: boolean,
-) {
-  const key = `${id}|${code ?? ""}|${fill}|${selected}`;
+function markerIcon(id: string, style: FacilityStyle, selected: boolean) {
+  // 키에 아이콘이 없으면 아이콘만 바꾼 종류의 옛 아이콘이 이 키로 남는다
+  const key = `${id}|${style.icon}|${style.color}|${selected}`;
   const cached = iconCache.get(key);
   if (cached) return cached;
   const size = selected ? 30 : 24;
   const icon = L.divIcon({
     className: "",
-    html: `<div class="ku-workspace-marker${selected ? " ku-workspace-marker--selected" : ""}" data-testid="admin-facility-marker-${id}" style="background:${fill}"><span aria-hidden="true">${facilityIconSvg(code, selected ? 15 : 12)}</span></div>`,
+    html: `<div class="ku-workspace-marker${selected ? " ku-workspace-marker--selected" : ""}" data-testid="admin-facility-marker-${id}" style="background:${style.color}"><span aria-hidden="true">${facilityIconSvg(style.icon, selected ? 15 : 12)}</span></div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   });
@@ -53,6 +54,7 @@ export default function FacilityWorkspaceMap({
   onSelect,
   ...slot
 }: FacilityWorkspaceMapProps) {
+  const { types } = useFacilityTypes();
   const editor = draft && !draft.saving ? draft : null;
   const savedPosition: LatLngTuple | null =
     selected && selected.lat != null && selected.lng != null
@@ -78,8 +80,7 @@ export default function FacilityWorkspaceMap({
             position={[facility.lat, facility.lng]}
             icon={markerIcon(
               facility.id,
-              facility.facility_code,
-              getFacilityMarkerColor(facility.facility_code ?? ""),
+              facilityStyleOf(types, facility.facility_code),
               false,
             )}
             title={facilityDisplayName(facility)}
@@ -93,13 +94,15 @@ export default function FacilityWorkspaceMap({
           position={pinPosition}
           icon={
             selected
-              ? markerIcon(
-                  selected.id,
-                  pinCode,
-                  getFacilityMarkerColor(pinCode ?? ""),
+              ? markerIcon(selected.id, facilityStyleOf(types, pinCode), true)
+              : markerIcon(
+                  "new",
+                  {
+                    icon: FALLBACK_FACILITY_STYLE.icon,
+                    color: "var(--ku-primary)",
+                  },
                   true,
                 )
-              : markerIcon("new", null, "var(--ku-primary)", true)
           }
           draggable={editor !== null}
           zIndexOffset={1000}

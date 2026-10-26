@@ -29,7 +29,7 @@ import {
   writeInboxUrl,
   type InboxUrlState,
 } from "@/lib/inboxUrl";
-import { supabase } from "@/lib/supabaseClient";
+import { useFacilityTypes } from "@/lib/facilityTypesStore";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 
 /** 열려 있는 항목. 연 순간 그 열의 카드를 스냅샷으로 들고 있다. */
@@ -54,9 +54,7 @@ function replaceUrl(next: InboxUrlState) {
 
 function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
   const [url, setUrl] = useState(initialUrl);
-  const [types, setTypes] = useState<{ code: string; label: string | null }[]>(
-    [],
-  );
+  const { types } = useFacilityTypes();
   const [opened, setOpened] = useState<OpenedItem | null>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const { guard } = useUnsavedChangesGuard();
@@ -106,15 +104,6 @@ function InboxScreen({ initialUrl }: { initialUrl: InboxUrlState }) {
     reload();
     window.dispatchEvent(new Event("inboxCountsChanged"));
   }, [reload]);
-
-  useEffect(() => {
-    void supabase
-      .from("facility_types")
-      .select("code, label")
-      .order("sort_order")
-      .order("code")
-      .then(({ data }) => setTypes(data ?? []));
-  }, []);
 
   const typeLabels = useMemo(
     () => new Map(types.map((type) => [type.code, type.label ?? type.code])),

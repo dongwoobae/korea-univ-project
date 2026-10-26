@@ -2,15 +2,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useFacilityTypes } from "@/lib/facilityTypesStore";
 import { authedFetch } from "@/lib/authedFetch";
 import { deleteFacility } from "@/lib/facilityDelete";
 import { invalidateNeighborBuildings } from "@/lib/neighborBuildings";
-import type {
-  Building,
-  FacilityWithType,
-  FacilityType,
-  College,
-} from "@/types/domain";
+import type { Building, FacilityWithType, College } from "@/types/domain";
 import { useRouter, useParams } from "next/navigation";
 import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -50,7 +46,7 @@ export default function BuildingDetail() {
   const router = useRouter();
   const [building, setBuilding] = useState<Building | null>(null);
   const [facilities, setFacilities] = useState<FacilityWithType[]>([]);
-  const [facilityTypes, setFacilityTypes] = useState<FacilityType[]>([]);
+  const { types: facilityTypes } = useFacilityTypes();
   const [colleges, setColleges] = useState<College[]>([]);
   const [selectedCollegeId, setSelectedCollegeId] = useState<number | null>(
     null,
@@ -109,7 +105,6 @@ export default function BuildingDetail() {
     const [
       { data: buildingData },
       { data: facilitiesData },
-      { data: typesData },
       { data: collegesData },
     ] = await Promise.all([
       supabase.from("buildings").select("*").eq("id", id).single(),
@@ -122,16 +117,10 @@ export default function BuildingDetail() {
         .eq("building_id", id)
         .order("created_at", { nullsFirst: true })
         .order("id"),
-      supabase
-        .from("facility_types")
-        .select("*")
-        .order("sort_order")
-        .order("code"),
       supabase.from("colleges").select("*").order("name"),
     ]);
     setBuilding(buildingData);
     setFacilities(facilitiesData ?? []);
-    setFacilityTypes(typesData ?? []);
     setColleges(collegesData ?? []);
     setSelectedCollegeId(buildingData?.college_id ?? null);
     setNameForm({
