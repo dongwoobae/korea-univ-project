@@ -632,6 +632,13 @@ export type Database = {
         };
         Returns: undefined;
       };
+      swap_facility_type_order: {
+        Args: {
+          p_first: string;
+          p_second: string;
+        };
+        Returns: undefined;
+      };
     };
     Enums: {
       [_ in never]: never;
