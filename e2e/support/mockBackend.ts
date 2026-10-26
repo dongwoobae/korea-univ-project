@@ -18,6 +18,7 @@
  *          `Accept: object+json`이면 단건(.single()) 응답.
  *          `admin_building_flags` 뷰와 `rpc/get_admin_building_summary`는
  *          `buildingFlags()` **한 곳**에서 나온다(아래 주석 참고).
+ *          `rpc/swap_building_photo_order`는 `swapBuildingPhotos()`가 운영 함수의 판정을 흉내 낸다.
  *      - `/api/<route>`     → `handleApi()`: Next 라우트 핸들러 흉내(/api/buildings 등).
  *      - `/storage/v1/object/public/*` → 공개 버킷 이미지(빈 WebP 200).
  *      - `/auth/v1/*`       → 로그인·로그아웃·현재 유저 조회.
@@ -64,6 +65,8 @@ export interface MockState {
   activityLogs: Row[];
   /** 브라우저가 `POST /api/activity-logs`로 보낸 실패 보고 */
   activityReports: Row[];
+  /** 브라우저가 보낸 맞바꾸기 RPC 인자(화면 순서) */
+  photoSwapRequests: { p_first: number; p_second: number }[];
 }
 
 // ── 픽스처(고정 데이터) ───────────────────────────────────────────────
@@ -443,6 +446,7 @@ function createState(authenticated: boolean): MockState {
     facilityRequestPhotos: [],
     activityLogs: seedActivityLogs(),
     activityReports: [],
+    photoSwapRequests: [],
     photos: [
       {
         id: 1,
@@ -776,6 +780,45 @@ function projectEmbeds(result: Row[], select: string | null): Row[] {
   });
 }
 
+/**
+ * `rpc/swap_building_photo_order` 흉내. 판정 순서와 SQLSTATE는 운영 함수(`20261025000000_add_building_photo_sort_order.sql`)를,
+ * HTTP 상태는 PostgREST 규칙(`P0*` 500, `PTxyz` xyz, 그 밖 400)을 따른다. RLS 거부(`42501`)는 흉내 내지 않는다 — 그 경우는
+ * 테스트가 응답을 덮어쓴다.
+ */
+function swapBuildingPhotos(
+  route: Route,
+  state: MockState,
+  firstId: number,
+  secondId: number,
+) {
+  const fail = (status: number, code: string, message: string) =>
+    json(route, { code, message, details: null, hint: null }, status);
+  if (firstId === secondId)
+    return fail(400, "22023", "cannot swap a photo with itself");
+  const first = state.photos.find((photo) => Number(photo.id) === firstId);
+  const second = state.photos.find((photo) => Number(photo.id) === secondId);
+  if (!first || !second) return fail(500, "P0002", "building photo not found");
+  if (first.building_id !== second.building_id)
+    return fail(400, "22023", "photos belong to different buildings");
+  const firstOrder = Number(first.sort_order);
+  const secondOrder = Number(second.sort_order);
+  const between = state.photos.some(
+    (photo) =>
+      photo.building_id === first.building_id &&
+      Number(photo.sort_order) > firstOrder &&
+      Number(photo.sort_order) < secondOrder,
+  );
+  if (firstOrder > secondOrder || between)
+    return fail(409, "PT409", "photos are no longer adjacent in this order");
+  first.sort_order = secondOrder;
+  second.sort_order = firstOrder;
+  return route.fulfill({
+    status: 204,
+    headers: { "access-control-allow-origin": "*" },
+    body: "",
+  });
+}
+
 // POST로 생성되는 새 행의 id 생성 규칙(테이블별).
 function nextId(name: string, state: MockState) {
   if (name === "buildings")
@@ -795,6 +838,14 @@ async function handleRest(route: Route, state: MockState, url: URL) {
   const method = route.request().method();
   // 이 처리가 없으면 아래 공통 POST가 배열을 돌려주고, 레이아웃은 그것을 참으로 읽어 확인 없이 통과한다(설계 2026-10-19 8.4).
   if (name === "rpc/is_admin") return json(route, state.listedAdmin);
+  if (name === "rpc/swap_building_photo_order" && method === "POST") {
+    const args = route.request().postDataJSON() as {
+      p_first: number;
+      p_second: number;
+    };
+    state.photoSwapRequests.push(args);
+    return swapBuildingPhotos(route, state, args.p_first, args.p_second);
+  }
   if (name === "rpc/get_admin_building_summary") {
     // 프로덕션 함수와 같은 모양: 건물 단위 숫자는 플래그 뷰를 세고, 시설 단위
     // 숫자(등록된 시설·번역 필요 시설)는 시설을 뷰에 조인해 센다.
