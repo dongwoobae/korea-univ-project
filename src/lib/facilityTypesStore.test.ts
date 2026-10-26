@@ -141,6 +141,55 @@ describe("facilityTypesStore", () => {
     expect(store.getFacilityTypesSnapshot().types).toEqual([RAMP, LOUNGE]);
   });
 
+  it("다시 받기는 끝나면 성공 여부로 풀린다", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    from.mockReturnValueOnce(queryStub({ data: [RAMP], error: null }));
+    const store = await loadStore();
+    store.subscribeFacilityTypes(() => {});
+    await vi.waitFor(() =>
+      expect(store.getFacilityTypesSnapshot().status).toBe("ready"),
+    );
+
+    from.mockReturnValueOnce(queryStub({ data: [RAMP, LOUNGE], error: null }));
+    await expect(store.reloadFacilityTypes()).resolves.toBe(true);
+    expect(store.getFacilityTypesSnapshot().types).toEqual([RAMP, LOUNGE]);
+
+    from.mockReturnValueOnce(
+      queryStub({ data: null, error: { code: "XX000", message: "boom" } }),
+    );
+    await expect(store.reloadFacilityTypes()).resolves.toBe(false);
+    expect(store.getFacilityTypesSnapshot().types).toEqual([RAMP, LOUNGE]);
+  });
+
+  it("더 늦게 시작한 받기에 밀려난 받기는 그 최신 받기의 결과로 풀린다", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    from.mockReturnValueOnce(queryStub({ data: [RAMP], error: null }));
+    const store = await loadStore();
+    store.subscribeFacilityTypes(() => {});
+    await vi.waitFor(() =>
+      expect(store.getFacilityTypesSnapshot().status).toBe("ready"),
+    );
+
+    const older = deferred();
+    const newer = deferred();
+    from
+      .mockReturnValueOnce(queryStub(older.pending))
+      .mockReturnValueOnce(queryStub(newer.pending));
+    const olderReload = store.reloadFacilityTypes();
+    const newerReload = store.reloadFacilityTypes();
+    // 먼저 시작한 받기는 성공했지만 버려진다. 최신 받기는 실패한다
+    older.respond({ data: [RAMP, LOUNGE], error: null });
+    newer.respond({ data: null, error: { code: "XX000", message: "boom" } });
+
+    await expect(olderReload).resolves.toBe(false);
+    await expect(newerReload).resolves.toBe(false);
+    expect(store.getFacilityTypesSnapshot()).toEqual({
+      types: [RAMP],
+      status: "error",
+      loaded: true,
+    });
+  });
+
   it("조회가 예외를 던져도 error다", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     from.mockImplementation(() => {
