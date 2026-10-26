@@ -17,6 +17,7 @@ describe("facilityIconKey", () => {
     expect(facilityIconKey("ramp")).toBe("ramp");
     expect(facilityIconKey("parking")).toBe("parking");
     expect(facilityIconKey("braille")).toBe("braille");
+    expect(facilityIconKey("student_lounge")).toBe("student_lounge");
   });
 
   it("모르는 코드와 빈 값은 fallback으로 간다", () => {
@@ -36,6 +37,7 @@ describe("facilityIconSvg", () => {
     expect(facilityIconSvg("ramp", 17)).toContain("lucide-trending-up");
     expect(facilityIconSvg("parking", 17)).toContain("lucide-square-parking");
     expect(facilityIconSvg("braille", 17)).toContain("lucide-grip-vertical");
+    expect(facilityIconSvg("student_lounge", 17)).toContain("lucide-sofa");
     expect(facilityIconSvg("unknown_code", 17)).toContain(
       "lucide-accessibility",
     );
