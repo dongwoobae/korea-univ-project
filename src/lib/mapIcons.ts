@@ -1,6 +1,7 @@
 import {
   Accessibility,
   GripVertical,
+  Sofa,
   Sparkles,
   SquareParking,
   Toilet,
@@ -62,6 +63,7 @@ const FACILITY_ICON_KEY: Record<FacilityCode, FacilityIconKey> = {
   ramp: "ramp",
   parking: "parking",
   braille: "braille",
+  student_lounge: "student_lounge",
 };
 
 export function facilityIconKey(
@@ -79,6 +81,7 @@ export const FACILITY_ICON_SVG: Record<FacilityIconKey, string> = {
   ramp: TrendingUp,
   parking: SquareParking,
   braille: GripVertical,
+  student_lounge: Sofa,
   fallback: Accessibility,
 };
 

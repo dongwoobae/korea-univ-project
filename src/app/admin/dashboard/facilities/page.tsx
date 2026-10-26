@@ -91,7 +91,11 @@ export default function StandaloneFacilitiesPage() {
   }
 
   const loadTypes = useCallback(async () => {
-    const { data, error } = await supabase.from("facility_types").select("*");
+    const { data, error } = await supabase
+      .from("facility_types")
+      .select("*")
+      .order("sort_order")
+      .order("code");
     setTypesFailed(Boolean(error));
     if (!error) setFacilityTypes(data ?? []);
   }, []);

@@ -38,6 +38,7 @@ export const facilityColor = {
   ramp: "#B25617",
   parking: "#6D4AB0",
   braille: "#8A6A00",
+  student_lounge: "#0F766E",
 } as const;
 
 export const focusRing = {

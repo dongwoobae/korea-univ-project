@@ -9,7 +9,7 @@ export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: "모두의 캠퍼스 — KU 배리어프리 지도",
   description:
-    "고려대학교 장애인·이동약자를 위한 배리어프리 웹 지도. 엘리베이터, 경사로, 장애인 화장실 위치를 한눈에 확인하세요.",
+    "고려대학교 장애인·이동약자를 위한 배리어프리 웹 지도. 엘리베이터, 경사로, 장애인용 화장실 위치를 한눈에 확인하세요.",
   keywords: [
     "고려대학교",
     "배리어프리",
@@ -28,7 +28,7 @@ export const metadata = {
   openGraph: {
     title: "모두의 캠퍼스 — KU 배리어프리 지도",
     description:
-      "고려대학교 장애인·이동약자를 위한 배리어프리 웹 지도. 엘리베이터, 경사로, 장애인 화장실 위치를 한눈에 확인하세요.",
+      "고려대학교 장애인·이동약자를 위한 배리어프리 웹 지도. 엘리베이터, 경사로, 장애인용 화장실 위치를 한눈에 확인하세요.",
     url: "/",
     siteName: "KU 배리어프리 지도",
     locale: "ko_KR",
@@ -68,7 +68,7 @@ const jsonLd = {
   "@type": "WebApplication",
   name: "모두의 캠퍼스 — KU 배리어프리 지도",
   description:
-    "고려대학교 장애인·이동약자를 위한 배리어프리 웹 지도. 엘리베이터, 경사로, 장애인 화장실 위치를 한눈에 확인하세요.",
+    "고려대학교 장애인·이동약자를 위한 배리어프리 웹 지도. 엘리베이터, 경사로, 장애인용 화장실 위치를 한눈에 확인하세요.",
   url: SITE_URL,
   applicationCategory: "Map",
   operatingSystem: "Web",

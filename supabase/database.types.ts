@@ -469,18 +469,21 @@ export type Database = {
           label: string | null;
           label_en: string | null;
           label_zh: string | null;
+          sort_order: number;
         };
         Insert: {
           code: string;
           label?: string | null;
           label_en?: string | null;
           label_zh?: string | null;
+          sort_order?: number;
         };
         Update: {
           code?: string;
           label?: string | null;
           label_en?: string | null;
           label_zh?: string | null;
+          sort_order?: number;
         };
         Relationships: [];
       };

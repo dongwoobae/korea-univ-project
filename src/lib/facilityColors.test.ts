@@ -26,6 +26,19 @@ describe("getFacilityColor", () => {
   it("프로토타입 속성 이름도 팔레트로 떨어진다", () => {
     expect(getFacilityColor("constructor", 0)).toBe("#0E7490");
   });
+
+  it("장애학생 휴게실은 알려진 종류라 마커와 필터 칩이 같은 청록이다", () => {
+    expect(getFacilityMarkerColor("student_lounge")).toBe("#0F766E");
+    expect(getFacilityColor("student_lounge", 0)).toBe("#0F766E");
+  });
+});
+
+// 대체 팔레트는 모르는 종류의 칩에 목록 위치로 색을 준다. 알려진 종류 색이 섞이면 둘이 같은 색이 될 수 있다
+describe("FALLBACK_PALETTE", () => {
+  it("알려진 종류의 색과 겹치지 않는다", () => {
+    for (const hex of Object.values(facilityColor))
+      expect(FALLBACK_PALETTE, hex).not.toContain(hex);
+  });
 });
 
 function contrastWithWhite(hex: string): number {
