@@ -11,10 +11,6 @@ export type College = Tables["colleges"]["Row"];
 export type BuildingPhoto = Tables["building_photos"]["Row"];
 export type Landmark = Tables["landmarks"]["Row"];
 
-/** 프론트가 아이콘·색을 아는 시설 코드. 이 밖의 값은 폴백으로 떨어진다. */
-export type FacilityCode =
-  "elevator" | "restroom" | "ramp" | "parking" | "braille" | "student_lounge";
-
 /** slope_segments.segments(jsonb)의 시작 꼭짓점 */
 export interface SlopeRouteStart {
   lat: number;

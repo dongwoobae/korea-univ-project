@@ -1,15 +1,5 @@
-import {
-  Accessibility,
-  GripVertical,
-  Sofa,
-  Sparkles,
-  SquareParking,
-  Toilet,
-  TrainFront,
-  TrendingUp,
-} from "lucide-static";
+import { Accessibility, Sparkles, TrainFront } from "lucide-static";
 import type { IconNode } from "lucide-react";
-import type { FacilityCode } from "@/types/domain";
 
 /**
  * lucide 1.31.0에 엘리베이터가 없어 직접 그린다. 아이콘 2,025개 중 이름에
@@ -55,36 +45,6 @@ function iconNodeToSvg(name: string, node: IconNode): string {
 
 export const ELEVATOR_ICON_SVG = iconNodeToSvg("elevator", ELEVATOR_ICON_NODE);
 
-export type FacilityIconKey = FacilityCode | "fallback";
-
-const FACILITY_ICON_KEY: Record<FacilityCode, FacilityIconKey> = {
-  elevator: "elevator",
-  restroom: "restroom",
-  ramp: "ramp",
-  parking: "parking",
-  braille: "braille",
-  student_lounge: "student_lounge",
-};
-
-export function facilityIconKey(
-  code: string | null | undefined,
-): FacilityIconKey {
-  const key = code ?? "";
-  return Object.hasOwn(FACILITY_ICON_KEY, key)
-    ? FACILITY_ICON_KEY[key as FacilityCode]
-    : "fallback";
-}
-
-export const FACILITY_ICON_SVG: Record<FacilityIconKey, string> = {
-  elevator: ELEVATOR_ICON_SVG,
-  restroom: Toilet,
-  ramp: TrendingUp,
-  parking: SquareParking,
-  braille: GripVertical,
-  student_lounge: Sofa,
-  fallback: Accessibility,
-};
-
 export const LANDMARK_CATEGORY_ICON_SVG = Sparkles;
 export const SUBWAY_ICON_SVG = TrainFront;
 export const FACILITY_CLUSTER_ICON_SVG = Accessibility;
@@ -125,11 +85,4 @@ export function sizedIconSvg(svg: string, size: number): string {
   return svg
     .replace('width="24"', `width="${size}"`)
     .replace('height="24"', `height="${size}"`);
-}
-
-export function facilityIconSvg(
-  code: string | null | undefined,
-  size: number,
-): string {
-  return sizedIconSvg(FACILITY_ICON_SVG[facilityIconKey(code)], size);
 }
