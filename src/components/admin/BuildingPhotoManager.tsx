@@ -1,11 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import NextImage from "next/image";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { reportFailure } from "@/lib/activityReport";
 import { authedFetch } from "@/lib/authedFetch";
 import { convertToWebP } from "@/lib/imageToWebP";
+import {
+  focusDirectionAfterMove,
+  swapArgsFor,
+  swapFailureAction,
+  swapPhotos,
+  type PhotoMoveDirection,
+} from "@/lib/buildingPhotoOrder";
 import ConfirmModal from "@/components/ConfirmModal";
 import type { BuildingPhoto } from "@/types/domain";
 
@@ -27,6 +36,20 @@ const photoUploadStatusLabel: Record<PhotoUploadStatus, string> = {
   error: "실패",
 };
 
+const MOVE_DIRECTIONS = ["earlier", "later"] as const;
+const moveLabel: Record<PhotoMoveDirection, string> = {
+  earlier: "앞으로",
+  later: "뒤로",
+};
+const MoveIcon: Record<PhotoMoveDirection, typeof ChevronLeft> = {
+  earlier: ChevronLeft,
+  later: ChevronRight,
+};
+
+function orderButtonKey(photoId: number, direction: PhotoMoveDirection) {
+  return `${photoId}:${direction}`;
+}
+
 export default function BuildingPhotoManager({
   buildingId,
   showToast,
@@ -43,19 +66,26 @@ export default function BuildingPhotoManager({
     {},
   );
   const [savingCaption, setSavingCaption] = useState<number | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const orderButtons = useRef(new Map<string, HTMLButtonElement>());
+  const busy = reordering || uploading;
 
   const fetchPhotos = useCallback(async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("building_photos")
       .select("*")
       .eq("building_id", buildingId)
-      .order("created_at");
+      .order("sort_order")
+      .order("id");
+    // 실패를 빈 목록으로 그리면 사진이 지워진 것처럼 보이고 입력 중인 설명도 사라진다
+    if (error) return false;
     setPhotos(data ?? []);
     const initial: Record<string, string> = {};
     (data ?? []).forEach((p) => {
       initial[p.id] = p.caption ?? "";
     });
     setDraftCaptions(initial);
+    return true;
   }, [buildingId]);
 
   useEffect(() => {
@@ -248,6 +278,65 @@ export default function BuildingPhotoManager({
     showToast("사진이 삭제되었어요");
   }
 
+  function orderButtonRef(photoId: number, direction: PhotoMoveDirection) {
+    const key = orderButtonKey(photoId, direction);
+    return (element: HTMLButtonElement | null) => {
+      if (element) orderButtons.current.set(key, element);
+      else orderButtons.current.delete(key);
+    };
+  }
+
+  async function handleMove(index: number, direction: PhotoMoveDirection) {
+    if (busy) return;
+    const args = swapArgsFor(photos, index, direction);
+    if (!args) return;
+    const movedId = photos[index].id;
+    const movedTo = direction === "earlier" ? index - 1 : index + 1;
+    setReordering(true);
+    // 자리를 바꾸면 React가 버튼을 DOM에서 뺐다 넣거나 끝 화살표가 꺼져 초점이 사라진다. 그린 뒤 옮긴 사진의 화살표로 돌려준다.
+    flushSync(() =>
+      setPhotos((current) => swapPhotos(current, args.p_first, args.p_second)),
+    );
+    orderButtons.current
+      .get(
+        orderButtonKey(
+          movedId,
+          focusDirectionAfterMove(movedTo, photos.length, direction),
+        ),
+      )
+      ?.focus();
+
+    const { error, status } = await supabase.rpc(
+      "swap_building_photo_order",
+      args,
+    );
+    if (error) {
+      const action = swapFailureAction(error.code);
+      if (action === "reload" && (await fetchPhotos())) {
+        showToast("순서가 바뀌어 다시 불러왔어요", "warning");
+      } else {
+        // 다시 읽기마저 실패하면 서버 순서를 모르니 누르기 전 화면으로 둔다
+        setPhotos((current) =>
+          swapPhotos(current, args.p_first, args.p_second),
+        );
+        showToast("사진 순서를 바꾸지 못했어요", "error");
+      }
+      if (action === "revert") {
+        // 브라우저 쓰기 실패를 보고하는 관문(reportingFetch)이 rpc/를 건너뛴다
+        void reportFailure({
+          source: {
+            kind: "postgrest",
+            status,
+            error: { code: error.code, message: error.message },
+          },
+          action: "building_photos.update",
+          target: { table: "building_photos", id: String(movedId) },
+        });
+      }
+    }
+    setReordering(false);
+  }
+
   return (
     <>
       {photos.length === 0 ? (
@@ -274,7 +363,7 @@ export default function BuildingPhotoManager({
             gap: 8,
           }}
         >
-          {photos.map((photo) => (
+          {photos.map((photo, index) => (
             <div
               key={photo.id}
               style={{ display: "flex", flexDirection: "column", gap: 4 }}
@@ -315,6 +404,26 @@ export default function BuildingPhotoManager({
                   ✕
                 </button>
               </div>
+              <div className="ku-photo-order-controls">
+                {MOVE_DIRECTIONS.map((direction) => {
+                  const Icon = MoveIcon[direction];
+                  return (
+                    <button
+                      key={direction}
+                      type="button"
+                      ref={orderButtonRef(photo.id, direction)}
+                      className="ku-photo-order-button"
+                      disabled={swapArgsFor(photos, index, direction) === null}
+                      // 잠금을 disabled로 걸면 누른 버튼이 키보드 초점을 잃는다
+                      aria-disabled={busy || undefined}
+                      aria-label={`사진 ${index + 1} ${moveLabel[direction]} 옮기기`}
+                      onClick={() => void handleMove(index, direction)}
+                    >
+                      <Icon size={16} aria-hidden="true" />
+                    </button>
+                  );
+                })}
+              </div>
               <input
                 value={draftCaptions[photo.id] ?? ""}
                 onChange={(e) =>
@@ -347,7 +456,7 @@ export default function BuildingPhotoManager({
       )}
       <label
         className="ku-file-trigger ku-file-trigger--filled"
-        data-disabled={uploading}
+        data-disabled={busy}
         style={{ marginTop: 12 }}
       >
         {uploading ? "업로드 중..." : "사진 추가"}
@@ -356,7 +465,7 @@ export default function BuildingPhotoManager({
           accept="image/*"
           multiple
           onChange={handleUpload}
-          disabled={uploading}
+          disabled={busy}
         />
       </label>
       {uploadItems.length > 0 && (
@@ -397,6 +506,7 @@ export default function BuildingPhotoManager({
               <button
                 type="button"
                 className="ku-photo-upload-retry"
+                disabled={busy}
                 onClick={handleRetryFailed}
               >
                 실패한 사진 다시 시도

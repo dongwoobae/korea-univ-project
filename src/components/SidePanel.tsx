@@ -123,7 +123,8 @@ export default function SidePanel({
         .from("building_photos")
         .select("id, url, caption, caption_en, caption_zh")
         .eq("building_id", buildingId)
-        .order("created_at"),
+        .order("sort_order")
+        .order("id"),
     ]);
 
     // 조회 성공분만 갱신. 실패 섹션은 error 상태로 유지해 빈 상태와 구분.
