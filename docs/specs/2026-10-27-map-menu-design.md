@@ -287,6 +287,14 @@
 `building-label-emphasis`의 모바일 시험은 폴리곤을 직접 누르고 지도를 끄므로 그대로 두되, 아래 줄이 폴리곤을 가리지 않는지 CI에서
 본다.
 
+### 7.4 E2E 환경
+
+- E2E는 `next dev`로 돈다. 2026-10-27 CI에서 왼쪽 아래 Next 개발 표시가 아래 줄의 첫 버튼(검색)을 덮어 누르기를 가로챘다. 운영에는
+  없는 표시라 E2E 웹서버에서만 끈다(`playwright.config.ts`의 `NEXT_HIDE_DEV_INDICATOR` → `next.config.mjs`의 `devIndicators: false`).
+  꺼도 빌드·실행 오류 표시는 남는다(Next `devIndicators` 문서).
+- 기존 시험 여럿이 `getByText("중앙도서관").last()`로 검색 결과를 고른다. 같은 글자의 건물 이름표(지도 안)보다 결과가 DOM에서 뒤에
+  있어야 그것이 잡힌다. 그래서 메뉴는 `MapContainer` 뒤에 그린다 — 예전 `SearchControl`도 지도 안 이름표 칸 뒤에 있었다.
+
 ## 8. 하지 않는 것
 
 - 보기 버튼과 보기 패널(⑤, 멘토링 설계 1장).
