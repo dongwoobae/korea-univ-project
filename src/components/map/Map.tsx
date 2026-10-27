@@ -46,6 +46,10 @@ import SlopeLegend from "./SlopeLegend";
 import FacilityMarkers from "./FacilityMarkers";
 import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
+import {
+  revealLabelAboveSheet,
+  setBuildingLabelEmphasis,
+} from "./buildingLabel";
 import { useMapData } from "./useMapData";
 import MapErrorBanner from "./MapErrorBanner";
 import MapBrowseList, { type MapBrowseItem } from "./MapBrowseList";
@@ -348,6 +352,41 @@ export default function Map() {
   // 툴팁 좌표는 mousemove마다 바뀌므로 React state 대신 DOM을 직접 갱신
   // (state로 두면 마우스 이동마다 Map 전체가 리렌더되어 드래그가 무거워짐)
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  // 이름표 강조(설계 5.2). 마우스 올림은 mouseover마다 바뀌어 state 대신 ref로 두고, 선택은 상세 패널이 열린 건물을 따른다
+  const hoveredBuildingIdRef = useRef<number | null>(null);
+  const labelSelectedIdRef = useRef<number | null>(null);
+  const selectedBuildingId = selectedBuilding?.id ?? null;
+
+  useEffect(() => {
+    const previous = labelSelectedIdRef.current;
+    labelSelectedIdRef.current = selectedBuildingId;
+    for (const id of [previous, selectedBuildingId]) {
+      if (id === null) continue;
+      setBuildingLabelEmphasis(layerMapRef.current[id]?.getTooltip(), {
+        hovered: hoveredBuildingIdRef.current === id,
+        selected: selectedBuildingId === id,
+      });
+    }
+  }, [selectedBuildingId]);
+
+  // 지하철역 선택(SubwayMarkers의 onSelect)은 활성 폴리곤을 건드리지 않는다. 남겨 두면 그 건물이 강조된 채 남고, 다시 누르면
+  // 선택 대신 닫기로 읽힌다(click의 activeBuildingIdRef 비교)
+  useEffect(() => {
+    if (
+      !activeLayerRef.current ||
+      activeBuildingIdRef.current === selectedBuildingId
+    )
+      return;
+    activeLayerRef.current.setStyle(
+      baseStyle(
+        featureMapRef.current[activeBuildingIdRef.current ?? -1],
+        tileMode,
+        prefersDarkMode,
+      ),
+    );
+    activeLayerRef.current = null;
+    activeBuildingIdRef.current = null;
+  }, [selectedBuildingId, tileMode, prefersDarkMode]);
 
   // react-leaflet의 StyleFunction은 Feature<Geometry, any>를 넘긴다. 이 지도의
   // GeoJSON은 건물 폴리곤만 싣기에 좁혀 받는다.
@@ -461,12 +500,26 @@ export default function Map() {
         pane: "buildingLabels",
       });
     }
+    // 다시 만든 층은 마우스 올림 없이 시작한다. 지난 층의 mouseout은 오지 않는다
+    if (hoveredBuildingIdRef.current === bId)
+      hoveredBuildingIdRef.current = null;
+    const syncLabel = () =>
+      setBuildingLabelEmphasis(layer.getTooltip(), {
+        hovered: hoveredBuildingIdRef.current === bId,
+        selected: labelSelectedIdRef.current === bId,
+      });
     layer.on({
+      // 타일·다크·데이터 버전으로 GeoJSON을 다시 만들면 이름표도 새로 열린다
+      tooltipopen: syncLabel,
       mouseover(e: L.LeafletMouseEvent) {
-        if (isMobileRef.current || (mapRef.current?.getZoom() ?? 16) >= 17) {
-          return;
-        }
+        if (isMobileRef.current) return;
+        hoveredBuildingIdRef.current = bId;
+        syncLabel();
+        // 이름이 보이는 확대에서는 이름표가 강조를 맡는다
+        if ((mapRef.current?.getZoom() ?? 16) >= 17) return;
         layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
+        // 선택된 건물은 이름표가 이미 떠 있다
+        if (labelSelectedIdRef.current === bId) return;
         const { clientX, clientY } = e.originalEvent;
         const mapEl = mapRef.current?.getContainer();
         if (!mapEl) return;
@@ -492,6 +545,10 @@ export default function Map() {
         tooltipEl.style.top = `${clientY - rect.top - 36}px`;
       },
       mouseout() {
+        if (hoveredBuildingIdRef.current === bId) {
+          hoveredBuildingIdRef.current = null;
+          syncLabel();
+        }
         setTooltip((prev) => ({ ...prev, visible: false }));
         if (activeLayerRef.current === layer) return;
         layer.setStyle(baseStyle(feature, tileMode, prefersDarkMode));
@@ -514,6 +571,13 @@ export default function Map() {
         activeLayerRef.current = layer;
         activeBuildingIdRef.current = bId;
         setSelectedBuilding({ id: bId, name: feature.properties.name });
+        // 선택하면 이름표가 뜬다 — 커서 이름표를 겹쳐 두지 않는다
+        setTooltip((prev) =>
+          prev.visible ? { ...prev, visible: false } : prev,
+        );
+        if (isMobileRef.current && mapRef.current) {
+          revealLabelAboveSheet(mapRef.current, layer.getTooltip());
+        }
       },
     });
   }
@@ -545,7 +609,10 @@ export default function Map() {
 
   function handleClosePanel() {
     window.dispatchEvent(new Event("sidePanelShouldClose"));
+    const closingId = activeBuildingIdRef.current;
     setTimeout(() => {
+      // 닫히는 사이 다른 건물을 고르면 그 선택을 지우지 않는다(설계 5.2)
+      if (activeBuildingIdRef.current !== closingId) return;
       setSelectedBuilding(null);
       if (activeLayerRef.current) {
         activeLayerRef.current.setStyle(
