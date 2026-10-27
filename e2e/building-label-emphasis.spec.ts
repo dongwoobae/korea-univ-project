@@ -49,7 +49,7 @@ async function expectEmphasized(locator: Locator) {
   await expect(locator).toBeVisible();
   await expect(locator).toHaveCSS("opacity", "1");
   await expect(locator).toHaveCSS("font-weight", "800");
-  await expect(locator).toHaveCSS("font-size", "12.5px");
+  await expect(locator).toHaveCSS("font-size", "11px");
 }
 
 async function expectPlain(locator: Locator) {

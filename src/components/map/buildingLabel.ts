@@ -21,7 +21,7 @@ export function setBuildingLabelEmphasis(
     element.classList.toggle(name, on);
     changed = true;
   }
-  // 굵기·크기가 바뀌면 너비가 달라져 가운데가 밀린다. Leaflet은 바깥 요소의 transform으로 자리를 잡으므로 다시 잰다
+  // 굵기가 바뀌면 너비가 달라져 가운데가 밀린다. Leaflet은 바깥 요소의 transform으로 자리를 잡으므로 다시 잰다
   if (changed) tooltip.update();
 }
 
