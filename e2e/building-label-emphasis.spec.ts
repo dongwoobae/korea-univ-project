@@ -78,6 +78,8 @@ test.describe("건물 이름 강조 — 웹", () => {
   test.beforeEach(async ({ page }) => {
     const state = await installMockBackend(page);
     addEngineeringHall(state);
+    // 공용 픽스처의 명소(다람쥐길) 이름표가 확대 17에서 도서관 폴리곤 가운데를 덮어 마우스가 폴리곤에 닿지 않는다
+    state.landmarks.length = 0;
     await page.goto("/");
     await expect(page.locator(".ku-building-label")).toHaveCount(2);
   });
@@ -163,6 +165,8 @@ test.describe("건물 이름 강조 — 웹", () => {
     await expectEmphasized(label(page, "Central Library"));
 
     await page.getByRole("button", { name: "Switch to satellite" }).click();
+    // 다시 만든 층의 이름표가 열린다. 옛 이름표는 Leaflet 페이드(200ms) 뒤에 빠지므로 그때까지 둘이 겹친다
+    await expect(page.locator(".ku-building-label")).toHaveCount(2);
     await expectEmphasized(label(page, "Central Library"));
 
     await page.getByRole("button", { name: "확대" }).click();
