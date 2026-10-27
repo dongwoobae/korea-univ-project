@@ -816,6 +816,123 @@ export default function Map() {
       {/* 데이터 소스 오류 배너 (비차단·재시도) */}
       <MapErrorBanner statuses={statuses} retry={retry} t={t} />
 
+      <MapContainer
+        center={KU_CENTER}
+        zoom={16}
+        style={{ width: "100%", height: "100%" }}
+        maxBounds={KU_LATLNG_BOUNDS}
+        maxBoundsViscosity={0.7}
+        ref={mapRef}
+        zoomControl={false}
+        // 표기는 아래 .ku-attribution 오버레이가 대신한다. 기본 컨트롤을 만들어
+        // 두고 CSS로 가리면 그 규칙이 전역이라 관리자 지도의 표기까지 함께
+        // 지워진다 — 그쪽에는 대신할 오버레이가 없다.
+        attributionControl={false}
+      >
+        <TileLayer
+          key={`${tileMode}-${prefersDarkMode ? "dark" : "light"}`}
+          url={
+            tileMode === "street"
+              ? getCartoTileUrl(prefersDarkMode)
+              : TILES.satellite.url
+          }
+          attribution={TILES[tileMode].attribution}
+          subdomains={TILES[tileMode].subdomains}
+          maxZoom={19}
+        />
+        <BoundsController />
+        <MapViewportObserver onChange={setViewport} />
+        <MapPressCloser onPress={dismissMenu} />
+        <Pane
+          name="buildingLabels"
+          style={{ zIndex: 450, pointerEvents: "none" }}
+        />
+        {geoData && (
+          <GeoJSON
+            key={`${tileMode}-${prefersDarkMode}-${geoDataVersion}`}
+            data={geoData}
+            style={geoJsonStyle}
+            onEachFeature={onEachFeature}
+          />
+        )}
+        {userLocation && (
+          <>
+            <Circle
+              center={[userLocation.lat, userLocation.lng]}
+              radius={userLocation.accuracy}
+              pathOptions={{
+                color: "#2563eb",
+                weight: 1,
+                opacity: 0.5,
+                fillColor: "#2563eb",
+                fillOpacity: 0.12,
+              }}
+            />
+            <Marker
+              position={[userLocation.lat, userLocation.lng]}
+              icon={userLocationIcon}
+              title={t("myLocationMarker")}
+              alt={t("myLocationMarker")}
+            />
+          </>
+        )}
+        <FacilityMarkers
+          facilities={facilities}
+          activeTypes={activeTypes}
+          zoom={viewport?.zoom ?? 16}
+        />
+        <LandmarkMarkers
+          landmarks={landmarks}
+          showLandmarks={showLandmarks}
+          zoom={viewport?.zoom ?? 16}
+          showLabels={buildingLabelsVisible}
+        />
+        <SubwayMarkers
+          lang={lang}
+          zoom={viewport?.zoom ?? 16}
+          onSelect={selectBuilding}
+        />
+        {showSlope && slopes.length > 0 && (
+          <SlopeLayer
+            slopes={slopes}
+            darkMap={tileMode === "street" && prefersDarkMode}
+          />
+        )}
+        {campusBoundaries && (
+          <GeoJSON
+            key={JSON.stringify(activeCampuses)}
+            data={
+              {
+                type: "FeatureCollection",
+                features: campusBoundaries.features.filter(
+                  (f) =>
+                    activeCampuses[
+                      f.properties?.campus as keyof typeof activeCampuses
+                    ],
+                ),
+              } as FeatureCollection
+            }
+            style={(feature) => ({
+              color:
+                (prefersDarkMode
+                  ? satelliteCampusColor[feature?.properties?.campus]
+                  : campusColor[feature?.properties?.campus]) ??
+                feature?.properties?.color,
+              weight: 2,
+              opacity: 0.45,
+              fillColor:
+                (prefersDarkMode
+                  ? satelliteCampusColor[feature?.properties?.campus]
+                  : campusColor[feature?.properties?.campus]) ??
+                feature?.properties?.color,
+              fillOpacity: 0.05,
+              dashArray: "5 4",
+            })}
+            interactive={false}
+          />
+        )}
+      </MapContainer>
+
       {/* 메뉴는 Leaflet 컨테이너 밖에 둔다 — 안을 누르면 지도 누르기로 읽힌다(docs/specs/2026-10-27-map-menu-design.md 5.3) */}
       {layout === "expanded" && (
         <>
@@ -944,123 +1061,6 @@ export default function Map() {
           )}
         </MapMenuPanel>
       )}
-
-      <MapContainer
-        center={KU_CENTER}
-        zoom={16}
-        style={{ width: "100%", height: "100%" }}
-        maxBounds={KU_LATLNG_BOUNDS}
-        maxBoundsViscosity={0.7}
-        ref={mapRef}
-        zoomControl={false}
-        // 표기는 아래 .ku-attribution 오버레이가 대신한다. 기본 컨트롤을 만들어
-        // 두고 CSS로 가리면 그 규칙이 전역이라 관리자 지도의 표기까지 함께
-        // 지워진다 — 그쪽에는 대신할 오버레이가 없다.
-        attributionControl={false}
-      >
-        <TileLayer
-          key={`${tileMode}-${prefersDarkMode ? "dark" : "light"}`}
-          url={
-            tileMode === "street"
-              ? getCartoTileUrl(prefersDarkMode)
-              : TILES.satellite.url
-          }
-          attribution={TILES[tileMode].attribution}
-          subdomains={TILES[tileMode].subdomains}
-          maxZoom={19}
-        />
-        <BoundsController />
-        <MapViewportObserver onChange={setViewport} />
-        <MapPressCloser onPress={dismissMenu} />
-        <Pane
-          name="buildingLabels"
-          style={{ zIndex: 450, pointerEvents: "none" }}
-        />
-        {geoData && (
-          <GeoJSON
-            key={`${tileMode}-${prefersDarkMode}-${geoDataVersion}`}
-            data={geoData}
-            style={geoJsonStyle}
-            onEachFeature={onEachFeature}
-          />
-        )}
-        {userLocation && (
-          <>
-            <Circle
-              center={[userLocation.lat, userLocation.lng]}
-              radius={userLocation.accuracy}
-              pathOptions={{
-                color: "#2563eb",
-                weight: 1,
-                opacity: 0.5,
-                fillColor: "#2563eb",
-                fillOpacity: 0.12,
-              }}
-            />
-            <Marker
-              position={[userLocation.lat, userLocation.lng]}
-              icon={userLocationIcon}
-              title={t("myLocationMarker")}
-              alt={t("myLocationMarker")}
-            />
-          </>
-        )}
-        <FacilityMarkers
-          facilities={facilities}
-          activeTypes={activeTypes}
-          zoom={viewport?.zoom ?? 16}
-        />
-        <LandmarkMarkers
-          landmarks={landmarks}
-          showLandmarks={showLandmarks}
-          zoom={viewport?.zoom ?? 16}
-          showLabels={buildingLabelsVisible}
-        />
-        <SubwayMarkers
-          lang={lang}
-          zoom={viewport?.zoom ?? 16}
-          onSelect={selectBuilding}
-        />
-        {showSlope && slopes.length > 0 && (
-          <SlopeLayer
-            slopes={slopes}
-            darkMap={tileMode === "street" && prefersDarkMode}
-          />
-        )}
-        {campusBoundaries && (
-          <GeoJSON
-            key={JSON.stringify(activeCampuses)}
-            data={
-              {
-                type: "FeatureCollection",
-                features: campusBoundaries.features.filter(
-                  (f) =>
-                    activeCampuses[
-                      f.properties?.campus as keyof typeof activeCampuses
-                    ],
-                ),
-              } as FeatureCollection
-            }
-            style={(feature) => ({
-              color:
-                (prefersDarkMode
-                  ? satelliteCampusColor[feature?.properties?.campus]
-                  : campusColor[feature?.properties?.campus]) ??
-                feature?.properties?.color,
-              weight: 2,
-              opacity: 0.45,
-              fillColor:
-                (prefersDarkMode
-                  ? satelliteCampusColor[feature?.properties?.campus]
-                  : campusColor[feature?.properties?.campus]) ??
-                feature?.properties?.color,
-              fillOpacity: 0.05,
-              dashArray: "5 4",
-            })}
-            interactive={false}
-          />
-        )}
-      </MapContainer>
 
       <div
         className="ku-attribution"

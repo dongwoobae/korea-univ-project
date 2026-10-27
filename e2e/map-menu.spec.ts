@@ -120,6 +120,7 @@ test.describe("공개 지도 메뉴 — 웹 접기·펼치기", () => {
     await expect(menuNav(page)).toHaveCount(0);
 
     await page.getByRole("button", { name: "메뉴 접기" }).click();
+    await expect(menuNav(page)).toBeVisible();
     const names = await accessibleNames(menuNav(page).getByRole("button"));
     expect(names.map((name) => name.replace(/ \(\d+\)$/, ""))).toEqual([
       "메뉴 펼치기",
@@ -416,6 +417,8 @@ test.describe("공개 지도 메뉴 — 모바일", () => {
       await page.goto("/");
 
       const bar = page.locator(".ku-menu-nav--bar");
+      // 이름은 기다리지 않고 한 번에 읽는다. 지도가 늦게 불려 오므로 줄이 그려진 뒤에 읽는다
+      await expect(bar).toBeVisible();
       const buttons = bar.getByRole("button");
       const names = await accessibleNames(buttons);
       expect(names.map((name) => name.replace(/ \(\d+\)$/, ""))).toEqual([
