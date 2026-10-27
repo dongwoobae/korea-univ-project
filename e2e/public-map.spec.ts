@@ -1,6 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
 
+function mobileMenuButton(page: Page, name: string | RegExp) {
+  return page
+    .getByRole("navigation", { name: "지도 메뉴" })
+    .getByRole("button", { name, exact: typeof name === "string" });
+}
+
 const currentTileZoom = (page: Page) =>
   page.locator(".leaflet-tile").evaluateAll((tiles) =>
     Math.max(
@@ -365,11 +371,11 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     await expect(page.getByPlaceholder("搜索建筑...")).toBeVisible();
   });
 
-  test("모바일 필터 드롭다운이 화면 안에서 동작한다", async ({ page }) => {
+  test("모바일 필터 패널이 화면 안에서 동작한다", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
-    await page.getByRole("button", { name: /시설 필터/ }).click();
+    await mobileMenuButton(page, /^필터/).click();
     await expect(
       page.getByRole("button", { name: /캠퍼스 영역/ }),
     ).toBeVisible();
@@ -390,12 +396,13 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       page.getByRole("dialog", { name: "피드백 보내기" }),
     ).toBeVisible();
 
-    for (const selector of [
-      ".ku-search-input",
-      ".ku-mobile-filter-trigger",
-      ".ku-map-browse-trigger",
-    ]) {
-      const control = page.locator(selector);
+    const controls = [
+      ...(await page.locator(".ku-menu-nav--bar .ku-menu-button").all()),
+      page.locator(".ku-language-trigger"),
+    ];
+    expect(controls).toHaveLength(5);
+    for (const control of controls) {
+      const label = (await control.getAttribute("aria-label")) ?? "";
       await expect(control).toBeVisible();
       const coveredByModal = await control.evaluate((element) => {
         const rect = element.getBoundingClientRect();
@@ -405,7 +412,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
         );
         return Boolean(hit?.closest(".ku-feedback-backdrop"));
       });
-      expect(coveredByModal, `${selector}가 피드백 모달 위로 튀어나온다`).toBe(
+      expect(coveredByModal, `${label}가 피드백 모달 위로 튀어나온다`).toBe(
         true,
       );
     }
@@ -814,9 +821,9 @@ test.describe("공개 지도 — 경사도 범례", () => {
       const mobile = viewport.width < 768;
       await page.setViewportSize(viewport);
       await page.goto("/");
-      if (mobile) await page.getByRole("button", { name: /시설 필터/ }).click();
+      if (mobile) await mobileMenuButton(page, /^필터/).click();
       await page.getByRole("checkbox", { name: /경사도/ }).check();
-      if (mobile) await page.getByRole("button", { name: /시설 필터/ }).click();
+      if (mobile) await mobileMenuButton(page, /^필터/).click();
       const legend = legendOf(page);
       await expect(legend.getByRole("button")).toHaveCount(6);
 
@@ -843,12 +850,12 @@ test.describe("공개 지도 — 경사도 범례", () => {
 test.describe("공개 지도 — 경사도 범례 (모바일)", () => {
   test.use({ viewport: { width: 375, height: 800 }, hasTouch: true });
 
-  test("필터를 접어도 남고, 탭으로 툴팁을 열고 닫으며, 둘러보기와 버튼 열을 비키고 건물을 열면 숨는다", async ({
+  test("필터를 닫아도 남고, 탭으로 툴팁을 열고 닫으며, 출처와 버튼 열을 비키고 건물을 열면 숨는다", async ({
     page,
   }) => {
     await installMockBackend(page);
     await page.goto("/");
-    const filter = page.getByRole("button", { name: /시설 필터/ });
+    const filter = mobileMenuButton(page, /^필터/);
     await filter.click();
     await page.getByRole("checkbox", { name: /경사도/ }).check();
     const legend = page.getByRole("group", { name: "경사도 범례" });
@@ -869,13 +876,16 @@ test.describe("공개 지도 — 경사도 범례 (모바일)", () => {
     await expect(page.getByRole("tooltip")).toHaveCount(0);
 
     const legendBox = (await page.locator(".ku-slope-legend").boundingBox())!;
-    const browseBox = (await page
-      .locator(".ku-map-browse-trigger")
+    const attributionBox = (await page
+      .locator(".ku-attribution")
       .boundingBox())!;
     const actionsBox = (await page.locator(".ku-map-actions").boundingBox())!;
-    expect(legendBox.y + legendBox.height).toBeLessThanOrEqual(browseBox.y);
+    expect(legendBox.y + legendBox.height).toBeLessThanOrEqual(
+      attributionBox.y,
+    );
     expect(legendBox.x + legendBox.width).toBeLessThanOrEqual(actionsBox.x);
 
+    await mobileMenuButton(page, "검색").click();
     await page.getByPlaceholder("건물 검색...").fill("중앙도서관");
     await page.getByText("중앙도서관", { exact: true }).last().click();
     await expect(legend).toBeHidden();

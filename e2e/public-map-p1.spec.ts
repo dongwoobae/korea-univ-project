@@ -65,17 +65,21 @@ test.describe("공개 지도 P1 개선 (현재 위치·필터 배지·라벨)", 
     await expect(page.locator(".ku-user-location-dot")).toHaveCount(0);
   });
 
-  test("P1-03: 모바일 필터 배지가 첫 로드에 0이며 명소를 끄면 1이 된다", async ({
+  test("P1-03: 모바일 필터 수가 첫 로드에 없고 명소를 끄면 1이 된다", async ({
     page,
   }) => {
     await installMockBackend(page);
     await page.setViewportSize(MOBILE);
     await page.goto("/");
 
-    const badge = page.locator(".ku-mobile-filter-badge");
-    await expect(badge).toHaveText("0"); // 회귀: 이전에는 1
+    const filter = page
+      .getByRole("navigation", { name: "지도 메뉴" })
+      .getByRole("button", { name: /^필터/ });
+    await expect(filter).toHaveAccessibleName("필터");
+    const badge = filter.locator(".ku-menu-badge");
+    await expect(badge).toHaveCount(0); // 회귀: 이전에는 1
 
-    await page.locator(".ku-mobile-filter-trigger").click();
+    await filter.click();
     await page.getByText("명소", { exact: true }).click();
     await expect(badge).toHaveText("1");
   });
