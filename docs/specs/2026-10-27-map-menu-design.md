@@ -217,7 +217,7 @@
   그려지는데, 지금 모바일 필터는 바깥이 남아 이 값을 지켰다. 배지 셈은 `mapMenu.ts`의 `activeFilterCount`로 옮긴다(첫 로드 0 규칙
   주석과 함께).
 - `FavoritesList.tsx`: `show`를 빼고(여닫음은 부모), 뿌리에 `map-favorites-panel` id와 `tabIndex={-1}`.
-- `MapBrowseList.tsx`: 펼침 모드의 왼쪽 아래 버튼(`MapBrowseTrigger`)과 패널 내용(`MapBrowsePanel`)으로 나눈다. 열림은 부모가 정하고,
+- `MapBrowseList.tsx`: 패널 내용을 `MapBrowsePanel`로 떼어 접힌 줄·아래 줄 패널이 같이 쓴다. 기본 내보내기(`MapBrowseList`)는 펼침 모드의 왼쪽 아래 버튼과 그 위 패널이다. 열림은 부모가 정하고,
   패널의 닫기 버튼은 부모의 닫기(초점 돌림)를 부른다. 열 때 닫기 버튼에 초점을 주던 효과는 5.4가 대신한다.
 - `LanguageSwitcher.tsx`·`SlopeBandsLegend.tsx`: Esc에 `preventDefault`(5.4).
 - `SidePanel.tsx`: `<aside>`에 `tabIndex={-1}`(5.4). 초점 모양은 전역 `[tabindex]:focus-visible` 규칙 그대로다 — 키보드로 고른 사람에게만 보인다.
