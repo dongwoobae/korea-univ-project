@@ -995,6 +995,23 @@
   opacity: 0.58 !important;
 }
 
+/* 마우스를 올린 건물(이름이 보이는 확대에서만)과 상세가 열린 건물(확대와 상관없이)의 이름. 설계: docs/specs/2026-10-25-mentoring-feedback-design.md 5.2.
+   굵기는 확대와 상관없이 클래스만 따른다 — 마우스를 올린 채 확대 경계를 넘을 때 너비가 바뀌면 자리를 다시 잴 때가 없다.
+   너비가 바뀌는 클래스 변경 때는 buildingLabel.ts가 자리를 다시 잡는다 */
+.ku-building-label.ku-building-label--hovered,
+.ku-building-label.ku-building-label--selected {
+  z-index: 1;
+  font-weight: 800;
+}
+
+/* 위 0.58 규칙과 우선순위가 같거나 높아야 해 그 뒤에 둔다 */
+.ku-map-shell[data-building-labels-visible="true"]
+  .ku-building-label.ku-building-label--hovered,
+.ku-map-shell .ku-building-label.ku-building-label--selected {
+  visibility: visible;
+  opacity: 1 !important;
+}
+
 .ku-side-panel {
   position: absolute;
   z-index: 1200;
