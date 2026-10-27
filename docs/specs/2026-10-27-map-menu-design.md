@@ -220,7 +220,7 @@
 - `MapBrowseList.tsx`: 펼침 모드의 왼쪽 아래 버튼(`MapBrowseTrigger`)과 패널 내용(`MapBrowsePanel`)으로 나눈다. 열림은 부모가 정하고,
   패널의 닫기 버튼은 부모의 닫기(초점 돌림)를 부른다. 열 때 닫기 버튼에 초점을 주던 효과는 5.4가 대신한다.
 - `LanguageSwitcher.tsx`·`SlopeBandsLegend.tsx`: Esc에 `preventDefault`(5.4).
-- `SidePanel.tsx`: `<aside>`에 `tabIndex={-1}`(5.4). 초점 테두리는 그리지 않는다(사용자가 고른 조작이 아니라 이동한 자리).
+- `SidePanel.tsx`: `<aside>`에 `tabIndex={-1}`(5.4). 초점 모양은 전역 `[tabindex]:focus-visible` 규칙 그대로다 — 키보드로 고른 사람에게만 보인다.
 - `Map.tsx`: `useMapMenu`, 지도 누르기 구성 요소, 세 모드의 배치, `selectBuilding`(5.2·5.5). 검색 결과로 고른 건물·명소의 지도
   이동(`fitBounds`·`flyTo`)이 `SearchControl`에서 여기로 온다.
 - `map-ui.css`: 2~4장의 자리. 펼침 모드 규칙은 접기 버튼 말고 바꾸지 않는다. 모바일 블록의 검색창·별·필터 트리거·목록 버튼 규칙은
