@@ -3768,6 +3768,291 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   }
 }
 
+/* 시설 종류 관리 모달. 설계: docs/specs/2026-10-26-facility-type-management-design.md 3장 */
+.ku-types-modal h2:focus {
+  outline: none;
+}
+.ku-types-modal-backdrop {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ku-backdrop);
+}
+.ku-types-modal {
+  box-sizing: border-box;
+  width: 90%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 20px;
+  border: 1px solid var(--ku-border);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  box-shadow: var(--ku-shadow-overlay);
+}
+.ku-types-modal h2 {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.ku-types-modal-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--ku-danger);
+  font-size: 12.5px;
+}
+.ku-types-modal-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+.ku-types-modal-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ku-types-modal-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--ku-divider);
+}
+.ku-types-modal-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #fff;
+}
+.ku-types-modal-names {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ku-types-modal-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+.ku-types-modal-translations {
+  overflow: hidden;
+  color: var(--ku-text-3);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ku-types-modal-usage {
+  color: var(--ku-text-2);
+  font-size: 12px;
+}
+.ku-types-modal-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ku-types-modal-actions,
+.ku-types-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.ku-types-form h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.ku-types-form-names {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 10px;
+}
+.ku-types-form-names label,
+.ku-types-form legend {
+  color: var(--ku-text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.ku-types-form input[type="text"] {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font-size: 13px;
+}
+.ku-types-form-translate {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 2;
+  align-items: center;
+  gap: 8px;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-types-form fieldset {
+  margin: 14px 0 0;
+  padding: 0;
+  border: 0;
+}
+.ku-types-form legend {
+  margin-bottom: 6px;
+  padding: 0;
+}
+.ku-types-form-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
+}
+.ku-types-form-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  cursor: pointer;
+}
+.ku-types-form-icon:has(input:checked) {
+  border-color: var(--ku-primary);
+  box-shadow: inset 0 0 0 1px var(--ku-primary);
+  color: var(--ku-primary-text);
+}
+.ku-types-form-colors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ku-types-form-color {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+}
+.ku-types-form-color:has(input:checked) {
+  border-color: var(--ku-text-1);
+}
+.ku-types-form-color span[aria-hidden] {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+/* 고르는 칸은 화면에 보이지 않는 radio라 Tab 초점이 오면 둘러싼 칸에 고리를 건다 */
+.ku-types-form-icon:has(input:focus-visible),
+.ku-types-form-color:has(input:focus-visible) {
+  outline: 2px solid var(--ku-primary-text);
+  outline-offset: 2px;
+}
+.ku-types-form-picked {
+  margin: 6px 0 0;
+  color: var(--ku-text-3);
+  font-size: 12px;
+}
+.ku-types-form-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--ku-divider);
+  border-radius: var(--ku-radius);
+  background: var(--ku-bg);
+}
+/* 공개 지도 마커(FacilityMarkers.tsx의 facilityMarkerIcon)와 켜진 필터 칩(map-ui.css의 .ku-chip[data-active])을 본뜬다 */
+.ku-types-form-preview-marker {
+  display: inline-flex;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 2px solid #fff;
+  border-radius: 50% 50% 50% 4px;
+  color: #fff;
+  box-shadow: 0 2px 7px rgba(28, 25, 23, 0.28);
+  transform: rotate(-45deg);
+}
+.ku-types-form-preview-marker > span {
+  display: flex;
+  transform: rotate(45deg);
+}
+.ku-types-form-preview-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1.5px solid;
+  border-radius: var(--ku-radius);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.ku-types-form-error {
+  margin: 12px 0 0;
+  color: var(--ku-danger);
+  font-size: 12.5px;
+}
+@media (max-width: 767px) {
+  .ku-types-modal {
+    width: calc(100% - 24px);
+    padding: 16px;
+  }
+  .ku-types-modal-row {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .ku-types-modal-controls {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+  .ku-types-modal .ku-workspace-button,
+  .ku-types-modal .ku-workspace-primary {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .ku-types-form-names {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ku-types-form-translate {
+    grid-column: auto;
+  }
+  .ku-types-form input[type="text"] {
+    height: 44px;
+  }
+  .ku-types-form-icon-grid {
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  }
+  .ku-types-form-icon {
+    height: 44px;
+  }
+  .ku-types-form-color {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 /* 로그 탭. 설계: docs/specs/2026-10-19-activity-log-design.md 5장 */
 .ku-log-list {
   border: 1px solid var(--ku-border);

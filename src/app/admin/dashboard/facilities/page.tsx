@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import FacilityDetailPanel from "@/components/admin/facilities/FacilityDetailPanel";
 import FacilityListRow from "@/components/admin/facilities/FacilityListRow";
+import FacilityTypesModal from "@/components/admin/facilities/FacilityTypesModal";
 import AdminMapWorkspace from "@/components/admin/workspace/AdminMapWorkspace";
 import WorkspaceListPanel from "@/components/admin/workspace/WorkspaceListPanel";
 import {
@@ -62,11 +63,19 @@ export default function StandaloneFacilitiesPage() {
   const facilityTypes = facilityTypesSnapshot.types;
   const typesFailed = facilityTypesSnapshot.status === "error";
   const [typeFilter, setTypeFilter] = useState("all");
+  // 지운 종류를 고르고 있었으면 빈 목록이 남지 않게 모든 유형으로 본다(설계 3.4)
+  const activeTypeFilter =
+    typeFilter !== "all" &&
+    facilityTypesSnapshot.loaded &&
+    !facilityTypes.some((type) => type.code === typeFilter)
+      ? "all"
+      : typeFilter;
   const [draft, setDraft] = useState<DetailDraftPin | null>(null);
   const [locateFocus, setLocateFocus] = useState<{
     owner: string;
     focus: WorkspaceFocus;
   } | null>(null);
+  const [typesModalOpen, setTypesModalOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
@@ -77,9 +86,9 @@ export default function StandaloneFacilitiesPage() {
   const collection = useAdminCollection(
     facilities,
     FACILITY_COLLECTION_POLICY,
-    typeFilter === "all"
+    activeTypeFilter === "all"
       ? undefined
-      : (facility) => facility.facility_code === typeFilter,
+      : (facility) => facility.facility_code === activeTypeFilter,
   );
   const { view, setPage } = collection;
   const selected =
@@ -272,7 +281,7 @@ export default function StandaloneFacilitiesPage() {
             searchPlaceholder="시설명 또는 설명 검색"
             filters={
               <select
-                value={typeFilter}
+                value={activeTypeFilter}
                 onChange={(event) => {
                   const next = event.target.value;
                   clearSelectionThen(() => {
@@ -312,6 +321,17 @@ export default function StandaloneFacilitiesPage() {
               label: type.label ?? type.code,
               color: facilityStyleOf(facilityTypes, type.code).color,
             }))}
+            legendAction={
+              <button
+                type="button"
+                className="ku-workspace-button"
+                // 받기 전에 열면 빈 목록과 비교해 이미 있는 이름을 막지 못한다
+                disabled={!facilityTypesSnapshot.loaded}
+                onClick={() => setTypesModalOpen(true)}
+              >
+                종류 관리
+              </button>
+            }
           >
             {view.pageItems.map((facility) => (
               <FacilityListRow
@@ -325,6 +345,15 @@ export default function StandaloneFacilitiesPage() {
         }
         detail={detail}
       />
+      {typesModalOpen && (
+        <FacilityTypesModal
+          onClose={(changed) => {
+            setTypesModalOpen(false);
+            if (changed) void loadFacilities();
+          }}
+          showToast={showToast}
+        />
+      )}
       {toast && (
         <Toast
           message={toast.message}

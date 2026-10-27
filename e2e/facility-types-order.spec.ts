@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
 
 // 설계: docs/specs/2026-10-25-mentoring-feedback-design.md 4.2 — 종류 목록을 저장 순서가 아니라 sort_order로 읽는다.
-// 목 백엔드는 종류를 고정 목록으로 돌려줘 정렬 결과는 흉내 내지 않는다. 요청이 정렬을 묻는지만 본다.
+// 목 백엔드도 `order`대로 돌려주지만 픽스처가 이미 그 순서라, 결과만 보면 요청에서 정렬이 빠져도 통과한다. 요청이 정렬을 묻는지 본다.
 for (const screen of [
   { name: "공개 지도", path: "/", authenticated: false },
   {

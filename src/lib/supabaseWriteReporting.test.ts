@@ -26,6 +26,23 @@ describe("restWrite", () => {
       restWrite(new URL("https://db.test/auth/v1/token"), "POST"),
     ).toBeNull();
   });
+
+  it("기본 키가 code인 시설 종류는 code 필터에서 대상 키를 읽는다", () => {
+    expect(
+      restWrite(
+        new URL(`${REST}/facility_types?code=eq.type_ab12cd34`),
+        "DELETE",
+      ),
+    ).toEqual({
+      action: "facility_types.delete",
+      table: "facility_types",
+      id: "type_ab12cd34",
+    });
+    expect(
+      restWrite(new URL(`${REST}/facility_types?code=eq.ramp`), "PATCH")?.id,
+    ).toBe("ramp");
+    expect(restWrite(new URL(`${REST}/facility_types`), "POST")?.id).toBeNull();
+  });
 });
 
 describe("reportingFetch", () => {
