@@ -22,12 +22,13 @@ export const MENU_PANEL_ID: Record<MenuPanel, string> = {
 
 const COLLAPSED_KEY = "ku_menu_collapsed";
 
-// localStorage는 꺼내는 것부터 던질 수 있어(사생활 보호 모드·차단) 저장소를 돌려주는 함수를 받는다
+// localStorage는 꺼내는 것부터 던질 수 있어(사생활 보호 모드·차단) 저장소를 돌려주는 함수를 받는다.
+// 펼친 적이 있을 때("false")만 펼친다. 처음 방문·모르는 값·읽기 실패는 접힘(멘토링 설계 2장의 "없을 때")
 export function readMenuCollapsed(storage: () => Pick<Storage, "getItem">) {
   try {
-    return storage().getItem(COLLAPSED_KEY) === "true";
+    return storage().getItem(COLLAPSED_KEY) !== "false";
   } catch {
-    return false;
+    return true;
   }
 }
 

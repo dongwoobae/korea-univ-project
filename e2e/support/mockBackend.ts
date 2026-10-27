@@ -1620,6 +1620,8 @@ export async function installMockBackend(
     geolocationDelayMs?: number;
     /** false면 `rpc/is_admin`이 거짓을 돌려준다 — 로그인은 되지만 관리자 목록에 없는 계정 */
     listedAdmin?: boolean;
+    /** 저장 값이 없으면 웹 지도 메뉴를 펼쳐 둔다. false면 처음 방문(접힘) 그대로 — 이유는 docs/specs/2026-10-27-map-menu-design.md 7.4 */
+    expandMapMenu?: boolean;
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
@@ -1628,7 +1630,10 @@ export async function installMockBackend(
   state.translationFailuresRemaining = options.failTranslations ?? 0;
   // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(
-    ({ authenticated, currentLocation, geolocationDelayMs }) => {
+    ({ authenticated, currentLocation, geolocationDelayMs, expandMapMenu }) => {
+      // 시험이 먼저 넣은 값과 새로 고침 뒤의 값은 그대로 둔다
+      if (expandMapMenu && localStorage.getItem("ku_menu_collapsed") === null)
+        localStorage.setItem("ku_menu_collapsed", "false");
       if (authenticated) {
         localStorage.setItem(
           "sb-127-auth-token",
@@ -1707,6 +1712,7 @@ export async function installMockBackend(
           ? { latitude: 37.5893, longitude: 127.0327 }
           : options.currentLocation,
       geolocationDelayMs: options.geolocationDelayMs ?? 0,
+      expandMapMenu: options.expandMapMenu ?? true,
     },
   );
 

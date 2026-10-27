@@ -16,15 +16,15 @@ const throwing = () => {
 };
 
 describe("접힘 저장 값", () => {
-  it('"true"만 접힘이고 그 밖은 펼침이다', () => {
-    expect(readMenuCollapsed(() => fakeStorage("true"))).toBe(true);
-    for (const value of ["false", "yes", "", null])
-      expect(readMenuCollapsed(() => fakeStorage(value))).toBe(false);
+  it('"false"만 펼침이고 처음 방문(없음)을 포함한 그 밖은 접힘이다', () => {
+    expect(readMenuCollapsed(() => fakeStorage("false"))).toBe(false);
+    for (const value of ["true", "yes", "", null])
+      expect(readMenuCollapsed(() => fakeStorage(value))).toBe(true);
   });
 
-  it("저장소에 닿지 못하거나 읽다가 던지면 펼침이다", () => {
-    expect(readMenuCollapsed(throwing)).toBe(false);
-    expect(readMenuCollapsed(() => ({ getItem: throwing }))).toBe(false);
+  it("저장소에 닿지 못하거나 읽다가 던지면 접힘이다", () => {
+    expect(readMenuCollapsed(throwing)).toBe(true);
+    expect(readMenuCollapsed(() => ({ getItem: throwing }))).toBe(true);
   });
 
   it("문자열로 저장하고, 저장하다 던져도 삼킨다", () => {

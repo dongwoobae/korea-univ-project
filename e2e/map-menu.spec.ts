@@ -111,15 +111,11 @@ async function expectTouchTarget(target: Locator, label: string) {
 }
 
 test.describe("공개 지도 메뉴 — 웹 접기·펼치기", () => {
-  test("접으면 왼쪽 줄만 남고 새로 고쳐도 접혀 있으며, 펼치면 돌아온다", async ({
+  test("처음 방문은 접혀 있고, 펼치면 새로 고쳐도 펼쳐져 있으며, 다시 접을 수 있다", async ({
     page,
   }) => {
-    await installMockBackend(page);
+    await installMockBackend(page, { expandMapMenu: false });
     await page.goto("/");
-    await expect(page.locator(".ku-filter-panel")).toBeVisible();
-    await expect(menuNav(page)).toHaveCount(0);
-
-    await page.getByRole("button", { name: "메뉴 접기" }).click();
     await expect(menuNav(page)).toBeVisible();
     const names = await accessibleNames(menuNav(page).getByRole("button"));
     expect(names.map((name) => name.replace(/ \(\d+\)$/, ""))).toEqual([
@@ -129,17 +125,12 @@ test.describe("공개 지도 메뉴 — 웹 접기·펼치기", () => {
       "즐겨찾기",
       "목록",
     ]);
-    await expect(menuButton(page, "메뉴 펼치기")).toBeFocused();
     await expect(page.locator(".ku-search-control")).toHaveCount(0);
     await expect(page.locator(".ku-filter-panel")).toHaveCount(0);
     await expect(page.locator(".ku-map-browse-trigger")).toHaveCount(0);
     expect(
       await page.evaluate(() => localStorage.getItem("ku_menu_collapsed")),
-    ).toBe("true");
-
-    await page.reload();
-    await expect(menuButton(page, "메뉴 펼치기")).toBeVisible();
-    await expect(page.locator(".ku-filter-panel")).toHaveCount(0);
+    ).toBeNull();
 
     await menuButton(page, "메뉴 펼치기").click();
     await expect(page.locator(".ku-filter-panel")).toBeVisible();
@@ -149,9 +140,21 @@ test.describe("공개 지도 메뉴 — 웹 접기·펼치기", () => {
     expect(
       await page.evaluate(() => localStorage.getItem("ku_menu_collapsed")),
     ).toBe("false");
+
+    await page.reload();
+    await expect(page.locator(".ku-filter-panel")).toBeVisible();
+    await expect(menuNav(page)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "메뉴 접기" }).click();
+    await expect(menuNav(page)).toBeVisible();
+    await expect(menuButton(page, "메뉴 펼치기")).toBeFocused();
+    await expect(page.locator(".ku-filter-panel")).toHaveCount(0);
+    expect(
+      await page.evaluate(() => localStorage.getItem("ku_menu_collapsed")),
+    ).toBe("true");
   });
 
-  test("저장 값이 모르는 값이거나 읽다가 예외가 나면 펼친다", async ({
+  test("저장 값이 모르는 값이거나 읽다가 예외가 나면 접는다", async ({
     page,
   }) => {
     await installMockBackend(page);
@@ -159,10 +162,11 @@ test.describe("공개 지도 메뉴 — 웹 접기·펼치기", () => {
       localStorage.setItem("ku_menu_collapsed", "yes"),
     );
     await page.goto("/");
-    await expect(page.locator(".ku-filter-panel")).toBeVisible();
-    await expect(menuNav(page)).toHaveCount(0);
+    await expect(menuNav(page)).toBeVisible();
+    await expect(page.locator(".ku-filter-panel")).toHaveCount(0);
 
     await page.addInitScript(() => {
+      localStorage.setItem("ku_menu_collapsed", "false");
       const getItem = Storage.prototype.getItem;
       Storage.prototype.getItem = function (key: string) {
         if (key === "ku_menu_collapsed")
@@ -171,8 +175,8 @@ test.describe("공개 지도 메뉴 — 웹 접기·펼치기", () => {
       };
     });
     await page.reload();
-    await expect(page.locator(".ku-filter-panel")).toBeVisible();
-    await expect(menuNav(page)).toHaveCount(0);
+    await expect(menuNav(page)).toBeVisible();
+    await expect(page.locator(".ku-filter-panel")).toHaveCount(0);
   });
 });
 
