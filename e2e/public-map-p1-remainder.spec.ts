@@ -3,7 +3,16 @@ import { installMockBackend } from "./support/mockBackend";
 
 const JSON_HEADERS = { "access-control-allow-origin": "*" };
 
-async function openLibraryPanel(page: import("@playwright/test").Page) {
+async function openLibraryPanel(
+  page: import("@playwright/test").Page,
+  { mobile = false } = {},
+) {
+  // 모바일은 아래 줄의 검색을 열어야 검색창이 나온다
+  if (mobile)
+    await page
+      .getByRole("navigation", { name: "지도 메뉴" })
+      .getByRole("button", { name: "검색", exact: true })
+      .click();
   await page.getByPlaceholder("건물 검색...").fill("중앙도서관");
   await page.getByText("중앙도서관", { exact: true }).last().click();
   await expect(page.locator(".ku-side-panel")).toBeVisible();
@@ -114,7 +123,7 @@ test.describe("공개 지도 P1 잔여 개선", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMockBackend(page);
     await page.goto("/");
-    await openLibraryPanel(page);
+    await openLibraryPanel(page, { mobile: true });
 
     const handle = page.locator(".ku-side-handle");
     await expect(handle).toHaveAttribute("aria-label", "닫기");
@@ -128,7 +137,7 @@ test.describe("공개 지도 P1 잔여 개선", () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await installMockBackend(page);
     await page.goto("/");
-    await openLibraryPanel(page);
+    await openLibraryPanel(page, { mobile: true });
 
     // 손잡이에서 아래로 임계값(80px) 이상 스와이프
     await page.locator(".ku-side-handle").evaluate((el) => {

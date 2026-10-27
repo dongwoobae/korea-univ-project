@@ -1,8 +1,6 @@
 "use client";
 
 import {
-  useEffect,
-  useState,
   type CSSProperties,
   type Dispatch,
   type ReactNode,
@@ -15,11 +13,15 @@ import type { FacilityType } from "@/types/domain";
 import { campusColor } from "@/lib/theme";
 import { facilityStyleOf } from "@/lib/facilityStyleCatalog";
 import { FacilityTypeIcon, LandmarkCategoryIcon } from "./iconography";
+import { MENU_PANEL_ID } from "./mapMenu";
 
 export type CampusKey = "인문사회계" | "자연계" | "녹지캠퍼스" | "의료원";
 
 /** 캠퍼스 필터 토글 맵. 키는 CAMPUS_LIST의 campus 값과 같다. */
 export type CampusFlags = Record<CampusKey, boolean>;
+
+/** 캠퍼스·시설 절의 펼침. 패널을 닫았다 열어도 남도록 `Map`이 든다(설계 6.1) */
+export type FilterSections = { campus: boolean; facility: boolean };
 
 /** FilterPanel이 그리는 시설 유형 — 종류 저장소의 행 */
 type FilterFacilityType = Pick<
@@ -97,8 +99,8 @@ function Chip({
   );
 }
 
+/** 필터 절. 바깥 카드(펼침)나 메뉴 패널(접힌 줄·모바일)은 `Map`이 씌운다 */
 export default function FilterPanel({
-  isMobile,
   facilityTypes,
   activeTypes,
   setActiveTypes,
@@ -108,11 +110,9 @@ export default function FilterPanel({
   setActiveCampuses,
   showLandmarks,
   setShowLandmarks,
-  onOpenChange,
-  isFront,
-  onActivate,
+  sections,
+  setSections,
 }: {
-  isMobile: boolean;
   facilityTypes: FilterFacilityType[];
   activeTypes: Record<string, boolean>;
   setActiveTypes: Dispatch<SetStateAction<Record<string, boolean>>>;
@@ -122,37 +122,25 @@ export default function FilterPanel({
   setActiveCampuses: Dispatch<SetStateAction<CampusFlags>>;
   showLandmarks: boolean;
   setShowLandmarks: Dispatch<SetStateAction<boolean>>;
-  onOpenChange?: (open: boolean) => void;
-  isFront: boolean;
-  onActivate: () => void;
+  sections: FilterSections;
+  setSections: Dispatch<SetStateAction<FilterSections>>;
 }) {
-  const [campusSectionOpen, setCampusSectionOpen] = useState(false);
-  const [facilitySectionOpen, setFacilitySectionOpen] = useState(false);
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const { lang, t } = useLanguage();
+  const campusSectionOpen = sections.campus;
+  const facilitySectionOpen = sections.facility;
 
-  useEffect(() => {
-    onOpenChange?.(mobileFilterOpen);
-  }, [mobileFilterOpen, onOpenChange]);
-
-  const activeCampusCount =
-    Object.values(activeCampuses).filter(Boolean).length;
-  const activeFacilityCount = Object.values(activeTypes).filter(Boolean).length;
-  // 배지는 "기본값에서 벗어난 조건" 수. 명소 표시는 기본값이 true이므로
-  // 숨겼을 때만(!showLandmarks) 활성 필터로 센다. 이렇게 하면 첫 로드 배지가 0이다.
-  const totalActive =
-    activeCampusCount +
-    activeFacilityCount +
-    Number(showSlope) +
-    Number(!showLandmarks);
-
-  const content = (
-    <>
+  return (
+    <div id={MENU_PANEL_ID.filter} className="ku-filter-sections">
       <section className="ku-filter-section">
         <button
           className="ku-filter-heading"
           type="button"
-          onClick={() => setCampusSectionOpen((open) => !open)}
+          onClick={() =>
+            setSections((previous) => ({
+              ...previous,
+              campus: !previous.campus,
+            }))
+          }
           aria-expanded={campusSectionOpen}
         >
           <span>{t("campusTitle")}</span>
@@ -197,7 +185,12 @@ export default function FilterPanel({
         <button
           className="ku-filter-heading"
           type="button"
-          onClick={() => setFacilitySectionOpen((open) => !open)}
+          onClick={() =>
+            setSections((previous) => ({
+              ...previous,
+              facility: !previous.facility,
+            }))
+          }
           aria-expanded={facilitySectionOpen}
         >
           <span>{t("facilitySection")}</span>
@@ -255,43 +248,6 @@ export default function FilterPanel({
           <span>{t("landmarkToggle")}</span>
         </label>
       </section>
-    </>
-  );
-
-  return (
-    <div
-      className="ku-filter-panel"
-      data-front={isFront}
-      onPointerDownCapture={onActivate}
-      onFocusCapture={onActivate}
-      onDoubleClickCapture={(event) => event.stopPropagation()}
-    >
-      {isMobile ? (
-        <>
-          <button
-            className="ku-mobile-filter-trigger"
-            type="button"
-            onClick={() => {
-              onActivate();
-              setMobileFilterOpen((open) => !open);
-            }}
-            aria-expanded={mobileFilterOpen}
-          >
-            <span>{t("filterTitle")}</span>
-            <span className="ku-mobile-filter-badge">{totalActive}</span>
-            {mobileFilterOpen ? (
-              <ChevronUp size={14} aria-hidden="true" />
-            ) : (
-              <ChevronDown size={14} aria-hidden="true" />
-            )}
-          </button>
-          {mobileFilterOpen && (
-            <div className="ku-mobile-filter-content">{content}</div>
-          )}
-        </>
-      ) : (
-        content
-      )}
     </div>
   );
 }

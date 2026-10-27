@@ -24,6 +24,7 @@ export default defineConfig({
       NEXT_PUBLIC_SUPABASE_ANON_KEY: "e2e-anon-key",
       NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA",
       NEXT_DIST_DIR: ".next-e2e",
+      NEXT_HIDE_DEV_INDICATOR: "1",
     },
   },
 });

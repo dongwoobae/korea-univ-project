@@ -41,6 +41,8 @@ export default function LanguageSwitcher({
     }
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        // 열린 지도 메뉴 패널이 같은 Esc에 닫히지 않게 한다(docs/specs/2026-10-27-map-menu-design.md 5.4)
+        event.preventDefault();
         setOpen(false);
         triggerRef.current?.focus();
       }
