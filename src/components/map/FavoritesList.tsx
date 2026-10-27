@@ -3,24 +3,25 @@
 import { Star } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import type { Favorite } from "@/types/domain";
+import { MENU_PANEL_ID } from "./mapMenu";
 
+/** 여닫음은 부모가 정한다. 비어 있으면 초점을 받을 곳이 뿌리뿐이라 `tabIndex={-1}`(설계 5.4) */
 export default function FavoritesList({
-  show,
   favorites,
   onSelect,
 }: {
-  show: boolean;
   favorites: Favorite[];
   onSelect: (id: number, name: string) => void;
 }) {
   const { t } = useLanguage();
-  if (!show) return null;
 
   return (
     <div
+      id={MENU_PANEL_ID.favorites}
       className="ku-favorites-list"
       role="dialog"
       aria-label={t("favorites")}
+      tabIndex={-1}
     >
       <div className="ku-favorites-title">
         {t("favorites")}

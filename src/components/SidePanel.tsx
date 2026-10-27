@@ -312,6 +312,8 @@ export default function SidePanel({
         className="ku-side-panel"
         data-visible={visible}
         aria-label={`${displayName} 접근성 정보`}
+        // 모바일에서 메뉴로 고르면 아래 줄이 사라져 초점을 여기로 옮긴다(docs/specs/2026-10-27-map-menu-design.md 5.4)
+        tabIndex={-1}
         onDoubleClickCapture={(event) => event.stopPropagation()}
         style={
           isMobile && dragOffset > 0

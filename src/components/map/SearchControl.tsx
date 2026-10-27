@@ -7,9 +7,8 @@ import {
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
-import { useMap } from "react-leaflet";
-import L from "leaflet";
 import { Mic, Search, Star, X } from "lucide-react";
 import type { FeatureCollection } from "geojson";
 import type {
@@ -22,6 +21,7 @@ import type { LangCode } from "@/lib/translations";
 import { useLanguage } from "@/lib/LanguageContext";
 import { campusColor } from "@/lib/theme";
 import { LandmarkEmoji } from "./iconography";
+import { MENU_PANEL_ID } from "./mapMenu";
 
 const VOICE_LANG_MAP = { ko: "ko-KR", en: "en-US", zh: "zh-CN" };
 
@@ -37,6 +37,7 @@ interface SpeechRecognitionLike {
   }) => void;
   start(): void;
   stop(): void;
+  abort?: () => void;
 }
 
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
@@ -79,34 +80,64 @@ function matchInfo(fields: (string | null | undefined)[], query: string) {
   return { match, rank: starts ? 0 : 1 };
 }
 
+/**
+ * 검색창과 결과. 지도 이동은 고른 쪽(`Map`)이 한다 — 메뉴는 Leaflet 컨테이너 밖에 있다
+ * (설계: docs/specs/2026-10-27-map-menu-design.md 5.3).
+ */
 export default function SearchControl({
   geoData,
   landmarks,
-  onBuildingSelect,
   favorites,
-  favoritesOpen,
-  onToggleFavorites,
-  onSearchOpen,
+  query,
+  onQueryChange,
+  onSelectBuilding,
+  onSelectLandmark,
+  resultsHidden = false,
+  onActivate,
+  panelMode = false,
+  inputRef,
+  trailing,
 }: {
   geoData: FeatureCollection | null;
   landmarks: Landmark[] | null;
-  onBuildingSelect?: (feature: BuildingFeature) => void;
   favorites: Favorite[];
-  favoritesOpen: boolean;
-  onToggleFavorites: () => void;
-  onSearchOpen?: (open: boolean) => void;
+  query: string;
+  onQueryChange: (query: string) => void;
+  onSelectBuilding: (feature: BuildingFeature, label: string) => void;
+  onSelectLandmark: (landmark: Landmark, label: string) => void;
+  /** 펼친 모습에서 즐겨찾기·목록이 열려 있으면 결과를 숨긴다 */
+  resultsHidden?: boolean;
+  onActivate?: () => void;
+  /** 접힌 줄·모바일의 검색 패널. Esc는 결과만이 아니라 패널을 닫는다(설계 4.2) */
+  panelMode?: boolean;
+  inputRef?: (element: HTMLInputElement | null) => void;
+  trailing?: ReactNode;
 }) {
-  const map = useMap();
   const { lang, t } = useLanguage();
   const listboxId = useId();
-  const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
   const [open, setOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const ownInputRef = useRef<HTMLInputElement | null>(null);
+  const blurTimerRef = useRef<number | null>(null);
   const listRef = useRef<HTMLUListElement | null>(null);
+
+  function setInput(element: HTMLInputElement | null) {
+    ownInputRef.current = element;
+    inputRef?.(element);
+  }
+
+  // 패널이 닫혀 사라질 때 늦게 오는 흐림 타이머·음성 결과가 닫힌 패널에 닿지 않게 한다
+  useEffect(
+    () => () => {
+      if (blurTimerRef.current !== null)
+        window.clearTimeout(blurTimerRef.current);
+      recognitionRef.current?.abort?.();
+    },
+    [],
+  );
 
   const optionId = useCallback(
     (index: number) => `${listboxId}-opt-${index}`,
@@ -170,7 +201,7 @@ export default function SearchControl({
   const results = matchedResults.slice(0, 8);
 
   const hasQuery = query.trim().length > 0;
-  const listOpen = open && isFocused && !favoritesOpen && hasQuery;
+  const listOpen = open && isFocused && !resultsHidden && hasQuery;
   const showListbox = listOpen && results.length > 0;
   const showNoResults = listOpen && results.length === 0;
 
@@ -190,24 +221,10 @@ export default function SearchControl({
   }
 
   function handleSelect(result: SearchResult) {
-    if (result.kind === "building") {
-      const feature = result.feature;
-      const coords = feature.geometry.coordinates[0];
-      const latlngs = coords.map(
-        ([lon, lat]) => [lat, lon] as [number, number],
-      );
-      map.fitBounds(L.latLngBounds(latlngs), { maxZoom: 18, animate: true });
-      setQuery(result.name);
-      closeList();
-      onSearchOpen?.(false);
-      onBuildingSelect?.(feature);
-    } else {
-      const landmark = result.landmark;
-      map.flyTo([landmark.lat, landmark.lng], 18, { animate: true });
-      setQuery(result.name);
-      closeList();
-      onSearchOpen?.(false);
-    }
+    closeList();
+    if (result.kind === "building")
+      onSelectBuilding(result.feature, result.name);
+    else onSelectLandmark(result.landmark, result.name);
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -244,7 +261,7 @@ export default function SearchControl({
         else if (len > 0) handleSelect(results[0]);
         break;
       case "Escape":
-        if (listOpen) {
+        if (listOpen && !panelMode) {
           event.preventDefault();
           setOpen(false);
           setActiveIndex(-1);
@@ -256,10 +273,10 @@ export default function SearchControl({
   }
 
   function handleClear() {
-    setQuery("");
+    onQueryChange("");
     setActiveIndex(-1);
     setOpen(false);
-    inputRef.current?.focus();
+    ownInputRef.current?.focus();
   }
 
   function notifyVoice(messageKey: string) {
@@ -309,11 +326,11 @@ export default function SearchControl({
       }
     };
     recognition.onresult = (result) => {
-      setQuery(result.results[0][0].transcript);
+      onQueryChange(result.results[0][0].transcript);
       setActiveIndex(-1);
       setIsFocused(true);
       setOpen(true);
-      onSearchOpen?.(true);
+      onActivate?.();
     };
     recognitionRef.current = recognition;
     recognition.start();
@@ -322,17 +339,14 @@ export default function SearchControl({
   const favoriteIds = new Set(favorites.map((favorite) => favorite.id));
 
   return (
-    <div
-      className="ku-search-control"
-      onDoubleClickCapture={(event) => event.stopPropagation()}
-    >
+    <div id={MENU_PANEL_ID.search} className="ku-search-control">
       <div className="ku-search-row">
         <div className="ku-search-field">
           <span className="ku-search-icon">
             <Search size={16} aria-hidden="true" />
           </span>
           <input
-            ref={inputRef}
+            ref={setInput}
             className="ku-search-input"
             type="search"
             role="combobox"
@@ -344,21 +358,26 @@ export default function SearchControl({
             }
             value={query}
             onChange={(event) => {
-              setQuery(event.target.value);
+              onQueryChange(event.target.value);
               setActiveIndex(-1);
               setOpen(true);
+              onActivate?.();
             }}
             onFocus={() => {
+              if (blurTimerRef.current !== null) {
+                window.clearTimeout(blurTimerRef.current);
+                blurTimerRef.current = null;
+              }
               setIsFocused(true);
               setOpen(true);
-              onSearchOpen?.(true);
+              onActivate?.();
             }}
-            onBlur={() =>
-              window.setTimeout(() => {
+            onBlur={() => {
+              blurTimerRef.current = window.setTimeout(() => {
+                blurTimerRef.current = null;
                 setIsFocused(false);
-                onSearchOpen?.(false);
-              }, 150)
-            }
+              }, 150);
+            }}
             onKeyDown={handleKeyDown}
             placeholder={t("searchPlaceholder")}
             aria-label={t("searchPlaceholder")}
@@ -389,26 +408,7 @@ export default function SearchControl({
             {isListening ? t("voiceListening") : ""}
           </span>
         </div>
-        <button
-          className="ku-favorite-button"
-          type="button"
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={onToggleFavorites}
-          aria-label={
-            favorites.length > 0
-              ? `${t("favorites")} (${favorites.length})`
-              : t("favorites")
-          }
-          aria-expanded={favoritesOpen}
-          title={t("favorites")}
-        >
-          <Star size={17} fill="currentColor" aria-hidden="true" />
-          {favorites.length > 0 && (
-            <span className="ku-favorite-badge" aria-hidden="true">
-              {favorites.length}
-            </span>
-          )}
-        </button>
+        {trailing}
       </div>
 
       {showListbox && (

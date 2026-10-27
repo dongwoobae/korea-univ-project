@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { flushSync } from "react-dom";
 import Image from "next/image";
 import {
   MapContainer,
@@ -13,11 +14,14 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import {
+  ChevronsLeft,
   LocateFixed,
   Map as MapIcon,
   Minus,
   Plus,
   Satellite,
+  Star,
+  X,
 } from "lucide-react";
 import type {
   Feature,
@@ -37,7 +41,7 @@ import SidePanel from "@/components/SidePanel";
 import Toast from "@/components/Toast";
 import { useLanguage } from "@/lib/LanguageContext";
 import SearchControl from "./SearchControl";
-import FilterPanel from "./FilterPanel";
+import FilterPanel, { type FilterSections } from "./FilterPanel";
 import FeedbackButton from "./FeedbackButton";
 import FavoritesList from "./FavoritesList";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -52,7 +56,14 @@ import {
 } from "./buildingLabel";
 import { useMapData } from "./useMapData";
 import MapErrorBanner from "./MapErrorBanner";
-import MapBrowseList, { type MapBrowseItem } from "./MapBrowseList";
+import MapBrowseList, {
+  MapBrowsePanel,
+  type MapBrowseItem,
+} from "./MapBrowseList";
+import MapMenuNav from "./MapMenuNav";
+import MapMenuPanel from "./MapMenuPanel";
+import { activeFilterCount, MENU_PANEL_ID, type MenuPanel } from "./mapMenu";
+import { useMapMenu } from "./useMapMenu";
 import MapViewportObserver, {
   containsMapPoint,
   type MapViewport,
@@ -95,6 +106,25 @@ function BoundsController() {
     map.setMinZoom(15);
     map.setMaxZoom(19);
   }, [map]);
+  return null;
+}
+
+/** 지도를 누르면 메뉴 패널을 닫는다. 마커까지 잡으려고 DOM click을 듣는다 — 거르는 것과 이유는 설계 5.3 (docs/specs/2026-10-27-map-menu-design.md) */
+function MapPressCloser({ onPress }: { onPress: () => void }) {
+  const map = useMap();
+  useEffect(() => {
+    const container = map.getContainer();
+    // @types/leaflet의 Handler에는 Map.Drag의 moved()가 없다
+    const dragging = map.dragging as
+      (L.Handler & { moved(): boolean }) | undefined;
+    function handleClick(event: MouseEvent) {
+      if (dragging?.moved()) return;
+      if ((event.target as Element | null)?.closest(".leaflet-popup")) return;
+      onPress();
+    }
+    container.addEventListener("click", handleClick);
+    return () => container.removeEventListener("click", handleClick);
+  }, [map, onPress]);
   return null;
 }
 
@@ -267,24 +297,31 @@ export default function Map() {
     id: number;
     name: string;
   } | null>(null);
-  const [showFavorites, setShowFavorites] = useState(false);
+  // 닫는 0.28초 사이 다시 고르면 상세를 새로 띄우려고 key에 붙인다(docs/specs/2026-10-27-map-menu-design.md 5.5)
+  const [sidePanelInstance, setSidePanelInstance] = useState(0);
   const [favoritesList, setFavoritesList] = useState<Favorite[]>(
     loadFavoritesFromStorage,
   );
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
-  const [isMobile, setIsMobile] = useState(false);
+  // MapWrapper가 ssr 없이 불러 첫 그리기에 window가 있다. 휴대폰에서 웹 메뉴가 한 번 그려지지 않게 처음부터 잰다
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
   const prefersDarkMode = usePrefersDarkMode();
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [viewport, setViewport] = useState<MapViewport | null>(null);
-  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [browseOpen, setBrowseOpen] = useState(false);
   const [frontMapPanel, setFrontMapPanel] = useState<"filter" | "browse">(
     "filter",
   );
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterSections, setFilterSections] = useState<FilterSections>({
+    campus: false,
+    facility: false,
+  });
+  const menu = useMapMenu(isMobile);
+  const { dismiss: dismissMenu, handleBreakpoint } = menu;
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
@@ -348,7 +385,8 @@ export default function Map() {
     new Set(loadFavoritesFromStorage().map((f: Favorite) => f.id)),
   );
   // isMobile을 ref로도 관리 — onEachFeature 클로저에서 항상 최신값 참조
-  const isMobileRef = useRef(false);
+  const isMobileRef = useRef(isMobile);
+  const closePanelTimerRef = useRef<number | null>(null);
   // 툴팁 좌표는 mousemove마다 바뀌므로 React state 대신 DOM을 직접 갱신
   // (state로 두면 마우스 이동마다 Map 전체가 리렌더되어 드래그가 무거워짐)
   const tooltipRef = useRef<HTMLDivElement | null>(null);
@@ -400,17 +438,32 @@ export default function Map() {
     [tileMode, prefersDarkMode],
   );
 
-  // 모바일 감지
+  // 모바일 감지. 폭 경계를 넘으면 열린 메뉴 패널을 닫는다(docs/specs/2026-10-27-map-menu-design.md 5.2)
   useEffect(() => {
     const check = () => {
       const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
+      if (mobile === isMobileRef.current) return;
       isMobileRef.current = mobile;
+      handleBreakpoint(() => setIsMobile(mobile));
     };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
+  }, [handleBreakpoint]);
+
+  // 건물을 고르는 길(폴리곤·검색·즐겨찾기·지하철역)이 모두 여기를 지난다. SubwayMarkers가 memo라 참조를 고정한다
+  const selectBuilding = useCallback(
+    (building: { id: number; name: string }) => {
+      if (closePanelTimerRef.current !== null) {
+        window.clearTimeout(closePanelTimerRef.current);
+        closePanelTimerRef.current = null;
+        setSidePanelInstance((instance) => instance + 1);
+      }
+      setSelectedBuilding(building);
+      dismissMenu();
+    },
+    [dismissMenu],
+  );
 
   function handleBuildingSelectFromSearch(feature: BuildingFeature) {
     const bId = feature.properties.id;
@@ -429,7 +482,7 @@ export default function Map() {
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = bId;
     }
-    setSelectedBuilding({ id: bId, name: feature.properties.name });
+    selectBuilding({ id: bId, name: feature.properties.name });
   }
 
   useEffect(() => {
@@ -570,7 +623,7 @@ export default function Map() {
         layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
         activeLayerRef.current = layer;
         activeBuildingIdRef.current = bId;
-        setSelectedBuilding({ id: bId, name: feature.properties.name });
+        selectBuilding({ id: bId, name: feature.properties.name });
         // 선택하면 이름표가 뜬다 — 커서 이름표를 겹쳐 두지 않는다
         setTooltip((prev) =>
           prev.visible ? { ...prev, visible: false } : prev,
@@ -604,15 +657,16 @@ export default function Map() {
         animate: true,
       });
     }
-    setSelectedBuilding({ id, name });
+    selectBuilding({ id, name });
   }
 
   function handleClosePanel() {
     window.dispatchEvent(new Event("sidePanelShouldClose"));
-    const closingId = activeBuildingIdRef.current;
-    setTimeout(() => {
-      // 닫히는 사이 다른 건물을 고르면 그 선택을 지우지 않는다(설계 5.2)
-      if (activeBuildingIdRef.current !== closingId) return;
+    if (closePanelTimerRef.current !== null)
+      window.clearTimeout(closePanelTimerRef.current);
+    // 닫히는 사이 건물을 다시 고르면 selectBuilding이 이 타이머를 취소한다(docs/specs/2026-10-27-map-menu-design.md 5.5)
+    closePanelTimerRef.current = window.setTimeout(() => {
+      closePanelTimerRef.current = null;
       setSelectedBuilding(null);
       if (activeLayerRef.current) {
         activeLayerRef.current.setStyle(
@@ -665,6 +719,87 @@ export default function Map() {
     );
   }
 
+  function toggleMenuPanel(panel: MenuPanel) {
+    if (panel === "favorites") setFavoritesList(loadFavoritesFromStorage());
+    menu.toggle(panel);
+  }
+
+  // 모바일에서 메뉴로 건물을 고르면 상세가 열리며 아래 줄이 사라진다. 초점을 상세로 옮긴다(docs/specs/2026-10-27-map-menu-design.md 5.4)
+  function pickBuildingFromMenu(select: () => void) {
+    menu.closeAndRestoreFocus();
+    if (menu.layout !== "bar") {
+      select();
+      return;
+    }
+    flushSync(select);
+    document
+      .querySelector<HTMLElement>(".ku-side-panel")
+      ?.focus({ preventScroll: true });
+  }
+
+  function handleSearchBuilding(feature: BuildingFeature, label: string) {
+    setSearchQuery(label);
+    const latlngs = feature.geometry.coordinates[0].map(
+      ([lng, lat]) => [lat, lng] as [number, number],
+    );
+    mapRef.current?.fitBounds(L.latLngBounds(latlngs), {
+      maxZoom: 18,
+      animate: true,
+    });
+    pickBuildingFromMenu(() => handleBuildingSelectFromSearch(feature));
+  }
+
+  function handleSearchLandmark(landmark: Landmark, label: string) {
+    setSearchQuery(label);
+    mapRef.current?.flyTo([landmark.lat, landmark.lng], 18, { animate: true });
+    menu.closeAndRestoreFocus();
+  }
+
+  function handleFavoriteSelect(id: number, name: string) {
+    pickBuildingFromMenu(() => handleSelectById(id, name));
+  }
+
+  function handleBrowseSelect(item: MapBrowseItem) {
+    mapRef.current?.flyTo([item.lat, item.lng], 18, { animate: true });
+    menu.closeAndRestoreFocus();
+  }
+
+  const { layout, openPanel } = menu;
+  const menuCounts = {
+    filter: activeFilterCount({
+      activeCampuses,
+      activeTypes,
+      showSlope,
+      showLandmarks,
+    }),
+    favorites: favoritesList.length,
+    browse: browseItems.length,
+  };
+  const filterPanel = (
+    <FilterPanel
+      facilityTypes={facilityTypes}
+      activeTypes={activeTypes}
+      setActiveTypes={setActiveTypes}
+      showSlope={showSlope}
+      setShowSlope={setShowSlope}
+      activeCampuses={activeCampuses}
+      setActiveCampuses={setActiveCampuses}
+      showLandmarks={showLandmarks}
+      setShowLandmarks={setShowLandmarks}
+      sections={filterSections}
+      setSections={setFilterSections}
+    />
+  );
+  const searchProps = {
+    geoData,
+    landmarks,
+    favorites: favoritesList,
+    query: searchQuery,
+    onQueryChange: setSearchQuery,
+    onSelectBuilding: handleSearchBuilding,
+    onSelectLandmark: handleSearchLandmark,
+  };
+
   return (
     <div
       className="ku-map-shell"
@@ -680,6 +815,135 @@ export default function Map() {
 
       {/* 데이터 소스 오류 배너 (비차단·재시도) */}
       <MapErrorBanner statuses={statuses} retry={retry} t={t} />
+
+      {/* 메뉴는 Leaflet 컨테이너 밖에 둔다 — 안을 누르면 지도 누르기로 읽힌다(docs/specs/2026-10-27-map-menu-design.md 5.3) */}
+      {layout === "expanded" && (
+        <>
+          <SearchControl
+            {...searchProps}
+            resultsHidden={openPanel !== null}
+            onActivate={dismissMenu}
+            inputRef={menu.triggerRefs.search}
+            trailing={
+              <>
+                <button
+                  ref={menu.triggerRefs.favorites}
+                  className="ku-favorite-button"
+                  type="button"
+                  onClick={() => toggleMenuPanel("favorites")}
+                  aria-label={
+                    favoritesList.length > 0
+                      ? `${t("favorites")} (${favoritesList.length})`
+                      : t("favorites")
+                  }
+                  aria-expanded={openPanel === "favorites"}
+                  aria-controls={MENU_PANEL_ID.favorites}
+                  title={t("favorites")}
+                >
+                  <Star size={17} fill="currentColor" aria-hidden="true" />
+                  {favoritesList.length > 0 && (
+                    <span className="ku-favorite-badge" aria-hidden="true">
+                      {favoritesList.length}
+                    </span>
+                  )}
+                </button>
+                <button
+                  ref={menu.collapseButtonRef}
+                  className="ku-icon-button"
+                  type="button"
+                  onClick={() => menu.setCollapsed(true)}
+                  aria-label={t("menuCollapse")}
+                  title={t("menuCollapse")}
+                >
+                  <ChevronsLeft size={18} aria-hidden="true" />
+                </button>
+              </>
+            }
+          />
+          {openPanel === "favorites" && (
+            <FavoritesList
+              favorites={favoritesList}
+              onSelect={handleFavoriteSelect}
+            />
+          )}
+          <div
+            className="ku-filter-panel"
+            data-front={frontMapPanel === "filter"}
+            onPointerDownCapture={() => setFrontMapPanel("filter")}
+            onFocusCapture={() => setFrontMapPanel("filter")}
+          >
+            {filterPanel}
+          </div>
+          {!selectedBuilding && (
+            <MapBrowseList
+              items={browseItems}
+              open={openPanel === "browse"}
+              onToggle={() => toggleMenuPanel("browse")}
+              onClose={menu.closeAndRestoreFocus}
+              onSelect={handleBrowseSelect}
+              isFront={frontMapPanel === "browse"}
+              onActivate={() => setFrontMapPanel("browse")}
+              triggerRef={menu.triggerRefs.browse}
+            />
+          )}
+        </>
+      )}
+
+      {layout !== "expanded" && !(layout === "bar" && selectedBuilding) && (
+        <MapMenuNav
+          orientation={layout}
+          openPanel={openPanel}
+          counts={menuCounts}
+          onToggle={toggleMenuPanel}
+          triggerRefs={menu.triggerRefs}
+          onExpand={
+            layout === "rail" ? () => menu.setCollapsed(false) : undefined
+          }
+          expandButtonRef={menu.expandButtonRef}
+        />
+      )}
+
+      {layout !== "expanded" && openPanel && (
+        <MapMenuPanel
+          layout={layout}
+          panel={openPanel}
+          title={openPanel === "filter" ? t("filterTitle") : undefined}
+        >
+          {openPanel === "search" && (
+            <SearchControl
+              {...searchProps}
+              panelMode
+              trailing={
+                layout === "bar" ? (
+                  <button
+                    className="ku-icon-button ku-search-close"
+                    type="button"
+                    onClick={menu.closeAndRestoreFocus}
+                    aria-label={t("searchClose")}
+                    title={t("searchClose")}
+                  >
+                    <X size={18} aria-hidden="true" />
+                  </button>
+                ) : undefined
+              }
+            />
+          )}
+          {openPanel === "filter" && filterPanel}
+          {openPanel === "favorites" && (
+            <FavoritesList
+              favorites={favoritesList}
+              onSelect={handleFavoriteSelect}
+            />
+          )}
+          {openPanel === "browse" && (
+            <MapBrowsePanel
+              items={browseItems}
+              onSelect={handleBrowseSelect}
+              onClose={menu.closeAndRestoreFocus}
+            />
+          )}
+        </MapMenuPanel>
+      )}
 
       <MapContainer
         center={KU_CENTER}
@@ -707,33 +971,18 @@ export default function Map() {
         />
         <BoundsController />
         <MapViewportObserver onChange={setViewport} />
+        <MapPressCloser onPress={dismissMenu} />
         <Pane
           name="buildingLabels"
           style={{ zIndex: 450, pointerEvents: "none" }}
         />
         {geoData && (
-          <>
-            <GeoJSON
-              key={`${tileMode}-${prefersDarkMode}-${geoDataVersion}`}
-              data={geoData}
-              style={geoJsonStyle}
-              onEachFeature={onEachFeature}
-            />
-            <SearchControl
-              geoData={geoData}
-              landmarks={landmarks}
-              onBuildingSelect={handleBuildingSelectFromSearch}
-              favorites={favoritesList}
-              favoritesOpen={showFavorites}
-              onToggleFavorites={() => {
-                setFavoritesList(loadFavoritesFromStorage());
-                setShowFavorites((show) => !show);
-              }}
-              onSearchOpen={(open) => {
-                if (open) setShowFavorites(false);
-              }}
-            />
-          </>
+          <GeoJSON
+            key={`${tileMode}-${prefersDarkMode}-${geoDataVersion}`}
+            data={geoData}
+            style={geoJsonStyle}
+            onEachFeature={onEachFeature}
+          />
         )}
         {userLocation && (
           <>
@@ -770,7 +1019,7 @@ export default function Map() {
         <SubwayMarkers
           lang={lang}
           zoom={viewport?.zoom ?? 16}
-          onSelect={setSelectedBuilding}
+          onSelect={selectBuilding}
         />
         {showSlope && slopes.length > 0 && (
           <SlopeLayer
@@ -816,7 +1065,7 @@ export default function Map() {
       <div
         className="ku-attribution"
         data-hidden={
-          isMobile && (mobileFilterOpen || Boolean(selectedBuilding))
+          isMobile && (openPanel !== null || Boolean(selectedBuilding))
         }
       >
         <Image
@@ -867,7 +1116,7 @@ export default function Map() {
       <div
         className="ku-map-corner"
         data-panel-open={Boolean(selectedBuilding)}
-        data-overlay-open={mobileFilterOpen || browseOpen}
+        data-overlay-open={openPanel !== null}
       >
         <SlopeLegend show={showSlope} />
         <div className="ku-map-actions">
@@ -932,47 +1181,10 @@ export default function Map() {
         </div>
       </div>
 
-      <FavoritesList
-        show={showFavorites}
-        favorites={favoritesList}
-        onSelect={(id, name) => {
-          handleSelectById(id, name);
-          setShowFavorites(false);
-        }}
-      />
-
       <LanguageSwitcher
         lang={lang}
         setLang={setLang}
         panelOpen={Boolean(selectedBuilding)}
-      />
-
-      {!selectedBuilding && !mobileFilterOpen && (
-        <MapBrowseList
-          items={browseItems}
-          isFront={frontMapPanel === "browse"}
-          onActivate={() => setFrontMapPanel("browse")}
-          onOpenChange={setBrowseOpen}
-          onSelect={(item) => {
-            mapRef.current?.flyTo([item.lat, item.lng], 18, { animate: true });
-          }}
-        />
-      )}
-
-      <FilterPanel
-        isMobile={isMobile}
-        facilityTypes={facilityTypes}
-        activeTypes={activeTypes}
-        setActiveTypes={setActiveTypes}
-        showSlope={showSlope}
-        setShowSlope={setShowSlope}
-        activeCampuses={activeCampuses}
-        setActiveCampuses={setActiveCampuses}
-        showLandmarks={showLandmarks}
-        setShowLandmarks={setShowLandmarks}
-        onOpenChange={setMobileFilterOpen}
-        isFront={frontMapPanel === "filter"}
-        onActivate={() => setFrontMapPanel("filter")}
       />
 
       {/* 툴팁 — 데스크탑만 */}
@@ -988,7 +1200,7 @@ export default function Map() {
 
       {selectedBuilding && (
         <SidePanel
-          key={selectedBuilding.id}
+          key={`${selectedBuilding.id}-${sidePanelInstance}`}
           buildingId={selectedBuilding.id}
           buildingName={selectedBuilding.name}
           onClose={handleClosePanel}
