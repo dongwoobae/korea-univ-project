@@ -52,7 +52,6 @@ export function menuLayout(isMobile: boolean, collapsed: boolean): MenuLayout {
 export function activeFilterCount(filters: {
   activeCampuses: CampusFlags;
   activeTypes: Record<string, boolean>;
-  showSlope: boolean;
   showLandmarks: boolean;
 }) {
   const count = (flags: Record<string, boolean>) =>
@@ -60,7 +59,6 @@ export function activeFilterCount(filters: {
   return (
     count(filters.activeCampuses) +
     count(filters.activeTypes) +
-    Number(filters.showSlope) +
     Number(!filters.showLandmarks)
   );
 }

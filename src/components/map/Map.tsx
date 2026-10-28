@@ -18,6 +18,7 @@ import {
   LocateFixed,
   Map as MapIcon,
   Minus,
+  Mountain,
   Plus,
   Satellite,
   Star,
@@ -780,7 +781,6 @@ export default function Map() {
     filter: activeFilterCount({
       activeCampuses,
       activeTypes,
-      showSlope,
       showLandmarks,
     }),
     favorites: favoritesList.length,
@@ -791,8 +791,6 @@ export default function Map() {
       facilityTypes={facilityTypes}
       activeTypes={activeTypes}
       setActiveTypes={setActiveTypes}
-      showSlope={showSlope}
-      setShowSlope={setShowSlope}
       activeCampuses={activeCampuses}
       setActiveCampuses={setActiveCampuses}
       showLandmarks={showLandmarks}
@@ -1189,6 +1187,17 @@ export default function Map() {
             <span className="ku-map-action-label">
               {tileMode === "street" ? t("tileSatellite") : t("tileStreet")}
             </span>
+          </button>
+          <button
+            className="ku-map-action ku-map-action--labeled"
+            type="button"
+            onClick={() => setShowSlope((show) => !show)}
+            aria-pressed={showSlope}
+            title={t("slopeToggle")}
+            aria-label={t("slopeToggle")}
+          >
+            <Mountain size={19} aria-hidden="true" />
+            <span className="ku-map-action-label">{t("slopeToggle")}</span>
           </button>
           {layout === "expanded" && (
             <ThemeToggleButton
