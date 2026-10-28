@@ -916,6 +916,8 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
       await installMockBackend(page, { expandMapMenu: place.expandMapMenu });
       await page.setViewportSize(place.viewport);
       await page.goto("/");
+      // 데이터를 불러오는 동안 로딩 막(.ku-map-loading)이 지도를 덮어 지도 대신 잡힌다
+      await expect(page.locator(".ku-map-loading")).toHaveCount(0);
       await expect(scaleGroup(page)).toBeVisible();
       const result = await emptySpotMisses(
         page,
@@ -931,6 +933,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
     await installMockBackend(page);
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto("/");
+    await expect(page.locator(".ku-map-loading")).toHaveCount(0);
     await page.getByRole("checkbox", { name: /경사도/ }).check();
     await expect(page.locator(".ku-slope-legend")).toBeVisible();
     const result = await emptySpotMisses(
@@ -946,6 +949,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
     await installMockBackend(page);
     await page.setViewportSize({ width: 360, height: 780 });
     await page.goto("/");
+    await expect(page.locator(".ku-map-loading")).toHaveCount(0);
     await expect(scaleGroup(page)).toBeVisible();
     for (const name of ["OpenStreetMap", "CARTO", "Leaflet"]) {
       const reachable = await page
@@ -974,6 +978,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
       await installMockBackend(page, { expandMapMenu: place.expandMapMenu });
       await page.setViewportSize(place);
       await page.goto("/");
+      await expect(page.locator(".ku-map-loading")).toHaveCount(0);
       await expect(scaleGroup(page)).toBeVisible();
       await expect(page.locator(".ku-map-zoom")).toBeHidden();
       const languageBottom = await page
@@ -996,6 +1001,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
     await installMockBackend(page);
     await page.setViewportSize({ width: 1024, height: 600 });
     await page.goto("/");
+    await expect(page.locator(".ku-map-loading")).toHaveCount(0);
     await expect(page.locator(".ku-map-zoom")).toBeVisible();
   });
 });
