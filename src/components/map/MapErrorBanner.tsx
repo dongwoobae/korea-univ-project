@@ -1,5 +1,6 @@
 "use client";
 
+import { scaledFontSize } from "@/lib/fontScale";
 import { TriangleAlert } from "lucide-react";
 import type { MapDataRetry, MapDataStatuses } from "./useMapData";
 
@@ -66,7 +67,7 @@ export default function MapErrorBanner({
             border: "1px solid #FCA5A5",
             borderRadius: "var(--ku-radius)",
             padding: "10px 14px",
-            fontSize: 14,
+            fontSize: scaledFontSize(14),
             color: "#991B1B",
             boxShadow: "var(--ku-shadow-floating)",
           }}
@@ -87,7 +88,7 @@ export default function MapErrorBanner({
               border: "none",
               borderRadius: "var(--ku-radius)",
               padding: "6px 12px",
-              fontSize: 13,
+              fontSize: scaledFontSize(13),
               fontWeight: 600,
               cursor: "pointer",
             }}

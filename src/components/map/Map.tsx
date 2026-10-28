@@ -71,6 +71,7 @@ import MapViewportObserver, {
 } from "./MapViewportObserver";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { useColorMode } from "@/lib/useColorMode";
+import { useFontScale } from "@/lib/useFontScale";
 import "./map-ui.css";
 import { KU_BOUNDS } from "@/lib/mapBounds";
 
@@ -310,6 +311,7 @@ export default function Map() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
   const darkMode = useColorMode() === "dark";
+  const fontScale = useFontScale();
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [viewport, setViewport] = useState<MapViewport | null>(null);
@@ -526,6 +528,14 @@ export default function Map() {
       if (label) layer.getTooltip()?.setContent(label);
     });
   }, [lang]);
+
+  // 툴팁·팝업은 열 때 잰 크기로 자리를 잡는다(docs/specs/2026-10-28-font-scale-design.md 4장)
+  useEffect(() => {
+    mapRef.current?.eachLayer((layer) => {
+      if (layer instanceof L.Tooltip || layer instanceof L.Popup)
+        layer.update();
+    });
+  }, [fontScale]);
 
   useEffect(() => {
     if (!buildingLabelsVisible) return;
