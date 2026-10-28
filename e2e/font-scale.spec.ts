@@ -857,3 +857,149 @@ test("크게에서도 범례 눈금끼리 겹치지 않는다", async ({ page })
     }
   }
 });
+
+test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
+  /** 데이터를 불러오는 동안 로딩 막(.ku-map-loading)이 지도를 덮는다. 막은 지도와 함께 붙으므로 지도가 붙은 뒤에 걷히기를 기다린다 */
+  async function openMap(page: Page) {
+    await page.goto("/");
+    await expect(scaleGroup(page)).toBeVisible();
+    await expect(page.locator(".ku-map-loading")).toHaveCount(0);
+  }
+
+  /** 틀 상자 안에서 내용(버튼·범례)이 없는 자리를 8px 간격으로 짚어, 지도나 출처 표기가 잡히는지 본다(설계 1.2) */
+  function emptySpotMisses(page: Page, frame: string, content: string) {
+    return page.evaluate(
+      ({ frame, content }) => {
+        const box = document.querySelector(frame)!.getBoundingClientRect();
+        const filled = Array.from(document.querySelectorAll(content))
+          .map((element) => element.getBoundingClientRect())
+          .filter((rect) => rect.width > 0 && rect.height > 0);
+        const misses: string[] = [];
+        let checked = 0;
+        for (let y = box.top + 2; y < box.bottom - 1; y += 8)
+          for (let x = box.left + 2; x < box.right - 1; x += 8) {
+            if (
+              filled.some(
+                (rect) =>
+                  x >= rect.left - 1 &&
+                  x <= rect.right + 1 &&
+                  y >= rect.top - 1 &&
+                  y <= rect.bottom + 1,
+              )
+            )
+              continue;
+            checked++;
+            const hit = document.elementFromPoint(x, y);
+            if (!hit?.closest(".leaflet-container, .ku-attribution"))
+              misses.push(
+                `${Math.round(x)},${Math.round(y)} ${hit?.getAttribute("class")}`,
+              );
+          }
+        return { checked, misses };
+      },
+      { frame, content },
+    );
+  }
+
+  const PLACES = [
+    {
+      name: "모바일",
+      viewport: { width: 390, height: 844 },
+      expandMapMenu: true,
+    },
+    {
+      name: "접힌 줄",
+      viewport: { width: 1280, height: 800 },
+      expandMapMenu: false,
+    },
+    {
+      name: "펼침",
+      viewport: { width: 1280, height: 800 },
+      expandMapMenu: true,
+    },
+  ];
+  for (const place of PLACES) {
+    test(`${place.name}: 버튼 옆 빈 자리는 지도가 받는다`, async ({ page }) => {
+      await installMockBackend(page, { expandMapMenu: place.expandMapMenu });
+      await page.setViewportSize(place.viewport);
+      await openMap(page);
+      const result = await emptySpotMisses(
+        page,
+        ".ku-map-actions",
+        ".ku-map-actions > *",
+      );
+      expect(result.checked).toBeGreaterThan(0);
+      expect(result.misses).toEqual([]);
+    });
+  }
+
+  test("웹에서 경사도 범례 위 빈 자리도 지도가 받는다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await openMap(page);
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await expect(page.locator(".ku-slope-legend")).toBeVisible();
+    const result = await emptySpotMisses(
+      page,
+      ".ku-map-corner",
+      ".ku-slope-legend, .ku-map-actions > *",
+    );
+    expect(result.checked).toBeGreaterThan(0);
+    expect(result.misses).toEqual([]);
+  });
+
+  test("360px 출처 표기 링크는 버튼 열에 가리지 않는다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.setViewportSize({ width: 360, height: 780 });
+    await openMap(page);
+    for (const name of ["OpenStreetMap", "CARTO", "Leaflet"]) {
+      const reachable = await page
+        .locator(".ku-attribution a", { hasText: name })
+        .evaluate((link) => {
+          const rect = link.getBoundingClientRect();
+          const hit = document.elementFromPoint(
+            rect.left + rect.width / 2,
+            rect.top + rect.height / 2,
+          );
+          return Boolean(hit && link.contains(hit));
+        });
+      expect(reachable, name).toBe(true);
+    }
+  });
+
+  const LOW = [
+    { width: 844, height: 390, expandMapMenu: false },
+    { width: 844, height: 390, expandMapMenu: true },
+    { width: 1024, height: 460, expandMapMenu: true },
+  ];
+  for (const place of LOW) {
+    test(`낮은 웹 화면 ${place.width}×${place.height}${place.expandMapMenu ? " 펼침" : ""}: 확대 버튼을 빼고 열이 언어 상자 아래에 있다`, async ({
+      page,
+    }) => {
+      await installMockBackend(page, { expandMapMenu: place.expandMapMenu });
+      await page.setViewportSize(place);
+      await openMap(page);
+      await expect(page.locator(".ku-map-zoom")).toBeHidden();
+      const languageBottom = await page
+        .locator(".ku-language")
+        .evaluate((element) => element.getBoundingClientRect().bottom);
+      const tops = await page
+        .locator(".ku-map-actions button")
+        .evaluateAll((buttons) =>
+          buttons
+            .filter((button) => button.getClientRects().length > 0)
+            .map((button) => button.getBoundingClientRect().top),
+        );
+      expect(tops.length).toBeGreaterThan(0);
+      for (const top of tops)
+        expect(top).toBeGreaterThanOrEqual(languageBottom);
+    });
+  }
+
+  test("높이가 넉넉한 웹 화면에는 확대 버튼이 있다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.setViewportSize({ width: 1024, height: 600 });
+    await openMap(page);
+    await expect(page.locator(".ku-map-zoom")).toBeVisible();
+  });
+});
