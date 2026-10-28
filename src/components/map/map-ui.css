@@ -962,6 +962,29 @@
   padding: 20px;
   background: var(--ku-backdrop);
 }
+/* 보이는 점은 ::before이고 버튼은 24px로 눌린다 (docs/specs/2026-10-28-mobile-fixes-design.md 5) */
+.ku-photo-dot {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.ku-photo-dot::before {
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: 0 auto;
+  border-radius: var(--ku-radius);
+  background: rgba(255, 255, 255, 0.5);
+  content: "";
+  transition: width 0.2s;
+}
+.ku-photo-dot[aria-current="true"]::before {
+  width: 16px;
+  background: #fff;
+}
 .ku-photo-lightbox-backdrop {
   position: fixed;
   z-index: 3000;
@@ -1600,9 +1623,7 @@
     position: absolute;
     z-index: 1000;
     right: 16px;
-    bottom: calc(
-      var(--ku-menu-bar-height) + 12px + env(safe-area-inset-bottom, 0px)
-    );
+    bottom: calc(var(--ku-menu-bar-height) + 12px);
     gap: 10px;
   }
   .ku-map-corner[data-panel-open="true"] > *,
@@ -1614,9 +1635,7 @@
     position: absolute;
     z-index: 1000;
     right: 74px;
-    bottom: calc(
-      var(--ku-menu-bar-height) + 40px + env(safe-area-inset-bottom, 0px)
-    );
+    bottom: calc(var(--ku-menu-bar-height) + 40px);
     left: 16px;
   }
   .ku-slope-legend .ku-slope-bands {
@@ -1643,9 +1662,7 @@
      각주 취급. 배경은 남긴다. 타일 위에서 글자가 읽히지 않는다.
      bottom을 바꾸면 .ku-slope-legend의 bottom도 같이 바꾼다. */
   .ku-attribution {
-    bottom: calc(
-      var(--ku-menu-bar-height) + 8px + env(safe-area-inset-bottom, 0px)
-    );
+    bottom: calc(var(--ku-menu-bar-height) + 8px);
     left: 12px;
     flex-direction: row;
     align-items: center;
@@ -1691,7 +1708,7 @@
   .ku-side-handle {
     display: block;
     width: 100%;
-    padding: 12px 0 6px;
+    padding: 13px 0 7px;
     border: 0;
     background: transparent;
     cursor: grab;

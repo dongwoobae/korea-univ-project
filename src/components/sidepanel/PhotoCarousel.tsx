@@ -119,30 +119,20 @@ export default function PhotoCarousel({
               <div
                 style={{
                   position: "absolute",
-                  bottom: 8,
+                  bottom: 0,
                   left: 0,
                   right: 0,
                   display: "flex",
                   justifyContent: "center",
-                  gap: 5,
                 }}
               >
                 {photos.map((_, i) => (
                   <button
                     key={i}
-                    aria-label={`${i + 1}번째 사진`}
+                    className="ku-photo-dot"
+                    aria-label={t("photoNumber").replace("{n}", String(i + 1))}
+                    aria-current={i === photoIndex ? "true" : undefined}
                     onClick={() => setPhotoIndex(i)}
-                    style={{
-                      width: i === photoIndex ? 16 : 6,
-                      height: 6,
-                      borderRadius: "var(--ku-radius)",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 0,
-                      background:
-                        i === photoIndex ? "#fff" : "rgba(255,255,255,0.5)",
-                      transition: "width 0.2s",
-                    }}
                   />
                 ))}
               </div>
