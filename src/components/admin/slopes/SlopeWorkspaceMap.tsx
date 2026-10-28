@@ -17,7 +17,6 @@ import {
   type SlopeListItem,
   type SlopeRouteSummary,
 } from "@/lib/slopeWorkspace";
-import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 
 const DIMMED_OPACITY = 0.28;
 
@@ -50,7 +49,6 @@ interface RouteLinesProps {
   id: string;
   summary: SlopeRouteSummary;
   bands: readonly SlopeBand[];
-  darkMap: boolean;
   selected: boolean;
   dimmed: boolean;
   onSelect: (id: string) => void;
@@ -60,14 +58,13 @@ function RouteLines({
   id,
   summary,
   bands,
-  darkMap,
   selected,
   dimmed,
   onSelect,
 }: RouteLinesProps) {
   const weight = selected ? 7 : 5;
   const opacity = dimmed ? DIMMED_OPACITY : 1;
-  const casing = slopeCasingStyle(weight, darkMap, opacity);
+  const casing = slopeCasingStyle(weight, false, opacity);
   return summary.segments.map((segment) => (
     <Fragment key={segment.index}>
       <Polyline
@@ -107,7 +104,6 @@ export default function SlopeWorkspaceMap({
   ...slot
 }: SlopeWorkspaceMapProps) {
   const { bands } = useSlopeBands();
-  const darkMap = usePrefersDarkMode();
   const selected =
     routes.find((item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId) ??
     null;
@@ -123,7 +119,6 @@ export default function SlopeWorkspaceMap({
             id={id}
             summary={item.summary}
             bands={bands}
-            darkMap={darkMap}
             selected={false}
             dimmed={selectedId !== null}
             onSelect={onSelect}
@@ -138,7 +133,6 @@ export default function SlopeWorkspaceMap({
             id={SLOPE_COLLECTION_POLICY.id(selected)}
             summary={selected.summary}
             bands={bands}
-            darkMap={darkMap}
             selected
             dimmed={false}
             onSelect={onSelect}

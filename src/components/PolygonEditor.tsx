@@ -11,7 +11,6 @@ import { addNeighborLayer } from "@/lib/neighborLayer";
 import { getBuildingViewCenter, getPointLatLng } from "@/lib/polygonCenter";
 import ConfirmModal from "@/components/ConfirmModal";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
-import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 
 type BuildingPolygon = Feature<Polygon>;
 
@@ -32,7 +31,6 @@ export default function PolygonEditor({
 }: PolygonEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
   const onChangeRef = useRef(onChange);
   const initialGeojsonRef = useRef(geojson);
@@ -42,7 +40,6 @@ export default function PolygonEditor({
     () => Boolean(geojson) && !getPointLatLng(geojson),
   );
   const [confirmReset, setConfirmReset] = useState(false);
-  const prefersDarkMode = usePrefersDarkMode();
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -61,7 +58,7 @@ export default function PolygonEditor({
     }).setView(getBuildingViewCenter(initialGeojson), 18);
     mapRef.current = map;
 
-    tileLayerRef.current = L.tileLayer(getCartoTileUrl(false), {
+    L.tileLayer(getCartoTileUrl(false), {
       attribution: CARTO_ATTRIBUTION,
       subdomains: "abcd",
     }).addTo(map);
@@ -138,13 +135,8 @@ export default function PolygonEditor({
       cancelled = true;
       map.remove();
       mapRef.current = null;
-      tileLayerRef.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    tileLayerRef.current?.setUrl(getCartoTileUrl(prefersDarkMode));
-  }, [prefersDarkMode]);
 
   function handleSave() {
     const layers = drawnItemsRef.current?.getLayers() ?? [];
@@ -177,6 +169,7 @@ export default function PolygonEditor({
       </div>
       <div
         ref={containerRef}
+        className="ku-light-scope"
         style={{
           width: "100%",
           height: 420,

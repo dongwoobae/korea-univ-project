@@ -72,6 +72,8 @@ interface FacilityFieldsProps {
   /** 지도 아래에 붙는 내용 */
   locationFooter?: ReactNode;
   disabled?: boolean;
+  /** 위치 지도가 공개 화면 테마를 따른다. 공개 등록 요청 모달만 켠다 */
+  mapFollowsTheme?: boolean;
 }
 
 export default function FacilityFields({
@@ -89,6 +91,7 @@ export default function FacilityFields({
   showLocation = true,
   locationFooter,
   disabled = false,
+  mapFollowsTheme = false,
 }: FacilityFieldsProps) {
   const set = (patch: Partial<FacilityFieldValues>) =>
     onChange((prev) => ({ ...prev, ...patch }));
@@ -175,6 +178,7 @@ export default function FacilityFields({
               center={mapCenter}
               highlightId={highlightBuildingId}
               highlightColor={highlightColor}
+              followTheme={mapFollowsTheme}
               markerPosition={
                 value.lat && value.lng
                   ? [parseFloat(value.lat), parseFloat(value.lng)]

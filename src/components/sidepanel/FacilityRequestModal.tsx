@@ -304,6 +304,7 @@ export default function FacilityRequestModal({
               labels={labels}
               mapCenter={mapCenter}
               highlightBuildingId={buildingId}
+              mapFollowsTheme
               showFloor
               showInstalled={false}
               disabled={phase !== "form"}
