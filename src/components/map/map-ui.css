@@ -467,6 +467,13 @@
   align-items: flex-end;
   gap: 10px;
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 상자가 범례와 가장 넓은 버튼 줄에 맞춰 넓어진다. 그 빈 자리가 지도·출처 표기의 터치를 가져가지 않게
+     범례와 버튼만 받는다(docs/specs/2026-10-28-font-scale-design.md 1.2) */
+  pointer-events: none;
+}
+.ku-map-corner > :not(.ku-map-actions),
+.ku-map-actions > * {
+  pointer-events: auto;
 }
 .ku-map-corner[data-panel-open="true"] {
   right: 360px;
@@ -476,6 +483,7 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 10px;
+  pointer-events: none;
 }
 .ku-map-zoom {
   display: grid;
@@ -489,6 +497,13 @@
 }
 .ku-map-zoom .ku-map-action + .ku-map-action {
   border-top: 0;
+}
+/* 휴대폰 가로처럼 낮은 웹 화면에서는 열이 오른쪽 위 언어 상자에 닿는다. 두 손가락·휠로 확대할 수 있어
+   확대·축소 묶음을 뺀다(docs/specs/2026-10-28-font-scale-design.md 1.2) */
+@media (min-width: 768px) and (max-height: 470px) {
+  .ku-map-zoom {
+    display: none;
+  }
 }
 .ku-map-action {
   display: flex;
