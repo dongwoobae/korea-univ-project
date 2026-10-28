@@ -75,6 +75,13 @@
   min-height: 34px;
   padding: 0 12px;
 }
+.ku-admin-account .ku-admin-theme {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 0 8px;
+}
 .ku-admin-menu {
   position: relative;
   display: none;
@@ -807,7 +814,8 @@ button.ku-admin-overview-item {
   .ku-admin-email,
   .ku-admin-settings,
   .ku-admin-map-link,
-  .ku-admin-logout {
+  .ku-admin-logout,
+  .ku-admin-account .ku-admin-theme {
     display: none;
   }
   .ku-admin-menu {

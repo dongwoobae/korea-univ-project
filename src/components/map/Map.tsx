@@ -45,6 +45,7 @@ import FilterPanel, { type FilterSections } from "./FilterPanel";
 import FeedbackButton from "./FeedbackButton";
 import FavoritesList from "./FavoritesList";
 import LanguageSwitcher from "./LanguageSwitcher";
+import ThemeToggleButton from "./ThemeToggleButton";
 import SlopeLayer from "./SlopeLayer";
 import SlopeLegend from "./SlopeLegend";
 import FacilityMarkers from "./FacilityMarkers";
@@ -1175,6 +1176,13 @@ export default function Map() {
               {tileMode === "street" ? t("tileSatellite") : t("tileStreet")}
             </span>
           </button>
+          {layout === "expanded" && (
+            <ThemeToggleButton
+              className="ku-map-action ku-map-action--labeled"
+              labelClassName="ku-map-action-label"
+              iconSize={19}
+            />
+          )}
           <FeedbackButton />
         </div>
       </div>

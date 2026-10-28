@@ -84,7 +84,8 @@
 
 ### 4.1 줄과 비키는 것
 
-- 줄: 화면 바닥(`bottom: 0`) 전체 폭, 높이 `--ku-menu-bar-height: 60px`. 버튼 넷이 폭을 똑같이 나눈다(360px 폭이면 90px). 아이콘
+- 줄: 화면 바닥(`bottom: 0`) 전체 폭, 높이 `--ku-menu-bar-height: 60px`. 버튼 넷이 폭을 똑같이 나눈다(360px 폭이면 90px). ⑤부터 다크모드 토글이 다섯째 칸에 붙어 72px이 된다
+  (`docs/specs/2026-10-28-dark-mode-design.md` 1.2). 아이콘
   20px 밑에 12px 이름. 수 표시·열린 모양·`aria-*`는 3장과 같다. `<nav aria-label="지도 메뉴">`.
 - 6.3이 `viewport-fit=cover`를 켜지 않기로 해 `env(safe-area-inset-bottom)`은 0이다. 줄은 안전 영역 안쪽 바닥에 붙는다.
 - 줄 위로 올라가는 것(지금 바닥 기준 값에 줄 높이를 더한다):

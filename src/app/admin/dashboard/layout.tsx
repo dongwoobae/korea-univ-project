@@ -5,10 +5,12 @@ import type { User } from "@supabase/supabase-js";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { Moon, Sun } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { flushQueue } from "@/lib/activityReport";
 import { NOT_ADMIN_REASON } from "@/lib/adminAccess";
 import { authedFetch } from "@/lib/authedFetch";
+import { setColorMode, useColorMode } from "@/lib/useColorMode";
 import {
   FEEDBACK_EMAILS_FALLBACK,
   getSetting,
@@ -59,6 +61,13 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { blocked, guard } = useUnsavedChangesGuard();
+  const darkMode = useColorMode() === "dark";
+  const themeLabel = darkMode ? "라이트모드" : "다크모드";
+  const ThemeIcon = darkMode ? Sun : Moon;
+
+  function toggleColorMode() {
+    setColorMode(darkMode ? "light" : "dark");
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -216,6 +225,15 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className="ku-admin-account">
           <span className="ku-admin-email">{user?.email}</span>
           <button
+            className="ku-admin-button ku-admin-theme"
+            type="button"
+            aria-label={themeLabel}
+            title={themeLabel}
+            onClick={toggleColorMode}
+          >
+            <ThemeIcon size={18} aria-hidden="true" />
+          </button>
+          <button
             className="ku-admin-button ku-admin-settings"
             type="button"
             onClick={() => setShowFeedbackModal(true)}
@@ -267,6 +285,19 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
                 {user?.email && (
                   <span className="ku-admin-menu-email">{user.email}</span>
                 )}
+                <button
+                  className="ku-admin-menu-item"
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    toggleColorMode();
+                    // 이 항목은 아무것도 열지 않는다 — 닫히는 메뉴와 함께 초점이 떨어지지 않게 돌린다(docs/specs/2026-10-28-dark-mode-design.md 1.3)
+                    menuTriggerRef.current?.focus();
+                  }}
+                >
+                  {themeLabel}
+                </button>
                 <button
                   className="ku-admin-menu-item"
                   type="button"

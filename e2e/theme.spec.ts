@@ -307,6 +307,11 @@ test.describe("다크 모드 — 공개 지도", () => {
     expect(errors).toEqual([]);
   });
 
+  const TOGGLE_NAMES = {
+    ko: ["다크모드", "라이트모드"],
+    en: ["Dark mode", "Light mode"],
+    zh: ["深色模式", "浅色模式"],
+  } as const;
   const LABEL_PLACES = [
     { name: "접힌 줄", width: 1280, height: 800, expandMapMenu: false },
     { name: "펼침", width: 1280, height: 800, expandMapMenu: true },
@@ -328,13 +333,12 @@ test.describe("다크 모드 — 공개 지도", () => {
         });
         await page.goto("/");
         const toggle = page.locator(".ku-theme-toggle");
-        await expect(toggle).toBeVisible();
+        const [toDark, toLight] = TOGGLE_NAMES[lang];
+        // 언어는 첫 그리기 뒤에 바뀐다 — 그 언어 이름이 된 뒤에 잰다
+        await expect(toggle).toHaveAttribute("aria-label", toDark);
         await expectLabelFits(toggle, place.width);
         await toggle.click();
-        await expect(page.locator("html")).toHaveAttribute(
-          "data-theme",
-          "dark",
-        );
+        await expect(toggle).toHaveAttribute("aria-label", toLight);
         await expectLabelFits(toggle, place.width);
       });
     }

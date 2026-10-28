@@ -727,6 +727,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* "라이트모드" 다섯 글자가 64px 줄에서 말줄임되지 않게 이 버튼만 좌우 여백을 줄인다(docs/specs/2026-10-28-dark-mode-design.md 1.2) */
+.ku-menu-button.ku-theme-toggle {
+  padding-inline: 2px;
+}
 .ku-menu-badge {
   position: absolute;
   top: 4px;
@@ -1366,7 +1370,7 @@
     bottom: 0;
     left: 0;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     height: var(--ku-menu-bar-height);
     border-top: 1px solid var(--ku-border);
     background: var(--ku-surface);
