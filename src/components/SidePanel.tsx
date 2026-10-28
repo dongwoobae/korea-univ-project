@@ -14,6 +14,7 @@ import PhotoCarousel from "@/components/sidepanel/PhotoCarousel";
 import FacilityList from "@/components/sidepanel/FacilityList";
 import FacilityRequestModal from "@/components/sidepanel/FacilityRequestModal";
 import { getPolygonRingCenter } from "@/lib/polygonCenter";
+import { isCompactViewport } from "@/lib/viewport";
 import type { Feature, Polygon } from "geojson";
 
 export type SidePanelPhoto = Pick<
@@ -66,7 +67,7 @@ export default function SidePanel({
       : false,
   );
   const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" ? window.innerWidth < 768 : false,
+    typeof window !== "undefined" ? isCompactViewport() : false,
   );
   const [visible, setVisible] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -79,7 +80,7 @@ export default function SidePanel({
 
   // 모바일 감지
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => setIsMobile(isCompactViewport());
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);

@@ -75,6 +75,7 @@ import { useColorMode } from "@/lib/useColorMode";
 import { useFontScale } from "@/lib/useFontScale";
 import "./map-ui.css";
 import { KU_BOUNDS } from "@/lib/mapBounds";
+import { isCompactViewport } from "@/lib/viewport";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 const KU_LATLNG_BOUNDS = L.latLngBounds(
@@ -309,7 +310,7 @@ export default function Map() {
     null,
   );
   // MapWrapper가 ssr 없이 불러 첫 그리기에 window가 있다. 휴대폰에서 웹 메뉴가 한 번 그려지지 않게 처음부터 잰다
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(() => isCompactViewport());
   const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
   const darkMode = useColorMode() === "dark";
   const fontScale = useFontScale();
@@ -445,7 +446,7 @@ export default function Map() {
   // 모바일 감지. 폭 경계를 넘으면 열린 메뉴 패널을 닫는다(docs/specs/2026-10-27-map-menu-design.md 5.2)
   useEffect(() => {
     const check = () => {
-      const mobile = window.innerWidth < 768;
+      const mobile = isCompactViewport();
       if (mobile === isMobileRef.current) return;
       isMobileRef.current = mobile;
       handleBreakpoint(() => setIsMobile(mobile));
