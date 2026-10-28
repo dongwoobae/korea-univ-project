@@ -1131,7 +1131,7 @@ export default function Map() {
       >
         <SlopeLegend show={showSlope} />
         <div className="ku-map-actions">
-          {/* 모바일은 열 맨 위 — 아래쪽은 경사도 범례와 높이가 겹친다(docs/specs/2026-10-28-font-scale-design.md 1.2) */}
+          {/* 세로 좁은 화면은 열 맨 위 — 아래쪽은 경사도 범례와 높이가 겹친다(docs/specs/2026-10-28-font-scale-design.md 1.2) */}
           {isMobile && <FontScaleControl />}
           <div className="ku-map-zoom" aria-label="지도 확대 및 축소">
             <button

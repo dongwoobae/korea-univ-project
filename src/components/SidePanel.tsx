@@ -14,7 +14,7 @@ import PhotoCarousel from "@/components/sidepanel/PhotoCarousel";
 import FacilityList from "@/components/sidepanel/FacilityList";
 import FacilityRequestModal from "@/components/sidepanel/FacilityRequestModal";
 import { getPolygonRingCenter } from "@/lib/polygonCenter";
-import { isCompactViewport } from "@/lib/viewport";
+import { isCompactLandscape, isCompactViewport } from "@/lib/viewport";
 import type { Feature, Polygon } from "geojson";
 
 export type SidePanelPhoto = Pick<
@@ -69,9 +69,12 @@ export default function SidePanel({
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" ? isCompactViewport() : false,
   );
+  const [isLandscape, setIsLandscape] = useState(
+    typeof window !== "undefined" ? isCompactLandscape() : false,
+  );
   const [visible, setVisible] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  // 모바일 아래로 스와이프 닫기: 드래그 중 손가락을 따라 내려가는 오프셋(px)
+  // 세로 좁은 화면 아래로 스와이프 닫기: 드래그 중 손가락을 따라 내려가는 오프셋(px)
   const [dragOffset, setDragOffset] = useState(0);
   const dragStartY = useRef<number | null>(null);
   const draggedRef = useRef(false);
@@ -80,7 +83,10 @@ export default function SidePanel({
 
   // 모바일 감지
   useEffect(() => {
-    const check = () => setIsMobile(isCompactViewport());
+    const check = () => {
+      setIsMobile(isCompactViewport());
+      setIsLandscape(isCompactLandscape());
+    };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -265,9 +271,12 @@ export default function SidePanel({
     return () => window.speechSynthesis?.cancel();
   }, []);
 
+  // 가로 좁은 화면의 상세는 옆 패널이라 세로로 끌어 닫지 않는다(docs/specs/2026-10-28-mobile-fixes-design.md 1.2)
+  const dragToClose = isMobile && !isLandscape;
   // 손잡이 스와이프: 아래로 임계값 이상 끌면 닫고, 그 이하면 제자리로 복귀
   const CLOSE_THRESHOLD = 80;
   function handleHandleTouchStart(event: React.TouchEvent) {
+    if (!dragToClose) return;
     dragStartY.current = event.touches[0].clientY;
     draggedRef.current = false;
   }
@@ -317,12 +326,12 @@ export default function SidePanel({
         tabIndex={-1}
         onDoubleClickCapture={(event) => event.stopPropagation()}
         style={
-          isMobile && dragOffset > 0
+          dragToClose && dragOffset > 0
             ? { transform: `translateY(${dragOffset}px)`, transition: "none" }
             : undefined
         }
       >
-        {/* 모바일 스와이프 손잡이: 아래로 끌거나 눌러서 닫기 */}
+        {/* 세로 좁은 화면 손잡이(가로는 CSS가 숨긴다): 아래로 끌거나 눌러서 닫기 */}
         {isMobile && (
           <button
             className="ku-side-handle"
