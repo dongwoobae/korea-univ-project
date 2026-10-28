@@ -175,6 +175,8 @@ test.describe("글자 크기 — 버튼", () => {
     await expect(scaleStatus(page)).toHaveText("글자 크기: 보통");
     const statusId = await scaleStatus(page).getAttribute("id");
     expect(statusId).toBeTruthy();
+    await expect(smaller(page)).toHaveText("가−");
+    await expect(larger(page)).toHaveText("가＋");
     for (const button of [smaller(page), larger(page)]) {
       await expect(button).not.toHaveAttribute("aria-disabled", "true");
       await expect(button).toHaveAttribute("aria-describedby", statusId!);
@@ -263,11 +265,14 @@ test.describe("글자 크기 — 버튼", () => {
       );
       await expect(smaller(page)).toHaveAttribute("aria-disabled", "true");
       await expect(scaleStatus(page)).toHaveText("글자 크기: 작게");
-      await smaller(page).click();
+      // Playwright는 aria-disabled 버튼을 누를 수 없는 것으로 보고 클릭을 기다린다 — 키보드로 누른다
+      await smaller(page).focus();
+      await page.keyboard.press("Enter");
       await expect(page.locator("html")).toHaveAttribute(
         "data-font-scale",
         "small",
       );
+      await expect(smaller(page)).toBeFocused();
       if (!place.expandMapMenu) await expect(panel).toBeVisible();
     });
   }
@@ -382,6 +387,8 @@ test.describe("글자 크기 — 커지는 글자와 그대로인 글자", () =>
       },
     );
     await nav.getByRole("button", { name: "필터", exact: true }).click();
+    await panel.getByRole("button", { name: "시설", exact: true }).click();
+    await expect(panel.locator(".ku-chip").first()).toBeVisible();
     await expectScaled(page, [
       ["필터 제목", panel.locator(".ku-filter-heading").first()],
       ["필터 칩", panel.locator(".ku-chip").first()],
@@ -464,6 +471,28 @@ test.describe("글자 크기 — 커지는 글자와 그대로인 글자", () =>
     await expectScaled(page, [
       ["경사도 팝업", content.locator(":scope > div").first()],
     ]);
+  });
+
+  test("경사도 범례 툴팁", async ({ page }) => {
+    await installMockBackend(page, { expandMapMenu: false });
+    await page.goto("/");
+    await menuNav(page)
+      .getByRole("button", { name: "필터", exact: true })
+      .click();
+    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await page.keyboard.press("Escape");
+    const cell = page
+      .getByRole("group", { name: "경사도 범례" })
+      .getByRole("button")
+      .first();
+    const tooltip = page.locator(".ku-slope-bands-tooltip");
+    await cell.click();
+    await expect(tooltip).toBeVisible();
+    // 툴팁은 바깥을 누르면 닫힌다(SlopeBandsLegend의 pointerdown) — 버튼을 누른 뒤 칸을 다시 눌러 연다
+    await expectScaled(page, [["범례 툴팁", tooltip]], async () => {
+      await cell.click();
+      await expect(tooltip).toBeVisible();
+    });
   });
 
   test("지도 위 건물·명소·지하철역 이름", async ({ page }) => {
@@ -693,11 +722,23 @@ test.describe("글자 크기 — 모바일 360px", () => {
     await expect(nav).toBeVisible();
     expect(await fontPx(nav.getByRole("button").first())).toBe(12);
     const panel = page.locator(".ku-menu-panel");
-    for (const name of [/^검색/, /^필터/, /^즐겨찾기/, /^목록/]) {
+    for (const { name, filter } of [
+      { name: /^검색/, filter: false },
+      { name: /^필터/, filter: true },
+      { name: /^즐겨찾기/, filter: false },
+      { name: /^목록/, filter: false },
+    ]) {
       await nav.getByRole("button", { name }).click();
       await expect(panel).toBeVisible();
       await expectNoHorizontalOverflow(String(name), panel);
-      if (String(name) === String(/^필터/)) {
+      if (filter) {
+        await panel
+          .getByRole("button", { name: "캠퍼스 영역", exact: true })
+          .click();
+        await panel.getByRole("button", { name: "시설", exact: true }).click();
+        await expect(panel.locator(".ku-chip").first()).toBeVisible();
+        expect(await panel.locator(".ku-chip").count()).toBeGreaterThan(0);
+        await expectNoHorizontalOverflow("필터(칸 연 뒤)", panel);
         const clipped = await panel
           .locator(".ku-chip")
           .evaluateAll((chips) =>
@@ -744,10 +785,7 @@ test.describe("글자 크기 — 모바일 360px", () => {
     await expect(request).toBeVisible();
     await expectNoHorizontalOverflow("등록 요청", request);
     await page.keyboard.press("Escape");
-    await page
-      .locator(".ku-side-panel")
-      .getByRole("button", { name: "닫기" })
-      .click();
+    await page.locator(".ku-side-close").click();
     await expect(page.locator(".ku-side-panel")).toHaveCount(0);
 
     await page.getByTitle("피드백 보내기").click();
@@ -812,8 +850,10 @@ test("크게에서도 범례 눈금끼리 겹치지 않는다", async ({ page })
         ),
       );
     expect(rows).toHaveLength(2);
-    for (const ticks of rows)
+    for (const ticks of rows) {
+      expect(ticks).toHaveLength(5);
       for (let i = 1; i < ticks.length; i++)
         expect(ticks[i - 1][1]).toBeLessThanOrEqual(ticks[i][0]);
+    }
   }
 });
