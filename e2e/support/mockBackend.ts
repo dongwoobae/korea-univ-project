@@ -1624,6 +1624,8 @@ export async function installMockBackend(
     expandMapMenu?: boolean;
     /** 저장 값이 없으면 `ku_theme`를 이 값으로 둔다(docs/specs/2026-10-28-dark-mode-design.md 5.3) */
     theme?: "dark";
+    /** 저장 값이 없으면 `ku_font_scale`를 이 값으로 둔다(docs/specs/2026-10-28-font-scale-design.md 5.3) */
+    fontScale?: "small" | "large";
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
@@ -1638,12 +1640,15 @@ export async function installMockBackend(
       geolocationDelayMs,
       expandMapMenu,
       theme,
+      fontScale,
     }) => {
       // 시험이 먼저 넣은 값과 새로 고침 뒤의 값은 그대로 둔다
       if (expandMapMenu && localStorage.getItem("ku_menu_collapsed") === null)
         localStorage.setItem("ku_menu_collapsed", "false");
       if (theme && localStorage.getItem("ku_theme") === null)
         localStorage.setItem("ku_theme", theme);
+      if (fontScale && localStorage.getItem("ku_font_scale") === null)
+        localStorage.setItem("ku_font_scale", fontScale);
       if (authenticated) {
         localStorage.setItem(
           "sb-127-auth-token",
@@ -1724,6 +1729,7 @@ export async function installMockBackend(
       geolocationDelayMs: options.geolocationDelayMs ?? 0,
       expandMapMenu: options.expandMapMenu ?? true,
       theme: options.theme ?? null,
+      fontScale: options.fontScale ?? null,
     },
   );
 
