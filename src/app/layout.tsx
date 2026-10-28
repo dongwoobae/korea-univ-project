@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { COLOR_MODE_INIT_SCRIPT } from "@/lib/colorMode";
+import { FONT_SCALE_INIT_SCRIPT } from "@/lib/fontScale";
 
 const SITE_URL = "https://korea-univ-project.vercel.app";
 
@@ -90,7 +91,11 @@ export default function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: COLOR_MODE_INIT_SCRIPT }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: COLOR_MODE_INIT_SCRIPT + FONT_SCALE_INIT_SCRIPT,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
