@@ -123,15 +123,15 @@ describe("옆 패널 옆으로 옮기기", () => {
 
   it("이름표가 보이는 영역 안이면 옮기지 않는다", () => {
     expect(labelRevealOffsetX({ ...base, labelCenterX: 190 })).toBe(0);
-    // 오른쪽 끝 338 = 380 - 12 → 중심 308
-    expect(labelRevealOffsetX({ ...base, labelCenterX: 338 - 30 })).toBe(0);
+    // 오른쪽 끝 368 = 380 - 12 → 중심 338
+    expect(labelRevealOffsetX({ ...base, labelCenterX: 338 })).toBe(0);
     // 왼쪽 끝 12 → 중심 42
     expect(labelRevealOffsetX({ ...base, labelCenterX: 42 })).toBe(0);
   });
 
   it("패널에 가리면 보이는 영역 가운데로 오게 지도를 왼쪽으로 옮긴다", () => {
     expect(labelRevealOffsetX({ ...base, labelCenterX: 500 })).toBe(310);
-    expect(labelRevealOffsetX({ ...base, labelCenterX: 309 })).toBe(119);
+    expect(labelRevealOffsetX({ ...base, labelCenterX: 339 })).toBe(149);
   });
 
   it("화면 왼쪽으로 벗어나도 가운데로 옮긴다", () => {
