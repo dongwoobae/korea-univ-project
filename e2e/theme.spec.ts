@@ -411,14 +411,18 @@ test.describe("다크 모드 — 공개 지도", () => {
     await expect(page.locator(".leaflet-popup")).toBeVisible();
     await check("시설 팝업", ".leaflet-popup");
     await page.locator(".leaflet-popup-close-button").click();
+    // 닫힌 팝업은 0.2초 동안 흐려지며 남는다(Leaflet 페이드) — 다음 팝업과 겹쳐 잡히지 않게 기다린다
+    await expect(page.locator(".leaflet-popup")).toHaveCount(0);
     await page.locator('[data-testid^="landmark-marker-"]').first().click();
     await expect(page.locator(".leaflet-popup")).toBeVisible();
     await check("명소 팝업", ".leaflet-popup");
     await page.locator(".leaflet-popup-close-button").click();
+    await expect(page.locator(".leaflet-popup")).toHaveCount(0);
     await page.locator('.leaflet-overlay-pane path[stroke="#8BC34A"]').click();
     await expect(page.locator(".leaflet-popup")).toContainText("정문-중앙광장");
     await check("경사도 팝업", ".leaflet-popup");
     await page.locator(".leaflet-popup-close-button").click();
+    await expect(page.locator(".leaflet-popup")).toHaveCount(0);
 
     await nav.getByRole("button", { name: "검색", exact: true }).click();
     await page.getByPlaceholder("건물 검색...").fill("중앙도서관");
