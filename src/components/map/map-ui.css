@@ -1707,6 +1707,9 @@
     .ku-side-panel[data-visible="true"] {
       transform: translateX(0);
     }
+    .ku-language[data-panel-open="true"] {
+      right: calc(min(360px, 50vw) + 16px);
+    }
     .ku-side-handle {
       display: none;
     }

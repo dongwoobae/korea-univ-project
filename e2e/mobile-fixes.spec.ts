@@ -281,7 +281,7 @@ test.describe("가로 좁은 화면(설계 1.2)", () => {
       }
     });
 
-    test(`${size}: 상세는 화면 높이의 오른쪽 옆 패널이고 손잡이가 없다`, async ({
+    test(`${size}: 상세는 화면 높이의 오른쪽 옆 패널이고 손잡이가 없으며 언어 상자가 비킨다`, async ({
       page,
     }) => {
       await installMockBackend(page, { expandMapMenu: false });
@@ -297,6 +297,8 @@ test.describe("가로 좁은 화면(설계 1.2)", () => {
         Math.abs(panel.width - Math.min(360, viewport.width / 2)),
       ).toBeLessThanOrEqual(1);
       await expect(page.locator(".ku-side-handle")).toBeHidden();
+      const language = await settledBox(page.locator(".ku-language-trigger"));
+      expect(language.x + language.width).toBeLessThanOrEqual(panel.x);
     });
 
     test(`${size}: 경사도 범례는 버튼 줄 위에 있어 겹치지 않는다`, async ({
