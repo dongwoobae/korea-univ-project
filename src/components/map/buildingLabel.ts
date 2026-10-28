@@ -36,8 +36,7 @@ export type DetailLayout = "portrait" | "landscape" | "web";
 
 /**
  * 상세가 지도를 덮을 자리를 `fitBounds`의 `paddingBottomRight`로 준다(설계 docs/specs/2026-10-28-mobile-fixes-design.md 3).
- * map-ui.css의 `.ku-side-panel` 세 규칙과 같은 식이다. 그쪽을 바꾸면 같이 바꾼다.
- * 세로는 모바일 규칙의 높이(`mobileSheetHeight`), 가로는 가로 좁은 화면 규칙의 `min(360px, 50vw)`, 웹은 기본 규칙의 `width: 340px`
+ * map-ui.css의 `.ku-side-panel` 세 규칙(기본·좁은 화면·가로 좁은 화면)과 같은 식이다. 그쪽을 바꾸면 같이 바꾼다.
  */
 export function detailPadding(
   kind: DetailLayout,
