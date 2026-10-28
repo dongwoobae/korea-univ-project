@@ -154,6 +154,16 @@ async function openLibraryDetail(page: Page) {
   await expect(page.locator(".ku-side-panel")).toBeVisible();
 }
 
+/** check()·uncheck()처럼 누르기 전과 뒤의 상태를 함께 본다 */
+async function setSlope(page: Page, on: boolean) {
+  const button = page
+    .locator(".ku-map-actions")
+    .getByRole("button", { name: "경사도", exact: true });
+  await expect(button).toHaveAttribute("aria-pressed", String(!on));
+  await button.click();
+  await expect(button).toHaveAttribute("aria-pressed", String(on));
+}
+
 function visibleActionNames(page: Page) {
   return page
     .locator(".ku-map-actions button")
@@ -188,7 +198,13 @@ test.describe("글자 크기 — 버튼", () => {
       name: "접힌 줄",
       viewport: { width: 1280, height: 800 },
       expandMapMenu: false,
-      names: ["위성 지도로 전환", "글자 작게", "글자 크게", "피드백 보내기"],
+      names: [
+        "위성 지도로 전환",
+        "경사도",
+        "글자 작게",
+        "글자 크게",
+        "피드백 보내기",
+      ],
       whole: false,
     },
     {
@@ -197,6 +213,7 @@ test.describe("글자 크기 — 버튼", () => {
       expandMapMenu: true,
       names: [
         "위성 지도로 전환",
+        "경사도",
         "다크모드",
         "글자 작게",
         "글자 크게",
@@ -213,6 +230,7 @@ test.describe("글자 크기 — 버튼", () => {
         "글자 크게",
         "현 위치",
         "위성 지도로 전환",
+        "경사도",
         "피드백 보내기",
       ],
       whole: true,
@@ -448,8 +466,8 @@ test.describe("글자 크기 — 커지는 글자와 그대로인 글자", () =>
       .click();
     await page.getByRole("button", { name: "시설", exact: true }).click();
     await page.getByRole("button", { name: /경사로/ }).click();
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
     await page.keyboard.press("Escape");
+    await setSlope(page, true);
     const content = page.locator(".leaflet-popup-content");
 
     await page.locator('[data-testid="facility-marker-f-installed"]').click();
@@ -476,11 +494,7 @@ test.describe("글자 크기 — 커지는 글자와 그대로인 글자", () =>
   test("경사도 범례 툴팁", async ({ page }) => {
     await installMockBackend(page, { expandMapMenu: false });
     await page.goto("/");
-    await menuNav(page)
-      .getByRole("button", { name: "필터", exact: true })
-      .click();
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
-    await page.keyboard.press("Escape");
+    await setSlope(page, true);
     const cell = page
       .getByRole("group", { name: "경사도 범례" })
       .getByRole("button")
@@ -529,11 +543,7 @@ test.describe("글자 크기 — 커지는 글자와 그대로인 글자", () =>
   }) => {
     await installMockBackend(page, { expandMapMenu: false });
     await page.goto("/");
-    await menuNav(page)
-      .getByRole("button", { name: "필터", exact: true })
-      .click();
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
-    await page.keyboard.press("Escape");
+    await setSlope(page, true);
     await expect(
       page.locator(".ku-slope-bands-ticks span").first(),
     ).toBeVisible();
@@ -751,11 +761,11 @@ test.describe("글자 크기 — 모바일 360px", () => {
               .map((chip) => chip.textContent),
           );
         expect(clipped).toEqual([]);
-        await page.getByRole("checkbox", { name: /경사도/ }).check();
       }
       await nav.getByRole("button", { name }).click();
       await expect(panel).toHaveCount(0);
     }
+    await setSlope(page, true);
     const legend = page.locator(".ku-slope-legend");
     await expect(legend).toBeVisible();
     await expectNoHorizontalOverflow("범례", legend);
@@ -830,13 +840,9 @@ test("크게에서도 범례 눈금끼리 겹치지 않는다", async ({ page })
     { width: 1280, height: 720 },
     { width: 375, height: 800 },
   ]) {
-    const mobile = viewport.width < 768;
     await page.setViewportSize(viewport);
     await page.goto("/");
-    const filter = menuNav(page).getByRole("button", { name: /^필터/ });
-    if (mobile) await filter.click();
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
-    if (mobile) await filter.click();
+    await setSlope(page, true);
     const legend = page.getByRole("group", { name: "경사도 범례" });
     await expect(legend.getByRole("button")).toHaveCount(6);
     const rows = await legend
@@ -937,7 +943,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
     await installMockBackend(page);
     await page.setViewportSize({ width: 1280, height: 800 });
     await openMap(page);
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await setSlope(page, true);
     await expect(page.locator(".ku-slope-legend")).toBeVisible();
     const result = await emptySpotMisses(
       page,
@@ -967,18 +973,29 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
     }
   });
 
+  // 844×390은 좁은 화면이고, 1024×540은 확대 묶음만 빼는 웹 화면이다(docs/specs/2026-10-28-mobile-fixes-design.md 1.1)
   const LOW = [
-    { width: 844, height: 390, expandMapMenu: false },
-    { width: 844, height: 390, expandMapMenu: true },
-    { width: 1024, height: 460, expandMapMenu: true },
+    {
+      name: "가로 휴대폰 844×390",
+      layout: ".ku-menu-nav--bar",
+      viewport: { width: 844, height: 390 },
+      expandMapMenu: false,
+    },
+    {
+      name: "낮은 웹 화면 1024×540 펼침",
+      layout: ".ku-filter-panel",
+      viewport: { width: 1024, height: 540 },
+      expandMapMenu: true,
+    },
   ];
   for (const place of LOW) {
-    test(`낮은 웹 화면 ${place.width}×${place.height}${place.expandMapMenu ? " 펼침" : ""}: 확대 버튼을 빼고 열이 언어 상자 아래에 있다`, async ({
+    test(`${place.name}: 확대 버튼을 빼고 열이 언어 상자 아래에 있다`, async ({
       page,
     }) => {
       await installMockBackend(page, { expandMapMenu: place.expandMapMenu });
-      await page.setViewportSize(place);
+      await page.setViewportSize(place.viewport);
       await openMap(page);
+      await expect(page.locator(place.layout)).toBeVisible();
       await expect(page.locator(".ku-map-zoom")).toBeHidden();
       const languageBottom = await page
         .locator(".ku-language")

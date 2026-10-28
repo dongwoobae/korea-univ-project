@@ -7,6 +7,16 @@ function mobileMenuButton(page: Page, name: string | RegExp) {
     .getByRole("button", { name, exact: typeof name === "string" });
 }
 
+/** check()·uncheck()처럼 누르기 전과 뒤의 상태를 함께 본다 */
+async function setSlope(page: Page, on: boolean) {
+  const button = page
+    .locator(".ku-map-actions")
+    .getByRole("button", { name: "경사도", exact: true });
+  await expect(button).toHaveAttribute("aria-pressed", String(!on));
+  await button.click();
+  await expect(button).toHaveAttribute("aria-pressed", String(on));
+}
+
 const currentTileZoom = (page: Page) =>
   page.locator(".leaflet-tile").evaluateAll((tiles) =>
     Math.max(
@@ -217,7 +227,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     expect(await currentTileZoom(page)).toBe(zoomBefore);
   });
 
-  test("시설 유형, 명소, 경사도 필터가 지도 레이어를 제어한다", async ({
+  test("시설 유형·명소 필터와 경사도 버튼이 지도 레이어를 제어한다", async ({
     page,
   }) => {
     await page.goto("/");
@@ -242,8 +252,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       0,
     );
 
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
-    await expect(page.getByRole("checkbox", { name: /경사도/ })).toBeChecked();
+    await setSlope(page, true);
   });
 
   test("낮은 줌에서 라벨과 가까운 마커를 정리하고 확대하면 펼친다", async ({
@@ -607,7 +616,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
     const legend = legendOf(page);
     await expect(legend).toHaveCount(0);
 
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await setSlope(page, true);
     await expect(legend).toBeVisible();
     for (const label of [
       "5.56%",
@@ -634,7 +643,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
       ).toBeVisible();
     }
 
-    await page.getByRole("checkbox", { name: /경사도/ }).uncheck();
+    await setSlope(page, false);
     await expect(legend).toHaveCount(0);
   });
 
@@ -643,7 +652,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
   }) => {
     await installMockBackend(page);
     await page.goto("/");
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await setSlope(page, true);
     const legend = legendOf(page);
     const tooltip = page.getByRole("tooltip");
     const first = legend.getByRole("button", { name: /^보도 기준 이내,/ });
@@ -677,7 +686,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
   test("열린 툴팁을 누르면 닫힌다", async ({ page }) => {
     await installMockBackend(page);
     await page.goto("/");
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await setSlope(page, true);
     const legend = legendOf(page);
     const tooltip = legend.getByRole("tooltip");
 
@@ -692,7 +701,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
   }) => {
     await installMockBackend(page);
     await page.goto("/");
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await setSlope(page, true);
     const box = page.locator(".ku-slope-legend");
     const actions = page.locator(".ku-map-actions");
     await expect(box).toBeVisible();
@@ -731,7 +740,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
       ],
     };
     await page.goto("/");
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await setSlope(page, true);
     const legend = legendOf(page);
     await expect(legend.getByRole("button")).toHaveCount(3);
     await expect(legend.getByText("6%", { exact: true })).toBeVisible();
@@ -746,7 +755,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
 
     state.slopeBands = { bands: "broken" };
     await page.goto("/");
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await setSlope(page, true);
     await expect(legend.getByRole("button")).toHaveCount(4);
     await expect(
       page.locator('.leaflet-overlay-pane path[stroke="#8BC34A"]'),
@@ -761,7 +770,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
   }) => {
     await installMockBackend(page);
     await page.goto("/");
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
+    await setSlope(page, true);
     const casings = page.locator(".leaflet-overlay-pane path.ku-slope-casing");
     await expect(casings).toHaveCount(2);
     await expect(casings.first()).toHaveAttribute("stroke", "#1C1917");
@@ -808,12 +817,9 @@ test.describe("공개 지도 — 경사도 범례", () => {
       { width: 1280, height: 720 },
       { width: 375, height: 800 },
     ]) {
-      const mobile = viewport.width < 768;
       await page.setViewportSize(viewport);
       await page.goto("/");
-      if (mobile) await mobileMenuButton(page, /^필터/).click();
-      await page.getByRole("checkbox", { name: /경사도/ }).check();
-      if (mobile) await mobileMenuButton(page, /^필터/).click();
+      await setSlope(page, true);
       const legend = legendOf(page);
       await expect(legend.getByRole("button")).toHaveCount(6);
 
@@ -840,15 +846,16 @@ test.describe("공개 지도 — 경사도 범례", () => {
 test.describe("공개 지도 — 경사도 범례 (모바일)", () => {
   test.use({ viewport: { width: 375, height: 800 }, hasTouch: true });
 
-  test("필터를 닫아도 남고, 탭으로 툴팁을 열고 닫으며, 출처와 버튼 열을 비키고 건물을 열면 숨는다", async ({
+  test("필터를 여닫아도 남고, 탭으로 툴팁을 열고 닫으며, 출처와 버튼 열을 비키고 건물을 열면 숨는다", async ({
     page,
   }) => {
     await installMockBackend(page);
     await page.goto("/");
+    await setSlope(page, true);
+    const legend = page.getByRole("group", { name: "경사도 범례" });
+    await expect(legend).toBeVisible();
     const filter = mobileMenuButton(page, /^필터/);
     await filter.click();
-    await page.getByRole("checkbox", { name: /경사도/ }).check();
-    const legend = page.getByRole("group", { name: "경사도 범례" });
     // 필터가 열린 동안은 버튼 열과 같은 규칙으로 숨는다
     await expect(legend).toBeHidden();
     await filter.click();
