@@ -157,14 +157,20 @@ function LandmarkMarkers({
                     gap: 6,
                     fontSize: 14,
                     fontWeight: 700,
-                    color: "#222",
+                    color: "var(--ku-text-1)",
                   }}
                 >
                   <LandmarkEmoji icon={landmark.icon} size={15} />
                   {name}
                 </div>
                 {description && (
-                  <div style={{ fontSize: 12, color: "#666", marginTop: 5 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--ku-text-2)",
+                      marginTop: 5,
+                    }}
+                  >
                     {description}
                   </div>
                 )}

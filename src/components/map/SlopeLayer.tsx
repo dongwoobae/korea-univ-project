@@ -74,7 +74,7 @@ export default function SlopeLayer({
                 경사 <strong>{formatPercent(degToPercent(point.slope))}</strong>{" "}
                 ({formatDeg(point.slope)})
               </div>
-              <div style={{ color: "#888", fontSize: 11 }}>
+              <div style={{ color: "var(--ku-text-3)", fontSize: 11 }}>
                 구간 거리 {point.distance}m
               </div>
             </div>

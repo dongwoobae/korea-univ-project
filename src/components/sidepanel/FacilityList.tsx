@@ -42,7 +42,7 @@ export default function FacilityList({
             alignItems: "center",
             textAlign: "center",
             padding: "32px 20px",
-            color: "#991B1B",
+            color: "var(--ku-danger)",
           }}
         >
           <p style={{ margin: 0 }}>{t("facilityLoadError")}</p>
@@ -52,7 +52,7 @@ export default function FacilityList({
               onClick={onRetry}
               style={{
                 marginTop: 12,
-                background: "#991B1B",
+                background: "var(--ku-primary)",
                 color: "#fff",
                 border: "none",
                 borderRadius: "var(--ku-radius)",

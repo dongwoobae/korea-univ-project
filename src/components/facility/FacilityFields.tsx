@@ -40,7 +40,7 @@ export const ADMIN_FACILITY_FIELD_LABELS: FacilityFieldLabels = {
 const inputStyle: CSSProperties = {
   width: "100%",
   padding: "8px 10px",
-  border: "1px solid #ddd",
+  border: "1px solid var(--ku-border-input)",
   borderRadius: "var(--ku-radius)",
   fontSize: 13,
   outline: "none",
@@ -49,7 +49,7 @@ const inputStyle: CSSProperties = {
 };
 const labelStyle: CSSProperties = {
   fontSize: 12,
-  color: "#555",
+  color: "var(--ku-text-2)",
   display: "block",
   marginTop: 12,
 };
@@ -171,7 +171,7 @@ export default function FacilityFields({
               marginTop: 4,
               borderRadius: "var(--ku-radius)",
               overflow: "hidden",
-              border: "1px solid #ddd",
+              border: "1px solid var(--ku-border-input)",
             }}
           >
             <FacilityMap
