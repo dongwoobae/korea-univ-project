@@ -55,7 +55,7 @@ async function seedFavorite(page: Page) {
   );
 }
 
-/** 글자를 직접 가진 보이는 요소의 글자색과, 위로 올라가며 처음 만나는 불투명 바탕의 WCAG 대비(설계 5.2) */
+/** 글자를 직접 가진 보이는 요소의 글자색과, 화면에서 그 밑에 처음 깔린 불투명 바탕의 WCAG 대비(설계 5.2) */
 async function lowContrast(page: Page, selector: string) {
   return page.evaluate((selector) => {
     type Rgba = { r: number; g: number; b: number; a: number };
@@ -85,16 +85,36 @@ async function lowContrast(page: Page, selector: string) {
       };
       return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
     };
+    const opaque = (node: Element): Rgba | null | undefined => {
+      const style = getComputedStyle(node);
+      if (style.backgroundImage !== "none") return null;
+      const background = parse(style.backgroundColor);
+      return background && background.a >= 0.9 ? background : undefined;
+    };
+    // 절대 위치로 DOM 조상이 아닌 상자 위에 얹힌 글자(팝업 닫기 버튼)가 있어 DOM 조상보다 화면의 쌓임을 먼저 본다
     const backdrop = (element: Element): Rgba | null => {
-      for (
-        let node: Element | null = element;
-        node;
-        node = node.parentElement
-      ) {
-        const style = getComputedStyle(node);
-        if (style.backgroundImage !== "none") return null;
-        const background = parse(style.backgroundColor);
-        if (background && background.a >= 0.9) return background;
+      const rect = element.getBoundingClientRect();
+      const stack = document.elementsFromPoint(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2,
+      );
+      const index = stack.indexOf(element);
+      const below =
+        index >= 0
+          ? stack.slice(index)
+          : (() => {
+              const chain: Element[] = [];
+              for (
+                let node: Element | null = element;
+                node;
+                node = node.parentElement
+              )
+                chain.push(node);
+              return chain;
+            })();
+      for (const node of below) {
+        const found = opaque(node);
+        if (found !== undefined) return found;
       }
       return { r: 255, g: 255, b: 255, a: 1 };
     };
