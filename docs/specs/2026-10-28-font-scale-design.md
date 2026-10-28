@@ -67,6 +67,9 @@ PR ⑥의 요구는 멘토링 설계(`docs/specs/2026-10-25-mentoring-feedback-d
     출처 표기 바로 위에 서므로 열의 아래쪽과 높이가 겹친다. 줄이 열 아래쪽에 있으면 범례를 덮는다. 열 맨 위는 범례보다 높다.
   - 세로로 세우면 열이 범례와 겹치지 않는다. 그러나 열이 48px 두 칸만큼 높아져, 가로 모드(높이 375px)에서 오른쪽 위 언어 버튼과
     부딪힌다.
+  - 가로 모드에서 보이는 높이가 약 358px보다 낮으면 줄이 오른쪽 위 언어 버튼 밑에 깔린다(열 222px + 아래 72px, 언어 버튼 아래 끝
+    64px). 이 PR 전에는 열이 짧아 그 기준이 약 300px이었다. 2026-10-28 낮은 높이의 자리는 ⑦에서 정한다 — 실제 휴대폰 가로 화면은
+    주소창 때문에 그보다 낮은 경우가 많다.
 - 모바일에서 상세 시트나 메뉴 패널이 열린 동안에는 지도 버튼 열 전체가 숨으므로(`.ku-map-corner[data-panel-open]`·
   `[data-overlay-open]`) 글자 크기 버튼도 보이지 않는다. 다른 버튼과 같은 규칙이라 그대로 둔다. ⑦ 모바일 점검에서 다시 본다.
 
@@ -124,9 +127,10 @@ PR ⑥의 요구는 멘토링 설계(`docs/specs/2026-10-25-mentoring-feedback-d
   - `parseStoredFontScale(value)`: 정확히 `"small"`·`"large"`일 때만 그 단계이고, 그 밖(없음·`"normal"`·모르는 값)은 보통이다(멘토링
     설계 2장).
   - `FONT_SCALE_INIT_SCRIPT`: 3.2의 인라인 스크립트 문자열.
+  - `scaledFontSize(px)`: 인라인 스타일용 `calc(Npx * var(--ku-fs, 1))` 문자열(3.3).
 - `src/lib/useFontScale.ts`(`"use client"`):
   - `setFontScale(scale)`: 속성을 바꾸고, `localStorage`에 쓴다(예외는 삼킨다 — 화면만 바뀐다). 그리고 구독자에게 알린다.
-  - `useFontScale()`: `useSyncExternalStore(subscribe, 속성 읽기, () => "normal")`.
+  - `subscribeFontScale(listener)`, `useFontScale()`: `useSyncExternalStore(subscribe, 속성 읽기, () => "normal")`.
   - 한 단계 위·아래는 버튼 컴포넌트가 `FONT_SCALES` 순서로 정한다.
 - 저장 값은 멘토링 설계 2장 표대로 `"small"`·`"normal"`·`"large"`를 쓴다. 보통으로 돌아오면 키를 지우지 않고 `"normal"`을 쓴다.
 - 다른 탭의 변경은 지금 탭에 바로 반영하지 않는다(다크 모드 설계 2.1과 같다).
@@ -134,8 +138,9 @@ PR ⑥의 요구는 멘토링 설계(`docs/specs/2026-10-25-mentoring-feedback-d
 ### 3.2 첫 그리기 전 (`src/app/layout.tsx`)
 
 - 다크 모드 설계 2.2의 `<script>`에 `FONT_SCALE_INIT_SCRIPT`를 이어 붙인다. 스크립트 태그는 하나다.
-  - 꼴: `try{var s=localStorage.getItem("ku_font_scale");if(s==="small"||s==="large")document.documentElement.setAttribute("data-font-scale",s)}catch(e){}`.
+  - 꼴: `;(function(){try{var s=localStorage.getItem("ku_font_scale");if(s==="small"||s==="large")document.documentElement.setAttribute("data-font-scale",s)}catch(e){}})();`.
     ES5만 쓴다.
+  - 함수로 감싸 이어 붙인 스크립트에 전역 변수를 남기지 않고, 앞 `;`로 다크 모드 스크립트가 세미콜론 없이 끝나도 문장이 나뉜다.
   - 두 스크립트가 각자 `try`로 감싸져 있어 하나가 실패해도 다른 하나는 돈다.
 - 관리자 화면에서도 이 속성은 걸린다. 관리자 CSS는 `--ku-fs`를 읽지 않고, 변수가 공개 화면 뿌리에만 있으므로(3.3) 관리자 글자는
   바뀌지 않는다.
@@ -159,14 +164,15 @@ PR ⑥의 요구는 멘토링 설계(`docs/specs/2026-10-25-mentoring-feedback-d
     `FacilityFields`.
   - 공개·관리자가 함께 쓰는 `FacilityFields`·`.ku-toast`·`.bldg-label`·경사도 범례 툴팁도 같은 꼴로 쓴다. 관리자 쪽은 변수 밖이라
     그대로다.
-- 크기를 주지 않은 글자(2.1)가 따라오도록 `.ku-font-scope` 자신에 `font-size: calc(16px * var(--ku-fs, 1))`를 건다. 16px는 지금
-  이 뿌리들이 `body`에서 물려받는 값이라 보통에서는 달라지지 않는다.
+- 크기를 주지 않은 글자(2.1)가 따라오도록 `.ku-font-scope` 자신에 `font-size: calc(1rem * var(--ku-fs, 1))`를 건다. 1rem은 지금
+  이 뿌리들이 물려받는 값(브라우저 기본 글자 크기)이라 보통에서는 달라지지 않고, 사용자가 브라우저 기본 크기를 바꾼 것도 따른다.
+  `<html>` 글자 크기는 바꾸지 않으므로 관리자 화면에 번지지 않는다.
 - `.ku-font-scope`를 다는 곳:
   - `.ku-map-shell`(`Map.tsx`). 메뉴 패널·건물 상세·토스트·Leaflet 컨테이너(툴팁·팝업·마커)가 그 안이다.
   - `document.body`로 띄우는 공개 화면 뿌리: 피드백(`FeedbackButton`), 등록 요청(`FacilityRequestModal`), 사진 확대(`PhotoLightbox`).
     8.2의 "띄우는 뿌리에 공개 화면 표시를 단다"가 이것이다.
 - Leaflet 기본 글자: `leaflet.css`(1.9.4)는 `.leaflet-container`에 `0.75rem`을 두고 이 파일들보다 늦게 불린다. `rem`이라 뿌리의
-  배율을 따르지 않으므로 `.ku-font-scope .leaflet-container`로 특이도를 올려 `calc(12px * var(--ku-fs, 1))`로 덮는다.
+  배율을 따르지 않으므로 `.ku-font-scope .leaflet-container`로 특이도를 올려 `calc(0.75rem * var(--ku-fs, 1))`로 덮는다(보통에서는 `leaflet.css`의 0.75rem과 같은 값이다).
   - 팝업 내용(`.leaflet-popup-content`)은 `em`이라 컨테이너를 따라온다. 덮지 않는다.
   - `.leaflet-tooltip`에는 글자 크기를 걸지 않는다. `leaflet.css`도 걸지 않아 컨테이너를 물려받는다. `.ku-font-scope .leaflet-tooltip`
     같은 규칙을 두면 클래스 하나짜리 `.ku-building-label`의 크기를 이긴다.
@@ -262,5 +268,6 @@ PR ⑥의 요구는 멘토링 설계(`docs/specs/2026-10-25-mentoring-feedback-d
 - 아이콘·마커 키우기(8.1).
 - 다른 탭의 변경을 지금 탭에 바로 반영하기(3.1).
 - 모바일에서 상세 시트가 열린 동안 글자 크기 바꾸기(1.2). ⑦에서 다시 본다.
+- 가로 모드 낮은 높이(약 358px 미만)에서의 버튼 줄 자리(1.2). ⑦에서 정한다.
 - 검색창 밖 입력의 16px 바닥. 등록 요청 입력(`FacilityFields` 13px)·피드백 입력은 보통에서도 이미 16px보다 작아 iOS가 지금도 초점
   때 확대한다. ⑥이 만든 문제가 아니라 ⑦ 목록에 올린다.
