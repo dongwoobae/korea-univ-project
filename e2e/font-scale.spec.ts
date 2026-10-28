@@ -859,6 +859,13 @@ test("크게에서도 범례 눈금끼리 겹치지 않는다", async ({ page })
 });
 
 test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
+  /** 데이터를 불러오는 동안 로딩 막(.ku-map-loading)이 지도를 덮는다. 막은 지도와 함께 붙으므로 지도가 붙은 뒤에 걷히기를 기다린다 */
+  async function openMap(page: Page) {
+    await page.goto("/");
+    await expect(scaleGroup(page)).toBeVisible();
+    await expect(page.locator(".ku-map-loading")).toHaveCount(0);
+  }
+
   /** 틀 상자 안에서 내용(버튼·범례)이 없는 자리를 8px 간격으로 짚어, 지도나 출처 표기가 잡히는지 본다(설계 1.2) */
   function emptySpotMisses(page: Page, frame: string, content: string) {
     return page.evaluate(
@@ -915,10 +922,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
     test(`${place.name}: 버튼 옆 빈 자리는 지도가 받는다`, async ({ page }) => {
       await installMockBackend(page, { expandMapMenu: place.expandMapMenu });
       await page.setViewportSize(place.viewport);
-      await page.goto("/");
-      // 데이터를 불러오는 동안 로딩 막(.ku-map-loading)이 지도를 덮어 지도 대신 잡힌다
-      await expect(page.locator(".ku-map-loading")).toHaveCount(0);
-      await expect(scaleGroup(page)).toBeVisible();
+      await openMap(page);
       const result = await emptySpotMisses(
         page,
         ".ku-map-actions",
@@ -932,8 +936,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
   test("웹에서 경사도 범례 위 빈 자리도 지도가 받는다", async ({ page }) => {
     await installMockBackend(page);
     await page.setViewportSize({ width: 1280, height: 800 });
-    await page.goto("/");
-    await expect(page.locator(".ku-map-loading")).toHaveCount(0);
+    await openMap(page);
     await page.getByRole("checkbox", { name: /경사도/ }).check();
     await expect(page.locator(".ku-slope-legend")).toBeVisible();
     const result = await emptySpotMisses(
@@ -948,9 +951,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
   test("360px 출처 표기 링크는 버튼 열에 가리지 않는다", async ({ page }) => {
     await installMockBackend(page);
     await page.setViewportSize({ width: 360, height: 780 });
-    await page.goto("/");
-    await expect(page.locator(".ku-map-loading")).toHaveCount(0);
-    await expect(scaleGroup(page)).toBeVisible();
+    await openMap(page);
     for (const name of ["OpenStreetMap", "CARTO", "Leaflet"]) {
       const reachable = await page
         .locator(".ku-attribution a", { hasText: name })
@@ -977,9 +978,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
     }) => {
       await installMockBackend(page, { expandMapMenu: place.expandMapMenu });
       await page.setViewportSize(place);
-      await page.goto("/");
-      await expect(page.locator(".ku-map-loading")).toHaveCount(0);
-      await expect(scaleGroup(page)).toBeVisible();
+      await openMap(page);
       await expect(page.locator(".ku-map-zoom")).toBeHidden();
       const languageBottom = await page
         .locator(".ku-language")
@@ -1000,8 +999,7 @@ test.describe("글자 크기 — 지도 버튼 열 빈 자리", () => {
   test("높이가 넉넉한 웹 화면에는 확대 버튼이 있다", async ({ page }) => {
     await installMockBackend(page);
     await page.setViewportSize({ width: 1024, height: 600 });
-    await page.goto("/");
-    await expect(page.locator(".ku-map-loading")).toHaveCount(0);
+    await openMap(page);
     await expect(page.locator(".ku-map-zoom")).toBeVisible();
   });
 });
