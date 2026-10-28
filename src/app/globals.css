@@ -189,10 +189,19 @@ a {
   bottom: 166px;
 }
 
-.leaflet-popup-content-wrapper,
-.leaflet-popup-tip {
+/* leaflet.css가 이 파일보다 뒤에 불려 같은 특이도의 흰 바탕·회색 닫기 버튼이 이긴다 — 조상 클래스를 붙여 올린다.
+   다크에서 팝업이 흰 채로 남으면 토큰 글자가 읽히지 않는다(docs/specs/2026-10-28-dark-mode-design.md 3.3) */
+.leaflet-container .leaflet-popup-content-wrapper,
+.leaflet-container .leaflet-popup-tip {
   color: var(--ku-text-1);
   background: var(--ku-surface);
+}
+.leaflet-container .leaflet-popup a.leaflet-popup-close-button {
+  color: var(--ku-text-2);
+}
+.leaflet-container .leaflet-popup a.leaflet-popup-close-button:hover,
+.leaflet-container .leaflet-popup a.leaflet-popup-close-button:focus {
+  color: var(--ku-text-1);
 }
 
 /* leaflet.css·leaflet-geoman.css는 이 파일보다 늦게 불리고, 툴바 첫·끝 버튼의 반경 규칙은 특이도가 더 높다 */

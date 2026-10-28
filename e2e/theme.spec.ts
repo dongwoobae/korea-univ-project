@@ -5,7 +5,8 @@ import { installMockBackend } from "./support/mockBackend";
 
 const DARK_BG = "rgb(21, 18, 16)";
 const LIGHT_BG = "rgb(247, 245, 243)";
-const LIGHT_TEXT_2 = "rgb(92, 86, 82)";
+// 작업 화면은 이름표를 옅게 칠한다(admin-ui.css `.ku-map-workspace .bldg-label`). 다크 text-3는 rgb(167, 156, 148)
+const LIGHT_TEXT_3 = "rgb(138, 131, 125)";
 const WHITE = "rgb(255, 255, 255)";
 
 function menuNav(page: Page) {
@@ -514,7 +515,7 @@ test.describe("다크 모드 — 관리자", () => {
       await expect(
         map.locator(".leaflet-tooltip.bldg-label").first(),
         path,
-      ).toHaveCSS("color", LIGHT_TEXT_2);
+      ).toHaveCSS("color", LIGHT_TEXT_3);
     }
     await expect(page.locator("path.ku-slope-casing").first()).toHaveAttribute(
       "stroke",
