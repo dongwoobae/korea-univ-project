@@ -16,11 +16,11 @@
   --ku-fs: 1.2;
 }
 .ku-font-scope {
-  font-size: calc(16px * var(--ku-fs, 1));
+  font-size: calc(1rem * var(--ku-fs, 1));
 }
 /* leaflet.css의 컨테이너 크기는 rem이라 뿌리를 따르지 않는다. .leaflet-tooltip에는 걸지 않는다 — .ku-building-label을 이긴다 */
 .ku-font-scope .leaflet-container {
-  font-size: calc(12px * var(--ku-fs, 1));
+  font-size: calc(0.75rem * var(--ku-fs, 1));
 }
 
 .ku-map-loading {
@@ -546,9 +546,10 @@
 .ku-font-scale-button--larger {
   font-size: 18px;
 }
+/* 끝 단계에서도 초점이 이 버튼에 남는다(docs/specs/2026-10-28-font-scale-design.md 1.1) — 초점 링까지 흐려지지 않게 글자만 흐린다 */
 .ku-font-scale-button[aria-disabled="true"] {
+  color: var(--ku-text-3);
   cursor: default;
-  opacity: 0.4;
 }
 
 .ku-marker-cluster {
