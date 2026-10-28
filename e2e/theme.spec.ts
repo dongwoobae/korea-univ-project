@@ -210,6 +210,8 @@ test.describe("다크 모드 — 공개 지도", () => {
   }) => {
     await installMockBackend(page);
     await page.goto("/");
+    // 지도가 늦게 불려 오므로 열이 그려진 뒤에 한 번에 읽는다
+    await expect(page.locator(".ku-theme-toggle")).toBeVisible();
     const labels = await page
       .locator(".ku-map-actions")
       .getByRole("button")

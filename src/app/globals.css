@@ -219,7 +219,7 @@ a {
 :root[data-theme="dark"] .leaflet-tile-pane {
   filter: brightness(0.86) saturate(0.82);
 }
-.ku-light-scope .leaflet-tile-pane {
+:root[data-theme="dark"] .ku-light-scope .leaflet-tile-pane {
   filter: none;
 }
 

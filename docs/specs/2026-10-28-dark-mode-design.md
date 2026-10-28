@@ -63,6 +63,8 @@
 - **[판단]** 768px 이상에서는 아이콘만 보인다(`Moon`/`Sun`, 이름은 `aria-label`과 `title`). 768~899px 헤더는 이미 이메일을 빼고 탭
   여백을 줄여야 로그아웃이 화면 안에 든다(`admin-ui.css`의 그 구간 주석). 글자 버튼 하나를 더 넣을 자리가 없고, 그 구간만 모양을
   바꾸면 규칙이 둘이 된다.
+  - 그래도 폭이 모자라다(2026-10-28, 대체 글꼴 768px에서 36px 넘침). 768~899px은 탭 좌우 여백을 10px에서 6px로 줄이고, 900px
+    이상은 이메일이 말줄임으로 줄어들어 남는 폭을 내준다(`min-width: 0`).
 - 767px 이하에서는 계정 칸의 다른 버튼처럼 숨고, ⋮ 메뉴에 같은 이름(글자)의 `menuitem`을 첫 항목으로 더한다. 누르면 모드를 바꾸고
   메뉴를 닫은 뒤 초점을 ⋮ 버튼으로 돌린다. 다른 항목은 모달을 열거나 화면을 옮기지만 이 항목은 아무것도 열지 않아, 돌리지 않으면
   초점이 사라진 항목과 함께 문서로 떨어진다.
@@ -112,7 +114,8 @@
 - `src/app/globals.css`의 `@media (prefers-color-scheme: dark)` 두 곳을 바꾼다.
   - 토큰 블록: `:root[data-theme="dark"] { color-scheme: dark; … }`. 값은 그대로다.
   - 타일 어둡게(`.leaflet-tile-pane`의 `filter`): `:root[data-theme="dark"] .leaflet-tile-pane`로 걸고, `.ku-light-scope .leaflet-tile-pane`
-    에서 `filter: none`으로 푼다. 밝은 범위 클래스가 Leaflet 컨테이너에 있든 그 바깥 틀에 있든 같이 풀린다(3.2).
+    을 다크 선택자에 붙여(`:root[data-theme="dark"] .ku-light-scope .leaflet-tile-pane`) `filter: none`으로 푼다. 다크 쪽
+    선택자의 특이도가 높아 `.ku-light-scope .leaflet-tile-pane`만으로는 지지 않는다. 밝은 범위 클래스가 Leaflet 컨테이너에 있든 그 바깥 틀에 있든 같이 풀린다(3.2).
 - 화면의 다른 색은 모두 토큰을 읽는다(색 토큰 선언은 `globals.css`에만 있다). `document.body`로 띄우는 공개 모달도 `:root` 토큰을
   읽어 함께 바뀐다.
 - `src/components/MapWrapper.tsx` 로딩 자리의 `#f5f5f0`을 `var(--ku-bg)`로 바꾼다. 멘토링 설계 7.1대로 쓰이지 않는
@@ -141,14 +144,15 @@
   **[판단]**
 - 찾은 것(공개 화면 컴포넌트의 인라인 색):
 
-  | 파일                          | 자리                                             | 바꿀 값                                                                                  |
-  | ----------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-  | `map/FacilityMarkers.tsx`     | 시설 팝업 설명·층·건물 이름 `#666`·`#888`·`#aaa` | `--ku-text-2`·`--ku-text-3`·`--ku-text-3`                                                |
-  | `map/LandmarkMarkers.tsx`     | 명소 팝업 이름·설명 `#222`·`#666`                | `--ku-text-1`·`--ku-text-2`                                                              |
-  | `map/SlopeLayer.tsx`          | 경사도 팝업 구간 거리 `#888`                     | `--ku-text-3`                                                                            |
-  | `sidepanel/FacilityList.tsx`  | 시설 불러오기 실패 글자·버튼 `#991B1B`           | 글자 `--ku-danger`, 버튼 바탕 `--ku-primary`                                             |
-  | `facility/FacilityFields.tsx` | 입력·지도 틀 테두리 `#ddd`, 이름 `#555`          | `--ku-border-input`, `--ku-text-2`                                                       |
-  | `FacilityMap.tsx`             | 현 위치 버튼 바탕 `#fff`                         | `--ku-surface`. 밝게 고정할 때는 `ku-light-scope`를 지도와 이 버튼을 감싼 틀에 단다(4장) |
+  | 파일                          | 자리                                                                                    | 바꿀 값                                                                                  |
+  | ----------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+  | `map/FacilityMarkers.tsx`     | 시설 팝업 설명·층·건물 이름 `#666`·`#888`·`#aaa`                                        | `--ku-text-2`·`--ku-text-3`·`--ku-text-3`                                                |
+  | `map/LandmarkMarkers.tsx`     | 명소 팝업 이름·설명 `#222`·`#666`                                                       | `--ku-text-1`·`--ku-text-2`                                                              |
+  | `map/SlopeLayer.tsx`          | 경사도 팝업 구간 거리 `#888`                                                            | `--ku-text-3`                                                                            |
+  | `sidepanel/FacilityList.tsx`  | 시설 불러오기 실패 글자·버튼 `#991B1B`                                                  | 글자 `--ku-danger`, 버튼 바탕 `--ku-primary`                                             |
+  | `map/SearchControl.tsx`       | 검색 결과 캠퍼스 이름(`--campus-color`, 기본 팔레트 `#963A32` 등. 다크 바탕에서 2.35:1) | 다크면 `satelliteCampusColor` — 다크 지도 폴리곤과 같은 팔레트, 다크 표면에서 5:1 이상   |
+  | `facility/FacilityFields.tsx` | 입력·지도 틀 테두리 `#ddd`, 이름 `#555`                                                 | `--ku-border-input`, `--ku-text-2`                                                       |
+  | `FacilityMap.tsx`             | 현 위치 버튼 바탕 `#fff`                                                                | `--ku-surface`. 밝게 고정할 때는 `ku-light-scope`를 지도와 이 버튼을 감싼 틀에 단다(4장) |
 
 - 흰 바탕을 스스로 가진 표시(명소 이름표 `rgba(255,255,255,.92)` 위 `#7A5C16`, 지도 오류 띠의 옅은 빨강 위 `#991B1B`, 사진 위 흰
   글자)는 바탕과 글자가 같이 박혀 있어 그대로 둔다.

@@ -19,7 +19,8 @@ import type {
 } from "@/types/domain";
 import type { LangCode } from "@/lib/translations";
 import { useLanguage } from "@/lib/LanguageContext";
-import { campusColor } from "@/lib/theme";
+import { campusColor, satelliteCampusColor } from "@/lib/theme";
+import { useColorMode } from "@/lib/useColorMode";
 import { LandmarkEmoji } from "./iconography";
 import { MENU_PANEL_ID } from "./mapMenu";
 
@@ -115,6 +116,9 @@ export default function SearchControl({
 }) {
   const { lang, t } = useLanguage();
   const listboxId = useId();
+  // 다크 바탕에서는 지도 폴리곤과 같은 밝은 팔레트를 쓴다 — 기본 팔레트는 대비가 모자란다(docs/specs/2026-10-28-dark-mode-design.md 3.3)
+  const campusPalette =
+    useColorMode() === "dark" ? satelliteCampusColor : campusColor;
   const [activeIndex, setActiveIndex] = useState(-1);
   const [open, setOpen] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -448,7 +452,7 @@ export default function SearchControl({
                     className="ku-search-result-campus"
                     style={
                       {
-                        "--campus-color": campusColor[result.campus],
+                        "--campus-color": campusPalette[result.campus],
                       } as React.CSSProperties
                     }
                   >
