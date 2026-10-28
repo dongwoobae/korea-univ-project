@@ -1622,6 +1622,8 @@ export async function installMockBackend(
     listedAdmin?: boolean;
     /** 저장 값이 없으면 웹 지도 메뉴를 펼쳐 둔다. false면 처음 방문(접힘) 그대로 — 이유는 docs/specs/2026-10-27-map-menu-design.md 7.4 */
     expandMapMenu?: boolean;
+    /** 저장 값이 없으면 `ku_theme`를 이 값으로 둔다(docs/specs/2026-10-28-dark-mode-design.md 5.3) */
+    theme?: "dark";
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));
@@ -1630,10 +1632,18 @@ export async function installMockBackend(
   state.translationFailuresRemaining = options.failTranslations ?? 0;
   // 1) 페이지 로드 전 브라우저 API 스텁(인증 토큰·음성·위치). 실제 권한/기기 없이 결정론적.
   await page.addInitScript(
-    ({ authenticated, currentLocation, geolocationDelayMs, expandMapMenu }) => {
+    ({
+      authenticated,
+      currentLocation,
+      geolocationDelayMs,
+      expandMapMenu,
+      theme,
+    }) => {
       // 시험이 먼저 넣은 값과 새로 고침 뒤의 값은 그대로 둔다
       if (expandMapMenu && localStorage.getItem("ku_menu_collapsed") === null)
         localStorage.setItem("ku_menu_collapsed", "false");
+      if (theme && localStorage.getItem("ku_theme") === null)
+        localStorage.setItem("ku_theme", theme);
       if (authenticated) {
         localStorage.setItem(
           "sb-127-auth-token",
@@ -1713,6 +1723,7 @@ export async function installMockBackend(
           : options.currentLocation,
       geolocationDelayMs: options.geolocationDelayMs ?? 0,
       expandMapMenu: options.expandMapMenu ?? true,
+      theme: options.theme ?? null,
     },
   );
 

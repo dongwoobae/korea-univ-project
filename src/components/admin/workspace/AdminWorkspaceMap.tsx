@@ -18,7 +18,6 @@ import {
   fetchNeighborBuildings,
 } from "@/lib/neighborBuildings";
 import { neighborPointToLayer } from "@/lib/neighborLayer";
-import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import { WORKSPACE_MAX_ZOOM, bindWorkspaceMapCommands } from "./focusMap";
 import type { WorkspaceMapSlotProps } from "./types";
 
@@ -122,8 +121,6 @@ export default function AdminWorkspaceMap({
   onMapClick,
   children,
 }: AdminWorkspaceMapProps) {
-  const prefersDarkMode = usePrefersDarkMode();
-
   return (
     <MapContainer
       center={initialViewport.center}
@@ -131,11 +128,11 @@ export default function AdminWorkspaceMap({
       maxZoom={WORKSPACE_MAX_ZOOM}
       zoomControl={false}
       scrollWheelZoom
+      className="ku-light-scope"
       style={{ width: "100%", height: "100%" }}
     >
       <TileLayer
-        key={prefersDarkMode ? "dark" : "light"}
-        url={getCartoTileUrl(prefersDarkMode)}
+        url={getCartoTileUrl(false)}
         attribution={CARTO_ATTRIBUTION}
         subdomains="abcd"
         maxZoom={WORKSPACE_MAX_ZOOM}

@@ -54,26 +54,39 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
   margin-left: auto;
 }
+/* 헤더가 모자라면 이메일이 먼저 줄어든다 — 900px 바로 위에서 다크모드 토글까지 들어가게(설계 2026-10-28 1.3) */
 .ku-admin-email {
+  min-width: 0;
+  overflow: hidden;
   color: var(--ku-text-3);
   font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* 메뉴로 접히기 전(768~899px)에는 브랜드·메뉴 링크·버튼이 한 줄에 다 들어가지 않아 로그아웃이 화면 밖으로 밀린다.
-   이메일을 빼고 탭 여백을 줄인다. 탭 여백은 탭이 여섯이 된 뒤(2026-10-20) Pretendard가 오기 전 대체 글꼴로 그려진
-   768px에서도 들어가게 잡은 값이다. 메뉴로 접는 767px 경계는 아래 nav 등 다른 모바일 규칙과 같이 써서 따로 올리지 않는다 */
+   이메일을 빼고 탭 여백을 줄인다. 탭 여백은 탭이 여섯이 되고(2026-10-20) 다크모드 토글이 붙은 뒤(2026-10-28) Pretendard가
+   오기 전 대체 글꼴로 그려진 768px에서도 들어가게 잡은 값이다. 메뉴로 접는 767px 경계는 아래 nav 등 다른 모바일 규칙과 같이 써서 따로 올리지 않는다 */
 @media (min-width: 768px) and (max-width: 899px) {
   .ku-admin-email {
     display: none;
   }
   .ku-admin-nav a {
-    padding: 0 10px;
+    padding: 0 6px;
   }
 }
 .ku-admin-account .ku-admin-button {
   min-height: 34px;
   padding: 0 12px;
+}
+.ku-admin-account .ku-admin-theme {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 0 8px;
 }
 .ku-admin-menu {
   position: relative;
@@ -807,7 +820,8 @@ button.ku-admin-overview-item {
   .ku-admin-email,
   .ku-admin-settings,
   .ku-admin-map-link,
-  .ku-admin-logout {
+  .ku-admin-logout,
+  .ku-admin-account .ku-admin-theme {
     display: none;
   }
   .ku-admin-menu {

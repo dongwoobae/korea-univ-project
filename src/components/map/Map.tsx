@@ -45,6 +45,7 @@ import FilterPanel, { type FilterSections } from "./FilterPanel";
 import FeedbackButton from "./FeedbackButton";
 import FavoritesList from "./FavoritesList";
 import LanguageSwitcher from "./LanguageSwitcher";
+import ThemeToggleButton from "./ThemeToggleButton";
 import SlopeLayer from "./SlopeLayer";
 import SlopeLegend from "./SlopeLegend";
 import FacilityMarkers from "./FacilityMarkers";
@@ -69,7 +70,7 @@ import MapViewportObserver, {
   type MapViewport,
 } from "./MapViewportObserver";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
-import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
+import { useColorMode } from "@/lib/useColorMode";
 import "./map-ui.css";
 import { KU_BOUNDS } from "@/lib/mapBounds";
 
@@ -141,9 +142,9 @@ type TileMode = keyof typeof TILES;
 function buildingColor(
   feature: BuildingFeature | undefined,
   tileMode: TileMode,
-  prefersDarkMode: boolean,
+  darkMode: boolean,
 ) {
-  const useBrightColors = tileMode === "satellite" || prefersDarkMode;
+  const useBrightColors = tileMode === "satellite" || darkMode;
   const colors = useBrightColors ? satelliteCampusColor : campusColor;
   return (
     colors[feature?.properties?.campus ?? ""] ??
@@ -154,9 +155,9 @@ function buildingColor(
 function baseStyle(
   feature: BuildingFeature | undefined,
   tileMode: TileMode,
-  prefersDarkMode: boolean,
+  darkMode: boolean,
 ) {
-  const color = buildingColor(feature, tileMode, prefersDarkMode);
+  const color = buildingColor(feature, tileMode, darkMode);
   const satellite = tileMode === "satellite";
   return {
     color,
@@ -170,9 +171,9 @@ function baseStyle(
 function hoverStyle(
   feature: BuildingFeature | undefined,
   tileMode: TileMode,
-  prefersDarkMode: boolean,
+  darkMode: boolean,
 ) {
-  const color = buildingColor(feature, tileMode, prefersDarkMode);
+  const color = buildingColor(feature, tileMode, darkMode);
   const satellite = tileMode === "satellite";
   return {
     color,
@@ -308,7 +309,7 @@ export default function Map() {
   // MapWrapper가 ssr 없이 불러 첫 그리기에 window가 있다. 휴대폰에서 웹 메뉴가 한 번 그려지지 않게 처음부터 잰다
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
-  const prefersDarkMode = usePrefersDarkMode();
+  const darkMode = useColorMode() === "dark";
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [viewport, setViewport] = useState<MapViewport | null>(null);
@@ -419,12 +420,12 @@ export default function Map() {
       baseStyle(
         featureMapRef.current[activeBuildingIdRef.current ?? -1],
         tileMode,
-        prefersDarkMode,
+        darkMode,
       ),
     );
     activeLayerRef.current = null;
     activeBuildingIdRef.current = null;
-  }, [selectedBuildingId, tileMode, prefersDarkMode]);
+  }, [selectedBuildingId, tileMode, darkMode]);
 
   // react-leaflet의 StyleFunction은 Feature<Geometry, any>를 넘긴다. 이 지도의
   // GeoJSON은 건물 폴리곤만 싣기에 좁혀 받는다.
@@ -432,10 +433,10 @@ export default function Map() {
     (feature?: Feature<Geometry, GeoJsonProperties>) => {
       const building = feature as BuildingFeature | undefined;
       return activeBuildingIdRef.current === building?.properties?.id
-        ? hoverStyle(building, tileMode, prefersDarkMode)
-        : baseStyle(building, tileMode, prefersDarkMode);
+        ? hoverStyle(building, tileMode, darkMode)
+        : baseStyle(building, tileMode, darkMode);
     },
-    [tileMode, prefersDarkMode],
+    [tileMode, darkMode],
   );
 
   // 모바일 감지. 폭 경계를 넘으면 열린 메뉴 패널을 닫는다(docs/specs/2026-10-27-map-menu-design.md 5.2)
@@ -472,13 +473,13 @@ export default function Map() {
         baseStyle(
           featureMapRef.current[activeBuildingIdRef.current ?? -1],
           tileMode,
-          prefersDarkMode,
+          darkMode,
         ),
       );
     }
     const layer = layerMapRef.current[bId];
     if (layer) {
-      layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
+      layer.setStyle(hoverStyle(feature, tileMode, darkMode));
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = bId;
     }
@@ -503,14 +504,14 @@ export default function Map() {
         const feature = featureMapRef.current[numId];
         layer.setStyle(
           isActive
-            ? hoverStyle(feature, tileMode, prefersDarkMode)
-            : baseStyle(feature, tileMode, prefersDarkMode),
+            ? hoverStyle(feature, tileMode, darkMode)
+            : baseStyle(feature, tileMode, darkMode),
         );
       });
     };
     window.addEventListener("favoritesUpdated", handler);
     return () => window.removeEventListener("favoritesUpdated", handler);
-  }, [tileMode, prefersDarkMode]);
+  }, [tileMode, darkMode]);
 
   useEffect(() => {
     Object.entries(layerMapRef.current).forEach(([id, layer]) => {
@@ -570,7 +571,7 @@ export default function Map() {
         syncLabel();
         // 이름이 보이는 확대에서는 이름표가 강조를 맡는다
         if ((mapRef.current?.getZoom() ?? 16) >= 17) return;
-        layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
+        layer.setStyle(hoverStyle(feature, tileMode, darkMode));
         // 선택된 건물은 이름표가 이미 떠 있다
         if (labelSelectedIdRef.current === bId) return;
         const { clientX, clientY } = e.originalEvent;
@@ -604,7 +605,7 @@ export default function Map() {
         }
         setTooltip((prev) => ({ ...prev, visible: false }));
         if (activeLayerRef.current === layer) return;
-        layer.setStyle(baseStyle(feature, tileMode, prefersDarkMode));
+        layer.setStyle(baseStyle(feature, tileMode, darkMode));
       },
       click() {
         if (activeBuildingIdRef.current === bId) {
@@ -616,11 +617,11 @@ export default function Map() {
             baseStyle(
               featureMapRef.current[activeBuildingIdRef.current ?? -1],
               tileMode,
-              prefersDarkMode,
+              darkMode,
             ),
           );
         }
-        layer.setStyle(hoverStyle(feature, tileMode, prefersDarkMode));
+        layer.setStyle(hoverStyle(feature, tileMode, darkMode));
         activeLayerRef.current = layer;
         activeBuildingIdRef.current = bId;
         selectBuilding({ id: bId, name: feature.properties.name });
@@ -641,15 +642,13 @@ export default function Map() {
         baseStyle(
           featureMapRef.current[activeBuildingIdRef.current ?? -1],
           tileMode,
-          prefersDarkMode,
+          darkMode,
         ),
       );
     }
     const layer = layerMapRef.current[id];
     if (layer) {
-      layer.setStyle(
-        hoverStyle(featureMapRef.current[id], tileMode, prefersDarkMode),
-      );
+      layer.setStyle(hoverStyle(featureMapRef.current[id], tileMode, darkMode));
       activeLayerRef.current = layer;
       activeBuildingIdRef.current = id;
       mapRef.current?.fitBounds(layer.getBounds(), {
@@ -673,7 +672,7 @@ export default function Map() {
           baseStyle(
             featureMapRef.current[activeBuildingIdRef.current ?? -1],
             tileMode,
-            prefersDarkMode,
+            darkMode,
           ),
         );
         activeLayerRef.current = null;
@@ -830,10 +829,10 @@ export default function Map() {
         attributionControl={false}
       >
         <TileLayer
-          key={`${tileMode}-${prefersDarkMode ? "dark" : "light"}`}
+          key={`${tileMode}-${darkMode ? "dark" : "light"}`}
           url={
             tileMode === "street"
-              ? getCartoTileUrl(prefersDarkMode)
+              ? getCartoTileUrl(darkMode)
               : TILES.satellite.url
           }
           attribution={TILES[tileMode].attribution}
@@ -849,7 +848,7 @@ export default function Map() {
         />
         {geoData && (
           <GeoJSON
-            key={`${tileMode}-${prefersDarkMode}-${geoDataVersion}`}
+            key={`${tileMode}-${darkMode}-${geoDataVersion}`}
             data={geoData}
             style={geoJsonStyle}
             onEachFeature={onEachFeature}
@@ -895,7 +894,7 @@ export default function Map() {
         {showSlope && slopes.length > 0 && (
           <SlopeLayer
             slopes={slopes}
-            darkMap={tileMode === "street" && prefersDarkMode}
+            darkMap={tileMode === "street" && darkMode}
           />
         )}
         {campusBoundaries && (
@@ -914,14 +913,14 @@ export default function Map() {
             }
             style={(feature) => ({
               color:
-                (prefersDarkMode
+                (darkMode
                   ? satelliteCampusColor[feature?.properties?.campus]
                   : campusColor[feature?.properties?.campus]) ??
                 feature?.properties?.color,
               weight: 2,
               opacity: 0.45,
               fillColor:
-                (prefersDarkMode
+                (darkMode
                   ? satelliteCampusColor[feature?.properties?.campus]
                   : campusColor[feature?.properties?.campus]) ??
                 feature?.properties?.color,
@@ -1177,6 +1176,13 @@ export default function Map() {
               {tileMode === "street" ? t("tileSatellite") : t("tileStreet")}
             </span>
           </button>
+          {layout === "expanded" && (
+            <ThemeToggleButton
+              className="ku-map-action ku-map-action--labeled"
+              labelClassName="ku-map-action-label"
+              iconSize={19}
+            />
+          )}
           <FeedbackButton />
         </div>
       </div>

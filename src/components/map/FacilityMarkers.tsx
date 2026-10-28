@@ -145,7 +145,13 @@ function FacilityMarkers({
                 f.description_zh,
                 lang,
               ) && (
-                <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--ku-text-2)",
+                    marginTop: 2,
+                  }}
+                >
                   {localized(
                     f.description,
                     f.description_en,
@@ -160,7 +166,7 @@ function FacilityMarkers({
                 f.floor_info_zh,
                 lang,
               ) && (
-                <div style={{ fontSize: 12, color: "#888" }}>
+                <div style={{ fontSize: 12, color: "var(--ku-text-3)" }}>
                   {localized(
                     f.floor_info,
                     f.floor_info_en,
@@ -170,7 +176,13 @@ function FacilityMarkers({
                 </div>
               )}
               {f.buildings?.name && (
-                <div style={{ fontSize: 11, color: "#aaa", marginTop: 4 }}>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: "var(--ku-text-3)",
+                    marginTop: 4,
+                  }}
+                >
                   {localized(
                     f.buildings.name,
                     f.buildings.name_en,

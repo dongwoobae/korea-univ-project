@@ -23,7 +23,6 @@ import {
 import { useSlopeBands } from "@/lib/slopeBandsStore";
 import { isSlopeDegInRange } from "@/lib/slopeScale";
 import { supabase } from "@/lib/supabaseClient";
-import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import type {
   SlopeEditDraft,
   SlopeEditMode,
@@ -91,7 +90,6 @@ export default function SlopeRouteMap({
   onEditorChange,
 }: SlopeRouteMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const previewRef = useRef<L.LayerGroup | null>(null);
   const othersRef = useRef<L.LayerGroup | null>(null);
   // 행이 도착하면 그리기 effect가 돌아야 해서 ref가 아니라 상태다
@@ -107,7 +105,6 @@ export default function SlopeRouteMap({
   const onViewportChangeRef = useRef(onViewportChange);
   const onCommandsReadyRef = useRef(onCommandsReady);
   const onEditorChangeRef = useRef(onEditorChange);
-  const prefersDarkMode = usePrefersDarkMode();
   const [editorState, setEditorState] = useState<SlopeEditorState>(() => ({
     hasLine: Boolean(initialVertices?.length),
     drawing: false,
@@ -149,7 +146,7 @@ export default function SlopeRouteMap({
       .zoom({ position: "topleft", zoomInTitle: "확대", zoomOutTitle: "축소" })
       .addTo(map);
 
-    tileLayerRef.current = L.tileLayer(getCartoTileUrl(false), {
+    L.tileLayer(getCartoTileUrl(false), {
       attribution: CARTO_ATTRIBUTION,
       subdomains: "abcd",
       maxZoom: WORKSPACE_MAX_ZOOM,
@@ -404,7 +401,6 @@ export default function SlopeRouteMap({
       controllerRef.current = null;
       map.remove();
       workspace.dispose();
-      tileLayerRef.current = null;
       previewRef.current = null;
       othersRef.current = null;
       labelsRef.current = null;
@@ -426,19 +422,11 @@ export default function SlopeRouteMap({
   }, [owner, editorState]);
 
   useEffect(() => {
-    tileLayerRef.current?.setUrl(getCartoTileUrl(prefersDarkMode));
-  }, [prefersDarkMode]);
-
-  useEffect(() => {
     const group = othersRef.current;
     if (!group || !otherSegments) return;
     group.clearLayers();
     // 다른 경로는 늘 흐린 선이라 외곽선도 그 비율로 흐린다
-    const casing = slopeCasingStyle(
-      OTHER_WEIGHT,
-      prefersDarkMode,
-      OTHER_OPACITY,
-    );
+    const casing = slopeCasingStyle(OTHER_WEIGHT, false, OTHER_OPACITY);
     const common = {
       interactive: false,
       pmIgnore: true,
@@ -458,7 +446,7 @@ export default function SlopeRouteMap({
         weight: OTHER_WEIGHT,
         opacity: OTHER_OPACITY,
       }).addTo(group);
-  }, [otherSegments, bands, prefersDarkMode]);
+  }, [otherSegments, bands]);
 
   useEffect(() => {
     const group = previewRef.current;
@@ -508,7 +496,7 @@ export default function SlopeRouteMap({
       interactive: false,
       pane: "slopePreview",
     };
-    const casing = slopeCasingStyle(PREVIEW_WEIGHT, prefersDarkMode);
+    const casing = slopeCasingStyle(PREVIEW_WEIGHT, false);
     // 외곽선을 전부 먼저 넣는다 — 번갈아 넣으면 다음 외곽선이 앞 선의 끝을 덮는다
     for (const line of lines)
       L.polyline(line.positions, {
@@ -523,12 +511,12 @@ export default function SlopeRouteMap({
         weight: PREVIEW_WEIGHT,
         opacity: 0.85,
       }).addTo(group);
-  }, [slopes, vertexVersion, bands, prefersDarkMode]);
+  }, [slopes, vertexVersion, bands]);
 
   return (
     <div
       ref={containerRef}
-      className="ku-slope-route-map"
+      className="ku-slope-route-map ku-light-scope"
       style={{ width: "100%", height: "100%" }}
     />
   );

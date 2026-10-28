@@ -40,7 +40,7 @@ export const ADMIN_FACILITY_FIELD_LABELS: FacilityFieldLabels = {
 const inputStyle: CSSProperties = {
   width: "100%",
   padding: "8px 10px",
-  border: "1px solid #ddd",
+  border: "1px solid var(--ku-border-input)",
   borderRadius: "var(--ku-radius)",
   fontSize: 13,
   outline: "none",
@@ -49,7 +49,7 @@ const inputStyle: CSSProperties = {
 };
 const labelStyle: CSSProperties = {
   fontSize: 12,
-  color: "#555",
+  color: "var(--ku-text-2)",
   display: "block",
   marginTop: 12,
 };
@@ -72,6 +72,8 @@ interface FacilityFieldsProps {
   /** 지도 아래에 붙는 내용 */
   locationFooter?: ReactNode;
   disabled?: boolean;
+  /** 위치 지도가 공개 화면 테마를 따른다. 공개 등록 요청 모달만 켠다 */
+  mapFollowsTheme?: boolean;
 }
 
 export default function FacilityFields({
@@ -89,6 +91,7 @@ export default function FacilityFields({
   showLocation = true,
   locationFooter,
   disabled = false,
+  mapFollowsTheme = false,
 }: FacilityFieldsProps) {
   const set = (patch: Partial<FacilityFieldValues>) =>
     onChange((prev) => ({ ...prev, ...patch }));
@@ -168,13 +171,14 @@ export default function FacilityFields({
               marginTop: 4,
               borderRadius: "var(--ku-radius)",
               overflow: "hidden",
-              border: "1px solid #ddd",
+              border: "1px solid var(--ku-border-input)",
             }}
           >
             <FacilityMap
               center={mapCenter}
               highlightId={highlightBuildingId}
               highlightColor={highlightColor}
+              followTheme={mapFollowsTheme}
               markerPosition={
                 value.lat && value.lng
                   ? [parseFloat(value.lat), parseFloat(value.lng)]

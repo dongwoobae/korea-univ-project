@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import { MENU_PANEL_ID, type MenuPanel } from "./mapMenu";
+import ThemeToggleButton from "./ThemeToggleButton";
 
 const ITEMS: { panel: MenuPanel; icon: LucideIcon; labelKey: string }[] = [
   { panel: "search", icon: Search, labelKey: "menuSearch" },
@@ -19,7 +20,8 @@ const ITEMS: { panel: MenuPanel; icon: LucideIcon; labelKey: string }[] = [
   { panel: "browse", icon: List, labelKey: "menuBrowse" },
 ];
 
-/** 웹 접힌 줄(rail)과 모바일 아래 줄(bar). 설계: docs/specs/2026-10-27-map-menu-design.md 3·4장 */
+/** 웹 접힌 줄(rail)과 모바일 아래 줄(bar). 설계: docs/specs/2026-10-27-map-menu-design.md 3·4장.
+ * 맨 끝은 다크모드 토글(docs/specs/2026-10-28-dark-mode-design.md 1.2) */
 export default function MapMenuNav({
   orientation,
   openPanel,
@@ -83,6 +85,14 @@ export default function MapMenuNav({
           </button>
         );
       })}
+      {orientation === "rail" && (
+        <span className="ku-menu-divider" aria-hidden="true" />
+      )}
+      <ThemeToggleButton
+        className="ku-menu-button"
+        labelClassName="ku-menu-label"
+        iconSize={20}
+      />
     </nav>
   );
 }

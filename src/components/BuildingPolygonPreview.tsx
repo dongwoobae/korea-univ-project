@@ -5,7 +5,6 @@ import L from "leaflet";
 import type { Feature, Polygon } from "geojson";
 import "leaflet/dist/leaflet.css";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
-import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
 import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
 import { addNeighborLayer } from "@/lib/neighborLayer";
 import { getBuildingViewCenter, getPointLatLng } from "@/lib/polygonCenter";
@@ -30,10 +29,8 @@ export default function BuildingPolygonPreview({
 }: BuildingPolygonPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
-  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const initialGeojsonRef = useRef(geojson);
   const buildingIdRef = useRef(buildingId);
-  const prefersDarkMode = usePrefersDarkMode();
 
   useEffect(() => {
     if (mapRef.current) return;
@@ -53,7 +50,7 @@ export default function BuildingPolygonPreview({
     }).setView(getBuildingViewCenter(initialGeojson), 18);
     mapRef.current = map;
 
-    tileLayerRef.current = L.tileLayer(getCartoTileUrl(false), {
+    L.tileLayer(getCartoTileUrl(false), {
       attribution: CARTO_ATTRIBUTION,
       subdomains: "abcd",
     }).addTo(map);
@@ -87,17 +84,13 @@ export default function BuildingPolygonPreview({
       cancelled = true;
       map.remove();
       mapRef.current = null;
-      tileLayerRef.current = null;
     };
   }, []);
-
-  useEffect(() => {
-    tileLayerRef.current?.setUrl(getCartoTileUrl(prefersDarkMode));
-  }, [prefersDarkMode]);
 
   return (
     <div
       ref={containerRef}
+      className="ku-light-scope"
       role="img"
       aria-label="건물 폴리곤 미리보기"
       style={{

@@ -18,7 +18,7 @@ import {
 } from "@/lib/neighborBuildings";
 import { neighborPointToLayer } from "@/lib/neighborLayer";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
-import { usePrefersDarkMode } from "@/lib/usePrefersDarkMode";
+import { useColorMode } from "@/lib/useColorMode";
 
 // 공개 등록 요청 모달의 색. 관리자 화면은 크림슨을 넘긴다(설계 2026-10-14 3.6)
 const PUBLIC_HIGHLIGHT_COLOR = "#2563EB";
@@ -60,6 +60,7 @@ export default function FacilityMap({
   highlightId,
   highlightColor = PUBLIC_HIGHLIGHT_COLOR,
   height = 250,
+  followTheme = false,
 }: {
   center: [number, number];
   markerPosition: [number, number] | null;
@@ -68,8 +69,11 @@ export default function FacilityMap({
   highlightColor?: string;
   /** 지도 높이(px). 공개 등록 요청 모달은 기본값을 쓴다 */
   height?: number;
+  /** 참이면 공개 화면 테마를 따른다. 거짓이면 관리자 화면 규칙대로 늘 밝다(docs/specs/2026-10-28-dark-mode-design.md 3.2) */
+  followTheme?: boolean;
 }) {
-  const prefersDarkMode = usePrefersDarkMode();
+  const colorMode = useColorMode();
+  const dark = followTheme && colorMode === "dark";
   const [map, setMap] = useState<L.Map | null>(null);
   const [locating, setLocating] = useState(false);
   const [buildingFeatures, setBuildingFeatures] = useState<Feature[] | null>(
@@ -111,7 +115,10 @@ export default function FacilityMap({
   }
 
   return (
-    <div style={{ position: "relative" }}>
+    <div
+      className={followTheme ? undefined : "ku-light-scope"}
+      style={{ position: "relative" }}
+    >
       <MapContainer
         center={center}
         zoom={18}
@@ -119,8 +126,8 @@ export default function FacilityMap({
         scrollWheelZoom={true}
       >
         <TileLayer
-          key={prefersDarkMode ? "dark" : "light"}
-          url={getCartoTileUrl(prefersDarkMode)}
+          key={dark ? "dark" : "light"}
+          url={getCartoTileUrl(dark)}
           attribution={CARTO_ATTRIBUTION}
           subdomains="abcd"
         />
@@ -174,7 +181,7 @@ export default function FacilityMap({
           zIndex: 1000,
           width: 34,
           height: 34,
-          background: "#fff",
+          background: "var(--ku-surface)",
           border: "1px solid var(--ku-border-input)",
           borderRadius: "var(--ku-radius)",
           cursor: locating ? "wait" : "pointer",

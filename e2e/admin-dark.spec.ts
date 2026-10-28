@@ -4,8 +4,8 @@ import { installMockBackend } from "./support/mockBackend";
 /**
  * 다크 모드 대비 회귀 가드 (UX-P0-03).
  *
- * 픽셀 스냅샷 대신 computed-style을 스캔한다: 시스템 다크 모드에서
- * 관리자 화면에 (1) 다크 미디어쿼리가 실제 적용되고, (2) 미이관 하드코딩
+ * 픽셀 스냅샷 대신 computed-style을 스캔한다: 저장 값이 다크(`ku_theme`)일 때
+ * 관리자 화면에 (1) 다크 토큰이 실제 적용되고, (2) 미이관 하드코딩
  * 흰 배경(#fff류)이나 (3) 근검정 텍스트(#111류)가 남아 있지 않음을 단언한다.
  * 하드코딩 색상은 다크 토큰으로 반전되지 않으므로 이 스캔에 잡힌다.
  */
@@ -36,9 +36,13 @@ async function scanContrast(page: import("@playwright/test").Page) {
     const nearWhiteBg: string[] = [];
     const nearBlackText: string[] = [];
     for (const el of Array.from(document.querySelectorAll("body *"))) {
-      // Leaflet 지도 위젯(타일·툴팁·컨트롤)은 서드파티 UI로 P0-03 범위 밖
-      // (다크 베이스맵은 별도 항목 UX-P2-02). 관리자 콘텐츠만 검사한다.
-      if (el.closest(".leaflet-container") || el.closest(".leaflet-control"))
+      // Leaflet 지도 위젯(타일·툴팁·컨트롤)과 밝게 고정한 관리자 지도(설계 2026-10-28 3.2)는
+      // 범위 밖이다. 관리자 콘텐츠만 검사한다.
+      if (
+        el.closest(".leaflet-container") ||
+        el.closest(".leaflet-control") ||
+        el.closest(".ku-light-scope")
+      )
         continue;
       const cs = getComputedStyle(el);
       const bg = parse(cs.backgroundColor);
@@ -86,6 +90,14 @@ const SCREENS = [
 
 test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
   test.use({ colorScheme: "dark" });
+
+  // 기기 다크만으로는 다크가 되지 않는다(설계 2026-10-28). 시험이 이미 다른 값을 넣었으면 둔다
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      if (localStorage.getItem("ku_theme") === null)
+        localStorage.setItem("ku_theme", "dark");
+    });
+  });
 
   for (const screen of SCREENS) {
     test(`${screen.name} 화면에 하드코딩 밝은 색이 남지 않는다`, async ({
@@ -213,7 +225,13 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
     await expect(add).toHaveCSS("background-color", "rgb(204, 41, 54)");
     await expect(add).toHaveCSS("color", "rgb(255, 255, 255)");
 
-    await page.emulateMedia({ colorScheme: "light" });
+    // 건물 상세에는 토글이 없다(설계 2026-10-28 1.3)
+    await page.goto("/admin/dashboard/buildings");
+    await page
+      .locator(".ku-admin-header")
+      .getByRole("button", { name: "라이트모드", exact: true })
+      .click();
+    await page.goto("/admin/buildings/1");
     await expect(add).toHaveCSS("background-color", "rgb(140, 0, 0)");
   });
 
@@ -338,15 +356,12 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
       result.nearBlackText,
       `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
     ).toHaveLength(0);
-    // 입력·위치 버튼은 토큰 색을 쓴다(밝은 글자·어두운 면).
+    // 입력은 토큰 색(어두운 면)이고, 위치 버튼은 밝은 지도 범위라 흰 면이다(설계 2026-10-28 3.2).
     await expect(drawer.getByLabel("층 정보 (선택)")).not.toHaveCSS(
       "background-color",
       "rgb(255, 255, 255)",
     );
-    await expect(locate).not.toHaveCSS(
-      "background-color",
-      "rgb(255, 255, 255)",
-    );
+    await expect(locate).toHaveCSS("background-color", "rgb(255, 255, 255)");
 
     const approve = drawer.getByRole("button", { name: "승인하고 등록" });
     await expect(approve).toHaveCSS("background-color", "rgb(204, 41, 54)");
@@ -380,5 +395,18 @@ test.describe("관리자 다크 모드 대비 회귀 가드 (P0-03)", () => {
       result.nearBlackText,
       `미이관 근검정 텍스트: ${result.nearBlackText.join(", ")}`,
     ).toHaveLength(0);
+  });
+});
+
+test.describe("관리자 화면은 기기 다크를 따르지 않는다", () => {
+  test.use({ colorScheme: "dark" });
+
+  test("저장 값이 없으면 기기가 다크여도 밝게 연다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/buildings");
+    await expect(page.locator(".ku-admin-header")).toBeVisible();
+    const result = await scanContrast(page);
+    expect(result.darkActive).toBe(false);
+    expect(result.bodyBg).toBe("rgb(247, 245, 243)");
   });
 });
