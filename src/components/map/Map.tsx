@@ -18,7 +18,6 @@ import {
   LocateFixed,
   Map as MapIcon,
   Minus,
-  Mountain,
   Plus,
   Satellite,
   Star,
@@ -53,7 +52,9 @@ import SlopeLegend from "./SlopeLegend";
 import FacilityMarkers from "./FacilityMarkers";
 import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
+import { SlopeLineIcon } from "./iconography";
 import {
+  BUILDING_LABEL_MIN_ZOOM,
   detailPadding,
   revealLabelAboveSheet,
   revealLabelBesidePanel,
@@ -343,7 +344,8 @@ export default function Map() {
     자연계: false,
   });
   const { lang, setLang, t } = useLanguage();
-  const buildingLabelsVisible = (viewport?.zoom ?? 16) >= (isMobile ? 18 : 17);
+  const buildingLabelsVisible =
+    (viewport?.zoom ?? 16) >= BUILDING_LABEL_MIN_ZOOM;
 
   const browseItems = useMemo(() => {
     const facilityItems = facilities
@@ -585,7 +587,8 @@ export default function Map() {
         hoveredBuildingIdRef.current = bId;
         syncLabel();
         // 이름이 보이는 확대에서는 이름표가 강조를 맡는다
-        if ((mapRef.current?.getZoom() ?? 16) >= 17) return;
+        if ((mapRef.current?.getZoom() ?? 16) >= BUILDING_LABEL_MIN_ZOOM)
+          return;
         layer.setStyle(hoverStyle(feature, tileMode, darkMode));
         // 선택된 건물은 이름표가 이미 떠 있다
         if (labelSelectedIdRef.current === bId) return;
@@ -602,7 +605,10 @@ export default function Map() {
         });
       },
       mousemove(e: L.LeafletMouseEvent) {
-        if (isMobileRef.current || (mapRef.current?.getZoom() ?? 16) >= 17) {
+        if (
+          isMobileRef.current ||
+          (mapRef.current?.getZoom() ?? 16) >= BUILDING_LABEL_MIN_ZOOM
+        ) {
           return;
         }
         const tooltipEl = tooltipRef.current;
@@ -1180,7 +1186,7 @@ export default function Map() {
             aria-busy={locating}
           >
             <LocateFixed size={19} aria-hidden="true" />
-            <span className="ku-map-action-label">{t("myLocation")}</span>
+            <span className="ku-map-action-label">{t("myLocationLabel")}</span>
           </button>
           <button
             className="ku-map-action ku-map-action--labeled"
@@ -1214,7 +1220,7 @@ export default function Map() {
             title={t("slopeToggle")}
             aria-label={t("slopeToggle")}
           >
-            <Mountain size={19} aria-hidden="true" />
+            <SlopeLineIcon size={19} aria-hidden="true" />
             <span className="ku-map-action-label">{t("slopeToggle")}</span>
           </button>
           {layout === "expanded" && (
