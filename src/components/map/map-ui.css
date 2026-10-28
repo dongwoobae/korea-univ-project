@@ -1182,7 +1182,7 @@
 }
 .ku-side-caption {
   margin-bottom: 4px;
-  color: #963a32;
+  color: var(--ku-crimson-600);
   font-size: 12px;
   font-weight: 600;
 }

@@ -387,7 +387,8 @@ test.describe("다크 모드 — 공개 지도", () => {
     const nav = menuNav(page);
     const check = async (label: string, selector: string) => {
       const failures = await lowContrast(page, selector);
-      expect(failures, `${label}: ${failures.join(", ")}`).toEqual([]);
+      // 한 번에 모든 화면의 결과를 보도록 실패해도 끝까지 간다
+      expect.soft(failures, `${label}: ${failures.join(", ")}`).toEqual([]);
     };
 
     await check("접힌 줄", ".ku-menu-nav--rail");
