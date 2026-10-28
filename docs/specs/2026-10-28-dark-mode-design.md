@@ -12,16 +12,16 @@
 
 ## 결정 요약
 
-| 항목           | 결정                                                                                                            |
-| -------------- | --------------------------------------------------------------------------------------------------------------- |
-| 버튼           | **[사용자]** 토글 하나. 밝을 때 "다크모드", 누르면 화면 전체가 어두워지고 버튼은 "라이트모드"가 된다(1.1)       |
-| 버튼 자리      | 웹 접힌 줄 맨 아래, 웹 펼침은 오른쪽 아래 지도 버튼 열의 위성 다음(**[사용자]**), 모바일 아래 줄 오른쪽 끝(1.2) |
-| 관리자         | 헤더의 설정 앞에 같은 토글. 768px 미만은 ⋮ 메뉴 항목(1.3)                                                       |
-| 상태           | `<html data-theme>` 속성이 기준이다. 모듈 저장소 하나와 `useSyncExternalStore` 훅(2.1)                          |
-| 첫 그리기      | `<head>`의 인라인 스크립트가 저장 값이 `"dark"`일 때만 속성을 건다(2.2)                                         |
-| 색             | 다크 토큰을 `@media` 대신 `:root[data-theme="dark"]`에 건다(3.1)                                                |
-| 관리자 지도    | Leaflet 컨테이너에 `ku-light-scope`를 달아 그 안에 밝은 토큰을 다시 선언한다(3.2)                               |
-| 등록 요청 지도 | `FacilityMap`의 `followTheme`. 기본은 밝음이고 공개 등록 요청 모달만 켠다(4장)                                  |
+| 항목           | 결정                                                                                                                                     |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| 버튼           | **[사용자]** 토글 하나. 밝을 때 "다크모드", 누르면 화면 전체가 어두워지고 버튼은 "라이트모드"가 된다(1.1)                                |
+| 버튼 자리      | 웹 접힌 줄 맨 아래, 웹 펼침은 오른쪽 아래 지도 버튼 열의 위성 다음(**[사용자]**), 모바일 아래 줄 오른쪽 끝(1.2)                          |
+| 관리자         | 헤더 계정 칸의 설정 앞에 아이콘 토글. 767px 이하는 ⋮ 메뉴 항목(1.3)                                                                      |
+| 상태           | `<html data-theme>` 속성이 기준이다. React 없는 모듈(키·해석·스크립트)과 클라이언트 모듈(저장소·`useSyncExternalStore` 훅)로 나눈다(2.1) |
+| 첫 그리기      | `<head>`의 인라인 스크립트가 저장 값이 `"dark"`일 때만 속성을 건다(2.2)                                                                  |
+| 색             | 다크 토큰을 `@media` 대신 `:root[data-theme="dark"]`에 건다(3.1)                                                                         |
+| 관리자 지도    | 지도를 감싼 요소에 `ku-light-scope`를 달아 그 안에 밝은 토큰을 다시 선언한다(3.2)                                                        |
+| 등록 요청 지도 | `FacilityMap`의 `followTheme`. 기본은 밝음이고 공개 등록 요청 모달만 켠다(4장)                                                           |
 
 ---
 
@@ -53,14 +53,19 @@
 - **펼침(expanded):** **[사용자]** 2026-10-28 오른쪽 아래 지도 버튼 열(`.ku-map-actions`)의 위성 버튼 다음, 피드백 앞에 둔다. 모양은
   위성 버튼과 같은 `ku-map-action--labeled`. 이 열은 모든 모드에 있지만 토글은 펼침 모드에서만 이 열에 그린다 — 한 화면에 토글은
   하나다.
-- 이름이 잘리면 안 된다. 시험이 세 언어·세 자리에서 글자가 말줄임 없이 들어가는지 본다(5.2).
+- 이름이 잘리면 안 된다. 접힌 줄 버튼의 글자 자리는 64px에서 테두리 2px와 좌우 안쪽 여백 4px씩을 빼면 54px인데, 11px 한글 다섯
+  글자("라이트모드")가 그만큼이다. 토글만 좌우 안쪽 여백을 2px로 줄여 58px로 한다. 시험이 세 언어·세 자리·두 이름(밝음·다크)에서
+  말줄임 없이 들어가는지 본다(5.2).
 
 ### 1.3 관리자 화면
 
-- `src/app/admin/dashboard/layout.tsx` 헤더의 `.ku-admin-account`에서 "설정" 앞에 `ku-admin-button` 토글을 둔다(아이콘 + 글자, 이름은
-  한국어만).
-- 767px 이하에서는 계정 칸의 다른 버튼처럼 숨고, ⋮ 메뉴에 같은 이름의 `menuitem`을 첫 항목으로 더한다. 누르면 모드를 바꾸고 메뉴를
-  닫는다(다른 항목과 같다).
+- `src/app/admin/dashboard/layout.tsx` 헤더의 `.ku-admin-account`에서 "설정" 앞에 `ku-admin-button` 토글을 둔다. 이름은 한국어만이다.
+- **[판단]** 768px 이상에서는 아이콘만 보인다(`Moon`/`Sun`, 이름은 `aria-label`과 `title`). 768~899px 헤더는 이미 이메일을 빼고 탭
+  여백을 줄여야 로그아웃이 화면 안에 든다(`admin-ui.css`의 그 구간 주석). 글자 버튼 하나를 더 넣을 자리가 없고, 그 구간만 모양을
+  바꾸면 규칙이 둘이 된다.
+- 767px 이하에서는 계정 칸의 다른 버튼처럼 숨고, ⋮ 메뉴에 같은 이름(글자)의 `menuitem`을 첫 항목으로 더한다. 누르면 모드를 바꾸고
+  메뉴를 닫은 뒤 초점을 ⋮ 버튼으로 돌린다. 다른 항목은 모달을 열거나 화면을 옮기지만 이 항목은 아무것도 열지 않아, 돌리지 않으면
+  초점이 사라진 항목과 함께 문서로 떨어진다.
 - 건물 상세·새 건물(`/admin/buildings/*`)과 로그인(`/admin`)은 자기 헤더를 쓰고 대시보드 헤더가 없다. 이 화면들에는 버튼을 두지 않고
   저장 값만 따른다. 다크는 대시보드 헤더의 버튼으로만 들어가므로 7.2의 "버튼으로만"은 지켜진다. **[판단]**
 
@@ -68,15 +73,16 @@
 
 ## 2. 상태
 
-### 2.1 저장소와 훅 (`src/lib/theme.ts`)
+### 2.1 저장소와 훅 (`src/lib/theme.ts`, `src/lib/useTheme.ts`)
 
 - 기준은 `<html>`의 `data-theme` 속성이다. `"dark"`면 다크, 없으면 밝음이다. 밝음일 때는 속성을 지운다.
-- 내보내는 것:
-  - `THEME_STORAGE_KEY = "ku_theme"`, `type Theme = "light" | "dark"`.
-  - `parseStoredTheme(value)` — 정확히 `"dark"`일 때만 다크, 그 밖(없음·`"light"`·모르는 값)은 밝음(멘토링 설계 2장).
-  - `THEME_INIT_SCRIPT` — 2.2의 인라인 스크립트 문자열.
-  - `setTheme(theme)` — 속성을 바꾸고, `localStorage`에 쓰고(예외는 삼킨다 — 화면만 바뀐다), 구독자에게 알린다.
-  - `useTheme()` — `useSyncExternalStore(subscribe, 속성 읽기, () => "light")`.
+- 두 모듈로 나눈다. 서버 컴포넌트인 루트 레이아웃이 스크립트 문자열을 가져오는데, 같은 모듈에 React 훅이 있으면 서버 그래프에 훅이
+  들어가고, `"use client"`를 달면 서버가 받는 것이 문자열이 아니라 클라이언트 참조가 된다.
+  - `src/lib/theme.ts`(React를 가져오지 않는다): `THEME_STORAGE_KEY = "ku_theme"`, `type Theme = "light" | "dark"`,
+    `parseStoredTheme(value)` — 정확히 `"dark"`일 때만 다크, 그 밖(없음·`"light"`·모르는 값)은 밝음(멘토링 설계 2장),
+    `THEME_INIT_SCRIPT` — 2.2의 인라인 스크립트 문자열.
+  - `src/lib/useTheme.ts`(`"use client"`): `setTheme(theme)` — 속성을 바꾸고, `localStorage`에 쓰고(예외는 삼킨다 — 화면만
+    바뀐다), 구독자에게 알린다. `useTheme()` — `useSyncExternalStore(subscribe, 속성 읽기, () => "light")`.
 - **[판단]** 멘토링 설계 7.2의 "상태 공급자(Context) 하나"를 모듈 저장소로 바꾼다. 같은 값 하나를 모두가 읽고 바꾸면 모두 다시
   그린다는 뜻은 그대로다. 바꾸는 이유:
   - 관리자 화면은 서버에서 먼저 그려진다. 서버는 저장 값을 모르므로 서버의 첫 값은 밝음이어야 한다. Context에 `useState`를 쓰면 처음
@@ -104,7 +110,8 @@
 
 - `src/app/globals.css`의 `@media (prefers-color-scheme: dark)` 두 곳을 바꾼다.
   - 토큰 블록: `:root[data-theme="dark"] { color-scheme: dark; … }`. 값은 그대로다.
-  - 타일 어둡게(`.leaflet-tile-pane`의 `filter`): `:root[data-theme="dark"] .leaflet-container:not(.ku-light-scope) .leaflet-tile-pane`.
+  - 타일 어둡게(`.leaflet-tile-pane`의 `filter`): `:root[data-theme="dark"] .leaflet-tile-pane`로 걸고, `.ku-light-scope .leaflet-tile-pane`
+    에서 `filter: none`으로 푼다. 밝은 범위 클래스가 Leaflet 컨테이너에 있든 그 바깥 틀에 있든 같이 풀린다(3.2).
 - 화면의 다른 색은 모두 토큰을 읽는다(색 토큰 선언은 `globals.css`에만 있다). `document.body`로 띄우는 공개 모달도 `:root` 토큰을
   읽어 함께 바뀐다.
 - `src/components/MapWrapper.tsx` 로딩 자리의 `#f5f5f0`을 `var(--ku-bg)`로 바꾼다. 멘토링 설계 7.1대로 쓰이지 않는
@@ -115,29 +122,52 @@
 - **[사용자]** 관리자 화면의 지도는 늘 밝다 — 타일과 지도 위 색 모두(멘토링 설계 7.3).
 - 지도 위 UI 중 토큰을 읽는 것이 있다. 예: 관리자 지도의 건물 이름표(`.leaflet-tooltip.bldg-label`)는 `--ku-text-2` 글자에
   `--ku-surface` 테두리다. 다크 토큰이 닿으면 밝은 타일 위에 밝은 글자가 된다.
-- 그래서 밝은 토큰 블록의 선택자를 `:root, .ku-light-scope`로 하고, 밝게 둘 지도의 Leaflet 컨테이너 요소에 `ku-light-scope`를 단다.
-  그 요소가 밝은 값을 직접 선언하므로 `<html>`에서 물려받는 다크 값을 이긴다. 안의 타일·이름표·팝업·Leaflet 컨트롤·geoman 도구가
-  모두 밝게 남는다. `color-scheme: light`도 같은 블록에 있다.
+- 그래서 밝은 토큰 블록의 선택자를 `:root, .ku-light-scope`로 하고, 밝게 둘 지도를 감싼 요소에 `ku-light-scope`를 단다. 그 요소가
+  밝은 값을 직접 선언하므로 `<html>`에서 물려받는 다크 값을 이긴다. 안의 타일·이름표·팝업·Leaflet 컨트롤·geoman 도구가 모두 밝게
+  남는다. `color-scheme: light`도 같은 블록에 있다.
+  - 다는 자리: Leaflet 컨테이너 요소. 단 `FacilityMap`은 지도와 그 형제인 현 위치 버튼(`.ku-facility-map-locate`)을 함께 감싼 바깥
+    틀이다. 제보함 드로어의 그 버튼은 `admin-ui.css`가 토큰으로 칠하는데(`.ku-inbox-drawer .ku-facility-map-locate`), 틀 안에서
+    토큰이 밝은 값으로 풀려 밝은 지도와 같이 밝다.
   - 밝은 토큰을 한 벌 더 적지 않고 선택자만 더한다. 값이 한 곳에 있다.
   - 토큰 블록의 `--ku-primary-text: var(--ku-crimson-600)` 같은 참조는 선언된 요소에서 풀리므로 `.ku-light-scope` 안에서도 밝은
     크림슨을 가리킨다.
 - 지도 둘레(카드·툴바·패널)는 테마를 따른다 — 멘토링 설계 7.3의 "지도 밖".
 
+### 3.3 다크에서 읽히지 않는 박힌 색
+
+- 지금도 기기가 다크면 공개 화면에 다크 토큰이 걸리지만, 토큰 대신 색을 박아 둔 글자가 있어 다크 바탕 위에서 읽히지 않는다. 예: 명소
+  팝업 이름 `#222`는 다크 팝업 바탕(`--ku-surface`) 위에서 대비가 1.1:1도 안 된다. 다크가 사용자가 고르는 모드가 되므로 ⑤에서 고친다.
+  **[판단]**
+- 찾은 것(공개 화면 컴포넌트의 인라인 색):
+
+  | 파일                          | 자리                                             | 바꿀 값                                                                                  |
+  | ----------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+  | `map/FacilityMarkers.tsx`     | 시설 팝업 설명·층·건물 이름 `#666`·`#888`·`#aaa` | `--ku-text-2`·`--ku-text-3`·`--ku-text-3`                                                |
+  | `map/LandmarkMarkers.tsx`     | 명소 팝업 이름·설명 `#222`·`#666`                | `--ku-text-1`·`--ku-text-2`                                                              |
+  | `map/SlopeLayer.tsx`          | 경사도 팝업 구간 거리 `#888`                     | `--ku-text-3`                                                                            |
+  | `sidepanel/FacilityList.tsx`  | 시설 불러오기 실패 글자·버튼 `#991B1B`           | 글자 `--ku-danger`, 버튼 바탕 `--ku-primary`                                             |
+  | `facility/FacilityFields.tsx` | 입력·지도 틀 테두리 `#ddd`, 이름 `#555`          | `--ku-border-input`, `--ku-text-2`                                                       |
+  | `FacilityMap.tsx`             | 현 위치 버튼 바탕 `#fff`                         | `--ku-surface`. 밝게 고정할 때는 `ku-light-scope`를 지도와 이 버튼을 감싼 틀에 단다(4장) |
+
+- 흰 바탕을 스스로 가진 표시(명소 이름표 `rgba(255,255,255,.92)` 위 `#7A5C16`, 지도 오류 띠의 옅은 빨강 위 `#991B1B`, 사진 위 흰
+  글자)는 바탕과 글자가 같이 박혀 있어 그대로 둔다.
+- 빠뜨린 것은 5.2의 대비 검사가 잡는다. 검사가 잡은 것은 이 PR에서 토큰으로 고친다.
+
 ---
 
 ## 4. 지도별 처리
 
-| 파일                                    | 쓰는 곳                                                                                                   | 처리                                                                                 |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `map/Map.tsx`                           | 공개 지도                                                                                                 | `useTheme()`. 타일·건물·캠퍼스 경계 색·경사도 외곽선(`SlopeLayer`)이 따른다          |
-| `FacilityMap.tsx`                       | `FacilityFields` 안(공개 등록 요청 모달, 관리자 시설 폼·독립 시설 상세·제보함 드로어), 제보함 드로어 직접 | `followTheme` prop. 거짓(기본)이면 밝은 타일 + `ku-light-scope`, 참이면 `useTheme()` |
-| `facility/FacilityFields.tsx`           | 위와 같다                                                                                                 | `mapFollowsTheme` prop을 `FacilityMap`에 넘긴다. 기본 거짓                           |
-| `sidepanel/FacilityRequestModal.tsx`    | 공개 등록 요청 모달                                                                                       | `FacilityFields`에 `mapFollowsTheme` 참                                              |
-| `admin/workspace/AdminWorkspaceMap.tsx` | 관리자 독립 시설·명소·경사도 작업 지도                                                                    | 밝은 타일 + `ku-light-scope`                                                         |
-| `admin/slopes/SlopeWorkspaceMap.tsx`    | 관리자 경사도 목록 지도                                                                                   | 경로 외곽선을 밝은 지도 값으로                                                       |
-| `PolygonEditor.tsx`                     | 관리자 건물 폴리곤 편집                                                                                   | 밝은 타일 + `ku-light-scope`                                                         |
-| `BuildingPolygonPreview.tsx`            | 관리자 건물 상세 미리보기                                                                                 | 밝은 타일 + `ku-light-scope`                                                         |
-| `slope/SlopeRouteMap.tsx`               | 관리자 경사도 경로 그리기·수정                                                                            | 밝은 타일 + `ku-light-scope`, 외곽선 밝은 지도 값                                    |
+| 파일                                    | 쓰는 곳                                                                                                   | 처리                                                                                           |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `map/Map.tsx`                           | 공개 지도                                                                                                 | `useTheme()`. 타일·건물·캠퍼스 경계 색·경사도 외곽선(`SlopeLayer`)이 따른다                    |
+| `FacilityMap.tsx`                       | `FacilityFields` 안(공개 등록 요청 모달, 관리자 시설 폼·독립 시설 상세·제보함 드로어), 제보함 드로어 직접 | `followTheme` prop. 거짓(기본)이면 밝은 타일 + 바깥 틀에 `ku-light-scope`, 참이면 `useTheme()` |
+| `facility/FacilityFields.tsx`           | 위와 같다                                                                                                 | `mapFollowsTheme` prop을 `FacilityMap`에 넘긴다. 기본 거짓                                     |
+| `sidepanel/FacilityRequestModal.tsx`    | 공개 등록 요청 모달                                                                                       | `FacilityFields`에 `mapFollowsTheme` 참                                                        |
+| `admin/workspace/AdminWorkspaceMap.tsx` | 관리자 독립 시설·명소·경사도 작업 지도                                                                    | 밝은 타일 + `ku-light-scope`                                                                   |
+| `admin/slopes/SlopeWorkspaceMap.tsx`    | 관리자 경사도 목록 지도                                                                                   | 경로 외곽선을 밝은 지도 값으로(`RouteLines`의 `darkMap` prop을 지운다)                         |
+| `PolygonEditor.tsx`                     | 관리자 건물 폴리곤 편집                                                                                   | 밝은 타일 + `ku-light-scope`                                                                   |
+| `BuildingPolygonPreview.tsx`            | 관리자 건물 상세 미리보기                                                                                 | 밝은 타일 + `ku-light-scope`                                                                   |
+| `slope/SlopeRouteMap.tsx`               | 관리자 경사도 경로 그리기·수정                                                                            | 밝은 타일 + `ku-light-scope`, 외곽선 밝은 지도 값                                              |
 
 - 밝게 고정하는 지도에서는 타일 주소를 바꾸던 효과(`setUrl`)와 `key`로 타일을 갈던 처리를 지운다.
 - `getCartoTileUrl`의 인자 이름 `prefersDarkMode`를 `dark`로 바꾼다. 기기 설정이 아니라 쓰는 쪽이 정한 값이다.
@@ -148,6 +178,8 @@
 ## 5. 시험
 
 ### 5.1 단위 (vitest, `src/lib/theme.test.ts`)
+
+두 모듈(2.1)을 한 시험 파일에서 본다.
 
 - `parseStoredTheme`: `"dark"` → 다크, `"light"`·`null`·`"DARK"`·`"1"` → 밝음.
 - `THEME_INIT_SCRIPT`: 가짜 `localStorage`·`document`를 인자로 받는 함수로 감싸 돌린다(vitest 환경이 `node`다). 저장 값 `"dark"`면
@@ -162,28 +194,42 @@
 - 세 자리에서 토글: 접힌 줄(`expandMapMenu: false`), 펼침(`.ku-map-actions`), 모바일 390×844 아래 줄. 누르면 `data-theme="dark"`,
   `dark_all` 타일, 건물 채움 `#FF4D3D`, `body` 바탕이 다크 `--ku-bg`, 저장 값 `"dark"`, 이름 "라이트모드". 다시 누르면 되돌아온다.
   열린 메뉴 패널은 토글 뒤에도 열려 있다(접힌 줄에서 필터를 열어 둔 채).
-- 새로 고침: 저장 값 `"dark"`로 열면 `DOMContentLoaded` 때 이미 `data-theme="dark"`다(`addInitScript`로 그 시점 값을 남겨 읽는다).
-  hydration 경고가 콘솔에 없다.
+- 첫 그리기 전: 저장 값 `"dark"`에서 앱 JS(`/_next/static/**/*.js`)를 막고 연다. 인라인 스크립트만 돌 수 있는 상태에서
+  `data-theme="dark"`이고 `body` 바탕이 다크 `--ku-bg`다. 효과나 늦은 스크립트로 옮기면 이 시험이 깨진다.
+- 새로 고침: 저장 값 `"dark"`로 평소처럼 열면 공개 지도의 **첫 타일 요청부터** `dark_all`이다(`page.on("request")`로 모아
+  `light_all`이 하나도 없다). 콘솔에 hydration 경고가 없다.
 - 저장소 예외: `localStorage.getItem`·`setItem`이 `ku_theme`에 예외를 던지게 하면 밝게 열리고, 토글하면 화면은 다크가 되며
   `pageerror`가 없다.
-- 이름 잘림: ko·en·zh 각각에서 접힌 줄·아래 줄(360×780)·펼침의 토글 글자가 `scrollWidth ≤ clientWidth`다.
+- 이름 잘림: ko·en·zh 각각에서 접힌 줄·아래 줄(360×780)·펼침의 토글 글자가 밝음·다크 두 이름 모두 `scrollWidth ≤ clientWidth`다.
 - 공개 등록 요청 모달: 다크에서 모달 안 지도가 `dark_all`이다.
+- 공개 화면 대비 검사(다크): 접힌 줄의 검색 결과·필터·즐겨찾기·목록 패널, 건물 상세, 시설·명소·경사도 팝업, 등록 요청·피드백 모달을
+  차례로 열고 글자 대비를 잰다.
+  - 글자를 직접 가진 보이는 요소마다 글자색과, 자기부터 위로 올라가며 처음 만나는 불투명(알파 0.9 이상) 바탕색의 WCAG 대비를 잰다.
+    `--ku-map-control`은 알파 0.94·0.96이라 불투명으로 친다. 그 사이에 배경 그림이 있으면(사진) 건너뛴다.
+  - 기준 4.5:1, 큰 글자(24px 이상, 또는 18.66px 이상이면서 굵기 700 이상)는 3:1.
+  - `.leaflet-tile-pane`·`.leaflet-marker-pane`(바탕이 박힌 이름표·마커) 안은 뺀다.
+  - 밝은 화면에는 돌리지 않는다. 밝은 `--ku-text-3`(`#8a837d`)이 흰 바탕에서 4.5:1이 안 되는 등 이 PR 밖의 기존 값이 걸린다.
 - 관리자:
-  - 웹 헤더 토글과 390px의 ⋮ 메뉴 항목이 모드를 바꾼다.
-  - 다크에서 관리자 지도(작업 지도, 건물 상세 미리보기, 시설 폼 모달)는 `light_all`만 받고 `dark_all`이 없다. 지도 위 건물 이름표
-    글자색이 밝은 `--ku-text-2`(`rgb(92, 86, 82)`)다.
+  - 웹 헤더 토글과 390px의 ⋮ 메뉴 항목이 모드를 바꾼다. ⋮ 항목을 키보드(Enter)로 누르면 메뉴가 닫히고 초점이 ⋮ 버튼에 있다.
+  - 768·899·900·1280px에서 헤더가 가로로 넘치지 않고(`scrollWidth ≤ clientWidth`), 토글·로그아웃(767px 이하는 ⋮)이 화면 안에 있다.
+  - 다크에서 관리자 지도 — 작업 지도(시설·명소·경사도), 건물 상세 미리보기, 폴리곤 편집, 경사도 경로 그리기·수정, 시설 폼 모달,
+    제보함 드로어 — 는 `light_all`만 받고 `dark_all`이 없으며 타일 칸의 `filter`가 `none`이다. 지도 위 건물 이름표 글자색이 밝은
+    `--ku-text-2`(`rgb(92, 86, 82)`)이고, 폴리곤 편집의 geoman 도구 버튼과 제보함 드로어의 현 위치 버튼 바탕이 밝은
+    `--ku-surface`(흰색)다. 경사도 목록 지도와 경로 그리기 지도의 외곽선이 밝은 지도 값(`#1C1917`)이다.
 
 ### 5.3 고치는 기존 E2E
 
-| 파일                         | 시험                              | 바뀌는 것                                                                                  |
-| ---------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------ |
-| `e2e/support/mockBackend.ts` | `installMockBackend` 옵션         | `theme?: "dark"` — 저장 값이 없으면 `ku_theme`를 넣는다(`expandMapMenu`와 같은 방식)       |
-| `e2e/admin-dark.spec.ts`     | 대비 검사 전부                    | 기기 다크에 더해 `theme: "dark"`로 연다. 다크 판정(`colorScheme`)은 그대로 단언한다        |
-| 같은 파일                    | 새 시험                           | 기기 다크 + 저장 값 없음이면 관리자 화면이 밝다(`color-scheme` light, 밝은 `--ku-bg`)      |
-| 같은 파일                    | 크림슨 채움                       | `emulateMedia({ colorScheme: "light" })` 대신 헤더 토글 "라이트모드"를 눌러 밝은 값을 본다 |
-| `e2e/public-map.spec.ts`     | 시스템 색상 모드에 맞춰 타일 교체 | 기기 다크로 바꿔도 타일이 `light_all`로 남는지로 바꾼다(토글 동작은 5.2)                   |
-| 같은 파일                    | 경사도 외곽선(다크에서 흰 외곽선) | `emulateMedia` 대신 펼침 모드 토글을 눌러 다크로 바꾼다                                    |
-| `e2e/map-menu.spec.ts`       | 접힌 줄·아래 줄 버튼 이름 목록    | 끝에 "다크모드"를 더한다                                                                   |
+| 파일                         | 시험                                      | 바뀌는 것                                                                                                                                                            |
+| ---------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `e2e/support/mockBackend.ts` | `installMockBackend` 옵션                 | `theme?: "dark"` — 저장 값이 없으면 `ku_theme`를 넣는다(`expandMapMenu`와 같은 방식)                                                                                 |
+| `e2e/admin-dark.spec.ts`     | 대비 검사 전부                            | 기기 다크에 더해 `theme: "dark"`로 연다. 다크 판정(`colorScheme`)은 그대로 단언한다. 검사에서 빼는 범위에 `.ku-light-scope`를 더한다(드로어 현 위치 버튼이 밝아진다) |
+| 같은 파일                    | 새 시험                                   | 기기 다크 + 저장 값 없음이면 관리자 화면이 밝다(`color-scheme` light, 밝은 `--ku-bg`)                                                                                |
+| 같은 파일                    | 크림슨 채움                               | 건물 상세에는 토글이 없다(1.3). 다크 값을 본 뒤 대시보드로 가서 헤더 토글 "라이트모드"를 누르고 건물 상세로 다시 들어가 밝은 값을 본다                               |
+| 같은 파일                    | 제보함 드로어                             | 현 위치 버튼이 흰색이 아니라는 단언을 흰색(밝은 `--ku-surface`)이라는 단언으로 바꾼다(3.2)                                                                           |
+| `e2e/public-map.spec.ts`     | 시스템 색상 모드에 맞춰 타일 교체         | 기기 다크로 바꿔도 타일이 `light_all`로 남는지로 바꾼다(토글 동작은 5.2)                                                                                             |
+| 같은 파일                    | 경사도 외곽선(다크에서 흰 외곽선)         | `emulateMedia` 대신 펼침 모드 토글을 눌러 다크로 바꾼다                                                                                                              |
+| `e2e/map-menu.spec.ts`       | 접힌 줄·아래 줄 버튼 이름 목록            | 끝에 "다크모드"를 더한다                                                                                                                                             |
+| `e2e/public-map.spec.ts`     | 모바일 피드백 모달이 지도 컨트롤을 덮는다 | 아래 줄 버튼과 언어 버튼 수 5 → 6. 토글도 모달 밑에 깔리는지 같은 검사를 받는다                                                                                      |
 
 ---
 
