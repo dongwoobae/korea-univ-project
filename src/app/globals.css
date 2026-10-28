@@ -240,7 +240,7 @@ a {
   color: var(--ku-text-2);
   background: none;
   box-shadow: none;
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
   font-weight: 600;
   text-shadow:
     0 0 2px var(--ku-surface),
@@ -267,7 +267,7 @@ a {
   border: 1px solid;
   border-radius: var(--ku-radius);
   box-shadow: var(--ku-shadow-floating);
-  font-size: 15px;
+  font-size: calc(15px * var(--ku-fs, 1));
   white-space: normal;
   word-break: keep-all;
   transform: translateX(-50%);

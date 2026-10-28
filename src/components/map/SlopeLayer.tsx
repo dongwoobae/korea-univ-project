@@ -1,4 +1,5 @@
 "use client";
+import { scaledFontSize } from "@/lib/fontScale";
 import { Polyline, Popup } from "react-leaflet";
 import {
   SLOPE_CASING_CLASS,
@@ -66,7 +67,7 @@ export default function SlopeLayer({
           }}
         >
           <Popup>
-            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+            <div style={{ fontSize: scaledFontSize(13), lineHeight: 1.6 }}>
               <div style={{ fontWeight: 600, marginBottom: 2 }}>
                 {route.name}
               </div>
@@ -74,7 +75,12 @@ export default function SlopeLayer({
                 경사 <strong>{formatPercent(degToPercent(point.slope))}</strong>{" "}
                 ({formatDeg(point.slope)})
               </div>
-              <div style={{ color: "var(--ku-text-3)", fontSize: 11 }}>
+              <div
+                style={{
+                  color: "var(--ku-text-3)",
+                  fontSize: scaledFontSize(11),
+                }}
+              >
                 구간 거리 {point.distance}m
               </div>
             </div>

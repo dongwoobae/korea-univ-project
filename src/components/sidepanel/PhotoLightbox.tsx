@@ -55,7 +55,7 @@ export default function PhotoLightbox({
   // 사이드패널이 쌓임 맥락을 만들어 모달을 그 안에 가둔다. body로 뺀다(FeedbackButton과 같다).
   return createPortal(
     <div
-      className="ku-photo-lightbox-backdrop"
+      className="ku-photo-lightbox-backdrop ku-font-scope"
       role="presentation"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();

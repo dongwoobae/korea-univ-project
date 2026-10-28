@@ -1,5 +1,6 @@
 "use client";
 
+import { scaledFontSize } from "@/lib/fontScale";
 import type { CSSProperties, Dispatch, ReactNode, SetStateAction } from "react";
 import dynamic from "next/dynamic";
 import {
@@ -42,13 +43,13 @@ const inputStyle: CSSProperties = {
   padding: "8px 10px",
   border: "1px solid var(--ku-border-input)",
   borderRadius: "var(--ku-radius)",
-  fontSize: 13,
+  fontSize: scaledFontSize(13),
   outline: "none",
   boxSizing: "border-box",
   marginTop: 4,
 };
 const labelStyle: CSSProperties = {
-  fontSize: 12,
+  fontSize: scaledFontSize(12),
   color: "var(--ku-text-2)",
   display: "block",
   marginTop: 12,

@@ -1,5 +1,6 @@
 "use client";
 
+import { scaledFontSize } from "@/lib/fontScale";
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Image from "next/image";
@@ -160,7 +161,7 @@ export default function PhotoCarousel({
             alignItems: "center",
             justifyContent: "center",
             color: "var(--ku-text-3)",
-            fontSize: 13,
+            fontSize: scaledFontSize(13),
           }}
         >
           {t("noPhoto")}
@@ -171,7 +172,7 @@ export default function PhotoCarousel({
           style={{
             margin: "0 20px",
             padding: "7px 10px",
-            fontSize: 12,
+            fontSize: scaledFontSize(12),
             color: "var(--ku-text-2)",
             background: "var(--ku-bg)",
           }}

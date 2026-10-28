@@ -43,6 +43,7 @@ import { useLanguage } from "@/lib/LanguageContext";
 import SearchControl from "./SearchControl";
 import FilterPanel, { type FilterSections } from "./FilterPanel";
 import FeedbackButton from "./FeedbackButton";
+import FontScaleControl from "./FontScaleControl";
 import FavoritesList from "./FavoritesList";
 import LanguageSwitcher from "./LanguageSwitcher";
 import ThemeToggleButton from "./ThemeToggleButton";
@@ -71,6 +72,7 @@ import MapViewportObserver, {
 } from "./MapViewportObserver";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { useColorMode } from "@/lib/useColorMode";
+import { useFontScale } from "@/lib/useFontScale";
 import "./map-ui.css";
 import { KU_BOUNDS } from "@/lib/mapBounds";
 
@@ -310,6 +312,7 @@ export default function Map() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
   const darkMode = useColorMode() === "dark";
+  const fontScale = useFontScale();
   const [showSlope, setShowSlope] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(true);
   const [viewport, setViewport] = useState<MapViewport | null>(null);
@@ -526,6 +529,14 @@ export default function Map() {
       if (label) layer.getTooltip()?.setContent(label);
     });
   }, [lang]);
+
+  // 툴팁·팝업은 열 때 잰 크기로 자리를 잡는다(docs/specs/2026-10-28-font-scale-design.md 4장)
+  useEffect(() => {
+    mapRef.current?.eachLayer((layer) => {
+      if (layer instanceof L.Tooltip || layer instanceof L.Popup)
+        layer.update();
+    });
+  }, [fontScale]);
 
   useEffect(() => {
     if (!buildingLabelsVisible) return;
@@ -801,7 +812,7 @@ export default function Map() {
 
   return (
     <div
-      className="ku-map-shell"
+      className="ku-map-shell ku-font-scope"
       data-building-labels-visible={buildingLabelsVisible}
     >
       {/* 로딩 오버레이 */}
@@ -1119,6 +1130,8 @@ export default function Map() {
       >
         <SlopeLegend show={showSlope} />
         <div className="ku-map-actions">
+          {/* 모바일은 열 맨 위 — 아래쪽은 경사도 범례와 높이가 겹친다(docs/specs/2026-10-28-font-scale-design.md 1.2) */}
+          {isMobile && <FontScaleControl />}
           <div className="ku-map-zoom" aria-label="지도 확대 및 축소">
             <button
               className="ku-map-action"
@@ -1183,6 +1196,7 @@ export default function Map() {
               iconSize={19}
             />
           )}
+          {!isMobile && <FontScaleControl />}
           <FeedbackButton />
         </div>
       </div>

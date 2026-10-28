@@ -58,7 +58,7 @@
   color: var(--ku-text-1);
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-raised);
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
   line-height: 1.4;
 }
 .ku-slope-bands[data-tooltip="below"] .ku-slope-bands-tooltip {

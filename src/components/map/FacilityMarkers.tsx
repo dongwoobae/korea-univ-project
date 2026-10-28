@@ -1,5 +1,6 @@
 "use client";
 
+import { scaledFontSize } from "@/lib/fontScale";
 import { memo } from "react";
 import { Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -131,7 +132,7 @@ function FacilityMarkers({
             zIndexOffset={500}
           >
             <Popup>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>
+              <div style={{ fontSize: scaledFontSize(13), fontWeight: 600 }}>
                 {localized(
                   f.name ?? f.facility_types?.label,
                   f.name_en ?? f.facility_types?.label_en,
@@ -147,7 +148,7 @@ function FacilityMarkers({
               ) && (
                 <div
                   style={{
-                    fontSize: 12,
+                    fontSize: scaledFontSize(12),
                     color: "var(--ku-text-2)",
                     marginTop: 2,
                   }}
@@ -166,7 +167,12 @@ function FacilityMarkers({
                 f.floor_info_zh,
                 lang,
               ) && (
-                <div style={{ fontSize: 12, color: "var(--ku-text-3)" }}>
+                <div
+                  style={{
+                    fontSize: scaledFontSize(12),
+                    color: "var(--ku-text-3)",
+                  }}
+                >
                   {localized(
                     f.floor_info,
                     f.floor_info_en,
@@ -178,7 +184,7 @@ function FacilityMarkers({
               {f.buildings?.name && (
                 <div
                   style={{
-                    fontSize: 11,
+                    fontSize: scaledFontSize(11),
                     color: "var(--ku-text-3)",
                     marginTop: 4,
                   }}

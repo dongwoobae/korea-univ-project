@@ -869,11 +869,28 @@ test.describe("공개 지도 — 경사도 범례 (모바일)", () => {
     const attributionBox = (await page
       .locator(".ku-attribution")
       .boundingBox())!;
-    const actionsBox = (await page.locator(".ku-map-actions").boundingBox())!;
     expect(legendBox.y + legendBox.height).toBeLessThanOrEqual(
       attributionBox.y,
     );
-    expect(legendBox.x + legendBox.width).toBeLessThanOrEqual(actionsBox.x);
+    // 모바일 열 맨 위의 글자 크기 줄이 열 상자를 왼쪽으로 넓힌다. 범례와 높이가 겹치는 버튼만 본다(docs/specs/2026-10-28-font-scale-design.md 1.2)
+    const besideLegend = await page
+      .locator(".ku-map-actions button")
+      .evaluateAll(
+        (buttons, legend) =>
+          buttons
+            .map((button) => button.getBoundingClientRect())
+            .filter(
+              (box) =>
+                box.width > 0 &&
+                box.bottom > legend.y &&
+                box.top < legend.y + legend.height,
+            )
+            .map((box) => box.left),
+        legendBox,
+      );
+    expect(besideLegend.length).toBeGreaterThan(0);
+    for (const left of besideLegend)
+      expect(legendBox.x + legendBox.width).toBeLessThanOrEqual(left);
 
     await mobileMenuButton(page, "검색").click();
     await page.getByPlaceholder("건물 검색...").fill("중앙도서관");

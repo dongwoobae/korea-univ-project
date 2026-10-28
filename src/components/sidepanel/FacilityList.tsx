@@ -1,5 +1,6 @@
 "use client";
 
+import { scaledFontSize } from "@/lib/fontScale";
 import { FacilityTypeIcon } from "@/components/map/iconography";
 import FacilityPhotoStrip from "@/components/sidepanel/FacilityPhotoStrip";
 import type { LangCode } from "@/lib/translations";
@@ -57,7 +58,7 @@ export default function FacilityList({
                 border: "none",
                 borderRadius: "var(--ku-radius)",
                 padding: "8px 16px",
-                fontSize: 14,
+                fontSize: scaledFontSize(14),
                 fontWeight: 600,
                 cursor: "pointer",
               }}
