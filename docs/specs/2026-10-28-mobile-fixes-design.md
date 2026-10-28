@@ -99,6 +99,8 @@
 
 - 좁은 화면 검색 패널은 바탕이 투명하고 결과 목록만 흰 상자다. 결과 수(`.ku-search-count`)와 "결과가 많다" 안내(`.ku-search-note`)를
   결과 상자와 같은 바탕·테두리로 목록 바로 아래에 붙인다. 내용이 없으면(`:empty`) 그리지 않는다.
+- 두 글자색은 웹을 포함한 모든 배치에서 `--ku-text-3` 대신 `--ku-text-2`로 한다. `--ku-text-3`은 흰 바탕에서 3.73:1이라 바탕만
+  바꿔서는 4.5:1에 닿지 않는다.
 - 결과 수의 `role="status"`·`aria-live`는 그대로다.
 
 ### 4.2 검색창 기본 지우기 (MOB-11)
@@ -167,8 +169,9 @@
 
 ### 7.2 고치는 기존 E2E
 
-- 경사도 체크박스(`getByRole("checkbox", { name: /경사도/ })`)를 쓰는 시험 — `e2e/public-map.spec.ts`·`e2e/font-scale.spec.ts`·
-  `e2e/theme.spec.ts` — 은 지도 버튼 "경사도"를 누르도록 바꾼다. 필터 패널이 열린 동안 모바일 버튼 열은 숨으므로 패널을 연 채
+- 경사도 체크박스(`getByRole("checkbox", { name: ... })`, 이름이 `/경사도/`이거나 `"경사도"`)를 쓰는 시험 — `e2e/public-map.spec.ts`·
+  `e2e/font-scale.spec.ts`·`e2e/theme.spec.ts`·`e2e/admin-slopes-workspace.spec.ts`(편집기에서 저장한 경로를 공개 지도에서 보는 시험) — 은
+  지도 버튼 "경사도"를 누르도록 바꾼다. 필터 패널이 열린 동안 모바일 버튼 열은 숨으므로 패널을 연 채
   누르던 흐름은 패널을 닫고 누른다.
 - 열 이름 차례를 보는 시험(`theme.spec.ts` 끝 다섯 개, `font-scale.spec.ts` 세 자리)에 "경사도"를 넣는다.
 - 필터 배지 숫자 단위 시험(`mapMenu.test.ts`의 `activeFilterCount`)에서 경사도를 뺀다.

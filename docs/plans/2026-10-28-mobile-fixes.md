@@ -38,7 +38,7 @@ Playwright(목 백엔드 `e2e/support/mockBackend.ts`, `next dev`).
 ### Task 2: 시험 먼저 (push → CI 실패 확인)
 
 **Files:** `e2e/mobile-fixes.spec.ts`(새로), `e2e/public-map.spec.ts`, `e2e/font-scale.spec.ts`, `e2e/theme.spec.ts`,
-`src/components/map/mapMenu.test.ts`
+`e2e/admin-slopes-workspace.spec.ts`, `src/components/map/mapMenu.test.ts`
 
 - [ ] **Step 1: 새 E2E `e2e/mobile-fixes.spec.ts`** — 설계 7.1의 항목마다 시험 하나 이상. 목 백엔드(`installMockBackend`)를 쓰고,
       지도를 잴 때는 로딩 막이 걷힌 뒤에 잰다(`await expect(page.locator(".ku-map-loading")).toHaveCount(0)`).
@@ -66,7 +66,8 @@ Playwright(목 백엔드 `e2e/support/mockBackend.ts`, `next dev`).
     세 줄 높이보다 작다(목 데이터에 긴 영어 이름이 없으면 `MockState`를 고쳐 넣는다).
   - MOB-05: 세로 390에서 사진 넘김 점 버튼(사진 2장 이상인 건물), `.ku-slope-bands-cell`, `.ku-side-handle`의 상자가 24×24 이상이다.
 - [ ] **Step 2: 기존 E2E 고치기** — 설계 7.2.
-  - 경사도 체크박스(`getByRole("checkbox", { name: /경사도/ })`)를 쓰는 곳(`public-map.spec.ts`·`font-scale.spec.ts`·`theme.spec.ts`)을
+  - 경사도 체크박스(`getByRole("checkbox", { name: /경사도/ })`·`{ name: "경사도" }`)를 쓰는 곳(`public-map.spec.ts`·`font-scale.spec.ts`·
+    `theme.spec.ts`·`admin-slopes-workspace.spec.ts`)을
     지도 버튼 "경사도" 누르기로 바꾼다. 모바일은 필터 패널이 열린 동안 버튼 열이 숨으므로 패널을 닫고 누른다.
   - 열 이름 차례 시험(`theme.spec.ts` 펼침 끝 다섯 개, `font-scale.spec.ts`의 세 자리 `PLACES.names`)에 "경사도"를 넣는다.
   - `font-scale.spec.ts`의 낮은 웹 화면 시험(844×390·1024×460): 844×390은 좁은 화면이 되므로 이름과 단언을 고친다. 1024×460은
@@ -116,16 +117,17 @@ Playwright(목 백엔드 `e2e/support/mockBackend.ts`, `next dev`).
       `FilterPanel`에 넘기던 `showSlope`·`setShowSlope`를 지운다.
 - [ ] `FilterPanel.tsx`: 경사도 `<label className="ku-filter-check">`를 지우고 props에서 `showSlope`·`setShowSlope`를 지운다.
 - [ ] `mapMenu.ts` `activeFilterCount`: `showSlope` 인자와 `Number(filters.showSlope)`를 지운다. `Map.tsx` 호출부를 맞춘다.
-- [ ] `map-ui.css`: `.ku-map-action[aria-pressed="true"]`에 `color: var(--ku-crimson-600); background: var(--ku-crimson-100);
-    border-color: var(--ku-crimson-600)`(언어 버튼 선택과 같은 색).
+- [ ] `map-ui.css`: `.ku-map-action[aria-pressed="true"]`에
+      `color: var(--ku-crimson-600); background: var(--ku-crimson-100); border-color: var(--ku-crimson-600)`(언어 버튼 선택과 같은 색).
 - [ ] 커밋 `feat: 경사도 켜기를 필터 패널에서 지도 버튼 열의 위성 다음으로 옮긴다`.
 
 ### Task 6: 고른 건물이 상세에 가리지 않게 (MOB-09)
 
 **Files:** `src/components/map/buildingLabel.ts`, `src/components/map/buildingLabel.test.ts`, `src/components/map/Map.tsx`
 
-- [ ] `buildingLabel.ts`에 `detailPadding(kind: "portrait" | "landscape" | "web", viewport: { width: number; height: number }):
-    [number, number]` — portrait `[0, mobileSheetHeight(height)]`, landscape `[min(360, width / 2), 0]`, web `[340, 0]`. 주석은 CSS의
+- [ ] `buildingLabel.ts`에
+      `detailPadding(kind: "portrait" | "landscape" | "web", viewport: { width: number; height: number }): [number, number]`
+      — portrait `[0, mobileSheetHeight(height)]`, landscape `[min(360, width / 2), 0]`, web `[340, 0]`. 주석은 CSS의
       해당 규칙(세로 시트 높이·옆 패널 폭·웹 패널 폭)을 가리킨다. vitest로 세 경우를 본다.
 - [ ] `Map.tsx`의 `handleSearchBuilding`·`handleSelectById` `fitBounds`에 `paddingBottomRight: detailPadding(...)`. 화면 종류는
       `isCompactViewport()`·`isCompactLandscape()`로 정한다.
@@ -138,15 +140,16 @@ Playwright(목 백엔드 `e2e/support/mockBackend.ts`, `next dev`).
 **Files:** `src/components/map/map-ui.css`, `src/components/sidepanel/FacilityRequestModal.tsx`
 
 - [ ] MOB-10: 좁은 화면 검색 패널(`.ku-menu-panel[data-panel="search"]`)에서 `.ku-search-count:not(:empty)`와 `.ku-search-note`에 결과
-      상자(`.ku-search-results`)와 같은 바탕·테두리·그림자를 주고 목록 바로 아래 붙인다(위 테두리 없이, 아래 반경). 웹은 그대로.
+      상자(`.ku-search-results`)와 같은 바탕·테두리·그림자를 주고 목록 바로 아래 붙인다(위 테두리 없이, 아래 반경). 웹 배치는 그대로.
+      두 글자색은 웹을 포함해 `var(--ku-text-3)` → `var(--ku-text-2)`(설계 4.1 — 바탕만으로는 4.5:1에 닿지 않는다).
 - [ ] MOB-11: `.ku-search-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }`.
 - [ ] MOB-12: `FacilityRequestModal.tsx` 제목을 `<div className="ku-request-modal-header">`로 묶고 오른쪽에 `X` 17px 버튼
       (`className="ku-feedback-close"`를 같이 쓰거나 같은 규칙의 `.ku-request-modal-close`, `aria-label={t("closeLabel")}`, 보내는 중
       `disabled`, `onClick`은 아래 "닫기"와 같은 닫기). CSS는 `.ku-feedback-header`와 같은 배치.
 - [ ] MOB-13: `:root[data-theme="dark"] .ku-attribution img { background: #fff; border-radius: var(--ku-radius); padding: 2px 4px; }`.
       모바일 블록의 `.ku-attribution img` 크기 규칙과 부딪히지 않는지 본다.
-- [ ] MOB-16: `.ku-map-browse-copy strong`의 `white-space: nowrap; text-overflow: ellipsis`를 `display: -webkit-box; -webkit-box-orient:
-    vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere`로.
+- [ ] MOB-16: `.ku-map-browse-copy strong`의 `white-space: nowrap; text-overflow: ellipsis`를
+      `display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere`로.
 - [ ] 커밋 `fix: 검색 결과 수·기본 지우기 버튼·등록 요청 닫기·다크 로고·영어 목록 이름을 고친다`.
 
 ### Task 8: 터치 대상 24px·safe-area (MOB-05·06)

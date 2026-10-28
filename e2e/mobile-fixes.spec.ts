@@ -240,7 +240,10 @@ async function searchCancelButtonStyle(page: Page) {
   await cdp.detach();
   const value = (name: string) =>
     computedStyle.find((property) => property.name === name)?.value;
-  return { appearance: value("appearance"), display: value("display") };
+  return {
+    appearance: value("appearance") ?? value("-webkit-appearance"),
+    display: value("display"),
+  };
 }
 
 test.describe("가로 좁은 화면(설계 1.2)", () => {
@@ -256,9 +259,11 @@ test.describe("가로 좁은 화면(설계 1.2)", () => {
       await expect(page.locator(".ku-menu-nav--bar")).toBeVisible();
       await expect(page.locator(".ku-menu-nav--rail")).toHaveCount(0);
 
-      const languageBottom = await page
-        .locator(".ku-language-trigger")
-        .evaluate((element) => element.getBoundingClientRect().bottom);
+      const language = page.locator(".ku-language-trigger");
+      await expect(language).toBeVisible();
+      const languageBottom = await language.evaluate(
+        (element) => element.getBoundingClientRect().bottom,
+      );
       const items = await visibleActionBoxes(page);
       expect(items.length).toBeGreaterThan(1);
       for (const [index, item] of items.entries()) {
