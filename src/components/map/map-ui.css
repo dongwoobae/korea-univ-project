@@ -96,6 +96,10 @@
   padding-right: 72px;
 }
 
+.ku-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
 .ku-search-input::placeholder {
   color: var(--ku-text-3);
 }
@@ -268,7 +272,7 @@
   padding: 4px 4px 0;
   border: 0;
   background: transparent;
-  color: var(--ku-text-3);
+  color: var(--ku-text-2);
   font-size: calc(12px * var(--ku-fs, 1));
 }
 .ku-search-count:empty {
@@ -276,7 +280,7 @@
 }
 .ku-search-note {
   margin-top: 6px;
-  color: var(--ku-text-3);
+  color: var(--ku-text-2);
 }
 
 .ku-favorites-list {
@@ -498,9 +502,9 @@
 .ku-map-zoom .ku-map-action + .ku-map-action {
   border-top: 0;
 }
-/* 휴대폰 가로처럼 낮은 웹 화면에서는 열이 오른쪽 위 언어 상자에 닿는다. 두 손가락·휠로 확대할 수 있어
-   확대·축소 묶음을 뺀다(docs/specs/2026-10-28-font-scale-design.md 1.2) */
-@media (min-width: 768px) and (max-height: 470px) {
+/* 경사도 버튼까지 더한 펼친 열이 낮은 웹 화면에서 오른쪽 위 언어 상자에 닿는다. 두 손가락·휠로 확대할 수 있어
+   확대·축소 묶음을 뺀다(docs/specs/2026-10-28-mobile-fixes-design.md 1.1) */
+@media (min-width: 768px) and (max-height: 560px) {
   .ku-map-zoom {
     display: none;
   }
@@ -536,6 +540,11 @@
   border-color: var(--ku-crimson-700);
   color: #fff;
   background: #8c0000;
+}
+.ku-map-action[aria-pressed="true"] {
+  border-color: var(--ku-crimson-600);
+  color: var(--ku-crimson-600);
+  background: var(--ku-crimson-100);
 }
 .ku-map-action[data-locating="true"] {
   cursor: progress;
@@ -708,16 +717,18 @@
   min-width: 0;
   gap: 2px;
 }
-.ku-map-browse-copy strong,
+.ku-map-browse-copy strong {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: calc(13px * var(--ku-fs, 1));
+}
 .ku-map-browse-copy span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.ku-map-browse-copy strong {
-  font-size: calc(13px * var(--ku-fs, 1));
-}
-.ku-map-browse-copy span {
   color: var(--ku-text-3);
   font-size: calc(11.5px * var(--ku-fs, 1));
 }
@@ -923,6 +934,14 @@
   width: auto;
   height: 30px;
 }
+/* 음수 여백은 판이 출처 표기 줄의 크기를 키우지 않게 한다(설계 4.4) */
+:root[data-theme="dark"] .ku-attribution img {
+  box-sizing: content-box;
+  margin: -2px -4px;
+  padding: 2px 4px;
+  border-radius: var(--ku-radius);
+  background: #fff;
+}
 .ku-attribution-separator {
   width: 100%;
   height: 1px;
@@ -942,6 +961,29 @@
   overscroll-behavior: contain;
   padding: 20px;
   background: var(--ku-backdrop);
+}
+/* 보이는 점은 ::before이고 버튼은 24px로 눌린다 (docs/specs/2026-10-28-mobile-fixes-design.md 5) */
+.ku-photo-dot {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+.ku-photo-dot::before {
+  display: block;
+  width: 6px;
+  height: 6px;
+  margin: 0 auto;
+  border-radius: var(--ku-radius);
+  background: rgba(255, 255, 255, 0.5);
+  content: "";
+  transition: width 0.2s;
+}
+.ku-photo-dot[aria-current="true"]::before {
+  width: 16px;
+  background: #fff;
 }
 .ku-photo-lightbox-backdrop {
   position: fixed;
@@ -1022,7 +1064,8 @@
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-overlay);
 }
-.ku-feedback-header {
+.ku-feedback-header,
+.ku-request-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1032,7 +1075,8 @@
   font-size: calc(18px * var(--ku-fs, 1));
   font-weight: 700;
 }
-.ku-feedback-close {
+.ku-feedback-close,
+.ku-request-modal-close {
   width: 36px;
   height: 36px;
   border: 0;
@@ -1413,7 +1457,8 @@
   border: 0;
 }
 
-@media (max-width: 767px) {
+/* src/lib/viewport.ts의 COMPACT_MEDIA_QUERY와 같은 조건 */
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
   .ku-menu-nav--bar {
     position: absolute;
     z-index: 1100;
@@ -1482,6 +1527,24 @@
   .ku-search-results {
     box-shadow: var(--ku-shadow-overlay);
   }
+  /* 좁은 화면 검색 패널은 바탕이 투명하다. 결과 수·안내를 결과 상자 바로 아래에
+     붙여 한 상자로 읽히게 한다(docs/specs/2026-10-28-mobile-fixes-design.md 4.1). */
+  .ku-menu-panel[data-panel="search"] .ku-search-count:not(:empty),
+  .ku-menu-panel[data-panel="search"] .ku-search-note {
+    margin-top: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--ku-border);
+    border-top: 0;
+    border-radius: 0 0 var(--ku-radius) var(--ku-radius);
+    background: var(--ku-surface);
+    box-shadow: var(--ku-shadow-overlay);
+  }
+  .ku-menu-panel[data-panel="search"]
+    .ku-search-results:has(~ .ku-search-count:not(:empty)),
+  .ku-menu-panel[data-panel="search"]
+    .ku-search-note:has(~ .ku-search-count:not(:empty)) {
+    border-radius: 0;
+  }
   /* 모바일에서 보이는 것은 트리거뿐이다. 껍데기를 트리거로 옮겨 옆에 붙는
      검색 닫기 버튼과 테두리·배경·크기를 똑같이 맞춘다. 컨테이너에 두면 테두리
      2px만큼 커지고 배경도 반투명이라 혼자 눌린 것처럼 보인다. */
@@ -1548,17 +1611,19 @@
   .ku-language[data-panel-open="true"] {
     right: 16px;
   }
-  /* 모바일은 범례가 버튼 열 옆이 아니라 출처 표기 위에 선다. 컨테이너를 풀어 둘을 지도 셸 기준으로 놓는다 */
+  /* 세로 좁은 화면은 범례가 버튼 열 옆이 아니라 출처 표기 위에 선다. 컨테이너를 풀어 둘을 지도 셸 기준으로 놓는다 */
   .ku-map-corner {
     display: contents;
   }
+  /* 버튼 열 자리. 가로 좁은 화면은 범례까지 담은 .ku-map-corner가 여기 선다(아래 가로 규칙).
+     그 밖에서는 .ku-map-corner가 display: contents라 이 위치가 먹지 않는다 */
+  .ku-map-corner,
+  .ku-map-corner[data-panel-open="true"],
   .ku-map-actions {
     position: absolute;
     z-index: 1000;
     right: 16px;
-    bottom: calc(
-      var(--ku-menu-bar-height) + 12px + env(safe-area-inset-bottom, 0px)
-    );
+    bottom: calc(var(--ku-menu-bar-height) + 12px);
     gap: 10px;
   }
   .ku-map-corner[data-panel-open="true"] > *,
@@ -1570,9 +1635,7 @@
     position: absolute;
     z-index: 1000;
     right: 74px;
-    bottom: calc(
-      var(--ku-menu-bar-height) + 40px + env(safe-area-inset-bottom, 0px)
-    );
+    bottom: calc(var(--ku-menu-bar-height) + 40px);
     left: 16px;
   }
   .ku-slope-legend .ku-slope-bands {
@@ -1599,9 +1662,7 @@
      각주 취급. 배경은 남긴다. 타일 위에서 글자가 읽히지 않는다.
      bottom을 바꾸면 .ku-slope-legend의 bottom도 같이 바꾼다. */
   .ku-attribution {
-    bottom: calc(
-      var(--ku-menu-bar-height) + 8px + env(safe-area-inset-bottom, 0px)
-    );
+    bottom: calc(var(--ku-menu-bar-height) + 8px);
     left: 12px;
     flex-direction: row;
     align-items: center;
@@ -1647,7 +1708,7 @@
   .ku-side-handle {
     display: block;
     width: 100%;
-    padding: 12px 0 6px;
+    padding: 13px 0 7px;
     border: 0;
     background: transparent;
     cursor: grab;
@@ -1671,6 +1732,46 @@
   }
   .ku-feedback-modal {
     padding: 20px;
+  }
+  /* src/lib/viewport.ts의 COMPACT_LANDSCAPE_MEDIA_QUERY와 같은 조건(docs/specs/2026-10-28-mobile-fixes-design.md 1.2) */
+  @media (orientation: landscape) and (max-height: 500px) {
+    /* 범례를 버튼 줄 위에 쌓아 상자 폭, 곧 버튼 줄 폭을 같이 쓴다. 범례 막대는 폭이 auto이고 칸에 내용이 없어
+       상자를 넓히지 않는다 */
+    .ku-map-corner {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .ku-map-actions {
+      position: static;
+      flex-direction: row;
+    }
+    .ku-slope-legend {
+      position: static;
+    }
+    .ku-side-panel {
+      top: 0;
+      left: auto;
+      width: min(360px, 50vw);
+      height: 100%;
+      border-top: 0;
+      border-left: 1px solid var(--ku-border);
+      border-radius: 0;
+      box-shadow: -2px 0 6px rgba(28, 25, 23, 0.12);
+      transform: translateX(100%);
+    }
+    .ku-side-panel[data-visible="true"] {
+      transform: translateX(0);
+    }
+    .ku-language[data-panel-open="true"] {
+      right: calc(min(360px, 50vw) + 16px);
+    }
+    .ku-side-handle {
+      display: none;
+    }
+    .ku-side-header {
+      padding-top: 20px;
+    }
   }
 }
 
@@ -1829,7 +1930,8 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
-@media (max-width: 767px) {
+/* src/lib/viewport.ts의 COMPACT_MEDIA_QUERY와 같은 조건 */
+@media (max-width: 767px), (orientation: landscape) and (max-height: 500px) {
   .ku-request-modal {
     width: 100vw;
     max-height: 100dvh;

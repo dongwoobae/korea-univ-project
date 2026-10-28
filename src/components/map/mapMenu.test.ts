@@ -64,7 +64,6 @@ describe("필터 수", () => {
       의료원: false,
     },
     activeTypes: { ramp: false, elevator: false },
-    showSlope: false,
     showLandmarks: true,
   };
 
@@ -73,7 +72,7 @@ describe("필터 수", () => {
     expect(activeFilterCount({ ...initial, showLandmarks: false })).toBe(1);
   });
 
-  it("캠퍼스·시설·경사도를 모두 더한다", () => {
+  it("캠퍼스·시설을 모두 더한다", () => {
     expect(
       activeFilterCount({
         activeCampuses: {
@@ -82,10 +81,9 @@ describe("필터 수", () => {
           의료원: true,
         },
         activeTypes: { ramp: true, elevator: false },
-        showSlope: true,
         showLandmarks: true,
       }),
-    ).toBe(4);
+    ).toBe(3);
   });
 });
 

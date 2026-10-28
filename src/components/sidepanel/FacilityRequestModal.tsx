@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 import FacilityFields, {
   type FacilityFieldLabels,
 } from "@/components/facility/FacilityFields";
@@ -273,9 +274,20 @@ export default function FacilityRequestModal({
         aria-modal="true"
         aria-labelledby={titleId}
       >
-        <h2 id={titleId} className="ku-request-modal-title">
-          {t("requestTitle")}
-        </h2>
+        <div className="ku-request-modal-header">
+          <h2 id={titleId} className="ku-request-modal-title">
+            {t("requestTitle")}
+          </h2>
+          <button
+            type="button"
+            className="ku-request-modal-close"
+            onClick={onClose}
+            aria-label={t("closeLabel")}
+            disabled={phase === "sending"}
+          >
+            <X size={17} aria-hidden="true" />
+          </button>
+        </div>
         <p className="ku-request-modal-subtitle">
           {/* 보낸 뒤 본문이 같은 안내를 하므로 부제에는 건물명만 남긴다. */}
           {phase === "done"

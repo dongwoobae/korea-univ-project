@@ -24,7 +24,7 @@
 .ku-slope-bands-cell {
   position: relative;
   flex: 1;
-  height: 20px;
+  height: 24px;
   padding: 0;
   border: 0;
   background: none;
@@ -32,7 +32,7 @@
 }
 .ku-slope-bands-cell::before {
   position: absolute;
-  top: 6px;
+  top: 8px;
   right: 0;
   left: 0;
   height: 8px;

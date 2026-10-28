@@ -6,7 +6,7 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
-import { ChevronDown, ChevronUp, Mountain } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useLanguage } from "@/lib/LanguageContext";
 import type { LangCode } from "@/lib/translations";
 import type { FacilityType } from "@/types/domain";
@@ -104,8 +104,6 @@ export default function FilterPanel({
   facilityTypes,
   activeTypes,
   setActiveTypes,
-  showSlope,
-  setShowSlope,
   activeCampuses,
   setActiveCampuses,
   showLandmarks,
@@ -116,8 +114,6 @@ export default function FilterPanel({
   facilityTypes: FilterFacilityType[];
   activeTypes: Record<string, boolean>;
   setActiveTypes: Dispatch<SetStateAction<Record<string, boolean>>>;
-  showSlope: boolean;
-  setShowSlope: Dispatch<SetStateAction<boolean>>;
   activeCampuses: CampusFlags;
   setActiveCampuses: Dispatch<SetStateAction<CampusFlags>>;
   showLandmarks: boolean;
@@ -229,15 +225,6 @@ export default function FilterPanel({
       </section>
 
       <section className="ku-filter-section ku-filter-checks">
-        <label className="ku-filter-check">
-          <input
-            type="checkbox"
-            checked={showSlope}
-            onChange={() => setShowSlope((show) => !show)}
-          />
-          <Mountain size={15} aria-hidden="true" />
-          <span>{t("slopeToggle")}</span>
-        </label>
         <label className="ku-filter-check">
           <input
             type="checkbox"

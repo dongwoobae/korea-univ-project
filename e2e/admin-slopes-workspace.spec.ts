@@ -52,6 +52,16 @@ function blueDot(page: Page) {
   return page.locator('.leaflet-container path[fill="#2563EB"]');
 }
 
+/** 공개 지도의 경사도 버튼. check()·uncheck()처럼 누르기 전과 뒤의 상태를 함께 본다 */
+async function setSlope(page: Page, on: boolean) {
+  const button = page
+    .locator(".ku-map-actions")
+    .getByRole("button", { name: "경사도", exact: true });
+  await expect(button).toHaveAttribute("aria-pressed", String(!on));
+  await button.click();
+  await expect(button).toHaveAttribute("aria-pressed", String(on));
+}
+
 interface Point {
   x: number;
   y: number;
@@ -1246,7 +1256,7 @@ test.describe("경사도 작업 화면 — 편집 패널", () => {
     await expect(page).toHaveURL(/\?id=3$/);
 
     await page.goto("/");
-    await page.getByRole("checkbox", { name: "경사도" }).check();
+    await setSlope(page, true);
 
     // 4°(6.99%)는 기본 구간의 둘째 노랑이다. 픽스처의 두 행(3°, 7.2°)은 다른 구간이라 방금 저장한 경로만 잡힌다
     const saved = page.locator('path[stroke="#FFD600"]').first();

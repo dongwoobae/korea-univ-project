@@ -18,6 +18,7 @@ import {
   LocateFixed,
   Map as MapIcon,
   Minus,
+  Mountain,
   Plus,
   Satellite,
   Star,
@@ -53,7 +54,9 @@ import FacilityMarkers from "./FacilityMarkers";
 import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
 import {
+  detailPadding,
   revealLabelAboveSheet,
+  revealLabelBesidePanel,
   setBuildingLabelEmphasis,
 } from "./buildingLabel";
 import { useMapData } from "./useMapData";
@@ -75,6 +78,7 @@ import { useColorMode } from "@/lib/useColorMode";
 import { useFontScale } from "@/lib/useFontScale";
 import "./map-ui.css";
 import { KU_BOUNDS } from "@/lib/mapBounds";
+import { isCompactLandscape, isCompactViewport } from "@/lib/viewport";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 const KU_LATLNG_BOUNDS = L.latLngBounds(
@@ -309,7 +313,7 @@ export default function Map() {
     null,
   );
   // MapWrapper가 ssr 없이 불러 첫 그리기에 window가 있다. 휴대폰에서 웹 메뉴가 한 번 그려지지 않게 처음부터 잰다
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(() => isCompactViewport());
   const [tileMode, setTileMode] = useState<keyof typeof TILES>("street");
   const darkMode = useColorMode() === "dark";
   const fontScale = useFontScale();
@@ -442,10 +446,10 @@ export default function Map() {
     [tileMode, darkMode],
   );
 
-  // 모바일 감지. 폭 경계를 넘으면 열린 메뉴 패널을 닫는다(docs/specs/2026-10-27-map-menu-design.md 5.2)
+  // 모바일 감지. 좁은 화면 경계를 넘으면 열린 메뉴 패널을 닫는다(docs/specs/2026-10-27-map-menu-design.md 5.2)
   useEffect(() => {
     const check = () => {
-      const mobile = window.innerWidth < 768;
+      const mobile = isCompactViewport();
       if (mobile === isMobileRef.current) return;
       isMobileRef.current = mobile;
       handleBreakpoint(() => setIsMobile(mobile));
@@ -641,9 +645,23 @@ export default function Map() {
           prev.visible ? { ...prev, visible: false } : prev,
         );
         if (isMobileRef.current && mapRef.current) {
-          revealLabelAboveSheet(mapRef.current, layer.getTooltip());
+          if (isCompactLandscape())
+            revealLabelBesidePanel(mapRef.current, layer.getTooltip());
+          else revealLabelAboveSheet(mapRef.current, layer.getTooltip());
         }
       },
+    });
+  }
+
+  function currentDetailPadding() {
+    const kind = !isCompactViewport()
+      ? "web"
+      : isCompactLandscape()
+        ? "landscape"
+        : "portrait";
+    return detailPadding(kind, {
+      width: window.innerWidth,
+      height: window.innerHeight,
     });
   }
 
@@ -665,6 +683,7 @@ export default function Map() {
       mapRef.current?.fitBounds(layer.getBounds(), {
         maxZoom: 18,
         animate: true,
+        paddingBottomRight: currentDetailPadding(),
       });
     }
     selectBuilding({ id, name });
@@ -755,6 +774,7 @@ export default function Map() {
     mapRef.current?.fitBounds(L.latLngBounds(latlngs), {
       maxZoom: 18,
       animate: true,
+      paddingBottomRight: currentDetailPadding(),
     });
     pickBuildingFromMenu(() => handleBuildingSelectFromSearch(feature));
   }
@@ -779,7 +799,6 @@ export default function Map() {
     filter: activeFilterCount({
       activeCampuses,
       activeTypes,
-      showSlope,
       showLandmarks,
     }),
     favorites: favoritesList.length,
@@ -790,8 +809,6 @@ export default function Map() {
       facilityTypes={facilityTypes}
       activeTypes={activeTypes}
       setActiveTypes={setActiveTypes}
-      showSlope={showSlope}
-      setShowSlope={setShowSlope}
       activeCampuses={activeCampuses}
       setActiveCampuses={setActiveCampuses}
       showLandmarks={showLandmarks}
@@ -1130,7 +1147,7 @@ export default function Map() {
       >
         <SlopeLegend show={showSlope} />
         <div className="ku-map-actions">
-          {/* 모바일은 열 맨 위 — 아래쪽은 경사도 범례와 높이가 겹친다(docs/specs/2026-10-28-font-scale-design.md 1.2) */}
+          {/* 세로 좁은 화면은 열 맨 위 — 아래쪽은 경사도 범례와 높이가 겹친다(docs/specs/2026-10-28-font-scale-design.md 1.2) */}
           {isMobile && <FontScaleControl />}
           <div className="ku-map-zoom" aria-label="지도 확대 및 축소">
             <button
@@ -1188,6 +1205,17 @@ export default function Map() {
             <span className="ku-map-action-label">
               {tileMode === "street" ? t("tileSatellite") : t("tileStreet")}
             </span>
+          </button>
+          <button
+            className="ku-map-action ku-map-action--labeled"
+            type="button"
+            onClick={() => setShowSlope((show) => !show)}
+            aria-pressed={showSlope}
+            title={t("slopeToggle")}
+            aria-label={t("slopeToggle")}
+          >
+            <Mountain size={19} aria-hidden="true" />
+            <span className="ku-map-action-label">{t("slopeToggle")}</span>
           </button>
           {layout === "expanded" && (
             <ThemeToggleButton
