@@ -801,7 +801,7 @@ export default function Map() {
 
   return (
     <div
-      className="ku-map-shell"
+      className="ku-map-shell ku-font-scope"
       data-building-labels-visible={buildingLabelsVisible}
     >
       {/* 로딩 오버레이 */}

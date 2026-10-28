@@ -115,7 +115,7 @@ export default function FeedbackButton() {
       {open &&
         createPortal(
           <div
-            className="ku-feedback-backdrop"
+            className="ku-feedback-backdrop ku-font-scope"
             role="presentation"
             onMouseDown={(event) => {
               if (

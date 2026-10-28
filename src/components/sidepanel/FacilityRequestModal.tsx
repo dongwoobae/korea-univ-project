@@ -262,7 +262,10 @@ export default function FacilityRequestModal({
   const converting = slots.some((slot) => slot.status === "converting");
 
   return createPortal(
-    <div className="ku-request-modal-backdrop" role="presentation">
+    <div
+      className="ku-request-modal-backdrop ku-font-scope"
+      role="presentation"
+    >
       <div
         ref={dialogRef}
         className="ku-request-modal"

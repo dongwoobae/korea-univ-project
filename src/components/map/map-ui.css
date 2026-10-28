@@ -8,6 +8,21 @@
   background: var(--ku-bg);
 }
 
+/* 값은 공개 화면 뿌리에만 건다. 관리자 화면에는 변수가 없어 calc가 1배로 풀린다(docs/specs/2026-10-28-font-scale-design.md 3.3) */
+:root[data-font-scale="small"] .ku-font-scope {
+  --ku-fs: 0.9;
+}
+:root[data-font-scale="large"] .ku-font-scope {
+  --ku-fs: 1.2;
+}
+.ku-font-scope {
+  font-size: calc(16px * var(--ku-fs, 1));
+}
+/* leaflet.css의 컨테이너 크기는 rem이라 뿌리를 따르지 않는다. .leaflet-tooltip에는 걸지 않는다 — .ku-building-label을 이긴다 */
+.ku-font-scope .leaflet-container {
+  font-size: calc(12px * var(--ku-fs, 1));
+}
+
 .ku-map-loading {
   position: absolute;
   inset: 0;
@@ -74,7 +89,7 @@
   outline: none;
   color: var(--ku-text-1);
   background: var(--ku-surface);
-  font-size: 15px;
+  font-size: calc(15px * var(--ku-fs, 1));
 }
 
 .ku-search-field:has(.ku-search-clear) .ku-search-input {
@@ -170,7 +185,7 @@
   color: var(--ku-text-1);
   background: transparent;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--ku-fs, 1));
   text-align: left;
 }
 
@@ -188,7 +203,7 @@
 }
 .ku-search-result-campus {
   color: var(--campus-color, var(--ku-text-2));
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
   font-weight: 600;
 }
 .ku-search-result-star {
@@ -210,7 +225,7 @@
   border-radius: var(--ku-radius);
   color: var(--ku-crimson-600);
   background: var(--ku-crimson-50);
-  font-size: 11px;
+  font-size: calc(11px * var(--ku-fs, 1));
   font-weight: 700;
 }
 
@@ -246,7 +261,7 @@
   border-radius: var(--ku-radius);
   background: var(--ku-surface);
   color: var(--ku-text-2);
-  font-size: 12.5px;
+  font-size: calc(12.5px * var(--ku-fs, 1));
 }
 .ku-search-count {
   margin-top: 6px;
@@ -254,7 +269,7 @@
   border: 0;
   background: transparent;
   color: var(--ku-text-3);
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
 }
 .ku-search-count:empty {
   display: none;
@@ -278,7 +293,7 @@
 .ku-favorites-empty {
   padding: 12px 14px;
   color: var(--ku-text-2);
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
 }
 
 .ku-favorites-title {
@@ -328,7 +343,7 @@
   color: var(--ku-text-1);
   background: transparent;
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--ku-fs, 1));
   font-weight: 700;
 }
 .ku-filter-count {
@@ -355,7 +370,7 @@
   color: var(--ku-text-2);
   background: var(--ku-surface);
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   white-space: nowrap;
 }
 .ku-chip[data-active="true"] {
@@ -385,7 +400,7 @@
   gap: 10px;
   color: var(--ku-text-1);
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--ku-fs, 1));
 }
 .ku-filter-check input {
   width: 17px;
@@ -559,7 +574,7 @@
   background: var(--ku-map-control);
   box-shadow: var(--ku-shadow-raised);
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   font-weight: 700;
 }
 .ku-map-browse-trigger strong {
@@ -571,7 +586,7 @@
   border-radius: var(--ku-radius);
   color: #fff;
   background: #8c0000;
-  font-size: 11px;
+  font-size: calc(11px * var(--ku-fs, 1));
 }
 .ku-map-browse-panel {
   position: absolute;
@@ -595,13 +610,13 @@
   border-bottom: 1px solid var(--ku-divider);
 }
 .ku-map-browse-heading h2 {
-  font-size: 15px;
+  font-size: calc(15px * var(--ku-fs, 1));
   line-height: 1.4;
 }
 .ku-map-browse-heading p {
   margin-top: 3px;
   color: var(--ku-text-3);
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--ku-fs, 1));
 }
 .ku-map-browse-heading button {
   display: flex;
@@ -664,22 +679,22 @@
   white-space: nowrap;
 }
 .ku-map-browse-copy strong {
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
 }
 .ku-map-browse-copy span {
   color: var(--ku-text-3);
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--ku-fs, 1));
 }
 .ku-map-browse-move {
   flex: 0 0 auto;
   color: var(--ku-crimson-600);
-  font-size: 11.5px;
+  font-size: calc(11.5px * var(--ku-fs, 1));
   font-weight: 700;
 }
 .ku-map-browse-empty {
   padding: 22px 16px;
   color: var(--ku-text-3);
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   text-align: center;
 }
 
@@ -771,7 +786,7 @@
 }
 .ku-menu-panel-title {
   padding: 14px 16px 0;
-  font-size: 15px;
+  font-size: calc(15px * var(--ku-fs, 1));
   line-height: 1.4;
 }
 /* 패널 안의 내용은 펼친 모습에서 쓰던 떠 있는 자리와 카드를 버리고 패널을 따른다 */
@@ -919,13 +934,13 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
-  font-size: 14px;
+  font-size: calc(14px * var(--ku-fs, 1));
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .ku-photo-lightbox-count {
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   opacity: 0.8;
 }
 .ku-photo-lightbox-action {
@@ -957,7 +972,7 @@
 }
 .ku-photo-lightbox-caption {
   margin: 8px 0 0;
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   text-align: center;
   opacity: 0.9;
 }
@@ -978,7 +993,7 @@
   margin-bottom: 8px;
 }
 .ku-feedback-title {
-  font-size: 18px;
+  font-size: calc(18px * var(--ku-fs, 1));
   font-weight: 700;
 }
 .ku-feedback-close {
@@ -993,14 +1008,14 @@
 .ku-feedback-help {
   margin-bottom: 18px;
   color: var(--ku-text-2);
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   line-height: 1.6;
 }
 .ku-feedback-label {
   display: block;
   margin-bottom: 8px;
   color: var(--ku-text-1);
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   font-weight: 600;
 }
 .ku-feedback-types {
@@ -1019,7 +1034,7 @@
   outline: 0;
   color: var(--ku-text-1);
   background: var(--ku-surface);
-  font-size: 15px;
+  font-size: calc(15px * var(--ku-fs, 1));
   line-height: 1.6;
 }
 .ku-feedback-actions {
@@ -1032,7 +1047,7 @@
 .ku-feedback-privacy {
   margin-top: 10px;
   color: var(--ku-text-3);
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
   line-height: 1.55;
 }
 .ku-feedback-status {
@@ -1041,7 +1056,7 @@
   border-radius: var(--ku-radius);
   color: var(--ku-text-2);
   background: var(--ku-bg);
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   line-height: 1.5;
 }
 .ku-feedback-status[data-kind="success"] {
@@ -1070,7 +1085,7 @@
   color: var(--ku-text-1);
   background: var(--ku-surface);
   cursor: pointer;
-  font-size: 14px;
+  font-size: calc(14px * var(--ku-fs, 1));
   font-weight: 600;
 }
 .ku-button--link {
@@ -1096,7 +1111,7 @@
   background: var(--ku-surface);
   box-shadow: var(--ku-shadow-raised);
   pointer-events: none;
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1111,7 +1126,7 @@
   box-shadow: none;
   opacity: 0 !important;
   pointer-events: none;
-  font-size: 11px;
+  font-size: calc(11px * var(--ku-fs, 1));
   font-weight: 650;
   line-height: 1.15;
   text-align: center;
@@ -1183,19 +1198,19 @@
 .ku-side-caption {
   margin-bottom: 4px;
   color: var(--ku-crimson-600);
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
   font-weight: 600;
 }
 .ku-side-title {
   color: var(--ku-text-1);
-  font-size: 20px;
+  font-size: calc(20px * var(--ku-fs, 1));
   font-weight: 700;
   letter-spacing: -0.01em;
 }
 .ku-side-subtitle {
   margin-top: 3px;
   color: var(--ku-text-3);
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
 }
 .ku-side-close {
   display: grid;
@@ -1226,7 +1241,7 @@
   color: var(--ku-text-1);
   background: var(--ku-surface);
   cursor: pointer;
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   font-weight: 600;
   transition: background-color 0.15s ease;
 }
@@ -1277,7 +1292,7 @@
 .ku-facility-title {
   margin: 18px 0 10px;
   color: var(--ku-text-1);
-  font-size: 15px;
+  font-size: calc(15px * var(--ku-fs, 1));
   font-weight: 700;
 }
 .ku-facility-list {
@@ -1313,13 +1328,13 @@
 }
 .ku-facility-name {
   color: var(--ku-text-1);
-  font-size: 13.5px;
+  font-size: calc(13.5px * var(--ku-fs, 1));
   font-weight: 600;
 }
 .ku-facility-location {
   margin-top: 2px;
   color: var(--ku-text-2);
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
 }
 .ku-status {
   flex: 0 0 auto;
@@ -1327,7 +1342,7 @@
   border-radius: var(--ku-radius);
   color: var(--ku-text-2);
   background: var(--ku-divider);
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
   font-weight: 700;
 }
 .ku-status[data-installed="true"] {
@@ -1340,13 +1355,13 @@
 .ku-facility-video-caption {
   margin-top: 6px;
   color: var(--ku-text-2);
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
   line-height: 1.5;
 }
 .ku-last-updated {
   margin-top: 16px;
   color: var(--ku-text-3);
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
 }
 
 /* 스크린리더 전용(시각적으로 숨김, AT에는 노출) */
@@ -1419,7 +1434,8 @@
     height: 48px;
     border-radius: var(--ku-radius);
     box-shadow: var(--ku-shadow-floating);
-    font-size: 16px;
+    /* 16px보다 작으면 iOS Safari가 초점 때 화면을 확대한다(docs/specs/2026-10-28-font-scale-design.md 2.3) */
+    font-size: max(16px, calc(16px * var(--ku-fs, 1)));
   }
   .ku-search-close {
     width: 48px;
@@ -1677,11 +1693,11 @@
 }
 .ku-request-modal-title {
   margin: 0;
-  font-size: 17px;
+  font-size: calc(17px * var(--ku-fs, 1));
 }
 .ku-request-modal-subtitle {
   margin: 4px 0 8px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
 }
 .ku-request-photo-slots {
   display: flex;
@@ -1714,7 +1730,7 @@
   padding: 1px 3px;
   background: var(--ku-overlay);
   color: #fff;
-  font-size: 10px;
+  font-size: calc(10px * var(--ku-fs, 1));
 }
 .ku-request-photo-slot button {
   position: absolute;
@@ -1738,17 +1754,17 @@
   border: 1.5px dashed var(--ku-border-input);
   border-radius: var(--ku-radius);
   color: var(--ku-text-2);
-  font-size: 11px;
+  font-size: calc(11px * var(--ku-fs, 1));
   text-align: center;
   cursor: pointer;
 }
 .ku-request-photos-hint {
   margin: 6px 0 12px;
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
 }
 .ku-request-modal-error {
   color: var(--ku-danger);
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
 }
 .ku-request-modal-actions {
   display: flex;
@@ -1794,14 +1810,14 @@
   border-radius: var(--ku-radius);
   background: var(--ku-surface);
   color: var(--ku-text-1);
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
   cursor: pointer;
 }
 .ku-request-photos {
   margin-top: 16px;
 }
 .ku-request-photos-label {
-  font-size: 12px;
+  font-size: calc(12px * var(--ku-fs, 1));
   color: var(--ku-text-2);
 }
 
@@ -1814,9 +1830,9 @@
 }
 .ku-request-modal-done {
   padding: 8px 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--ku-fs, 1));
 }
 .ku-request-modal-note {
   color: var(--ku-text-2);
-  font-size: 13px;
+  font-size: calc(13px * var(--ku-fs, 1));
 }
