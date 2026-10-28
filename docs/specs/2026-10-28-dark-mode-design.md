@@ -73,16 +73,17 @@
 
 ## 2. 상태
 
-### 2.1 저장소와 훅 (`src/lib/theme.ts`, `src/lib/useTheme.ts`)
+### 2.1 저장소와 훅 (`src/lib/colorMode.ts`, `src/lib/useColorMode.ts`)
 
 - 기준은 `<html>`의 `data-theme` 속성이다. `"dark"`면 다크, 없으면 밝음이다. 밝음일 때는 속성을 지운다.
 - 두 모듈로 나눈다. 서버 컴포넌트인 루트 레이아웃이 스크립트 문자열을 가져오는데, 같은 모듈에 React 훅이 있으면 서버 그래프에 훅이
   들어가고, `"use client"`를 달면 서버가 받는 것이 문자열이 아니라 클라이언트 참조가 된다.
-  - `src/lib/theme.ts`(React를 가져오지 않는다): `THEME_STORAGE_KEY = "ku_theme"`, `type Theme = "light" | "dark"`,
-    `parseStoredTheme(value)` — 정확히 `"dark"`일 때만 다크, 그 밖(없음·`"light"`·모르는 값)은 밝음(멘토링 설계 2장),
-    `THEME_INIT_SCRIPT` — 2.2의 인라인 스크립트 문자열.
-  - `src/lib/useTheme.ts`(`"use client"`): `setTheme(theme)` — 속성을 바꾸고, `localStorage`에 쓰고(예외는 삼킨다 — 화면만
-    바뀐다), 구독자에게 알린다. `useTheme()` — `useSyncExternalStore(subscribe, 속성 읽기, () => "light")`.
+  - 파일 이름은 `colorMode`다. `src/lib/theme.ts`는 이미 TS 쪽 색 값(`campusColor` 등)을 담고 있다.
+  - `src/lib/colorMode.ts`(React를 가져오지 않는다): `COLOR_MODE_STORAGE_KEY = "ku_theme"`, `type ColorMode = "light" | "dark"`,
+    `parseStoredColorMode(value)` — 정확히 `"dark"`일 때만 다크, 그 밖(없음·`"light"`·모르는 값)은 밝음(멘토링 설계 2장),
+    `COLOR_MODE_INIT_SCRIPT` — 2.2의 인라인 스크립트 문자열.
+  - `src/lib/useColorMode.ts`(`"use client"`): `setColorMode(theme)` — 속성을 바꾸고, `localStorage`에 쓰고(예외는 삼킨다 — 화면만
+    바뀐다), 구독자에게 알린다. `useColorMode()` — `useSyncExternalStore(subscribe, 속성 읽기, () => "light")`.
 - **[판단]** 멘토링 설계 7.2의 "상태 공급자(Context) 하나"를 모듈 저장소로 바꾼다. 같은 값 하나를 모두가 읽고 바꾸면 모두 다시
   그린다는 뜻은 그대로다. 바꾸는 이유:
   - 관리자 화면은 서버에서 먼저 그려진다. 서버는 저장 값을 모르므로 서버의 첫 값은 밝음이어야 한다. Context에 `useState`를 쓰면 처음
@@ -95,7 +96,7 @@
 
 ### 2.2 첫 그리기 전 (`src/app/layout.tsx`)
 
-- `<html lang="ko" suppressHydrationWarning>`. `<head>`의 첫 자식으로 `<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />`.
+- `<html lang="ko" suppressHydrationWarning>`. `<head>`의 첫 자식으로 `<script dangerouslySetInnerHTML={{ __html: COLOR_MODE_INIT_SCRIPT }} />`.
 - 스크립트: `try { if (localStorage.getItem("ku_theme") === "dark") document.documentElement.setAttribute("data-theme", "dark") } catch (e) {}`
   꼴. ES5 문법만 쓴다. ⑥이 같은 스크립트에 `ku_font_scale`을 더한다.
 - `<head>`의 동기 인라인 스크립트는 브라우저가 문서를 읽는 중 그 자리에서 실행하고, 화면은 `<head>`를 다 읽은 뒤에 그린다. 그래서
@@ -157,17 +158,17 @@
 
 ## 4. 지도별 처리
 
-| 파일                                    | 쓰는 곳                                                                                                   | 처리                                                                                           |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `map/Map.tsx`                           | 공개 지도                                                                                                 | `useTheme()`. 타일·건물·캠퍼스 경계 색·경사도 외곽선(`SlopeLayer`)이 따른다                    |
-| `FacilityMap.tsx`                       | `FacilityFields` 안(공개 등록 요청 모달, 관리자 시설 폼·독립 시설 상세·제보함 드로어), 제보함 드로어 직접 | `followTheme` prop. 거짓(기본)이면 밝은 타일 + 바깥 틀에 `ku-light-scope`, 참이면 `useTheme()` |
-| `facility/FacilityFields.tsx`           | 위와 같다                                                                                                 | `mapFollowsTheme` prop을 `FacilityMap`에 넘긴다. 기본 거짓                                     |
-| `sidepanel/FacilityRequestModal.tsx`    | 공개 등록 요청 모달                                                                                       | `FacilityFields`에 `mapFollowsTheme` 참                                                        |
-| `admin/workspace/AdminWorkspaceMap.tsx` | 관리자 독립 시설·명소·경사도 작업 지도                                                                    | 밝은 타일 + `ku-light-scope`                                                                   |
-| `admin/slopes/SlopeWorkspaceMap.tsx`    | 관리자 경사도 목록 지도                                                                                   | 경로 외곽선을 밝은 지도 값으로(`RouteLines`의 `darkMap` prop을 지운다)                         |
-| `PolygonEditor.tsx`                     | 관리자 건물 폴리곤 편집                                                                                   | 밝은 타일 + `ku-light-scope`                                                                   |
-| `BuildingPolygonPreview.tsx`            | 관리자 건물 상세 미리보기                                                                                 | 밝은 타일 + `ku-light-scope`                                                                   |
-| `slope/SlopeRouteMap.tsx`               | 관리자 경사도 경로 그리기·수정                                                                            | 밝은 타일 + `ku-light-scope`, 외곽선 밝은 지도 값                                              |
+| 파일                                    | 쓰는 곳                                                                                                   | 처리                                                                                               |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `map/Map.tsx`                           | 공개 지도                                                                                                 | `useColorMode()`. 타일·건물·캠퍼스 경계 색·경사도 외곽선(`SlopeLayer`)이 따른다                    |
+| `FacilityMap.tsx`                       | `FacilityFields` 안(공개 등록 요청 모달, 관리자 시설 폼·독립 시설 상세·제보함 드로어), 제보함 드로어 직접 | `followTheme` prop. 거짓(기본)이면 밝은 타일 + 바깥 틀에 `ku-light-scope`, 참이면 `useColorMode()` |
+| `facility/FacilityFields.tsx`           | 위와 같다                                                                                                 | `mapFollowsTheme` prop을 `FacilityMap`에 넘긴다. 기본 거짓                                         |
+| `sidepanel/FacilityRequestModal.tsx`    | 공개 등록 요청 모달                                                                                       | `FacilityFields`에 `mapFollowsTheme` 참                                                            |
+| `admin/workspace/AdminWorkspaceMap.tsx` | 관리자 독립 시설·명소·경사도 작업 지도                                                                    | 밝은 타일 + `ku-light-scope`                                                                       |
+| `admin/slopes/SlopeWorkspaceMap.tsx`    | 관리자 경사도 목록 지도                                                                                   | 경로 외곽선을 밝은 지도 값으로(`RouteLines`의 `darkMap` prop을 지운다)                             |
+| `PolygonEditor.tsx`                     | 관리자 건물 폴리곤 편집                                                                                   | 밝은 타일 + `ku-light-scope`                                                                       |
+| `BuildingPolygonPreview.tsx`            | 관리자 건물 상세 미리보기                                                                                 | 밝은 타일 + `ku-light-scope`                                                                       |
+| `slope/SlopeRouteMap.tsx`               | 관리자 경사도 경로 그리기·수정                                                                            | 밝은 타일 + `ku-light-scope`, 외곽선 밝은 지도 값                                                  |
 
 - 밝게 고정하는 지도에서는 타일 주소를 바꾸던 효과(`setUrl`)와 `key`로 타일을 갈던 처리를 지운다.
 - `getCartoTileUrl`의 인자 이름 `prefersDarkMode`를 `dark`로 바꾼다. 기기 설정이 아니라 쓰는 쪽이 정한 값이다.
@@ -177,14 +178,14 @@
 
 ## 5. 시험
 
-### 5.1 단위 (vitest, `src/lib/theme.test.ts`)
+### 5.1 단위 (vitest, `src/lib/colorMode.test.ts`)
 
 두 모듈(2.1)을 한 시험 파일에서 본다.
 
-- `parseStoredTheme`: `"dark"` → 다크, `"light"`·`null`·`"DARK"`·`"1"` → 밝음.
-- `THEME_INIT_SCRIPT`: 가짜 `localStorage`·`document`를 인자로 받는 함수로 감싸 돌린다(vitest 환경이 `node`다). 저장 값 `"dark"`면
+- `parseStoredColorMode`: `"dark"` → 다크, `"light"`·`null`·`"DARK"`·`"1"` → 밝음.
+- `COLOR_MODE_INIT_SCRIPT`: 가짜 `localStorage`·`document`를 인자로 받는 함수로 감싸 돌린다(vitest 환경이 `node`다). 저장 값 `"dark"`면
   속성이 걸리고, 그 밖의 값이나 `getItem` 예외면 걸리지 않으며 예외가 밖으로 나오지 않는다.
-- `setTheme`: 속성·저장 값을 바꾸고 구독자를 부른다. `setItem`이 예외를 던져도 속성은 바뀌고 예외가 나오지 않는다. 밝음으로 바꾸면
+- `setColorMode`: 속성·저장 값을 바꾸고 구독자를 부른다. `setItem`이 예외를 던져도 속성은 바뀌고 예외가 나오지 않는다. 밝음으로 바꾸면
   속성을 지운다.
 
 ### 5.2 E2E 새 파일 `e2e/theme.spec.ts`
