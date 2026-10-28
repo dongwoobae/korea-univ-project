@@ -54,7 +54,9 @@ import FacilityMarkers from "./FacilityMarkers";
 import LandmarkMarkers from "./LandmarkMarkers";
 import SubwayMarkers from "./SubwayMarkers";
 import {
+  detailPadding,
   revealLabelAboveSheet,
+  revealLabelBesidePanel,
   setBuildingLabelEmphasis,
 } from "./buildingLabel";
 import { useMapData } from "./useMapData";
@@ -76,7 +78,7 @@ import { useColorMode } from "@/lib/useColorMode";
 import { useFontScale } from "@/lib/useFontScale";
 import "./map-ui.css";
 import { KU_BOUNDS } from "@/lib/mapBounds";
-import { isCompactViewport } from "@/lib/viewport";
+import { isCompactLandscape, isCompactViewport } from "@/lib/viewport";
 
 const KU_CENTER: [number, number] = [37.5893, 127.0327];
 const KU_LATLNG_BOUNDS = L.latLngBounds(
@@ -643,9 +645,23 @@ export default function Map() {
           prev.visible ? { ...prev, visible: false } : prev,
         );
         if (isMobileRef.current && mapRef.current) {
-          revealLabelAboveSheet(mapRef.current, layer.getTooltip());
+          if (isCompactLandscape())
+            revealLabelBesidePanel(mapRef.current, layer.getTooltip());
+          else revealLabelAboveSheet(mapRef.current, layer.getTooltip());
         }
       },
+    });
+  }
+
+  function currentDetailPadding() {
+    const kind = !isCompactViewport()
+      ? "web"
+      : isCompactLandscape()
+        ? "landscape"
+        : "portrait";
+    return detailPadding(kind, {
+      width: window.innerWidth,
+      height: window.innerHeight,
     });
   }
 
@@ -667,6 +683,7 @@ export default function Map() {
       mapRef.current?.fitBounds(layer.getBounds(), {
         maxZoom: 18,
         animate: true,
+        paddingBottomRight: currentDetailPadding(),
       });
     }
     selectBuilding({ id, name });
@@ -757,6 +774,7 @@ export default function Map() {
     mapRef.current?.fitBounds(L.latLngBounds(latlngs), {
       maxZoom: 18,
       animate: true,
+      paddingBottomRight: currentDetailPadding(),
     });
     pickBuildingFromMenu(() => handleBuildingSelectFromSearch(feature));
   }

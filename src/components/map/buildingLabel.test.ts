@@ -3,7 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import {
   LABEL_HOVERED_CLASS,
   LABEL_SELECTED_CLASS,
+  detailPadding,
   labelRevealOffset,
+  labelRevealOffsetX,
   mobileSheetHeight,
   setBuildingLabelEmphasis,
 } from "./buildingLabel";
@@ -88,5 +90,51 @@ describe("모바일 시트 위로 옮기기", () => {
 
   it("화면 위로 벗어나도 가운데로 옮긴다", () => {
     expect(labelRevealOffset({ ...base, labelCenterY: 10 })).toBe(-150);
+  });
+});
+
+describe("상세가 덮을 자리", () => {
+  it("세로는 아래 시트 높이만큼 준다", () => {
+    expect(detailPadding("portrait", { width: 390, height: 844 })).toEqual([
+      0,
+      mobileSheetHeight(844),
+    ]);
+  });
+
+  it("가로 좁은 화면은 옆 패널 폭만큼 주고 절반을 넘지 않는다", () => {
+    expect(detailPadding("landscape", { width: 740, height: 360 })).toEqual([
+      360, 0,
+    ]);
+    expect(detailPadding("landscape", { width: 600, height: 320 })).toEqual([
+      300, 0,
+    ]);
+  });
+
+  it("웹은 상세 패널 폭 340px이다", () => {
+    expect(detailPadding("web", { width: 1280, height: 800 })).toEqual([
+      340, 0,
+    ]);
+  });
+});
+
+describe("옆 패널 옆으로 옮기기", () => {
+  // 지도 740px, 패널 360px → 보이는 영역 0~380px, 가운데 190px. 이름표 너비 60px, 여백 12px
+  const base = { labelWidth: 60, mapWidth: 740, panelWidth: 360 };
+
+  it("이름표가 보이는 영역 안이면 옮기지 않는다", () => {
+    expect(labelRevealOffsetX({ ...base, labelCenterX: 190 })).toBe(0);
+    // 오른쪽 끝 338 = 380 - 12 → 중심 308
+    expect(labelRevealOffsetX({ ...base, labelCenterX: 338 - 30 })).toBe(0);
+    // 왼쪽 끝 12 → 중심 42
+    expect(labelRevealOffsetX({ ...base, labelCenterX: 42 })).toBe(0);
+  });
+
+  it("패널에 가리면 보이는 영역 가운데로 오게 지도를 왼쪽으로 옮긴다", () => {
+    expect(labelRevealOffsetX({ ...base, labelCenterX: 500 })).toBe(310);
+    expect(labelRevealOffsetX({ ...base, labelCenterX: 309 })).toBe(119);
+  });
+
+  it("화면 왼쪽으로 벗어나도 가운데로 옮긴다", () => {
+    expect(labelRevealOffsetX({ ...base, labelCenterX: 20 })).toBe(-170);
   });
 });
