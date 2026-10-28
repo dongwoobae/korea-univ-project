@@ -2,6 +2,9 @@ import type { Map as LeafletMap, Tooltip } from "leaflet";
 
 /** 공개 지도 건물 이름표의 강조. 설계: docs/specs/2026-10-25-mentoring-feedback-design.md 5.2 */
 
+/** 이 확대부터 건물 이름이 늘 보인다. 웹·모바일이 같다(docs/specs/2026-10-29-map-buttons-feedback-design.md 3장) */
+export const BUILDING_LABEL_MIN_ZOOM = 17;
+
 export const LABEL_HOVERED_CLASS = "ku-building-label--hovered";
 export const LABEL_SELECTED_CLASS = "ku-building-label--selected";
 

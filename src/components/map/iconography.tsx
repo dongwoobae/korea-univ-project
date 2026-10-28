@@ -32,6 +32,7 @@ import {
   Utensils,
   Wifi,
   createLucideIcon,
+  type IconNode,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -46,6 +47,18 @@ import { ELEVATOR_ICON_NODE, landmarkEmoji } from "@/lib/mapIcons";
  * `iconography.test.ts`의 짝 검사가 지키는 성질이다.
  */
 const Elevator = createLucideIcon("elevator", ELEVATOR_ICON_NODE);
+
+/**
+ * 지도 버튼 열의 경사도 켜기. 산(`Mountain`)처럼 닫힌 밑선 없이 오르내리는 꺾은선만 둔다
+ * (docs/specs/2026-10-29-map-buttons-feedback-design.md 2장). 경사로 시설 아이콘 `TrendingUp`과 모양이 겹치지 않게 한다.
+ */
+export const SLOPE_LINE_ICON_NODE: IconNode = [
+  ["path", { d: "m2 17 5-8 4 4 5-7 6 8", key: "slope-line" }],
+];
+export const SlopeLineIcon = createLucideIcon(
+  "slope-line",
+  SLOPE_LINE_ICON_NODE,
+);
 
 // Leaflet divIcon은 HTML 문자열을, JSX는 컴포넌트를 요구해 같은 매핑을 두 벌 둔다(마커 쪽은 facilityStyleCatalog.ts).
 export const FACILITY_ICON: Record<FacilityIconKey, LucideIcon> = {

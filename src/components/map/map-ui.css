@@ -1630,11 +1630,11 @@
   .ku-map-corner[data-overlay-open="true"] > * {
     display: none;
   }
-  /* 바닥은 출처 표기(줄 위 8 + 높이 24) 위 8px, 오른쪽은 버튼 열(16px + 48px)과 10px 띄운다 */
+  /* 바닥은 출처 표기(줄 위 8 + 높이 24) 위 8px, 오른쪽은 이름 붙은 버튼 열(16px + 56px)과 10px 띄운다 */
   .ku-slope-legend {
     position: absolute;
     z-index: 1000;
-    right: 74px;
+    right: 82px;
     bottom: calc(var(--ku-menu-bar-height) + 40px);
     left: 16px;
   }
@@ -1646,14 +1646,17 @@
     height: 48px;
     border-radius: var(--ku-radius);
   }
+  /* 아이콘만으로는 뜻을 몰라 이름을 웹처럼 아래에 둔다. 폭을 하나로 정해야 범례가 열 왼쪽 한 자리에 맞는다.
+     56px는 넓은 글꼴(Verdana·DejaVu 굵게 10px)의 "Feedback" 53px가 들어가는 폭이다
+     (docs/specs/2026-10-29-map-buttons-feedback-design.md 1장) */
   .ku-map-action--labeled {
-    width: 48px;
+    width: 56px;
     min-width: 0;
-    height: 48px;
+    height: 52px;
     padding: 0;
   }
   .ku-map-action-label {
-    display: none;
+    font-size: 10px;
   }
   .ku-map-zoom {
     display: none;
