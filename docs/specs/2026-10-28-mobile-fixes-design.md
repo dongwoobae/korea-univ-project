@@ -76,6 +76,8 @@
 - 필터 패널의 경사도 체크(`FilterPanel.tsx`)를 지운다. 명소 체크는 그대로다. 필터 배지 숫자(`activeFilterCount`)에서 경사도를 뺀다.
 - 지도 버튼 열에서 위성 다음에 둔다. 모양은 위성과 같은 `ku-map-action ku-map-action--labeled`, 아이콘 `Mountain`, 이름
   `t("slopeToggle")`(경사도·Slope·坡度)이다. 모바일은 다른 열 버튼처럼 아이콘만 보인다.
+  - 2026-10-29 아이콘을 밑선 없는 꺾은선(`SlopeLineIcon`)으로 바꾸고, 모바일에서도 이름을 보인다
+    (`docs/specs/2026-10-29-map-buttons-feedback-design.md` 1·2장).
   - 이름은 켜고 꺼도 바뀌지 않는다. 켜짐은 `aria-pressed`와 색(언어 버튼의 선택과 같은 크림슨 바탕)으로 보인다. 위성 버튼은 이름이
     바뀌는 방식이라 다르다.
 - 열 차례
