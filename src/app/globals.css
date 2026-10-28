@@ -1,6 +1,7 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 
-:root {
+:root,
+.ku-light-scope {
   color-scheme: light;
   --ku-bg: #f7f5f3;
   --ku-surface: #ffffff;
@@ -50,55 +51,53 @@
   --ku-radius: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --ku-bg: #151210;
-    --ku-surface: #211d1a;
-    --ku-surface-raised: #2a2521;
-    --ku-divider: #332e2a;
-    --ku-border: #453e38;
-    --ku-border-input: #655b53;
-    --ku-text-1: #f7f3ef;
-    --ku-text-2: #c9c0ba;
-    --ku-text-3: #a79c94;
-    --ku-crimson-50: #351d1c;
-    --ku-crimson-100: #4d2926;
-    --ku-crimson-600: #ff9389;
-    --ku-crimson-700: #e66c62;
-    --ku-crimson-800: #ffaaa3;
-    --ku-star: #f2c44d;
-    --ku-star-bg: #3b321c;
-    --ku-speak-icon: #7cc8f0;
-    --ku-speak-icon-fill: #183b4f;
-    --ku-request-icon: #f0948c;
-    --ku-request-icon-fill: #45221f;
-    --ku-success-bg: #1c3528;
-    --ku-success-fg: #7bd5a1;
-    --ku-backdrop: rgba(0, 0, 0, 0.68);
-    --ku-map-control: rgba(33, 29, 26, 0.96);
-    --ku-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --ku-shadow-floating: 0 2px 6px rgba(0, 0, 0, 0.45);
-    --ku-shadow-overlay: 0 6px 18px rgba(0, 0, 0, 0.55);
-    /* 채움은 흰 글자(4.5:1)와 다크 표면(3:1) 대비를 함께 지키는 값이다(설계 2026-10-14 2.4).
-       -text·-soft-bg는 :root의 크림슨 참조가 이 블록의 크림슨 값을 따라간다. */
-    --ku-primary: #cc2936;
-    --ku-primary-hover: #b0202e;
-    --ku-primary-disabled: #4d2926;
-    --ku-danger: #f4756e;
-    --ku-status-installed-bg: #24331c;
-    --ku-status-installed-fg: #a4d977;
-    --ku-status-missing-bg: #3a1f1e;
-    --ku-status-missing-fg: #f0a6a1;
-    --ku-status-warn-bg: #3a2f14;
-    --ku-status-warn-fg: #f1cb77;
-    --ku-status-review-bg: #2a2540;
-    --ku-status-review-fg: #c3b6f0;
-    --ku-overlay: rgba(0, 0, 0, 0.62);
-    --ku-board-column: #1b1714;
-    --ku-dot-new: #e0a23c;
-    --ku-drawer-dim: rgba(0, 0, 0, 0.5);
-  }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ku-bg: #151210;
+  --ku-surface: #211d1a;
+  --ku-surface-raised: #2a2521;
+  --ku-divider: #332e2a;
+  --ku-border: #453e38;
+  --ku-border-input: #655b53;
+  --ku-text-1: #f7f3ef;
+  --ku-text-2: #c9c0ba;
+  --ku-text-3: #a79c94;
+  --ku-crimson-50: #351d1c;
+  --ku-crimson-100: #4d2926;
+  --ku-crimson-600: #ff9389;
+  --ku-crimson-700: #e66c62;
+  --ku-crimson-800: #ffaaa3;
+  --ku-star: #f2c44d;
+  --ku-star-bg: #3b321c;
+  --ku-speak-icon: #7cc8f0;
+  --ku-speak-icon-fill: #183b4f;
+  --ku-request-icon: #f0948c;
+  --ku-request-icon-fill: #45221f;
+  --ku-success-bg: #1c3528;
+  --ku-success-fg: #7bd5a1;
+  --ku-backdrop: rgba(0, 0, 0, 0.68);
+  --ku-map-control: rgba(33, 29, 26, 0.96);
+  --ku-shadow-raised: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ku-shadow-floating: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --ku-shadow-overlay: 0 6px 18px rgba(0, 0, 0, 0.55);
+  /* 채움은 흰 글자(4.5:1)와 다크 표면(3:1) 대비를 함께 지키는 값이다(설계 2026-10-14 2.4).
+     -text·-soft-bg는 :root의 크림슨 참조가 이 블록의 크림슨 값을 따라간다. */
+  --ku-primary: #cc2936;
+  --ku-primary-hover: #b0202e;
+  --ku-primary-disabled: #4d2926;
+  --ku-danger: #f4756e;
+  --ku-status-installed-bg: #24331c;
+  --ku-status-installed-fg: #a4d977;
+  --ku-status-missing-bg: #3a1f1e;
+  --ku-status-missing-fg: #f0a6a1;
+  --ku-status-warn-bg: #3a2f14;
+  --ku-status-warn-fg: #f1cb77;
+  --ku-status-review-bg: #2a2540;
+  --ku-status-review-fg: #c3b6f0;
+  --ku-overlay: rgba(0, 0, 0, 0.62);
+  --ku-board-column: #1b1714;
+  --ku-dot-new: #e0a23c;
+  --ku-drawer-dim: rgba(0, 0, 0, 0.5);
 }
 
 html,
@@ -216,10 +215,12 @@ a {
   will-change: auto;
 }
 
-@media (prefers-color-scheme: dark) {
-  .leaflet-tile-pane {
-    filter: brightness(0.86) saturate(0.82);
-  }
+/* 밝게 고정한 관리자 지도(.ku-light-scope)는 어둡게 하지 않는다 — docs/specs/2026-10-28-dark-mode-design.md 3.2 */
+:root[data-theme="dark"] .leaflet-tile-pane {
+  filter: brightness(0.86) saturate(0.82);
+}
+.ku-light-scope .leaflet-tile-pane {
+  filter: none;
 }
 
 /* leaflet.css가 이 파일보다 뒤에 로드되어 같은 특이도의 .leaflet-tooltip(흰 박스)이 이긴다 — 클래스를 겹쳐 올린다.
