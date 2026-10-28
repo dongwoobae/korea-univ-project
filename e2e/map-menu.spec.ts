@@ -124,6 +124,7 @@ test.describe("공개 지도 메뉴 — 웹 접기·펼치기", () => {
       "필터",
       "즐겨찾기",
       "목록",
+      "다크모드",
     ]);
     await expect(page.locator(".ku-search-control")).toHaveCount(0);
     await expect(page.locator(".ku-filter-panel")).toHaveCount(0);
@@ -430,6 +431,7 @@ test.describe("공개 지도 메뉴 — 모바일", () => {
         "필터",
         "즐겨찾기",
         "목록",
+        "다크모드",
       ]);
       for (const button of await buttons.all()) {
         await expectTouchTarget(button, "줄 버튼");

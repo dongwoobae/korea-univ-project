@@ -400,7 +400,7 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
       ...(await page.locator(".ku-menu-nav--bar .ku-menu-button").all()),
       page.locator(".ku-language-trigger"),
     ];
-    expect(controls).toHaveLength(5);
+    expect(controls).toHaveLength(6);
     for (const control of controls) {
       const label = (await control.getAttribute("aria-label")) ?? "";
       await expect(control).toBeVisible();
@@ -418,20 +418,10 @@ test.describe("공개 지도 핵심 사용자 흐름", () => {
     }
   });
 
-  test("시스템 색상 모드에 맞춰 기본 지도 타일을 교체한다", async ({
-    page,
-  }) => {
+  test("기기 색상 모드는 지도 타일을 바꾸지 않는다", async ({ page }) => {
     await page.emulateMedia({ colorScheme: "dark" });
     await page.goto("/");
 
-    await expect(
-      page.locator('.leaflet-tile[src*="/dark_all/"]').first(),
-    ).toBeAttached();
-    await expect(
-      page.locator(".leaflet-overlay-pane path.leaflet-interactive").first(),
-    ).toHaveAttribute("fill", "#FF4D3D");
-
-    await page.emulateMedia({ colorScheme: "light" });
     await expect(
       page.locator('.leaflet-tile[src*="/light_all/"]').first(),
     ).toBeAttached();
@@ -797,7 +787,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
     await page.locator('.leaflet-overlay-pane path[stroke="#8BC34A"]').click();
     await expect(page.locator(".leaflet-popup")).toContainText("정문-중앙광장");
 
-    await page.emulateMedia({ colorScheme: "dark" });
+    await page.locator(".ku-theme-toggle").click();
     await expect(casings.first()).toHaveAttribute("stroke", "#FFFFFF");
     await expect(casings.first()).toHaveAttribute("stroke-opacity", "0.6");
   });
