@@ -443,7 +443,7 @@ export default function Map() {
     [tileMode, darkMode],
   );
 
-  // 모바일 감지. 폭 경계를 넘으면 열린 메뉴 패널을 닫는다(docs/specs/2026-10-27-map-menu-design.md 5.2)
+  // 모바일 감지. 좁은 화면 경계를 넘으면 열린 메뉴 패널을 닫는다(docs/specs/2026-10-27-map-menu-design.md 5.2)
   useEffect(() => {
     const check = () => {
       const mobile = isCompactViewport();

@@ -39,6 +39,8 @@
 
 - 폭 판정은 지금처럼 `window.innerWidth < 768`이다. 처음 값도 첫 그리기 때 이 식으로 정한다. 지금은 `false`로 시작해 효과에서
   고치므로 휴대폰에서 펼친 웹 모습이 한 번 그려진다. 공개 지도는 `MapWrapper.tsx`가 `ssr: false`로 불러 첫 그리기에 `window`가 있다.
+  - 2026-10-28 판정을 `src/lib/viewport.ts`의 `isCompactViewport()`로 바꿨다. 가로이면서 높이 500px 이하인 화면도 `bar`다
+    (`docs/specs/2026-10-28-mobile-fixes-design.md` 1.1).
 - **[사용자]** 2026-10-27 처음 방문은 접힌 줄이다(멘토링 설계 6.2). 처음에는 펼침으로 정했다가 바꿨다.
 - 저장 값 읽기·쓰기는 멘토링 설계 2장 규칙을 따른다(없음·예외·모르는 값은 "없을 때" 값인 접힘, 쓰기 실패는 화면만 바꾼다). 처음
   값은 `useState` 초기화 함수에서 읽는다 — 즐겨찾기(`loadFavoritesFromStorage`)와 같은 방식이다.
