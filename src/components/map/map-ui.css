@@ -1421,6 +1421,8 @@
 }
 .ku-facility-list {
   display: grid;
+  /* 카드가 내용의 최소 폭(아이콘 + 가장 긴 낱말 + 상태)을 따라 목록보다 넓어지지 않게 한다 */
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 /* admin-ui.css 의 .ku-facility-row 와 이름이 겹치면 안 된다. 두 파일이 한
@@ -1431,8 +1433,11 @@
   border-radius: var(--ku-radius);
   background: var(--ku-bg);
 }
+/* 큰 글자·넓은 글꼴에서 이름이 7em보다 좁아지면 상태 표시가 다음 줄 오른쪽으로 내려간다
+   (docs/specs/2026-10-29-map-buttons-feedback-design.md 4.4) */
 .ku-facility-main {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
 }
@@ -1447,7 +1452,7 @@
   background: var(--ku-surface);
 }
 .ku-facility-copy {
-  flex: 1;
+  flex: 1 1 7em;
   min-width: 0;
 }
 .ku-facility-name {
@@ -1462,6 +1467,7 @@
 }
 .ku-status {
   flex: 0 0 auto;
+  margin-left: auto;
   padding: 4px 8px;
   border-radius: var(--ku-radius);
   color: var(--ku-text-2);

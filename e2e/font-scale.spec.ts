@@ -1091,6 +1091,37 @@ test.describe("글자 크기 — 150%에서 넘치지 않는다", () => {
         await expectNoOverflow("피드백", feedback);
       });
     }
+
+  // 넓은 글꼴(CI의 DejaVu Sans·Verdana)에서는 "Underground" 같은 낱말과 "Unavailable" 표시만으로 카드가 넘쳤다.
+  // 글꼴에 기대지 않게 긴 낱말로 같은 상태를 만든다
+  test("en 360×780: 긴 시설 이름에도 상태 표시가 카드 안에 있다", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => localStorage.setItem("ku_map_lang", "en"));
+    const state = await installMockBackend(page, { fontScale: "150" });
+    const facility = state.facilities.find(
+      (item) => item.id === "f-building-missing",
+    )!;
+    facility.name_en = "Interconnecting Passageway Elevator";
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto("/");
+    await page
+      .getByRole("navigation", { name: "Map menu" })
+      .getByRole("button", { name: /^Search/ })
+      .click();
+    await page.getByPlaceholder("Search buildings...").fill("Central Library");
+    await page.getByText("Central Library", { exact: true }).last().click();
+    const card = page
+      .locator(".ku-facility-card")
+      .filter({ hasText: "Interconnecting" });
+    await expect(card).toBeVisible();
+    const cardBox = (await card.boundingBox())!;
+    const status = (await card.locator(".ku-status").boundingBox())!;
+    expect(status.x + status.width).toBeLessThanOrEqual(
+      cardBox.x + cardBox.width,
+    );
+    await expectNoOverflow("시설 목록", page.locator(".ku-facility-list"));
+  });
 });
 
 test("90%에서도 모바일 검색창은 16px다", async ({ page }) => {
