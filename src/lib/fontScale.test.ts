@@ -26,18 +26,40 @@ function runInitScript(getItem: (key: string) => string | null) {
   return root.attributes.get("data-font-scale") ?? null;
 }
 
+const INVALID = [
+  null,
+  "",
+  "95",
+  "160",
+  "80",
+  "1.2",
+  " 120",
+  "120.0",
+  "LARGE",
+  "__proto__",
+  "toString",
+];
+
 describe("parseStoredFontScale", () => {
-  it("정확히 small·large일 때만 그 단계다", () => {
-    expect(parseStoredFontScale("small")).toBe("small");
-    expect(parseStoredFontScale("large")).toBe("large");
-    for (const value of ["normal", null, "LARGE", "1.2", ""])
-      expect(parseStoredFontScale(value)).toBe("normal");
+  it("일곱 숫자 문자열은 그 백분율이다", () => {
+    for (const scale of [90, 100, 110, 120, 130, 140, 150])
+      expect(parseStoredFontScale(String(scale))).toBe(scale);
+  });
+
+  it("세 단계였을 때의 값을 이어받는다", () => {
+    expect(parseStoredFontScale("small")).toBe(90);
+    expect(parseStoredFontScale("normal")).toBe(100);
+    expect(parseStoredFontScale("large")).toBe(120);
+  });
+
+  it("그 밖의 값은 100이다", () => {
+    for (const value of INVALID) expect(parseStoredFontScale(value)).toBe(100);
   });
 });
 
 describe("FONT_SCALES", () => {
-  it("작은 것부터 세 단계다", () => {
-    expect(FONT_SCALES).toEqual(["small", "normal", "large"]);
+  it("90부터 150까지 10씩 일곱 칸이다", () => {
+    expect(FONT_SCALES).toEqual([90, 100, 110, 120, 130, 140, 150]);
   });
 });
 
@@ -49,19 +71,23 @@ describe("scaledFontSize", () => {
 });
 
 describe("FONT_SCALE_INIT_SCRIPT", () => {
-  it("저장 값이 small·large면 html에 data-font-scale을 건다", () => {
-    for (const value of ["small", "large"])
+  it("읽기 함수와 같은 값을 html에 건다 — 100이면 걸지 않는다", () => {
+    const inputs = [
+      ...FONT_SCALES.map(String),
+      "small",
+      "normal",
+      "large",
+      ...INVALID,
+    ];
+    for (const value of inputs) {
+      const scale = parseStoredFontScale(value);
       expect(
         runInitScript((key) => (key === "ku_font_scale" ? value : null)),
-      ).toBe(value);
+      ).toBe(scale === 100 ? null : String(scale));
+    }
   });
 
-  it("그 밖의 값이면 걸지 않는다", () => {
-    for (const value of ["normal", null, "LARGE"])
-      expect(runInitScript(() => value)).toBeNull();
-  });
-
-  it("저장소가 예외를 던져도 밖으로 내지 않고 보통으로 둔다", () => {
+  it("저장소가 예외를 던져도 밖으로 내지 않고 100으로 둔다", () => {
     expect(
       runInitScript(() => {
         throw new Error("blocked");
@@ -86,18 +112,18 @@ describe("setFontScale", () => {
     const listener = vi.fn();
     const unsubscribe = subscribeFontScale(listener);
 
-    setFontScale("large");
-    expect(root.getAttribute("data-font-scale")).toBe("large");
-    expect(stored.get("ku_font_scale")).toBe("large");
+    setFontScale(150);
+    expect(root.getAttribute("data-font-scale")).toBe("150");
+    expect(stored.get("ku_font_scale")).toBe("150");
     expect(listener).toHaveBeenCalledTimes(1);
 
-    setFontScale("normal");
+    setFontScale(100);
     expect(root.getAttribute("data-font-scale")).toBeNull();
-    expect(stored.get("ku_font_scale")).toBe("normal");
+    expect(stored.get("ku_font_scale")).toBe("100");
 
     unsubscribe();
-    setFontScale("small");
-    expect(root.getAttribute("data-font-scale")).toBe("small");
+    setFontScale(90);
+    expect(root.getAttribute("data-font-scale")).toBe("90");
     expect(listener).toHaveBeenCalledTimes(2);
   });
 
@@ -105,7 +131,7 @@ describe("setFontScale", () => {
     const root = stub(() => {
       throw new Error("blocked");
     });
-    expect(() => setFontScale("large")).not.toThrow();
-    expect(root.getAttribute("data-font-scale")).toBe("large");
+    expect(() => setFontScale(120)).not.toThrow();
+    expect(root.getAttribute("data-font-scale")).toBe("120");
   });
 });

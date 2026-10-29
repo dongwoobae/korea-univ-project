@@ -1625,7 +1625,12 @@ export async function installMockBackend(
     /** 저장 값이 없으면 `ku_theme`를 이 값으로 둔다(docs/specs/2026-10-28-dark-mode-design.md 5.3) */
     theme?: "dark";
     /** 저장 값이 없으면 `ku_font_scale`를 이 값으로 둔다(docs/specs/2026-10-28-font-scale-design.md 5.3) */
-    fontScale?: "small" | "large";
+    /** 세 단계였을 때의 이름이나 백분율 문자열(docs/specs/2026-10-29-map-buttons-feedback-design.md 4.2) */
+    fontScale?:
+      | "small"
+      | "normal"
+      | "large"
+      | `${90 | 100 | 110 | 120 | 130 | 140 | 150}`;
   } = {},
 ) {
   const state = createState(Boolean(options.authenticated));

@@ -30,6 +30,32 @@ function scaleStatus(page: Page) {
   return scaleGroup(page).locator('[aria-live="polite"]');
 }
 
+function trigger(page: Page, name = "글자 크기") {
+  return page
+    .locator(".ku-map-actions")
+    .getByRole("button", { name, exact: true });
+}
+
+function slider(page: Page, name = "글자 크기") {
+  return page.getByRole("slider", { name, exact: true });
+}
+
+function popover(page: Page) {
+  return page.locator(".ku-font-scale-popover");
+}
+
+/** 칸을 열고 키보드로 percent에 맞춘 뒤 Esc로 닫는다. fill()은 React가 값 바꿈을 놓칠 수 있어 쓰지 않는다 */
+async function setScale(page: Page, percent: number) {
+  await trigger(page).click();
+  await expect(slider(page)).toBeFocused();
+  await page.keyboard.press("Home");
+  for (let step = 90; step < percent; step += 10)
+    await page.keyboard.press("ArrowRight");
+  await expect(slider(page)).toHaveValue(String(percent));
+  await page.keyboard.press("Escape");
+  await expect(popover(page)).toHaveCount(0);
+}
+
 function menuNav(page: Page) {
   return page.getByRole("navigation", { name: "지도 메뉴" });
 }
@@ -175,37 +201,42 @@ function visibleActionNames(page: Page) {
 }
 
 test.describe("글자 크기 — 버튼", () => {
-  test("처음에는 보통이고 두 버튼이 모두 눌리며 지금 단계를 가리킨다", async ({
+  test("처음에는 100이고 이름 붙은 버튼 하나에 칸은 닫혀 있다", async ({
     page,
   }) => {
     await installMockBackend(page);
     await page.goto("/");
-    await expect(scaleGroup(page)).toBeVisible();
+    await expect(trigger(page)).toBeVisible();
     expect(await htmlScale(page)).toBeNull();
-    await expect(scaleStatus(page)).toHaveText("글자 크기: 보통");
-    const statusId = await scaleStatus(page).getAttribute("id");
-    expect(statusId).toBeTruthy();
-    await expect(smaller(page)).toHaveText("가−");
-    await expect(larger(page)).toHaveText("가＋");
-    for (const button of [smaller(page), larger(page)]) {
-      await expect(button).not.toHaveAttribute("aria-disabled", "true");
-      await expect(button).toHaveAttribute("aria-describedby", statusId!);
-    }
+    await expect(trigger(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger(page)).not.toHaveAttribute("aria-controls");
+    await expect(trigger(page)).toHaveAttribute("title", "글자 크기 100%");
+    await expect(trigger(page)).toHaveAccessibleDescription("글자 크기 100%");
+    await expect(trigger(page).locator(".ku-font-scale-glyph")).toHaveText(
+      "가",
+    );
+    await expect(trigger(page).locator(".ku-map-action-label")).toHaveText(
+      "글자 크기",
+    );
+    await expect(popover(page)).toHaveCount(0);
   });
 
+  const MOBILE_NAMES = [
+    "글자 크기",
+    "현 위치",
+    "위성 지도로 전환",
+    "경사도",
+    "피드백 보내기",
+  ];
   const PLACES = [
     {
       name: "접힌 줄",
       viewport: { width: 1280, height: 800 },
       expandMapMenu: false,
-      names: [
-        "위성 지도로 전환",
-        "경사도",
-        "글자 작게",
-        "글자 크게",
-        "피드백 보내기",
-      ],
+      names: ["위성 지도로 전환", "경사도", "글자 크기", "피드백 보내기"],
       whole: false,
+      slope: false,
+      landscape: false,
     },
     {
       name: "펼침",
@@ -215,39 +246,45 @@ test.describe("글자 크기 — 버튼", () => {
         "위성 지도로 전환",
         "경사도",
         "다크모드",
-        "글자 작게",
-        "글자 크게",
+        "글자 크기",
         "피드백 보내기",
       ],
       whole: false,
+      slope: true,
+      landscape: false,
     },
     {
       name: "모바일",
       viewport: { width: 390, height: 844 },
       expandMapMenu: true,
-      names: [
-        "글자 작게",
-        "글자 크게",
-        "현 위치",
-        "위성 지도로 전환",
-        "경사도",
-        "피드백 보내기",
-      ],
+      names: MOBILE_NAMES,
       whole: true,
+      slope: false,
+      landscape: false,
+    },
+    {
+      name: "가로 좁은 화면",
+      viewport: { width: 740, height: 360 },
+      expandMapMenu: true,
+      names: MOBILE_NAMES,
+      whole: true,
+      slope: true,
+      landscape: true,
     },
   ];
   for (const place of PLACES) {
-    test(`${place.name}: 자리와 한 단계씩 이동, 끝 단계에서도 초점이 남는다`, async ({
+    test(`${place.name}: 자리, 키보드로 열고 움직이고 Esc로 닫는다`, async ({
       page,
     }) => {
       await installMockBackend(page, { expandMapMenu: place.expandMapMenu });
       await page.setViewportSize(place.viewport);
       await page.goto("/");
-      await expect(scaleGroup(page)).toBeVisible();
+      await expect(trigger(page)).toBeVisible();
       const names = await visibleActionNames(page);
       expect(place.whole ? names : names.slice(-place.names.length)).toEqual(
         place.names,
       );
+      if (place.slope) await setSlope(page, true);
 
       const panel = page.locator(".ku-menu-panel");
       if (!place.expandMapMenu) {
@@ -257,98 +294,222 @@ test.describe("글자 크기 — 버튼", () => {
         await expect(panel).toBeVisible();
       }
 
-      await larger(page).focus();
+      await trigger(page).focus();
       await page.keyboard.press("Enter");
-      await expect(page.locator("html")).toHaveAttribute(
-        "data-font-scale",
-        "large",
-      );
-      expect(await storedScale(page)).toBe("large");
-      await expect(larger(page)).toHaveAttribute("aria-disabled", "true");
-      await expect(larger(page)).toBeFocused();
-      await expect(scaleStatus(page)).toHaveText("글자 크기: 크게");
-      await page.keyboard.press("Enter");
-      await expect(page.locator("html")).toHaveAttribute(
-        "data-font-scale",
-        "large",
-      );
+      await expect(trigger(page)).toHaveAttribute("aria-expanded", "true");
+      const popoverId = await popover(page).getAttribute("id");
+      expect(popoverId).toBeTruthy();
+      await expect(trigger(page)).toHaveAttribute("aria-controls", popoverId!);
+      await expect(slider(page)).toBeFocused();
+      await expect(slider(page)).toHaveValue("100");
+      await expect(slider(page)).toHaveAttribute("aria-valuetext", "100%");
 
-      await smaller(page).click();
-      await expect.poll(() => htmlScale(page)).toBeNull();
-      expect(await storedScale(page)).toBe("normal");
-      await smaller(page).click();
+      // 칸은 화면 안이고 지도 버튼·범례를 덮지 않는다(설계 4.3)
+      const box = (await popover(page).boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.y).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(place.viewport.width);
+      expect(box.y + box.height).toBeLessThanOrEqual(place.viewport.height);
+      const buttons = page.locator(".ku-map-actions button");
+      for (let index = 0; index < (await buttons.count()); index += 1) {
+        const button = await buttons.nth(index).boundingBox();
+        if (button) expect(overlaps(box, button), `버튼 ${index}`).toBe(false);
+      }
+      if (place.slope) {
+        const legend = (await page.locator(".ku-slope-legend").boundingBox())!;
+        expect(overlaps(box, legend), "범례").toBe(false);
+      }
+      if (place.landscape) {
+        // 범례까지 담은 묶음 위에 연다
+        const corner = (await page.locator(".ku-map-corner").boundingBox())!;
+        expect(box.y + box.height).toBeLessThanOrEqual(corner.y);
+      } else {
+        const button = (await trigger(page).boundingBox())!;
+        expect(box.x + box.width).toBeLessThanOrEqual(button.x);
+      }
+
+      await page.keyboard.press("ArrowRight");
       await expect(page.locator("html")).toHaveAttribute(
         "data-font-scale",
-        "small",
+        "110",
       );
-      await expect(smaller(page)).toHaveAttribute("aria-disabled", "true");
-      await expect(scaleStatus(page)).toHaveText("글자 크기: 작게");
-      // Playwright는 aria-disabled 버튼을 누를 수 없는 것으로 보고 클릭을 기다린다 — 키보드로 누른다
-      await smaller(page).focus();
-      await page.keyboard.press("Enter");
+      expect(await storedScale(page)).toBe("110");
+      await expect(slider(page)).toHaveAttribute("aria-valuetext", "110%");
+      await expect(popover(page).locator(".ku-font-scale-value")).toHaveText(
+        "110%",
+      );
+      await page.keyboard.press("End");
       await expect(page.locator("html")).toHaveAttribute(
         "data-font-scale",
-        "small",
+        "150",
       );
-      await expect(smaller(page)).toBeFocused();
+      await page.keyboard.press("Home");
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-font-scale",
+        "90",
+      );
+      await page.keyboard.press("ArrowLeft");
+      await expect(slider(page)).toHaveValue("90");
+      expect(await storedScale(page)).toBe("90");
+
+      await page.keyboard.press("Escape");
+      await expect(popover(page)).toHaveCount(0);
+      await expect(trigger(page)).toHaveAttribute("aria-expanded", "false");
+      await expect(trigger(page)).not.toHaveAttribute("aria-controls");
+      await expect(trigger(page)).toBeFocused();
+      await expect(trigger(page)).toHaveAccessibleDescription("글자 크기 90%");
       if (!place.expandMapMenu) await expect(panel).toBeVisible();
     });
   }
 
+  test("버튼을 다시 누르거나 지도를 누르거나 Tab으로 나가면 닫히고, 칸 안 글자를 눌러도 남는다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    await trigger(page).click();
+    await expect(popover(page)).toBeVisible();
+    await popover(page).locator(".ku-font-scale-value").click();
+    await popover(page).locator(".ku-font-scale-end").first().click();
+    await expect(popover(page)).toBeVisible();
+    await trigger(page).click();
+    await expect(popover(page)).toHaveCount(0);
+    await expect(trigger(page)).toHaveAttribute("aria-expanded", "false");
+
+    await trigger(page).click();
+    await expect(popover(page)).toBeVisible();
+    await page
+      .locator(".leaflet-container")
+      .click({ position: { x: 640, y: 300 } });
+    await expect(popover(page)).toHaveCount(0);
+
+    await trigger(page).click();
+    await expect(slider(page)).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(popover(page)).toHaveCount(0);
+  });
+
+  test("마우스로 슬라이더 오른쪽 끝을 누르면 150이다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    await trigger(page).click();
+    const box = (await slider(page).boundingBox())!;
+    await slider(page).click({
+      position: { x: box.width - 2, y: box.height / 2 },
+    });
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-font-scale",
+      "150",
+    );
+    expect(await storedScale(page)).toBe("150");
+  });
+
+  test.describe("터치", () => {
+    test.use({ hasTouch: true, viewport: { width: 390, height: 844 } });
+
+    test("탭으로 열고 슬라이더 끝을 탭하면 150이고 지도를 탭하면 닫힌다", async ({
+      page,
+    }) => {
+      await installMockBackend(page);
+      await page.goto("/");
+      await trigger(page).tap();
+      await expect(popover(page)).toBeVisible();
+      const box = (await slider(page).boundingBox())!;
+      await slider(page).tap({
+        position: { x: box.width - 2, y: box.height / 2 },
+      });
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-font-scale",
+        "150",
+      );
+      await page
+        .locator(".leaflet-container")
+        .tap({ position: { x: 100, y: 200 } });
+      await expect(popover(page)).toHaveCount(0);
+    });
+  });
+
+  test("모바일: 칸을 연 채 아래 줄 검색을 누르면 칸이 닫히고 패널을 닫아도 닫혀 있다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await trigger(page).click();
+    await expect(popover(page)).toBeVisible();
+    await menuNav(page)
+      .getByRole("button", { name: "검색", exact: true })
+      .click();
+    await expect(popover(page)).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(trigger(page)).toBeVisible();
+    await expect(trigger(page)).toHaveAttribute("aria-expanded", "false");
+    await expect(popover(page)).toHaveCount(0);
+  });
+
+  const LEGACY = [
+    { stored: "small", attribute: "90", value: "90" },
+    { stored: "large", attribute: "120", value: "120" },
+    { stored: "normal", attribute: null, value: "100" },
+  ] as const;
+  for (const { stored, attribute, value } of LEGACY) {
+    test(`세 단계였을 때의 ${stored}는 ${value}%로 이어진다`, async ({
+      page,
+    }) => {
+      await installMockBackend(page, { fontScale: stored });
+      await page.goto("/");
+      await expect(trigger(page)).toBeVisible();
+      expect(await htmlScale(page)).toBe(attribute);
+      await trigger(page).click();
+      await expect(slider(page)).toHaveValue(value);
+      // 고쳐 쓰지 않는다 — 움직이기 전까지 옛 값이 남는다(설계 4.2)
+      expect(await storedScale(page)).toBe(stored);
+    });
+  }
+
   const LANG_NAMES = {
-    en: {
-      group: "Text size",
-      down: "Smaller text",
-      up: "Larger text",
-      downGlyph: "A−",
-      upGlyph: "A＋",
-      normal: "Text size: Normal",
-    },
-    zh: {
-      group: "字号",
-      down: "缩小字号",
-      up: "放大字号",
-      downGlyph: "字−",
-      upGlyph: "字＋",
-      normal: "字号：标准",
-    },
+    en: { name: "Text size", glyph: "A" },
+    zh: { name: "字号", glyph: "字" },
   } as const;
-  for (const [lang, names] of Object.entries(LANG_NAMES)) {
-    test(`${lang}: 버튼 글자·이름·지금 단계`, async ({ page }) => {
+  for (const [lang, { name, glyph }] of Object.entries(LANG_NAMES)) {
+    test(`${lang}: 버튼 글자·이름과 슬라이더 이름`, async ({ page }) => {
       await page.addInitScript(
         (value) => localStorage.setItem("ku_map_lang", value),
         lang,
       );
       await installMockBackend(page);
       await page.goto("/");
-      const group = scaleGroup(page, names.group);
       await expect(
-        group.getByRole("button", { name: names.down, exact: true }),
-      ).toHaveText(names.downGlyph);
+        trigger(page, name).locator(".ku-font-scale-glyph"),
+      ).toHaveText(glyph);
       await expect(
-        group.getByRole("button", { name: names.up, exact: true }),
-      ).toHaveText(names.upGlyph);
-      await expect(group.locator('[aria-live="polite"]')).toHaveText(
-        names.normal,
-      );
+        trigger(page, name).locator(".ku-map-action-label"),
+      ).toHaveText(name);
+      await trigger(page, name).click();
+      await expect(slider(page, name)).toBeFocused();
     });
   }
 
-  test("저장된 크게는 앱 JS 없이도 첫 그리기 전에 걸리고 다크도 함께 걸린다", async ({
-    page,
-  }) => {
-    await installMockBackend(page, { fontScale: "large", theme: "dark" });
-    await page.route("**/_next/static/**/*.js", (route) => route.abort());
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-    expect(await htmlScale(page)).toBe("large");
-    expect(
-      await page.evaluate(() =>
-        document.documentElement.getAttribute("data-theme"),
-      ),
-    ).toBe("dark");
-  });
+  for (const { stored, attribute } of [
+    { stored: "130", attribute: "130" },
+    { stored: "large", attribute: "120" },
+  ] as const) {
+    test(`저장된 ${stored}는 앱 JS 없이도 첫 그리기 전에 ${attribute}로 걸리고 다크도 함께 걸린다`, async ({
+      page,
+    }) => {
+      await installMockBackend(page, { fontScale: stored, theme: "dark" });
+      await page.route("**/_next/static/**/*.js", (route) => route.abort());
+      await page.goto("/", { waitUntil: "domcontentloaded" });
+      expect(await htmlScale(page)).toBe(attribute);
+      expect(
+        await page.evaluate(() =>
+          document.documentElement.getAttribute("data-theme"),
+        ),
+      ).toBe("dark");
+    });
+  }
 
-  test("저장소가 예외를 던져도 보통으로 열리고 버튼은 화면을 바꾼다", async ({
+  test("저장소가 예외를 던져도 100으로 열리고 슬라이더는 화면을 바꾼다", async ({
     page,
   }) => {
     const errors: string[] = [];
@@ -367,13 +528,14 @@ test.describe("글자 크기 — 버튼", () => {
     });
     await installMockBackend(page);
     await page.goto("/");
-    await expect(scaleGroup(page)).toBeVisible();
+    await expect(trigger(page)).toBeVisible();
     expect(await htmlScale(page)).toBeNull();
 
-    await larger(page).click();
+    await trigger(page).click();
+    await page.keyboard.press("ArrowRight");
     await expect(page.locator("html")).toHaveAttribute(
       "data-font-scale",
-      "large",
+      "110",
     );
     expect(errors).toEqual([]);
   });
