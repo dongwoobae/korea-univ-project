@@ -249,12 +249,11 @@ test.describe("다크 모드 — 공개 지도", () => {
       .evaluateAll((elements) =>
         elements.map((element) => element.getAttribute("aria-label")),
       );
-    expect(labels.slice(-6)).toEqual([
+    expect(labels.slice(-5)).toEqual([
       "위성 지도로 전환",
       "경사도",
       "다크모드",
-      "글자 작게",
-      "글자 크게",
+      "글자 크기",
       "피드백 보내기",
     ]);
     await expect(page.locator(".ku-theme-toggle")).toHaveCount(1);
