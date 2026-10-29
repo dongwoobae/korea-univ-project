@@ -10,9 +10,9 @@ const NARROW = [
 ];
 
 const LABELED = {
-  ko: ["현 위치", "위성", "경사도", "피드백"],
-  en: ["Location", "Satellite", "Slope", "Feedback"],
-  zh: ["我的位置", "卫星", "坡度", "反馈"],
+  ko: ["글자 크기", "현 위치", "위성", "경사도", "피드백"],
+  en: ["Text size", "Location", "Satellite", "Slope", "Feedback"],
+  zh: ["字号", "我的位置", "卫星", "坡度", "反馈"],
 } as const;
 
 /** 로딩 막을 기다리는 까닭은 e2e/font-scale.spec.ts의 openMap */

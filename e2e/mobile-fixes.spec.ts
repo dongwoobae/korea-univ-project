@@ -621,12 +621,12 @@ for (const viewport of [
   });
 }
 
-test("MOB-16 영어 360×780 크게: 목록의 긴 이름은 두 줄까지 보인다", async ({
+test("MOB-16 영어 360×780 150%: 목록의 긴 이름은 두 줄까지 보인다", async ({
   page,
 }) => {
   const longName = "Hana Square Underground Accessible Entrance Plaza";
   await page.addInitScript(() => localStorage.setItem("ku_map_lang", "en"));
-  const state = await installMockBackend(page, { fontScale: "large" });
+  const state = await installMockBackend(page, { fontScale: "150" });
   state.landmarks.push({
     ...state.landmarks[0],
     id: "22222222-2222-2222-2222-222222222222",

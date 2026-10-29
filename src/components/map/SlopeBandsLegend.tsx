@@ -48,7 +48,8 @@ export default function SlopeBandsLegend({
       if (!rootRef.current?.contains(event.target as Node)) setTooltip(null);
     }
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
+      // 나중에 열린 글자 크기 칸이 이미 받은 Esc다(FontScaleControl)
+      if (event.key !== "Escape" || event.defaultPrevented) return;
       // 열린 지도 메뉴 패널이 같은 Esc에 닫히지 않게 한다(docs/specs/2026-10-27-map-menu-design.md 5.4)
       event.preventDefault();
       setTooltip(null);
