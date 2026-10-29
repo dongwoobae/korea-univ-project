@@ -37,11 +37,12 @@ export default function FontScaleControl() {
     }
     document.addEventListener("pointerdown", handleOutside);
     document.addEventListener("focusin", handleOutside);
-    document.addEventListener("keydown", handleKeyDown);
+    // 캡처 단계: 키보드로 먼저 열어 둔 경사도 범례 툴팁(문서 버블 단계)보다 먼저 받아 이 칸만 닫는다
+    document.addEventListener("keydown", handleKeyDown, true);
     return () => {
       document.removeEventListener("pointerdown", handleOutside);
       document.removeEventListener("focusin", handleOutside);
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
     };
   }, [open]);
 

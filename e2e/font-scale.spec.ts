@@ -367,6 +367,34 @@ test.describe("글자 크기 — 버튼", () => {
     await expect(popover(page)).toHaveCount(0);
   });
 
+  test("키보드로 범례 툴팁을 연 채 칸을 열면 Esc 한 번에 칸만 닫힌다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    await setSlope(page, true);
+    const cell = page
+      .getByRole("group", { name: "경사도 범례" })
+      .getByRole("button")
+      .first();
+    const tooltip = page.locator(".ku-slope-bands-tooltip");
+    // 툴팁은 바깥을 누를 때만 닫혀, 키보드로는 둘이 함께 열린다
+    await cell.focus();
+    await page.keyboard.press("Enter");
+    await expect(tooltip).toBeVisible();
+    await trigger(page).focus();
+    await page.keyboard.press("Enter");
+    await expect(slider(page)).toBeFocused();
+    await expect(tooltip).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(popover(page)).toHaveCount(0);
+    await expect(trigger(page)).toBeFocused();
+    await expect(tooltip).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(tooltip).toBeHidden();
+  });
+
   test("마우스로 슬라이더 오른쪽 끝을 누르면 150이다", async ({ page }) => {
     await installMockBackend(page);
     await page.goto("/");
