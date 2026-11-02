@@ -91,6 +91,19 @@ describe("compressVideo", () => {
     expect(blob.type).toBe("video/mp4");
   });
 
+  it("exec가 0이 아닌 코드로 끝나면 결과를 읽지 않고 거절하며 인스턴스를 버린다", async () => {
+    const { compressVideo } = await load();
+
+    const result = compressVideo(clip());
+    await vi.waitFor(() => expect(instances[0].load).toHaveBeenCalled());
+    instances[0].exec.mockResolvedValueOnce(1);
+    instances[0].resolveLoad();
+
+    await expect(result).rejects.toThrow();
+    expect(instances[0].readFile).not.toHaveBeenCalled();
+    expect(instances[0].terminate).toHaveBeenCalled();
+  });
+
   it("변환이 실패하면 인스턴스를 버리고 다음 호출은 새로 만든다", async () => {
     const { compressVideo } = await load();
     const first = compressVideo(clip());
