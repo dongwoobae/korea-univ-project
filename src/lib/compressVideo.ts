@@ -61,7 +61,11 @@ export async function compressVideo(
   const inputName = "input" + file.name.slice(file.name.lastIndexOf("."));
   try {
     await ff.writeFile(inputName, await fetchFile(file));
-    await ff.exec(transcodeArgs(inputName, "output.mp4", "ultrafast"));
+    // exec는 실패해도 거절하지 않는다(설계 2026-10-07 4.2).
+    const exitCode = await ff.exec(
+      transcodeArgs(inputName, "output.mp4", "ultrafast"),
+    );
+    if (exitCode !== 0) throw new Error(`ffmpeg exit code ${exitCode}`);
     const data = await ff.readFile("output.mp4");
     await ff.deleteFile(inputName);
     await ff.deleteFile("output.mp4");
