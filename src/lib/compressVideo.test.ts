@@ -104,6 +104,45 @@ describe("compressVideo", () => {
     expect(instances[0].terminate).toHaveBeenCalled();
   });
 
+  it("실패 오류에 ffmpeg 로그의 마지막 줄과 입력 스트림을 담는다", async () => {
+    const { compressVideo } = await load();
+
+    const result = compressVideo(clip());
+    await vi.waitFor(() => expect(instances[0].load).toHaveBeenCalled());
+    instances[0].exec.mockImplementationOnce(async () => {
+      const onLog = instances[0].on.mock.calls.find(
+        ([event]) => event === "log",
+      )?.[1];
+      onLog({
+        message: "  Stream #0:0[0x1](und): Video: hevc (Main 10), 3840x2160",
+      });
+      for (let line = 0; line < 20; line += 1)
+        onLog({ message: `frame=${line}` });
+      onLog({ message: "Cannot allocate memory" });
+      return 1;
+    });
+    instances[0].resolveLoad();
+
+    const error = await result.catch((reason: Error) => reason);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain("Cannot allocate memory");
+    expect((error as Error).message).toContain("hevc (Main 10), 3840x2160");
+    expect((error as Error).message).not.toContain("frame=0");
+  });
+
+  it("exec가 0으로 끝나도 결과가 비어 있으면 거절한다", async () => {
+    const { compressVideo } = await load();
+
+    const result = compressVideo(clip());
+    await vi.waitFor(() => expect(instances[0].load).toHaveBeenCalled());
+    instances[0].readFile.mockResolvedValueOnce(new Uint8Array());
+    instances[0].resolveLoad();
+
+    await expect(result).rejects.toThrow();
+    expect(instances[0].terminate).toHaveBeenCalled();
+  });
+
   it("변환이 실패하면 인스턴스를 버리고 다음 호출은 새로 만든다", async () => {
     const { compressVideo } = await load();
     const first = compressVideo(clip());

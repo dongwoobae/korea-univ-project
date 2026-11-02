@@ -26,6 +26,7 @@ function deps(
     put: vi.fn(async () => {}),
     confirm: vi.fn(async () => {}),
     isCancelled: () => false,
+    onCompressFailed: vi.fn(),
     onPhase: vi.fn(),
     onProgress: vi.fn(),
     ...overrides,
@@ -54,14 +55,17 @@ describe("uploadFacilityVideo", () => {
       posterUrl: "https://cdn.test/v.jpg",
     });
     expect(d.isPlayable).not.toHaveBeenCalled();
+    expect(d.onCompressFailed).not.toHaveBeenCalled();
   });
 
   it("변환이 실패해도 원본이 재생되면 원본을 올린다", async () => {
-    const d = deps({ compress: vi.fn().mockRejectedValue(new Error("OOM")) });
+    const failure = new Error("OOM");
+    const d = deps({ compress: vi.fn().mockRejectedValue(failure) });
 
     const result = await uploadFacilityVideo(original, d);
 
     expect(result).toMatchObject({ status: "uploaded", usedOriginal: true });
+    expect(d.onCompressFailed).toHaveBeenCalledWith(failure);
     expect(d.presign).toHaveBeenCalledWith(
       expect.objectContaining({
         contentType: "video/quicktime",
@@ -95,6 +99,7 @@ describe("uploadFacilityVideo", () => {
     const result = await uploadFacilityVideo(original, d);
 
     expect(result).toEqual({ status: "cancelled" });
+    expect(d.onCompressFailed).not.toHaveBeenCalled();
     expect(d.isPlayable).not.toHaveBeenCalled();
     expect(d.presign).not.toHaveBeenCalled();
   });
