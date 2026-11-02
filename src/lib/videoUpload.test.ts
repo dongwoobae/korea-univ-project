@@ -80,9 +80,13 @@ describe("facilityVideoKey / isFacilityVideoKey", () => {
 });
 
 describe("isValidFileSize", () => {
-  it("유한한 0 이상의 수만 받는다", () => {
-    expect(isValidFileSize(0)).toBe(true);
+  it("유한한 양수만 받는다", () => {
+    expect(isValidFileSize(1)).toBe(true);
     expect(isValidFileSize(1024)).toBe(true);
+  });
+
+  it("0이면 거부한다", () => {
+    expect(isValidFileSize(0)).toBe(false);
   });
 
   it("생략하면 거부한다", () => {

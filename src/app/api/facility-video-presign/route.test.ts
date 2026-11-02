@@ -60,7 +60,16 @@ describe("facility video presign route", () => {
     expect(posterCommand.input.ContentLength).toBe(2048);
   });
 
-  it.each([1024 * 1024 + 1, -1, "2048"])(
+  it("fileSize 0은 서명하지 않고 400으로 거절한다", async () => {
+    const { POST } = await import("./route");
+
+    const response = await POST(request({ fileSize: 0 }));
+
+    expect(response.status).toBe(400);
+    expect(getSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it.each([1024 * 1024 + 1, 0, -1, "2048"])(
     "posterSize %s는 400으로 거절한다",
     async (posterSize) => {
       const { POST } = await import("./route");

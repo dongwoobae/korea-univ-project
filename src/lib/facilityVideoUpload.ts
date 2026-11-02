@@ -35,6 +35,7 @@ export interface FacilityVideoUploadDeps {
   ) => Promise<void>;
   confirm: (request: { videoUrl: string; posterUrl?: string }) => Promise<void>;
   isCancelled: () => boolean;
+  onCompressFailed: (error: unknown) => void;
   onPhase: (phase: UploadPhase) => void;
   onProgress: (progress: number) => void;
 }
@@ -63,8 +64,9 @@ export async function uploadFacilityVideo(
   try {
     payload = await deps.compress(file, deps.onProgress, deps.onPhase);
     contentType = "video/mp4";
-  } catch {
+  } catch (error) {
     if (deps.isCancelled()) return CANCELLED;
+    deps.onCompressFailed(error);
     deps.onPhase("checking");
     if (!(await deps.isPlayable(file))) {
       return {

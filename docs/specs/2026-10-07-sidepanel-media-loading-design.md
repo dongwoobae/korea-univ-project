@@ -166,6 +166,18 @@ HDR → SDR 톤 매핑은 하지 않는다. HDR 원본은 색이 다소 바래 �
 
 재생 검사는 실패했을 때만 한다. 성공 경로에서 최대 15초(`PLAYABILITY_PROBE_TIMEOUT_MS`)의 검사를 빼기 위해서다.
 
+`compressVideo`의 실패는 거절만이 아니다. ffmpeg.wasm의 `exec`는 ffmpeg가 실패해도 거절하지 않고
+0이 아닌 종료 코드를 돌려주므로, `compressVideo`가 코드를 확인해 거절로 바꾼다. 결과가 비어 있어도 실패로 본다.
+입력에 디코더가 없는 스트림이 있거나 프레임을 하나도 디코드하지 못하면 `exec`는 코드 1로 끝나고
+`output.mp4`는 0바이트로 남는다. 코드를 보지 않으면 이 빈 결과가 변환 성공으로 올라간다.
+
+대체 경로로 넘어가면 화면에는 경고만 남는다. 그래서 변환 실패 사유(ffmpeg 로그의 마지막 줄과 입력 스트림)를
+`facility_video.transcode`로 활동 로그에 남긴다(`2026-10-19-activity-log-design.md` 4.3).
+
+2026-11-02 — 2026-10-31에 올라간 영상 2개가 이렇게 0바이트가 되어 공개 패널에서 재생되지 않던 것을 해소.
+두 원본이 왜 변환에 실패했는지는 원본이 없어 확인하지 못했다. 같은 코어로 Chromium에서 돌린 AAC와 apac 혼합 트랙,
+세로 회전, HEVC 10-bit 입력은 모두 변환됐고, 아이폰 Safari에서는 시험하지 못했다. 원인은 다음 실패의 로그로 판단한다.
+
 ### 4.3 취소
 
 항상 변환하면 준비 구간이 길어진다. 그러면 `cancel-during-prepare.md`의 결함이 실제로 걸린다.
@@ -207,6 +219,7 @@ TODO가 남긴 다른 선택은 이렇게 정했다.
 - 요청에 선택 필드 `posterSize`를 받는다. 크기는 서명에 넣고, 상한은 1MB다. Content-Type은 `image/jpeg`로 고정한다.
 - 응답은 `{ presignedUrl, publicUrl, posterPresignedUrl, posterPublicUrl }`이다.
   기존 두 필드는 이름을 그대로 둔다. `posterSize`가 없으면 포스터 두 필드는 `null`이다.
+- `fileSize`나 `posterSize`가 0이면 400이다. R2는 크기 0으로 서명한 PUT을 받아 빈 객체를 남긴다.
 
 **`facility-video-confirm`**
 
@@ -303,8 +316,10 @@ confirm이 새 컬럼에 쓰므로, 코드가 컬럼보다 먼저 뜨는 구간�
 - 변환 인자: **인자 배열 전체**를 고정한다. scale 식, libx264, CRF 28, `yuv420p`, AAC 128k, faststart, 주입한 preset이 모두 들어간다.
   인자는 입력 방향과 무관하므로, 가로·세로·작은·홀수 크기 입력의 결과 해상도는 네이티브 ffmpeg의 `testsrc`로 확인한다.
 - `compressVideo`: `@ffmpeg/ffmpeg`를 모킹해, `load()` 도중 `terminateFFmpeg()`를 부르면 거절로 끝나는지 본다.
+  `exec`가 0이 아닌 코드로 끝나면 결과를 읽지 않고 거절하며 인스턴스를 버린다. 코드가 0이어도 결과가 비어 있으면 거절한다.
+  거절 오류에 ffmpeg 로그의 마지막 줄과 입력 스트림이 들어간다.
 - 포스터 키 짝 판정: 같은 ts의 `.jpg`만 짝이다. 다른 시설·다른 ts·다른 확장자는 아니다.
-- presign: `posterSize`가 없으면 포스터 두 필드가 `null`, 있으면 서명 URL을 준다. 1MB 초과는 400이다.
+- presign: `posterSize`가 없으면 포스터 두 필드가 `null`, 있으면 서명 URL을 준다. 1MB 초과는 400이다. `fileSize`·`posterSize`가 0이어도 400이다.
 - confirm: 짝이 아닌 `posterUrl`은 400이다. 없으면 `null`로 저장한다.
 - delete: 영상 삭제가 실패하면 두 컬럼을 되돌리고 포스터는 지우지 않는다. 포스터 삭제만 실패하면 200이고 두 컬럼은 `null`로 남는다.
 - 일괄 스크립트의 순수 함수: 대상 분류(변환·포스터만·건너뜀), journal 재실행 정리, purge 대상 선별.

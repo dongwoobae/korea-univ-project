@@ -184,6 +184,16 @@ export default function FacilityVideoModal({
             throw new Error(`저장 실패: ${data.error}`);
         },
         isCancelled: () => cancelledRef.current,
+        onCompressFailed: (error) => {
+          void reportFailure({
+            source: { kind: "thrown", error },
+            action: "facility_video.transcode",
+            followUp: true,
+            target: { table: "building_facilities", id: facility.id },
+            fileSize: file.size,
+            fileType: file.type,
+          });
+        },
         onPhase: setPhase,
         onProgress: setProgress,
       });

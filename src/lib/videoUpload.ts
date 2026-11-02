@@ -78,9 +78,10 @@ export function isFacilityVideoKey(key: string, facilityId: string): boolean {
  *
  * 서버가 이걸 먼저 보지 않으면 `fileSize`를 아예 빼고 호출하는 것만으로
  * 상한 검사를 통째로 지나간다 — `undefined > MAX`는 false다.
+ * 0도 거른다. R2는 크기 0으로 서명한 PUT을 받아 재생되지 않는 빈 객체를 남긴다.
  */
 export function isValidFileSize(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 export const MAX_POSTER_BYTES = 1024 * 1024;

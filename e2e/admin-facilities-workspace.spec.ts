@@ -738,6 +738,9 @@ test.describe("독립 시설 작업 화면 — 상세 패널", () => {
       state.facilities.find((facility) => facility.id === "f-installed")
         ?.video_poster_url,
     ).toBe("https://cdn.test/video.jpg");
+    await expect
+      .poll(() => state.activityReports.map((report) => report.action))
+      .toContain("facility_video.transcode");
 
     const caption = page.getByPlaceholder("동영상 설명 추가...");
     await caption.fill("정문 방향 경사로 영상");
