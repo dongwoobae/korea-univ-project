@@ -51,6 +51,7 @@ export const FAILURE_ACTION_LABELS = {
   "facility_photo.delete": "시설 사진 삭제",
   "facility_photo.delete_all": "시설 사진 정리",
   "facility_video.upload": "시설 동영상 업로드",
+  "facility_video.transcode": "시설 동영상 변환",
   "facility_video.delete": "시설 동영상 삭제",
   "landmark_photo.upload": "명소 사진 업로드",
   "landmark_photo.delete": "명소 사진 삭제",

@@ -3,6 +3,7 @@ import { fetchFile, toBlobURL } from "@ffmpeg/util";
 import { transcodeArgs } from "@/lib/videoTranscode";
 
 const CORE_BASE_URL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd";
+const FAILURE_LOG_TAIL = 5;
 
 let ffmpeg: FFmpeg | null = null;
 let ready: Promise<FFmpeg> | null = null;
@@ -42,6 +43,16 @@ function getFFmpeg(): Promise<FFmpeg> {
   return loading;
 }
 
+// 활동 로그가 뒤를 자르므로, 원인이 찍히는 마지막 줄을 입력 스트림보다 앞에 둔다.
+function transcodeFailure(reason: string, log: string[]): Error {
+  const streams = log.filter((line) =>
+    /^Stream #0:\d+.*(Video|Audio):/.test(line),
+  );
+  return new Error(
+    [reason, ...log.slice(-FAILURE_LOG_TAIL), ...streams].join(" | "),
+  );
+}
+
 export async function compressVideo(
   file: File,
   /** 0~100 */
@@ -57,6 +68,11 @@ export async function compressVideo(
     onProgress?.(Math.min(99, Math.round(progress * 100)));
   };
   ff.on("progress", handleProgress);
+  const log: string[] = [];
+  const handleLog = ({ message }: { message: string }) => {
+    log.push(message.trim());
+  };
+  ff.on("log", handleLog);
 
   const inputName = "input" + file.name.slice(file.name.lastIndexOf("."));
   try {
@@ -65,11 +81,15 @@ export async function compressVideo(
     const exitCode = await ff.exec(
       transcodeArgs(inputName, "output.mp4", "ultrafast"),
     );
-    if (exitCode !== 0) throw new Error(`ffmpeg exit code ${exitCode}`);
+    if (exitCode !== 0)
+      throw transcodeFailure(`ffmpeg exit code ${exitCode}`, log);
     const data = await ff.readFile("output.mp4");
+    if (data.length === 0)
+      throw transcodeFailure("ffmpeg 결과가 비어 있음", log);
     await ff.deleteFile(inputName);
     await ff.deleteFile("output.mp4");
     ff.off("progress", handleProgress);
+    ff.off("log", handleLog);
     onProgress?.(100);
     return new Blob([data as unknown as BlobPart], { type: "video/mp4" });
   } catch (error) {

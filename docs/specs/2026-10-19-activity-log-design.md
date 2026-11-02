@@ -282,7 +282,8 @@ JSON 본문을 갖고 이 헤더가 없다. 그 경우는 서버가 이미 기�
 - 브라우저 Supabase 클라이언트(`src/lib/supabaseClient.ts`)의 `global.fetch`: `/rest/v1/<테이블>`로 가는
   쓰기(`POST`·`PATCH`·`DELETE`, `rpc/` 제외)가 실패하면 보고한다. 작업 키는 `<테이블>.<insert|update|delete>`다.
 - 관문을 지나지 않는 실패만 그 자리에서 부른다: 사진 WebP 변환 실패(`FacilityPhotoManager`,
-  `BuildingPhotoManager`)와 변환 뒤 크기 초과(`FacilityPhotoManager`), 동영상 변환 실패·크기 초과와 R2 직접
+  `BuildingPhotoManager`)와 변환 뒤 크기 초과(`FacilityPhotoManager`), 동영상 변환 실패(원본으로 대체돼 업로드가
+  이어져도 `facility_video.transcode` warning으로 남긴다)·크기 초과와 R2 직접
   업로드(`FacilityVideoModal`), 건물 사진 맞바꾸기 RPC 실패(`BuildingPhotoManager` — 관문이 `rpc/`를 보지 않는다.
   경합 오류는 빼며 기준은 `docs/specs/2026-10-25-mentoring-feedback-design.md` 3.4).
 - 관문은 대상 이름을 모른다. 관문 보고는 `target_label`이 비고, 직접 쓰기는 테이블과 기본 키만 남는다.
@@ -668,3 +669,4 @@ pgTAP 검사 항목:
 - 2026-10-20 — 6장의 목록 조회를 실제 함수(`findListedAdmin`, 표시 이름까지 돌려줌)로 맞추고, 4.3의 `/api/activity-logs`
   자체 확인을 PR 2 뒤 상태로 고쳤다.
 - 2026-10-26 — 4.3의 그 자리 보고 목록에 건물 사진 맞바꾸기 RPC 실패를 더했다.
+- 2026-11-02 — 4.3의 동영상 변환 실패 보고가 원본으로 대체되는 경로를 빠뜨리던 것을 `facility_video.transcode`로 채웠다.
