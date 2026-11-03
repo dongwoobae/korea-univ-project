@@ -45,6 +45,55 @@ test.describe("공개 지도 P0 개선 (모바일·데이터 오류)", () => {
     await expect(page.getByRole("listbox")).toHaveCount(0);
   });
 
+  test("저장된 언어를 읽다가 저장소가 예외를 던져도 지도가 한국어로 열린다", async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.addInitScript(() => {
+      const getItem = Storage.prototype.getItem;
+      Storage.prototype.getItem = function (key: string) {
+        if (key === "ku_map_lang") throw new Error("blocked");
+        return getItem.call(this, key);
+      };
+    });
+    await installMockBackend(page);
+    await page.setViewportSize(MOBILE);
+    await page.goto("/");
+
+    await expect(
+      menuNav(page).getByRole("button", { name: "검색" }),
+    ).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test("언어를 저장하다가 저장소가 예외를 던져도 언어가 바뀐다", async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.addInitScript(() => {
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key: string, value: string) {
+        if (key === "ku_map_lang") throw new Error("blocked");
+        return setItem.call(this, key, value);
+      };
+    });
+    await installMockBackend(page);
+    await page.setViewportSize(MOBILE);
+    await page.goto("/");
+
+    await page.locator(".ku-language-trigger").click();
+    await page
+      .getByRole("listbox", { name: "언어 선택" })
+      .getByRole("option", { name: "EN", exact: true })
+      .click();
+    await expect(
+      menuNav(page, "Map menu").getByRole("button", { name: "Search" }),
+    ).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
   test("모바일에서 패널이 닫혀 있으면 위쪽은 언어 버튼뿐이라 지도와 언어 선택을 가로채지 않는다", async ({
     page,
   }) => {
