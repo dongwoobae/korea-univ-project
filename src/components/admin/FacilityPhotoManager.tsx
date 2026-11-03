@@ -25,6 +25,11 @@ interface FacilityPhotoManagerProps {
   showToast: (message: string, type?: string) => void;
 }
 
+interface UploadFailure {
+  message: string;
+  type: "error" | "warning";
+}
+
 export default function FacilityPhotoManager({
   facilityId,
   photos,
@@ -36,50 +41,73 @@ export default function FacilityPhotoManager({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const sorted = [...photos].sort(byUploadOrder);
 
-  async function upload(file: File) {
+  async function uploadOne(file: File): Promise<UploadFailure | null> {
+    let blob: Blob;
+    try {
+      blob = await convertToWebP(file);
+    } catch (error) {
+      void reportFailure({
+        source: { kind: "known", reason: "unsupported_type", error },
+        action: "facility_photo.upload",
+        target: { table: "building_facilities", id: facilityId },
+        fileSize: file.size,
+        fileType: file.type,
+      });
+      return { message: "사진을 변환하지 못했어요", type: "error" };
+    }
+    if (blob.size > MAX_FACILITY_PHOTO_BYTES) {
+      void reportFailure({
+        source: { kind: "known", reason: "payload_too_large" },
+        action: "facility_photo.upload",
+        target: { table: "building_facilities", id: facilityId },
+        fileSize: blob.size,
+        fileType: blob.type,
+        limit: MAX_FACILITY_PHOTO_BYTES,
+      });
+      return { message: "사진은 4MB까지 올릴 수 있어요", type: "warning" };
+    }
+    const form = new FormData();
+    form.append("facilityId", facilityId);
+    form.append("file", blob, "photo.webp");
+    const response = await authedFetch("/api/upload-facility-photo", {
+      method: "POST",
+      body: form,
+    }).catch(() => null);
+    if (response?.ok) return null;
+    return {
+      message: await readErrorMessage(response, "사진을 올리지 못했어요"),
+      type: "error",
+    };
+  }
+
+  async function uploadAll(files: File[]) {
+    const room = MAX_FACILITY_PHOTOS - sorted.length;
+    if (files.length > room) {
+      showToast(
+        `사진은 ${MAX_FACILITY_PHOTOS}장까지예요. ${room}장만 골라 주세요`,
+        "warning",
+      );
+      return;
+    }
     setPending("upload");
     try {
-      let blob: Blob;
-      try {
-        blob = await convertToWebP(file);
-      } catch (error) {
-        void reportFailure({
-          source: { kind: "known", reason: "unsupported_type", error },
-          action: "facility_photo.upload",
-          target: { table: "building_facilities", id: facilityId },
-          fileSize: file.size,
-          fileType: file.type,
-        });
-        showToast("사진을 변환하지 못했어요", "error");
+      const failures: UploadFailure[] = [];
+      // 동시에 올리면 같은 sort_order를 잡아 유일 제약에 걸린다.
+      for (const file of files) {
+        const failure = await uploadOne(file);
+        if (failure) failures.push(failure);
+      }
+      if (failures.length < files.length) await onChanged();
+      if (failures.length === 0) return;
+      if (files.length === 1) {
+        showToast(failures[0].message, failures[0].type);
         return;
       }
-      if (blob.size > MAX_FACILITY_PHOTO_BYTES) {
-        void reportFailure({
-          source: { kind: "known", reason: "payload_too_large" },
-          action: "facility_photo.upload",
-          target: { table: "building_facilities", id: facilityId },
-          fileSize: blob.size,
-          fileType: blob.type,
-          limit: MAX_FACILITY_PHOTO_BYTES,
-        });
-        showToast("사진은 4MB까지 올릴 수 있어요", "warning");
-        return;
-      }
-      const form = new FormData();
-      form.append("facilityId", facilityId);
-      form.append("file", blob, "photo.webp");
-      const response = await authedFetch("/api/upload-facility-photo", {
-        method: "POST",
-        body: form,
-      }).catch(() => null);
-      if (!response?.ok) {
-        showToast(
-          await readErrorMessage(response, "사진을 올리지 못했어요"),
-          "error",
-        );
-        return;
-      }
-      await onChanged();
+      const reasons = [...new Set(failures.map((f) => f.message))].join(" · ");
+      showToast(
+        `${failures.length}장을 올리지 못했어요 (${reasons})`,
+        "warning",
+      );
     } finally {
       setPending(null);
     }
@@ -133,12 +161,13 @@ export default function FacilityPhotoManager({
           <input
             type="file"
             accept="image/*"
+            multiple
             className="ku-sr-only"
             disabled={busy}
             onChange={(event) => {
-              const file = event.target.files?.[0];
+              const files = Array.from(event.target.files ?? []);
               event.target.value = "";
-              if (file) void upload(file);
+              if (files.length > 0) void uploadAll(files);
             }}
           />
         </label>

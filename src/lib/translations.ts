@@ -122,6 +122,7 @@ export const translations = {
     requestPhotosLabel: "사진",
     requestPhotosHint:
       "사진은 최대 3장, 장당 4MB까지 올릴 수 있어요. 올릴 때 자동으로 줄여요.",
+    requestPhotosOverLimit: "사진은 3장까지예요. {n}장만 골라 주세요",
     requestPhotoAdd: "사진 추가",
     requestPhotoRemove: "사진 빼기",
     requestPhotoConverting: "줄이는 중",
@@ -261,6 +262,7 @@ export const translations = {
     requestPhotosLabel: "Photos",
     requestPhotosHint:
       "Up to 3 photos, 4MB each. Photos are resized automatically.",
+    requestPhotosOverLimit: "Up to 3 photos. Please choose only {n}.",
     requestPhotoAdd: "Add photo",
     requestPhotoRemove: "Remove photo",
     requestPhotoConverting: "Resizing",
@@ -397,6 +399,7 @@ export const translations = {
     requestInstalledLabel: "已安装",
     requestPhotosLabel: "照片",
     requestPhotosHint: "最多 3 张照片，每张 4MB。上传时会自动压缩。",
+    requestPhotosOverLimit: "最多 3 张照片，请只选择 {n} 张。",
     requestPhotoAdd: "添加照片",
     requestPhotoRemove: "移除照片",
     requestPhotoConverting: "压缩中",

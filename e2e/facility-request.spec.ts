@@ -120,6 +120,32 @@ test.describe("시설 등록 요청", () => {
     return dialog;
   }
 
+  test("남은 칸보다 많이 고르면 한 장도 받지 않고 남은 수만큼 고르라고 한다", async ({
+    page,
+  }) => {
+    await installMockBackend(page);
+    const dialog = await fillWithPhotos(page, 1);
+    const fileInput = dialog.locator('input[type="file"]');
+    const pngs = ["a", "b", "c"].map((name) => ({
+      name: `${name}.png`,
+      mimeType: "image/png",
+      buffer: PNG,
+    }));
+
+    await fileInput.setInputFiles(pngs);
+    await expect(dialog.getByRole("alert")).toHaveText(
+      "사진은 3장까지예요. 2장만 골라 주세요",
+    );
+    await expect(dialog.locator(".ku-request-photo-slot")).toHaveCount(1);
+
+    // 안내를 보고 다시 고르면 받고, 안내는 사라진다.
+    await fileInput.setInputFiles(pngs.slice(0, 2));
+    await expect(
+      dialog.locator('.ku-request-photo-slot[data-status="ready"]'),
+    ).toHaveCount(3);
+    await expect(dialog.getByRole("alert")).toHaveCount(0);
+  });
+
   test("사진별로 진행을 보이고, 실패한 사진만 다시 올린다", async ({
     page,
   }) => {

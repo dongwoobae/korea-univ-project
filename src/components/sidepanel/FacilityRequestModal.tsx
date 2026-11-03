@@ -74,6 +74,7 @@ export default function FacilityRequestModal({
   const typesFailed =
     facilityTypesSnapshot.status === "error" && !facilityTypesSnapshot.loaded;
   const [slots, setSlots] = useState<PhotoSlot[]>([]);
+  const [photoLimitExceeded, setPhotoLimitExceeded] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [widgetKey, setWidgetKey] = useState(0);
   const [phase, setPhase] = useState<Phase>("form");
@@ -114,8 +115,10 @@ export default function FacilityRequestModal({
 
   function addFiles(files: FileList | null) {
     if (!files) return;
-    const room = MAX_FACILITY_PHOTOS - slots.length;
-    for (const file of Array.from(files).slice(0, Math.max(0, room))) {
+    const tooMany = files.length > MAX_FACILITY_PHOTOS - slots.length;
+    setPhotoLimitExceeded(tooMany);
+    if (tooMany) return;
+    for (const file of Array.from(files)) {
       const key = crypto.randomUUID();
       setSlots((previous) => [
         ...previous,
@@ -391,6 +394,14 @@ export default function FacilityRequestModal({
                 )}
               </ul>
               <p className="ku-request-photos-hint">{t("requestPhotosHint")}</p>
+              {phase === "form" && photoLimitExceeded && (
+                <p role="alert" className="ku-request-modal-error">
+                  {t("requestPhotosOverLimit").replace(
+                    "{n}",
+                    String(MAX_FACILITY_PHOTOS - slots.length),
+                  )}
+                </p>
+              )}
             </div>
 
             <input
