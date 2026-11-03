@@ -369,9 +369,13 @@ test.describe("건물 관리자 흐름", () => {
       scrolledBox.y + topY + 45,
     );
     await page.mouse.down();
-    await page.mouse.move(scrolledBox.x + edgeX - 20, scrolledBox.y + topY + 45, {
-      steps: 8,
-    });
+    await page.mouse.move(
+      scrolledBox.x + edgeX - 20,
+      scrolledBox.y + topY + 45,
+      {
+        steps: 8,
+      },
+    );
     await page.mouse.up();
 
     await page.getByRole("button", { name: "건물 저장" }).click();
@@ -379,9 +383,7 @@ test.describe("건물 관리자 흐름", () => {
     const saved = state.buildings.find(
       (building) => building.name === "E2E 통째 이동",
     );
-    const savedMinLng = Math.min(
-      ...ringOf(saved!.geojson).map(([lng]) => lng),
-    );
+    const savedMinLng = Math.min(...ringOf(saved!.geojson).map(([lng]) => lng));
     expect(savedMinLng).toBeLessThan(neighborMaxLng);
   });
 
