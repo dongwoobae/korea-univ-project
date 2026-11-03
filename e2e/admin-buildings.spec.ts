@@ -482,6 +482,38 @@ test.describe("건물 관리자 흐름", () => {
     ).toBeVisible();
   });
 
+  test("한 칸을 저장해도 다른 칸에 입력하던 값은 남는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.buildings[0].college_id = null;
+    await page.goto("/admin/buildings/1");
+
+    const nameInput = page.locator("#building-name input").first();
+    const collegeCard = page.locator("#building-college");
+    const collegeSelect = collegeCard.getByLabel("소속 단과대학 선택");
+
+    await nameInput.fill("중앙도서관 고치는 중");
+    await collegeSelect.selectOption({ label: "문과대학" });
+    await collegeCard.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("소속 단과대학이 저장되었어요!")).toBeVisible();
+    await expect(nameInput).toHaveValue("중앙도서관 고치는 중");
+    await expect(
+      page.getByRole("status", { name: "저장하지 않은 변경 1개" }),
+    ).toBeVisible();
+
+    await collegeSelect.selectOption({ label: "선택 안 함" });
+    await page
+      .locator("#building-name")
+      .getByRole("button", { name: "저장" })
+      .click();
+    await expect(page.getByText("건물명이 저장되었어요!")).toBeVisible();
+    await expect(collegeSelect).toHaveValue("");
+    await expect(
+      page.getByRole("status", { name: "저장하지 않은 변경 1개" }),
+    ).toBeVisible();
+    expect(state.buildings[0].name).toBe("중앙도서관 고치는 중");
+    expect(state.buildings[0].college_id).toBe(1);
+  });
+
   test("건물 사진의 파일별 성공·실패를 표시하고 실패만 재시도한다", async ({
     page,
   }) => {
