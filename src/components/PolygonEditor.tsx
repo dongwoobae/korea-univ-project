@@ -128,8 +128,9 @@ export default function PolygonEditor({
       setHasPolygon(true);
       syncFormPolygon();
     });
-    map.on("pm:edit", syncFormPolygon);
-    map.on("pm:dragend", syncFormPolygon);
+    // geoman은 편집·이동 이벤트를 레이어와 그 부모 그룹에만 보내고 지도에는 보내지 않는다
+    drawnItems.on("pm:edit", syncFormPolygon);
+    drawnItems.on("pm:dragend", syncFormPolygon);
 
     return () => {
       cancelled = true;
