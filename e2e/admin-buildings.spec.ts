@@ -287,6 +287,106 @@ test.describe("건물 관리자 흐름", () => {
     expect(lat).not.toBe(neighborMaxLat);
   });
 
+  test("그린 뒤 꼭짓점을 옮기면 옮긴 모양으로 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    type Ring = { geometry: { coordinates: number[][][] } };
+    await page.goto("/admin/buildings/new");
+    await page.getByPlaceholder("예: 신공학관").fill("E2E 꼭짓점 편집");
+
+    const map = page.locator(".leaflet-container");
+    await page.locator(".leaflet-pm-icon-polygon").locator("..").click();
+    const points = [
+      { x: 350, y: 100 },
+      { x: 500, y: 100 },
+      { x: 500, y: 250 },
+      { x: 350, y: 250 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[0] });
+    await expect(
+      page.getByText(
+        "✅ 폴리곤 입력 완료 — 아래 건물 저장 버튼으로 함께 저장됩니다.",
+      ),
+    ).toBeVisible();
+
+    await page.locator(".leaflet-pm-icon-edit").locator("..").click();
+    const mapBox = (await map.boundingBox())!;
+    await page.mouse.move(mapBox.x + 500, mapBox.y + 250);
+    await page.mouse.down();
+    await page.mouse.move(mapBox.x + 580, mapBox.y + 310, { steps: 8 });
+    await page.mouse.up();
+
+    await page.getByRole("button", { name: "건물 저장" }).click();
+    await expect(page).toHaveURL(/admin\/buildings\/-\d+$/);
+    const saved = state.buildings.find(
+      (building) => building.name === "E2E 꼭짓점 편집",
+    );
+    const ring = (saved!.geojson as Ring).geometry.coordinates[0];
+    // 둘째·셋째 꼭짓점은 같은 x에 찍었으므로, 셋째를 옮기지 않았다면 경도가 같다
+    expect(ring[2][0]).toBeGreaterThan(ring[1][0]);
+  });
+
+  test("그린 뒤 통째로 옮기면 옮긴 자리로 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    type Ring = { geometry: { coordinates: number[][][] } };
+    const ringOf = (geojson: unknown) =>
+      (geojson as Ring).geometry.coordinates[0];
+    const neighborMaxLng = Math.max(
+      ...ringOf(state.buildings[0].geojson).map(([lng]) => lng),
+    );
+    await page.goto("/admin/buildings/new");
+    await page.getByPlaceholder("예: 신공학관").fill("E2E 통째 이동");
+
+    const map = page.locator(".leaflet-container");
+    const neighbor = map.locator('path[stroke="#9ca3af"]');
+    await expect(neighbor).toHaveCount(1);
+    const mapBox = (await map.boundingBox())!;
+    const neighborBox = (await neighbor.boundingBox())!;
+    const edgeX = neighborBox.x + neighborBox.width - mapBox.x;
+    const topY = neighborBox.y - mapBox.y;
+
+    await page.locator(".leaflet-pm-icon-polygon").locator("..").click();
+    // 주변 건물 오른쪽 변보다 오른쪽에 그린 뒤, 그 변을 넘도록 왼쪽으로 옮긴다
+    const points = [
+      { x: edgeX + 60, y: topY + 10 },
+      { x: edgeX + 140, y: topY + 10 },
+      { x: edgeX + 140, y: topY + 80 },
+      { x: edgeX + 60, y: topY + 80 },
+    ];
+    for (const position of points) await map.click({ position });
+    await map.click({ position: points[0] });
+    await expect(
+      page.getByText(
+        "✅ 폴리곤 입력 완료 — 아래 건물 저장 버튼으로 함께 저장됩니다.",
+      ),
+    ).toBeVisible();
+
+    await page.locator(".leaflet-pm-icon-drag").locator("..").click();
+    // 꼭짓점을 찍는 동안 지도가 화면 안으로 스크롤되므로 페이지 좌표를 다시 잰다
+    const scrolledBox = (await map.boundingBox())!;
+    await page.mouse.move(
+      scrolledBox.x + edgeX + 100,
+      scrolledBox.y + topY + 45,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      scrolledBox.x + edgeX - 20,
+      scrolledBox.y + topY + 45,
+      {
+        steps: 8,
+      },
+    );
+    await page.mouse.up();
+
+    await page.getByRole("button", { name: "건물 저장" }).click();
+    await expect(page).toHaveURL(/admin\/buildings\/-\d+$/);
+    const saved = state.buildings.find(
+      (building) => building.name === "E2E 통째 이동",
+    );
+    const savedMinLng = Math.min(...ringOf(saved!.geojson).map(([lng]) => lng));
+    expect(savedMinLng).toBeLessThan(neighborMaxLng);
+  });
+
   test("점 데이터인 역은 프리뷰에 그 점을 찍어 그 자리에서 열고, 편집기는 점 없이 폴리곤이 없는 건물처럼 연다", async ({
     page,
   }) => {
@@ -382,6 +482,38 @@ test.describe("건물 관리자 흐름", () => {
     await expect(
       dialog.getByRole("status", { name: "현재 상태: 미설치" }),
     ).toBeVisible();
+  });
+
+  test("한 칸을 저장해도 다른 칸에 입력하던 값은 남는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.buildings[0].college_id = null;
+    await page.goto("/admin/buildings/1");
+
+    const nameInput = page.locator("#building-name input").first();
+    const collegeCard = page.locator("#building-college");
+    const collegeSelect = collegeCard.getByLabel("소속 단과대학 선택");
+
+    await nameInput.fill("중앙도서관 고치는 중");
+    await collegeSelect.selectOption({ label: "문과대학" });
+    await collegeCard.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("소속 단과대학이 저장되었어요!")).toBeVisible();
+    await expect(nameInput).toHaveValue("중앙도서관 고치는 중");
+    await expect(
+      page.getByRole("status", { name: "저장하지 않은 변경 1개" }),
+    ).toBeVisible();
+
+    await collegeSelect.selectOption({ label: "선택 안 함" });
+    await page
+      .locator("#building-name")
+      .getByRole("button", { name: "저장" })
+      .click();
+    await expect(page.getByText("건물명이 저장되었어요!")).toBeVisible();
+    await expect(collegeSelect).toHaveValue("");
+    await expect(
+      page.getByRole("status", { name: "저장하지 않은 변경 1개" }),
+    ).toBeVisible();
+    expect(state.buildings[0].name).toBe("중앙도서관 고치는 중");
+    expect(state.buildings[0].college_id).toBe(1);
   });
 
   test("건물 사진의 파일별 성공·실패를 표시하고 실패만 재시도한다", async ({

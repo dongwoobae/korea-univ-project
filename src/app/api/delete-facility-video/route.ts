@@ -49,8 +49,9 @@ export async function POST(request: Request) {
         error: readError,
       });
     }
+    // 지울 영상이 없으면 이미 바라던 상태다 — 2026-10-07 설계 4.5 `delete-facility-video`
     if (!current?.video_url) {
-      return failures.respond(409, "동영상이 이미 변경되었어요", "conflict");
+      return NextResponse.json({ ok: true });
     }
 
     const key = getR2KeyFromPublicUrl(current.video_url);

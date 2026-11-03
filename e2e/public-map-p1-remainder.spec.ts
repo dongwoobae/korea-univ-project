@@ -226,4 +226,34 @@ test.describe("공개 지도 P1 잔여 개선", () => {
     await page.getByTitle("음성 검색").click();
     await expect(page.getByText("마이크 권한이 거부되었어요")).toBeVisible();
   });
+
+  test("P1-07 음성 검색 버튼을 키보드로도 실행한다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.addInitScript(() => {
+      class FakeRecognition {
+        lang = "";
+        continuous = false;
+        interimResults = false;
+        onstart: (() => void) | null = null;
+        onend: (() => void) | null = null;
+        onerror: ((event: { error: string }) => void) | null = null;
+        onresult: ((event: unknown) => void) | null = null;
+        start() {
+          this.onstart?.();
+          setTimeout(() => {
+            this.onerror?.({ error: "not-allowed" });
+            this.onend?.();
+          }, 0);
+        }
+        stop() {}
+      }
+      (window as unknown as { SpeechRecognition: unknown }).SpeechRecognition =
+        FakeRecognition;
+    });
+    await page.goto("/");
+
+    await page.getByTitle("음성 검색").focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByText("마이크 권한이 거부되었어요")).toBeVisible();
+  });
 });

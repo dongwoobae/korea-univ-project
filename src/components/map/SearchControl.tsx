@@ -291,8 +291,7 @@ export default function SearchControl({
     );
   }
 
-  function handleVoiceSearch(event: React.MouseEvent<HTMLButtonElement>) {
-    event.preventDefault();
+  function handleVoiceSearch() {
     const speechWindow = window as unknown as {
       SpeechRecognition?: SpeechRecognitionCtor;
       webkitSpeechRecognition?: SpeechRecognitionCtor;
@@ -401,7 +400,8 @@ export default function SearchControl({
           <button
             className="ku-voice-button"
             type="button"
-            onMouseDown={handleVoiceSearch}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={handleVoiceSearch}
             aria-label={t("voiceSearch")}
             title={t("voiceSearch")}
             data-listening={isListening}

@@ -25,7 +25,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   // 마운트 시 localStorage 확인
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem(STORAGE_KEY);
+    } catch {
+      // 저장이 막힌 환경 — 기본 언어로 연다
+    }
     if (saved && SUPPORTED.includes(saved as LangCode)) {
       const timer = window.setTimeout(() => setLangState(saved as LangCode), 0);
       return () => window.clearTimeout(timer);
@@ -35,7 +40,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   function setLang(newLang: LangCode) {
     if (!SUPPORTED.includes(newLang)) return;
     setLangState(newLang);
-    localStorage.setItem(STORAGE_KEY, newLang);
+    try {
+      localStorage.setItem(STORAGE_KEY, newLang);
+    } catch {
+      // 저장이 막힌 환경 — 화면만 바꾼다
+    }
   }
 
   // 키 유니온이 아니라 임의 string을 받는 계약이라(LanguageContextValue.t)
