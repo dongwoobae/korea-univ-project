@@ -127,6 +127,122 @@ test.describe("관리자 시설 사진", () => {
     await expect(dialog.locator('input[type="file"]')).toHaveCount(0);
   });
 
+  test("여러 장을 함께 고르면 한 번에 한 장씩 모두 올린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    let inFlight = 0;
+    let maxInFlight = 0;
+    await page.route("**/api/upload-facility-photo", async (route) => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      inFlight -= 1;
+      return route.fallback();
+    });
+    await page.goto("/admin/buildings/1");
+    await page.getByRole("button", { name: /중앙 엘리베이터/ }).click();
+    const dialog = page.getByRole("dialog", { name: "중앙 엘리베이터" });
+
+    await dialog.locator('input[type="file"]').setInputFiles([
+      { name: "a.png", mimeType: "image/png", buffer: PNG },
+      { name: "b.png", mimeType: "image/png", buffer: PNG },
+      { name: "c.png", mimeType: "image/png", buffer: PNG },
+    ]);
+
+    await expect(dialog.getByRole("img", { name: "사진 3" })).toBeVisible();
+    expect(state.facilityPhotos).toHaveLength(3);
+    expect(maxInFlight).toBe(1);
+  });
+
+  test("남은 칸보다 많이 고르면 한 장도 올리지 않고 남은 수만큼 고르라고 한다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    state.facilityPhotos.push({
+      id: "fp1",
+      facility_id: "f-building",
+      storage_path: "f-building/a.webp",
+      sort_order: 0,
+      created_at: "2026-10-01T00:00:00Z",
+    });
+    let uploads = 0;
+    await page.route("**/api/upload-facility-photo", (route) => {
+      uploads += 1;
+      return route.fallback();
+    });
+    await page.goto("/admin/buildings/1");
+    await page.getByRole("button", { name: /중앙 엘리베이터/ }).click();
+    const dialog = page.getByRole("dialog", { name: "중앙 엘리베이터" });
+
+    await dialog.locator('input[type="file"]').setInputFiles([
+      { name: "a.png", mimeType: "image/png", buffer: PNG },
+      { name: "b.png", mimeType: "image/png", buffer: PNG },
+      { name: "c.png", mimeType: "image/png", buffer: PNG },
+    ]);
+
+    await expect(page.locator(".ku-toast")).toHaveText(
+      /사진은 3장까지예요\. 2장만 골라 주세요/,
+    );
+    expect(uploads).toBe(0);
+    expect(state.facilityPhotos).toHaveLength(1);
+  });
+
+  test("일부만 실패하면 나머지는 등록하고 실패한 수와 사유를 알린다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    let uploads = 0;
+    await page.route("**/api/upload-facility-photo", (route) => {
+      uploads += 1;
+      if (uploads !== 2) return route.fallback();
+      return route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: '{"error":"사진을 저장하지 못했어요"}',
+      });
+    });
+    await page.goto("/admin/buildings/1");
+    await page.getByRole("button", { name: /중앙 엘리베이터/ }).click();
+    const dialog = page.getByRole("dialog", { name: "중앙 엘리베이터" });
+
+    await dialog.locator('input[type="file"]').setInputFiles([
+      { name: "a.png", mimeType: "image/png", buffer: PNG },
+      { name: "b.png", mimeType: "image/png", buffer: PNG },
+      { name: "c.png", mimeType: "image/png", buffer: PNG },
+    ]);
+
+    await expect(page.locator(".ku-toast")).toHaveText(
+      /1장을 올리지 못했어요 \(사진을 저장하지 못했어요\)/,
+    );
+    expect(uploads).toBe(3);
+    await expect(dialog.getByRole("img", { name: "사진 2" })).toBeVisible();
+    await expect(dialog.getByRole("img", { name: "사진 3" })).toHaveCount(0);
+    expect(state.facilityPhotos).toHaveLength(2);
+  });
+
+  test("한 장만 골라 실패하면 사유만 알린다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.route("**/api/upload-facility-photo", (route) =>
+      route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        body: '{"error":"사진을 저장하지 못했어요"}',
+      }),
+    );
+    await page.goto("/admin/buildings/1");
+    await page.getByRole("button", { name: /중앙 엘리베이터/ }).click();
+    const dialog = page.getByRole("dialog", { name: "중앙 엘리베이터" });
+
+    await dialog
+      .locator('input[type="file"]')
+      .setInputFiles({ name: "a.png", mimeType: "image/png", buffer: PNG });
+
+    const toast = page.locator(".ku-toast[role='alert']");
+    await expect(toast).toHaveText(/사진을 저장하지 못했어요/);
+    await expect(toast).not.toContainText("1장을");
+  });
+
   test("시설을 삭제하면 그 시설의 사진도 지운다", async ({ page }) => {
     const state = await installMockBackend(page, { authenticated: true });
     state.facilityPhotos.push({
