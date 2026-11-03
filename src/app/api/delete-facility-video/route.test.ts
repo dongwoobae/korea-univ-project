@@ -114,6 +114,22 @@ describe("delete facility video route", () => {
     expect(query.update).toHaveBeenCalledTimes(1);
   });
 
+  it("DB에 영상이 이미 없으면 아무것도 지우지 않고 성공으로 응답한다", async () => {
+    maybeSingle.mockReset();
+    maybeSingle.mockResolvedValueOnce({
+      data: { video_url: null, video_poster_url: null },
+      error: null,
+    });
+    const { POST } = await import("./route");
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(200);
+    expect(query.update).not.toHaveBeenCalled();
+    expect(send).not.toHaveBeenCalled();
+    expect(logFailure).not.toHaveBeenCalled();
+  });
+
   it("포스터가 없으면 영상만 지운다", async () => {
     maybeSingle.mockReset();
     maybeSingle
