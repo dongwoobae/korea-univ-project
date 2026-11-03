@@ -75,6 +75,7 @@ export default function BuildingDetail() {
   );
   const [pendingRequestCount, setPendingRequestCount] = useState(0);
   const addFacilityRef = useRef<HTMLButtonElement>(null);
+  const fetchedBuildingRef = useRef<Building | null>(null);
 
   // 객체가 아니라 id를 들고 매 렌더 목록에서 찾는다.
   // 객체를 붙들면 fetchData() 뒤 모달이 옛 값을 보여준다.
@@ -119,14 +120,27 @@ export default function BuildingDetail() {
         .order("id"),
       supabase.from("colleges").select("*").order("name"),
     ]);
+    // 사진·시설·다른 칸을 저장한 뒤에도 불리므로, 고치던 칸은 덮지 않는다
+    const before = fetchedBuildingRef.current;
+    fetchedBuildingRef.current = buildingData;
     setBuilding(buildingData);
     setFacilities(facilitiesData ?? []);
     setColleges(collegesData ?? []);
-    setSelectedCollegeId(buildingData?.college_id ?? null);
-    setNameForm({
-      name: buildingData?.name ?? "",
-      name_en: buildingData?.name_en ?? "",
-    });
+    setSelectedCollegeId((current) =>
+      before && current !== before.college_id
+        ? current
+        : (buildingData?.college_id ?? null),
+    );
+    setNameForm((current) => ({
+      name:
+        before && current.name !== before.name
+          ? current.name
+          : (buildingData?.name ?? ""),
+      name_en:
+        before && current.name_en !== (before.name_en ?? "")
+          ? current.name_en
+          : (buildingData?.name_en ?? ""),
+    }));
     setLoading(false);
   }, [id]);
 
@@ -236,12 +250,13 @@ export default function BuildingDetail() {
       return;
     }
     setSavingName(true);
+    const saved = {
+      name: nameForm.name.trim(),
+      name_en: nameForm.name_en.trim() || null,
+    };
     const { error } = await supabase
       .from("buildings")
-      .update({
-        name: nameForm.name.trim(),
-        name_en: nameForm.name_en.trim() || null,
-      })
+      .update(saved)
       .eq("id", id);
     setSavingName(false);
     if (error) {
@@ -249,6 +264,7 @@ export default function BuildingDetail() {
       return;
     }
     invalidateNeighborBuildings();
+    setNameForm({ name: saved.name, name_en: saved.name_en ?? "" });
     await fetchData();
     showToast("건물명이 저장되었어요!");
   }
