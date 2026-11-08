@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import { viewAdminCollection } from "./adminCollection";
 import { formatAdminUpdatedAt } from "./adminList";
 import {
+  confirmedOsmWayIds,
   formatMeters,
+  formatSlopeListMeta,
   formatSlopeRouteMeta,
   SLOPE_COLLECTION_POLICY,
+  slopeListItem,
   slopeRouteBadge,
+  slopeRouteEndpoints,
   summarizeSlopeRoute,
   verticesBounds,
   type SlopeListItem,
@@ -30,16 +34,19 @@ const THREE_SEGMENTS = [
   { lat: 37.582, lng: 127.022, slope: 20, distance: 5.01 },
 ];
 
-function item(id: number, name: string, raw: unknown): SlopeListItem {
-  return {
-    route: {
-      id,
-      name,
-      segments: raw,
-      updated_at: "2026-10-01T00:00:00Z",
-    } as unknown as SlopeSegment,
-    summary: summarizeSlopeRoute(raw),
-  };
+function item(
+  id: number,
+  name: string,
+  raw: unknown,
+  extra: Record<string, unknown> = {},
+): SlopeListItem {
+  return slopeListItem({
+    id,
+    name,
+    segments: raw,
+    updated_at: "2026-10-01T00:00:00Z",
+    ...extra,
+  } as unknown as SlopeSegment);
 }
 
 describe("summarizeSlopeRoute", () => {
@@ -143,5 +150,54 @@ describe("formatMeters / verticesBounds", () => {
 
   it("꼭짓점이 없으면 경계도 없다", () => {
     expect(verticesBounds([])).toBeNull();
+  });
+});
+
+describe("계단 행", () => {
+  const stairs = item(
+    7,
+    "본관 계단",
+    [
+      { lat: 37.58, lng: 127.02 },
+      { lat: 37.581, lng: 127.02 },
+    ],
+    { kind: "stairs", osm_way_id: 394382780 },
+  );
+  const route = item(1, "평지", [
+    { lat: 37.58, lng: 127.02 },
+    { lat: 37.581, lng: 127.021, slope: 1, distance: 5 },
+  ]);
+
+  it("좌표만 담긴 계단은 형식 오류가 아니라 계단 요약이다", () => {
+    expect(stairs.kind).toBe("stairs");
+    expect(stairs.summary).toMatchObject({ length: 111.2 });
+    expect(slopeRouteBadge(stairs.summary)).toBeNull();
+  });
+
+  it("칩은 종류로 센다", () => {
+    const view = viewAdminCollection([route, stairs], SLOPE_COLLECTION_POLICY, {
+      search: "",
+      chip: "stairs",
+      sort: "updated-desc",
+      page: 1,
+    });
+    expect(view.matched.map((entry) => entry.route.name)).toEqual([
+      "본관 계단",
+    ]);
+    expect(view.chipCounts).toMatchObject({ all: 2, slope: 1, stairs: 1 });
+  });
+
+  it("계단 요약 줄은 계단·길이·수정일이다", () => {
+    expect(formatSlopeListMeta(stairs)).toBe(
+      `계단 · 111.2m · ${formatAdminUpdatedAt("2026-10-01T00:00:00Z")}`,
+    );
+  });
+
+  it("끝점은 경사로의 양 끝만, 확정된 OSM 번호는 계단에서만 모은다", () => {
+    expect(slopeRouteEndpoints([route, stairs])).toEqual([
+      { key: "1:start", routeName: "평지", point: { lat: 37.58, lng: 127.02 } },
+      { key: "1:end", routeName: "평지", point: { lat: 37.581, lng: 127.021 } },
+    ]);
+    expect([...confirmedOsmWayIds([route, stairs])]).toEqual([394382780]);
   });
 });
