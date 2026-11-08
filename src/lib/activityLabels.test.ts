@@ -3,6 +3,7 @@ import {
   actionLabel,
   changeLines,
   changeVerb,
+  columnLabel,
   formatLogTime,
   formatValue,
   isActionKey,
@@ -19,6 +20,14 @@ describe("activityLabels", () => {
     expect(formatValue("name", null)).toBe("(비어 있음)");
     expect(formatValue("name", "")).toBe("(비어 있음)");
     expect(formatValue("lat", 37.5)).toBe("37.5");
+    expect(formatValue("kind", "stairs")).toBe("계단");
+    expect(formatValue("kind", "slope")).toBe("경사로");
+  });
+
+  it("경사도 경로의 새 칸 이름", () => {
+    expect(columnLabel("kind")).toBe("종류");
+    expect(columnLabel("note")).toBe("설명");
+    expect(columnLabel("osm_way_id")).toBe("OSM 번호");
   });
 
   it("참조 칸은 기록된 이름을, 가린 입력과 형상은 요약을 보인다", () => {
