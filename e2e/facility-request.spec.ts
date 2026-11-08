@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { installMockBackend } from "./support/mockBackend";
+import { expectMinZoom } from "./support/mapZoom";
 
 // 1x1 PNG. 브라우저가 WebP로 바꿔 올린다.
 const PNG = Buffer.from(
@@ -68,6 +69,16 @@ test.describe("시설 등록 요청", () => {
       "시설 유형을 골라 주세요",
     );
     expect(state.facilityRequests).toHaveLength(0);
+  });
+
+  // 관리자 화면과 같은 위치 미니맵(FacilityMap)이라 하한도 같다(설계 2026-10-14 3.5의 2026-11-08 항목)
+  test("위치 미니맵은 14까지만 축소된다", async ({ page }) => {
+    await installMockBackend(page);
+    await openLibrary(page);
+    await page.getByRole("button", { name: "시설 등록 요청" }).click();
+    const dialog = page.getByRole("dialog", { name: "시설 등록 요청" });
+    // 미니맵은 줌 18로 연다
+    await expectMinZoom(dialog.locator(".leaflet-container"), 18, 14);
   });
 
   test("빈도 초과 응답을 번역 문구로 보이고 다시 보낼 수 있게 한다", async ({

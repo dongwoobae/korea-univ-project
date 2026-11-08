@@ -17,6 +17,7 @@ import {
   detailPanel,
   serverError,
 } from "./support/adminWorkspace";
+import { expectMinZoom } from "./support/mapZoom";
 
 function listPanel(page: Page) {
   return page.getByRole("region", { name: "경사도 경로", exact: true });
@@ -2002,6 +2003,33 @@ test.describe("경사도 작업 화면 — 편집 지도", () => {
     await expect(zoomIn).not.toHaveClass(/leaflet-disabled/);
     await zoomIn.click();
     await expect(zoomIn).toHaveClass(/leaflet-disabled/);
+  });
+
+  test("편집기 지도는 14까지만 축소된다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?new=1");
+    // 받은 위치로 줌 18에 연 뒤에 누른다
+    await expect(blueDot(page)).toHaveCount(1);
+
+    const map = editMap(page);
+    await expect(map.locator(".leaflet-control-zoom-out")).toHaveAttribute(
+      "title",
+      "축소",
+    );
+    await expectMinZoom(map, 18, 14);
+  });
+
+  test("보기 지도는 14까지만 축소된다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+
+    const map = page.locator(".ku-map-workspace .leaflet-container");
+    await expect(map.locator(".leaflet-control-zoom-out")).toHaveAttribute(
+      "title",
+      "축소",
+    );
+    // 처음 화면은 DEFAULT_WORKSPACE_VIEWPORT의 줌 17이다
+    await expectMinZoom(map, 17, 14);
   });
 
   test("선을 끝내면 구간마다 번호표가 뜬다", async ({ page }) => {
