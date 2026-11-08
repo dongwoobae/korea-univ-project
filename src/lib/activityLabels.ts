@@ -96,6 +96,9 @@ const COLUMN_LABELS = new Map<string, string>([
   ["lng", "경도"],
   ["geojson", "건물 형상"],
   ["segments", "경로 형상"],
+  ["kind", "종류"],
+  ["note", "설명"],
+  ["osm_way_id", "OSM 번호"],
   ["icon", "아이콘"],
   ["color", "색"],
   ["photo_url", "사진"],
@@ -133,6 +136,17 @@ const COLUMN_ORDER = [...COLUMN_LABELS.keys()];
 const BOOLEAN_LABELS = new Map<string, readonly [string, string]>([
   ["is_installed", ["설치됨", "미설치"]],
   ["is_deleted", ["삭제됨", "공개"]],
+]);
+
+// 감사 대상 테이블 중 kind 칸은 slope_segments뿐이다(activity_logs.kind는 기록 자체라 감사하지 않는다)
+const TEXT_VALUE_LABELS = new Map<string, ReadonlyMap<string, string>>([
+  [
+    "kind",
+    new Map([
+      ["slope", "경사로"],
+      ["stairs", "계단"],
+    ]),
+  ],
 ]);
 
 const SETTING_LABELS = new Map<string, string>([
@@ -239,6 +253,10 @@ export function formatValue(column: string, value: Json | undefined): string {
     const labels = BOOLEAN_LABELS.get(column);
     if (labels) return value ? labels[0] : labels[1];
     return value ? "예" : "아니오";
+  }
+  if (typeof value === "string") {
+    const label = TEXT_VALUE_LABELS.get(column)?.get(value);
+    if (label) return label;
   }
   if (typeof value === "string" || typeof value === "number")
     return String(value);
