@@ -2,11 +2,7 @@
 
 import { useCallback, useState } from "react";
 import type { Vertex } from "@/lib/slopeRoute";
-import {
-  stairsDraftDirty,
-  validateStairs,
-  type StairsDraftValues,
-} from "@/lib/stairs";
+import { stairsDraftDirty, type StairsDraftValues } from "@/lib/stairs";
 
 /** initial은 마운트 때만 읽는다. 다른 계단을 열려면 key로 새로 세운다 */
 export function useStairsDraft(initial: {
@@ -36,7 +32,6 @@ export function useStairsDraft(initial: {
     setNote,
     vertices,
     handleVerticesChange,
-    errors: validateStairs(name, vertices),
     dirty: stairsDraftDirty({ name, note, vertices }, initialValues),
   };
 }

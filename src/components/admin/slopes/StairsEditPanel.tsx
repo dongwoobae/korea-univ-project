@@ -24,6 +24,7 @@ import {
   applyStairsJoins,
   polylineLength,
   suggestStairsJoins,
+  validateStairs,
   type RouteEndpoint,
   type StairsEnd,
 } from "@/lib/stairs";
@@ -76,7 +77,6 @@ export default function StairsEditPanel({
     setNote,
     vertices,
     handleVerticesChange,
-    errors,
     dirty: fieldsDirty,
   } = useStairsDraft({
     name: route?.name ?? (candidate ? (candidate.name ?? "계단") : ""),
@@ -95,6 +95,8 @@ export default function StairsEditPanel({
     () => applyStairsJoins(vertices, joins, joinEnabled),
     [vertices, joins, joinEnabled],
   );
+  // 저장할 좌표로 검사한다. 이어 붙인 끝이 다른 끝과 같은 점이면 길이 0 구간이 된다
+  const errors = validateStairs(name, stored);
   const dirty =
     fieldsDirty || joins.some((join) => joinEnabled[join.end] !== isNew);
   const osmWayId = route ? route.osm_way_id : (candidate?.osmWayId ?? null);

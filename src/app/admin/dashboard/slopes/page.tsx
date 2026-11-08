@@ -156,47 +156,6 @@ export default function SlopesPage() {
       count: view.chipCounts[chip.key],
     })),
   ];
-  const selectedId = selectedRouteId(state);
-  const selected =
-    selectedId === null
-      ? null
-      : (routes.find(
-          (item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId,
-        ) ?? null);
-  // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다(owner가 null)
-  const endpoints = useMemo(() => slopeRouteEndpoints(routes), [routes]);
-  const confirmedIds = useMemo(() => confirmedOsmWayIds(routes), [routes]);
-  const available = useMemo(
-    () => (snapshot ? availableCandidates(snapshot, confirmedIds) : null),
-    [snapshot, confirmedIds],
-  );
-  // 확정 패널의 후보는 거르기 전 스냅숏에서 찾는다. 걸러진 목록에서 찾으면, 확정 직후 목록을 다시 받는 순간 후보가
-  // 빠져 저장 중인 패널이 사라지고 없는 후보 안내가 뜬다
-  const candidate =
-    state.mode === "candidate"
-      ? (snapshot?.find((item) => item.osmWayId === state.osmWayId) ?? null)
-      : null;
-  const candidateConfirmed =
-    candidate !== null && confirmedIds.has(candidate.osmWayId);
-  const owner =
-    state.mode === "new" ||
-    state.mode === "new-stairs" ||
-    (state.mode === "candidate" && candidate !== null) ||
-    (state.mode === "edit" && Boolean(selected?.summary))
-      ? editOwner(state)
-      : null;
-  const editingKind: "slope" | "stairs" =
-    state.mode === "new"
-      ? "slope"
-      : state.mode === "edit"
-        ? (selected?.kind ?? "slope")
-        : "stairs";
-  // 패널이 바뀐 뒤 늦게 끝난 저장의 잠금이 남지 않게 owner로 거른다(명소의 activeDraft와 같다)
-  const activeDraft = draft && draft.owner === owner ? draft : null;
-  const activeEditor = editor && editor.owner === owner ? editor : null;
-  const saving = activeDraft?.locked ?? false;
-  const fullMap = mobile && fullMapOwner !== null && fullMapOwner === owner;
-
   function showToast(message: string, type = "success") {
     setToast({ message, type });
   }
@@ -247,6 +206,48 @@ export default function SlopesPage() {
     },
     showToast,
   });
+
+  const selectedId = selectedRouteId(state);
+  const selected =
+    selectedId === null
+      ? null
+      : (routes.find(
+          (item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId,
+        ) ?? null);
+  // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다(owner가 null)
+  const endpoints = useMemo(() => slopeRouteEndpoints(routes), [routes]);
+  const confirmedIds = useMemo(() => confirmedOsmWayIds(routes), [routes]);
+  const available = useMemo(
+    () => (snapshot ? availableCandidates(snapshot, confirmedIds) : null),
+    [snapshot, confirmedIds],
+  );
+  // 확정 패널의 후보는 거르기 전 스냅숏에서 찾는다. 걸러진 목록에서 찾으면, 확정 직후 목록을 다시 받는 순간 후보가
+  // 빠져 저장 중인 패널이 사라지고 없는 후보 안내가 뜬다
+  const candidate =
+    state.mode === "candidate"
+      ? (snapshot?.find((item) => item.osmWayId === state.osmWayId) ?? null)
+      : null;
+  const candidateConfirmed =
+    candidate !== null && confirmedIds.has(candidate.osmWayId);
+  const owner =
+    state.mode === "new" ||
+    state.mode === "new-stairs" ||
+    // 후보는 목록을 받은 뒤에 연다 — 끝 잇기 대상(경사로 끝점)이 목록에서 온다
+    (state.mode === "candidate" && candidate !== null && status === "ready") ||
+    (state.mode === "edit" && Boolean(selected?.summary))
+      ? editOwner(state)
+      : null;
+  const editingKind: "slope" | "stairs" =
+    state.mode === "new"
+      ? "slope"
+      : state.mode === "edit"
+        ? (selected?.kind ?? "slope")
+        : "stairs";
+  // 패널이 바뀐 뒤 늦게 끝난 저장의 잠금이 남지 않게 owner로 거른다(명소의 activeDraft와 같다)
+  const activeDraft = draft && draft.owner === owner ? draft : null;
+  const activeEditor = editor && editor.owner === owner ? editor : null;
+  const saving = activeDraft?.locked ?? false;
+  const fullMap = mobile && fullMapOwner !== null && fullMapOwner === owner;
 
   // 저장 중에는 선택을 바꾸지 않는다 — 행·선·닫기를 막는다(설계 2026-10-14 3.4)
   function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
