@@ -6,6 +6,7 @@ import type { Feature, Polygon } from "geojson";
 import "leaflet/dist/leaflet.css";
 import "@geoman-io/leaflet-geoman-free";
 import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
+import { MAP_MIN_ZOOM } from "@/lib/mapBounds";
 import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
 import { addNeighborLayer } from "@/lib/neighborLayer";
 import { getBuildingViewCenter, getPointLatLng } from "@/lib/polygonCenter";
@@ -55,6 +56,7 @@ export default function PolygonEditor({
 
     const map = L.map(containerRef.current!, {
       scrollWheelZoom: true,
+      minZoom: MAP_MIN_ZOOM,
     }).setView(getBuildingViewCenter(initialGeojson), 18);
     mapRef.current = map;
 

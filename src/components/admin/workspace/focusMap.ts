@@ -5,7 +5,10 @@ import type {
   WorkspaceMapCommands,
 } from "./types";
 
-/** 작업 화면 지도 자리에 번갈아 끼우는 지도들(보기·경사도 편집)이 같은 최대 줌을 써야 viewport를 이어받는다 */
+/**
+ * 작업 화면 지도 자리에 번갈아 끼우는 지도들(보기·경사도 편집)이 같은 최대 줌을 써야 viewport를 이어받는다.
+ * 최소 줌도 같아야 한다 — 둘 다 `MAP_MIN_ZOOM`(`@/lib/mapBounds`)을 쓴다
+ */
 export const WORKSPACE_MAX_ZOOM = 19;
 /** 멀리서 고른 항목은 이만큼은 당겨서 보인다 */
 const FOCUS_MIN_ZOOM = 17;

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { installMockBackend, stationBuildingRow } from "./support/mockBackend";
+import { expectMinZoom } from "./support/mapZoom";
 
 test.describe("건물 관리자 흐름", () => {
   test("건물 보완 필요 현황을 서버 집계로 표시한다", async ({ page }) => {
@@ -143,6 +144,13 @@ test.describe("건물 관리자 흐름", () => {
     await expect(
       page.getByRole("button", { name: "1 페이지" }),
     ).toHaveAttribute("aria-current", "page");
+  });
+
+  test("폴리곤 편집기 지도는 14까지만 축소된다", async ({ page }) => {
+    await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/buildings/new");
+    // 편집기는 줌 18로 연다
+    await expectMinZoom(page.locator(".leaflet-container"), 18, 14);
   });
 
   test("건물 생성 필수값을 검증하고 폴리곤을 그려 저장한다", async ({

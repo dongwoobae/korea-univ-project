@@ -17,6 +17,7 @@ import {
   fetchNeighborBuildings,
 } from "@/lib/neighborBuildings";
 import { neighborPointToLayer } from "@/lib/neighborLayer";
+import { MAP_MIN_ZOOM } from "@/lib/mapBounds";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import { useColorMode } from "@/lib/useColorMode";
 
@@ -122,6 +123,7 @@ export default function FacilityMap({
       <MapContainer
         center={center}
         zoom={18}
+        minZoom={MAP_MIN_ZOOM}
         style={{ width: "100%", height }}
         scrollWheelZoom={true}
       >
