@@ -376,6 +376,114 @@ test.describe("경사도 작업 화면 — 계단 목록·보기", () => {
   });
 });
 
+test.describe("경사도 작업 화면 — OSM 계단 후보", () => {
+  function candidateLines(page: Page) {
+    return page.locator("path.ku-stairs-candidate");
+  }
+
+  test("후보를 켜고 눌러 계단으로 확정하면 경사로 끝에 이어 저장하고 후보에서 빠진다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    const toggle = listPanel(page).getByRole("button", {
+      name: "OSM 계단 후보",
+    });
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(candidateLines(page)).toHaveCount(0);
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(candidateLines(page)).toHaveCount(2);
+    await page.locator("path.ku-stairs-candidate-hit-394382780").click();
+    await expect(page).toHaveURL(/\?osm=394382780$/);
+
+    const panel = detailPanel(page, "OSM 계단 확정");
+    await expect(panel.getByLabel("계단 이름")).toHaveValue("중앙광장 계단");
+    const join = panel.getByRole("checkbox", {
+      name: "정문-중앙광장 끝에 잇기 (1.1m)",
+    });
+    await expect(join).toBeChecked();
+    await panel.getByRole("button", { name: "계단으로 확정" }).click();
+    await expect(page.getByText("계단을 추가했어요")).toBeVisible();
+
+    const saved = state.slopes.at(-1)!;
+    expect(saved).toMatchObject({
+      kind: "stairs",
+      name: "중앙광장 계단",
+      osm_way_id: 394382780,
+    });
+    expect((saved.segments as unknown[])[0]).toEqual({
+      lat: 37.5892,
+      lng: 127.0322,
+    });
+    await expect(candidateLines(page)).toHaveCount(1);
+  });
+
+  test("끝 잇기를 끄면 OSM 모양 그대로 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?osm=394382780");
+    const panel = detailPanel(page, "OSM 계단 확정");
+    await panel.getByRole("checkbox", { name: /끝에 잇기/ }).uncheck();
+    await panel.getByRole("button", { name: "계단으로 확정" }).click();
+    await expect(page.getByText("계단을 추가했어요")).toBeVisible();
+    expect((state.slopes.at(-1)!.segments as unknown[])[0]).toEqual({
+      lat: 37.58921,
+      lng: 127.0322,
+    });
+  });
+
+  test("그사이 다른 곳에서 확정된 후보는 알리고 목록을 다시 받는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?osm=394382780");
+    const panel = detailPanel(page, "OSM 계단 확정");
+    await expect(panel).toBeVisible();
+    state.slopes.push(
+      slopeRow({
+        id: 80,
+        name: "먼저 확정한 계단",
+        kind: "stairs",
+        note: null,
+        osm_way_id: 394382780,
+        segments: [
+          { lat: 37.5892, lng: 127.0322 },
+          { lat: 37.5894, lng: 127.0324 },
+        ],
+      }),
+    );
+    await panel.getByRole("button", { name: "계단으로 확정" }).click();
+    await expect(page.getByText("이미 확정된 계단이에요")).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(listRow(page, "먼저 확정한 계단")).toBeVisible();
+  });
+
+  test("없는 후보 주소는 닫고 알리며, 스냅숏을 못 받으면 토글 옆에 알리고 끈다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?osm=1");
+    await expect(
+      page.getByText(
+        "OSM 계단 후보를 찾지 못했어요. 이미 확정됐거나 주소가 틀렸어요.",
+      ),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+
+    state.osmStairs = null;
+    await page.reload();
+    const toggle = listPanel(page).getByRole("button", {
+      name: "OSM 계단 후보",
+    });
+    await toggle.click();
+    await expect(
+      listPanel(page).getByText("OSM 계단 후보를 불러오지 못했어요"),
+    ).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
 /** 최근 수정순 첫 페이지를 채움 경로로 채워 `둘째 쪽 경로`(id 900)를 2페이지로 민다 */
 function addSecondPageRoute(state: MockState) {
   for (let index = 0; index < 20; index += 1) {

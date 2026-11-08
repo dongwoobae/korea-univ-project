@@ -73,6 +73,8 @@ export interface MockState {
   facilityTypes: Row[];
   /** 브라우저가 보낸 종류 맞바꾸기 RPC 인자(화면 순서) */
   facilityTypeSwapRequests: { p_first: string; p_second: string }[];
+  /** `/osm-stairs.geojson` 응답. null이면 404 */
+  osmStairs: unknown;
 }
 
 // ── 픽스처(고정 데이터) ───────────────────────────────────────────────
@@ -470,6 +472,37 @@ function createState(authenticated: boolean): MockState {
     photoSwapRequests: [],
     facilityTypes: types.map((type) => ({ ...type })),
     facilityTypeSwapRequests: [],
+    // 경로 1 끝에서 1.1m(394382780), 경로 2 끝에서 10m 밖(944932557)
+    osmStairs: {
+      type: "FeatureCollection",
+      attribution: "© OpenStreetMap contributors",
+      license: "ODbL-1.0",
+      fetchedAt: "2026-11-06T00:00:00Z",
+      features: [
+        {
+          type: "Feature",
+          properties: { osmWayId: 394382780, name: "중앙광장 계단" },
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [127.0322, 37.58921],
+              [127.0324, 37.5894],
+            ],
+          },
+        },
+        {
+          type: "Feature",
+          properties: { osmWayId: 944932557, name: null },
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [127.027, 37.5863],
+              [127.0272, 37.5865],
+            ],
+          },
+        },
+      ],
+    },
     photos: [
       {
         id: 1,
@@ -1844,6 +1877,10 @@ export async function installMockBackend(
           : json(route, { message: "not authenticated" }, 401);
       }
     }
+    if (url.pathname === "/osm-stairs.geojson")
+      return state.osmStairs === null
+        ? route.fulfill({ status: 404, body: "" })
+        : json(route, state.osmStairs);
     if (url.pathname.startsWith("/rest/v1/"))
       return handleRest(route, state, url);
     if (url.pathname.startsWith("/api/")) return handleApi(route, state, url);
