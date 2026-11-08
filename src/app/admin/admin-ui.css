@@ -3138,11 +3138,26 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   font-size: 16px;
   font-weight: 700;
 }
-.ku-slope-edit-name input::placeholder {
+/* 계단 설명. 입력칸과 같은 테두리에 두 줄 높이, 글자는 보통 굵기다. 16px 아래면 iOS가 포커스 때 화면을 키운다 */
+.ku-slope-edit-name textarea {
+  display: block;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
+.ku-slope-edit-name input::placeholder,
+.ku-slope-edit-name textarea::placeholder {
   color: var(--ku-text-3);
   font-weight: 400;
 }
 .ku-slope-edit-name input:focus-visible,
+.ku-slope-edit-name textarea:focus-visible,
 .ku-slope-card-input input:focus-visible {
   border-color: var(--ku-crimson-700);
 }
@@ -3290,6 +3305,19 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 .ku-slope-card-empty {
   color: var(--ku-text-3);
   font-size: 13px;
+}
+.ku-stairs-joins {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 13px;
+}
+.ku-stairs-joins label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .ku-slope-edit-errors {
   margin: 0;

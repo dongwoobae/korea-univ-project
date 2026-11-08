@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+import { useCallback, useId, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import SlopeBandsModal from "@/components/admin/slopes/SlopeBandsModal";
@@ -8,6 +8,7 @@ import SlopeEditPanel from "@/components/admin/slopes/SlopeEditPanel";
 import { MOBILE_TOOLBAR_BOTTOM } from "@/components/admin/slopes/SlopeEditToolbar";
 import SlopeListRow from "@/components/admin/slopes/SlopeListRow";
 import SlopeViewPanel from "@/components/admin/slopes/SlopeViewPanel";
+import StairsEditPanel from "@/components/admin/slopes/StairsEditPanel";
 import StairsViewPanel from "@/components/admin/slopes/StairsViewPanel";
 import AdminMapWorkspace from "@/components/admin/workspace/AdminMapWorkspace";
 import WorkspaceListPanel from "@/components/admin/workspace/WorkspaceListPanel";
@@ -22,10 +23,7 @@ import {
   useWorkspaceSelection,
 } from "@/components/admin/workspace/useWorkspaceSelection";
 import { useWorkspaceLoad } from "@/components/admin/workspace/useWorkspaceLoad";
-import type {
-  SlopeEditDraft,
-  SlopeEditorHandle,
-} from "@/components/slope/types";
+import type { EditDraft, SlopeEditorHandle } from "@/components/slope/types";
 import {
   INITIAL_ADMIN_COLLECTION_QUERY,
   pageOfItem,
@@ -39,10 +37,11 @@ import {
   SLOPE_COLLECTION_POLICY,
   slopeDisplayName,
   slopeListItem,
+  slopeRouteEndpoints,
   type SlopeChip,
   type SlopeListItem,
 } from "@/lib/slopeWorkspace";
-import { STAIRS_LINE_COLOR } from "@/lib/stairs";
+import { STAIRS_LINE_COLOR, type StairsCandidate } from "@/lib/stairs";
 import { supabase } from "@/lib/supabaseClient";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { readWorkspaceState, type WorkspaceState } from "@/lib/workspaceUrl";
@@ -64,7 +63,10 @@ const LEGEND_READ_FAILED =
   "범례 설정을 읽지 못해 편집할 수 없어요. 새로 고친 뒤 다시 시도해 주세요";
 
 function currentSelection() {
-  return readWorkspaceState(window.location.search, { allowEdit: true });
+  return readWorkspaceState(window.location.search, {
+    allowEdit: true,
+    stairs: true,
+  });
 }
 
 function selectedRouteId(state: WorkspaceState) {
@@ -75,6 +77,8 @@ function selectedRouteId(state: WorkspaceState) {
 function editOwner(state: WorkspaceState) {
   if (state.mode === "edit") return `edit:${state.id}`;
   if (state.mode === "new") return "edit:new";
+  if (state.mode === "new-stairs") return "edit:new-stairs";
+  if (state.mode === "candidate") return `edit:osm:${state.osmWayId}`;
   return null;
 }
 
@@ -83,7 +87,7 @@ export default function SlopesPage() {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
-  const [draft, setDraft] = useState<SlopeEditDraft | null>(null);
+  const [draft, setDraft] = useState<EditDraft | null>(null);
   const [editor, setEditor] = useState<SlopeEditorHandle | null>(null);
   // 모바일에서 상세를 접고 전체 지도에서 경로를 고치는 편집 패널(owner)과, 그때 초안 경계로 옮길 지도 초점
   const [fullMapOwner, setFullMapOwner] = useState<string | null>(null);
@@ -117,7 +121,10 @@ export default function SlopesPage() {
       )}
     </>
   );
-  const { state, request } = useWorkspaceSelection({ allowEdit: true });
+  const { state, request } = useWorkspaceSelection({
+    allowEdit: true,
+    stairs: true,
+  });
   const collection = useAdminCollection(routes, SLOPE_COLLECTION_POLICY);
   const { view, setPage } = collection;
   const chips = [
@@ -135,13 +142,21 @@ export default function SlopesPage() {
           (item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId,
         ) ?? null);
   // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다(owner가 null)
+  const endpoints = useMemo(() => slopeRouteEndpoints(routes), [routes]);
+  const candidate: StairsCandidate | null = null;
   const owner =
     state.mode === "new" ||
-    (state.mode === "edit" &&
-      selected?.kind === "slope" &&
-      Boolean(selected.summary))
+    state.mode === "new-stairs" ||
+    (state.mode === "candidate" && candidate !== null) ||
+    (state.mode === "edit" && Boolean(selected?.summary))
       ? editOwner(state)
       : null;
+  const editingKind: "slope" | "stairs" =
+    state.mode === "new"
+      ? "slope"
+      : state.mode === "edit"
+        ? (selected?.kind ?? "slope")
+        : "stairs";
   // 패널이 바뀐 뒤 늦게 끝난 저장의 잠금이 남지 않게 owner로 거른다(명소의 activeDraft와 같다)
   const activeDraft = draft && draft.owner === owner ? draft : null;
   const activeEditor = editor && editor.owner === owner ? editor : null;
@@ -275,7 +290,9 @@ export default function SlopesPage() {
     // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 편집 상태일 때만 바꾼다(설계 2026-10-14 3.4)
     const selection = currentSelection();
     const stillEditing = created
-      ? selection.mode === "new"
+      ? selection.mode === "new" ||
+        selection.mode === "new-stairs" ||
+        selection.mode === "candidate"
       : selection.mode === "edit" && selection.id === routeId;
     if (stillEditing) applyWorkspaceState(afterEdit(routeId));
   }
@@ -286,6 +303,12 @@ export default function SlopesPage() {
     if (selectedRouteId(currentSelection()) === routeId) {
       applyWorkspaceState({ mode: "closed" });
     }
+    await loadRoutes();
+  }
+  // 패널을 먼저 닫는다 — 다시 받은 목록에서 후보가 빠지면 없는 후보 안내가 같은 일을 두 번 알린다(설계 2026-11-06 6.7)
+  async function handleDuplicate() {
+    if (currentSelection().mode === "candidate")
+      applyWorkspaceState({ mode: "closed" });
     await loadRoutes();
   }
 
@@ -306,27 +329,56 @@ export default function SlopesPage() {
       }
     : undefined;
 
+  const editingStairs = selected?.kind === "stairs" ? selected : null;
+  const editingSlope = selected?.kind === "slope" ? selected : null;
   const detail =
     owner !== null ? (
-      <SlopeEditPanel
-        key={owner}
-        owner={owner}
-        route={selected && state.mode === "edit" ? selected.route : null}
-        summary={
-          selected?.kind === "slope" && state.mode === "edit"
-            ? selected.summary
-            : null
-        }
-        editor={activeEditor}
-        onDraftChange={setDraft}
-        onSaved={handleSaved}
-        onCancel={() =>
-          requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
-        }
-        remove={remove}
-        onFullMapChange={handleFullMapChange}
-        showToast={showToast}
-      />
+      editingKind === "stairs" ? (
+        <StairsEditPanel
+          key={owner}
+          owner={owner}
+          route={
+            state.mode === "edit" && editingStairs ? editingStairs.route : null
+          }
+          initialVertices={
+            state.mode === "edit"
+              ? (editingStairs?.summary?.vertices ?? null)
+              : null
+          }
+          candidate={null}
+          endpoints={endpoints}
+          editor={activeEditor}
+          onDraftChange={setDraft}
+          onSaved={handleSaved}
+          onDuplicate={handleDuplicate}
+          onCancel={() =>
+            requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
+          }
+          remove={remove}
+          onFullMapChange={handleFullMapChange}
+          showToast={showToast}
+        />
+      ) : (
+        <SlopeEditPanel
+          key={owner}
+          owner={owner}
+          route={
+            editingSlope && state.mode === "edit" ? editingSlope.route : null
+          }
+          summary={
+            editingSlope && state.mode === "edit" ? editingSlope.summary : null
+          }
+          editor={activeEditor}
+          onDraftChange={setDraft}
+          onSaved={handleSaved}
+          onCancel={() =>
+            requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
+          }
+          remove={remove}
+          onFullMapChange={handleFullMapChange}
+          showToast={showToast}
+        />
+      )
     ) : selected ? (
       selected.kind === "stairs" ? (
         <StairsViewPanel
@@ -377,6 +429,7 @@ export default function SlopesPage() {
                   : null
               }
               editingRouteId={state.mode === "edit" ? state.id : null}
+              kind={editingKind}
               draft={activeDraft}
               onEditorChange={setEditor}
             />
@@ -404,6 +457,11 @@ export default function SlopesPage() {
             }
             addLabel="＋ 경로 그리기"
             onAdd={() => requestSelection({ mode: "new" })}
+            secondaryAdd={{
+              label: "＋ 계단 그리기",
+              mobileLabel: "＋ 계단",
+              onClick: () => requestSelection({ mode: "new-stairs" }),
+            }}
             searchValue={collection.search}
             onSearchChange={(value) =>
               clearSelectionThen(() => collection.setSearch(value))

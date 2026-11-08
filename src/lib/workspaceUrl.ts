@@ -1,19 +1,27 @@
-/** 작업 화면 상태와 URL의 대응·우선순위는 docs/specs/2026-10-14-admin-map-first-redesign-design.md 3.4 */
+/** 작업 화면 상태와 URL의 대응·우선순위는 docs/specs/2026-10-14-admin-map-first-redesign-design.md 3.4. 계단 두 상태는 2026-11-06 설계 6.1·6.4 */
 export type WorkspaceState =
   | { mode: "closed" }
   | { mode: "view"; id: string }
   | { mode: "new" }
-  | { mode: "edit"; id: string };
+  | { mode: "edit"; id: string }
+  | { mode: "new-stairs" }
+  | { mode: "candidate"; osmWayId: number };
 
-const OWN_KEYS = ["id", "new", "edit"] as const;
+const OWN_KEYS = ["id", "new", "edit", "osm"] as const;
 
 export function readWorkspaceState(
   search: string,
-  options: { allowEdit: boolean },
+  options: { allowEdit: boolean; stairs?: boolean },
 ): WorkspaceState {
   const params = new URLSearchParams(search);
   // 옛 경사도 라우트의 리다이렉트가 원래 쿼리를 붙여 겹친 조합이 들어올 수 있다(설계 2026-10-14 6.5)
   if (params.get("new") === "1") return { mode: "new" };
+  if (options.stairs) {
+    if (params.get("new") === "stairs") return { mode: "new-stairs" };
+    const osm = params.get("osm");
+    if (osm && /^[1-9]\d*$/.test(osm))
+      return { mode: "candidate", osmWayId: Number(osm) };
+  }
   const id = params.get("id");
   if (!id) return { mode: "closed" };
   if (options.allowEdit && params.get("edit") === "1") {
@@ -29,6 +37,8 @@ export function writeWorkspaceState(
   const params = new URLSearchParams(search);
   for (const key of OWN_KEYS) params.delete(key);
   if (state.mode === "new") params.set("new", "1");
+  if (state.mode === "new-stairs") params.set("new", "stairs");
+  if (state.mode === "candidate") params.set("osm", String(state.osmWayId));
   if (state.mode === "view" || state.mode === "edit") {
     params.set("id", state.id);
   }

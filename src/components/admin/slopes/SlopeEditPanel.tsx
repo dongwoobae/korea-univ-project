@@ -133,6 +133,7 @@ export default function SlopeEditPanel({
   useEffect(() => {
     onDraftChangeRef.current({
       owner,
+      kind: "slope",
       slopes,
       locked: saving,
       bounds: verticesBounds(vertices),
