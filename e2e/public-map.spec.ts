@@ -603,6 +603,71 @@ test("건물 사진을 크게 보고 내려받는다", async ({ page }) => {
   await expect(open).toBeFocused();
 });
 
+test.describe("공개 지도 — 계단", () => {
+  function stairsRow() {
+    return {
+      id: 50,
+      name: "중앙광장 계단",
+      gpx_file: null,
+      kind: "stairs",
+      note: "우회: 본관 엘리베이터",
+      osm_way_id: 394382780,
+      segments: [
+        { lat: 37.5893, lng: 127.0325 },
+        { lat: 37.5895, lng: 127.0328 },
+      ],
+      created_at: "2026-11-06T00:00:00Z",
+      updated_at: "2026-11-06T00:00:00Z",
+    };
+  }
+
+  test("계단은 회색 점선과 같은 무늬의 외곽선으로 경사로 선 아래에 그리고, 누르면 계단 팝업이 뜬다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page);
+    state.slopes.push(stairsRow());
+    await page.goto("/");
+    await setSlope(page, true);
+
+    const line = page.locator(".leaflet-overlay-pane path.ku-stairs-line");
+    await expect(line).toHaveCount(1);
+    await expect(line).toHaveAttribute("stroke", "#78716C");
+    await expect(line).toHaveAttribute("stroke-dasharray", "0 14");
+    await expect(line).toHaveAttribute("stroke-linecap", "round");
+    await expect(line).not.toHaveClass(/leaflet-interactive/);
+    await expect(
+      page.locator(
+        ".leaflet-overlay-pane path.ku-slope-casing[stroke-dasharray='0 14']",
+      ),
+    ).toHaveCount(1);
+
+    const order = await page
+      .locator(".leaflet-overlay-pane path")
+      .evaluateAll((paths) =>
+        paths.map((path) =>
+          path.classList.contains("ku-slope-casing")
+            ? "casing"
+            : path.classList.contains("ku-stairs-line")
+              ? "stairs"
+              : path.getAttribute("stroke") === "#8BC34A"
+                ? "slope"
+                : "other",
+        ),
+      );
+    expect(order.lastIndexOf("casing")).toBeLessThan(order.indexOf("stairs"));
+    expect(order.indexOf("stairs")).toBeLessThan(order.indexOf("slope"));
+
+    await page.locator(".leaflet-overlay-pane path.ku-stairs-hit").click();
+    const popup = page.locator(".leaflet-popup-content");
+    await expect(popup.locator("strong")).toHaveText("계단");
+    await expect(popup).toContainText("중앙광장 계단");
+    await expect(popup).toContainText("우회: 본관 엘리베이터");
+
+    await setSlope(page, false);
+    await expect(line).toHaveCount(0);
+  });
+});
+
 test.describe("공개 지도 — 경사도 범례", () => {
   function legendOf(page: Page) {
     return page.getByRole("group", { name: "경사도 범례" });

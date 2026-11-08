@@ -431,6 +431,9 @@ function createState(authenticated: boolean): MockState {
         id: 1,
         name: "정문-중앙광장",
         gpx_file: null,
+        kind: "slope",
+        note: null,
+        osm_way_id: null,
         segments: [
           { lat: 37.589, lng: 127.032 },
           { lat: 37.5892, lng: 127.0322, slope: 3, distance: 28.4 },
@@ -442,6 +445,9 @@ function createState(authenticated: boolean): MockState {
         id: 2,
         name: "안암병원 정문 경사로",
         gpx_file: null,
+        kind: "slope",
+        note: null,
+        osm_way_id: null,
         segments: [
           { lat: 37.5861, lng: 127.0268, ele: null },
           {
@@ -1056,6 +1062,27 @@ async function handleRest(route: Route, state: MockState, url: URL) {
       updated_at: "2026-07-21T01:00:00Z",
       ...input,
     };
+    if (name === "slope_segments") {
+      created.kind ??= "slope";
+      created.note ??= null;
+      created.osm_way_id ??= null;
+      // 운영의 slope_segments_osm_way_id_key와 같은 고유 인덱스(설계 4.1·6.7)
+      if (
+        created.osm_way_id !== null &&
+        target.some((row) => row.osm_way_id === created.osm_way_id)
+      )
+        return json(
+          route,
+          {
+            code: "23505",
+            message:
+              'duplicate key value violates unique constraint "slope_segments_osm_way_id_key"',
+            details: null,
+            hint: null,
+          },
+          409,
+        );
+    }
     if (name === "building_facilities") {
       created.facility_types =
         state.facilityTypes.find(
@@ -1366,7 +1393,7 @@ async function handleApi(route: Route, state: MockState, url: URL) {
         .map((row) => withTypeEmbed(state, row)),
     );
   if (path === "/api/landmarks") return json(route, state.landmarks);
-  // 실제 라우트는 id·name·segments만 select한다. 넓게 돌려주면 공개 지도가
+  // 실제 라우트는 id·name·kind·note·segments만 select한다. 넓게 돌려주면 공개 지도가
   // 응답에 없는 필드에 기대도 e2e가 초록으로 남는다.
   if (path === "/api/slopes")
     return json(
@@ -1374,6 +1401,8 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       state.slopes.map((row) => ({
         id: row.id,
         name: row.name,
+        kind: row.kind ?? "slope",
+        note: row.note ?? null,
         segments: row.segments,
       })),
     );
