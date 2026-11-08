@@ -12,6 +12,7 @@ import {
 } from "react-leaflet";
 import type { Feature, FeatureCollection } from "geojson";
 import "leaflet/dist/leaflet.css";
+import { MAP_MIN_ZOOM } from "@/lib/mapBounds";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
 import {
   NEIGHBOR_STYLE,
@@ -126,6 +127,7 @@ export default function AdminWorkspaceMap({
       center={initialViewport.center}
       zoom={initialViewport.zoom}
       maxZoom={WORKSPACE_MAX_ZOOM}
+      minZoom={MAP_MIN_ZOOM}
       zoomControl={false}
       scrollWheelZoom
       className="ku-light-scope"

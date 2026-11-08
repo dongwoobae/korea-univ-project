@@ -11,7 +11,7 @@ import {
 } from "@/components/admin/workspace/focusMap";
 import type { WorkspaceMapSlotProps } from "@/components/admin/workspace/types";
 import { CARTO_ATTRIBUTION, getCartoTileUrl } from "@/lib/mapTiles";
-import { KU_BOUNDS, containsPoint } from "@/lib/mapBounds";
+import { KU_BOUNDS, MAP_MIN_ZOOM, containsPoint } from "@/lib/mapBounds";
 import { fetchNeighborBuildings } from "@/lib/neighborBuildings";
 import { addNeighborLayer } from "@/lib/neighborLayer";
 import { readRoutePoints, type Vertex } from "@/lib/slopeRoute";
@@ -163,6 +163,7 @@ export default function SlopeRouteMap({
     const map = L.map(containerRef.current!, {
       scrollWheelZoom: true,
       maxZoom: WORKSPACE_MAX_ZOOM,
+      minZoom: MAP_MIN_ZOOM,
       zoomControl: false,
     }).setView(viewport.center, viewport.zoom);
     L.control
