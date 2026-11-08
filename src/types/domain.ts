@@ -28,6 +28,13 @@ export interface SlopeRoutePoint extends SlopeRouteStart {
 /** readRoutePoints를 통과한 경로 */
 export type SlopeRoutePoints = [SlopeRouteStart, ...SlopeRoutePoint[]];
 
+/** kind = 'stairs' 행의 segments. 경사·거리를 싣지 않는다 */
+export type StairsPoints = [
+  SlopeRouteStart,
+  SlopeRouteStart,
+  ...SlopeRouteStart[],
+];
+
 /** segments는 jsonb라 readRoutePoints로 읽기 전에는 모양을 믿지 않는다 */
 export type SlopeSegment = Tables["slope_segments"]["Row"];
 
