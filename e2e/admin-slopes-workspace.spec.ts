@@ -314,6 +314,66 @@ test.describe("경사도 작업 화면 — 계단 목록·보기", () => {
     await listRow(page, "본관 뒤 계단").click();
     await expect(detailPanel(page, "본관 뒤 계단")).toContainText("직접 그림");
   });
+
+  test("＋ 계단 그리기로 그린 계단은 좌표만 저장하고 보기 패널에 직접 그림으로 보인다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await listPanel(page)
+      .getByRole("button", { name: "＋ 계단 그리기" })
+      .click();
+    await expect(page).toHaveURL(/\?new=stairs$/);
+    const panel = detailPanel(page, "새 계단");
+    await expect(panel.getByRole("group", { name: "경사 단위" })).toHaveCount(
+      0,
+    );
+
+    await drawRoute(page, THREE_POINTS);
+    await expect(
+      page.locator(".leaflet-pane.slope-preview-pane path.ku-stairs-line"),
+    ).toHaveCount(1);
+    await panel.getByLabel("계단 이름").fill("본관 뒤 계단");
+    await panel.getByLabel("설명 (선택)").fill("우회: 본관 엘리베이터");
+    await panel.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("계단을 추가했어요")).toBeVisible();
+
+    const saved = state.slopes.at(-1)!;
+    expect(saved).toMatchObject({
+      kind: "stairs",
+      name: "본관 뒤 계단",
+      note: "우회: 본관 엘리베이터",
+      osm_way_id: null,
+    });
+    const points = saved.segments as Record<string, unknown>[];
+    expect(points).toHaveLength(3);
+    expect(
+      points.every((point) => Object.keys(point).sort().join() === "lat,lng"),
+    ).toBe(true);
+    await expect(detailPanel(page, "본관 뒤 계단")).toContainText("직접 그림");
+  });
+
+  test("기존 계단을 고쳐 저장하면 OSM 번호는 남고 설명이 바뀐다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addStairs(state);
+    await page.goto("/admin/dashboard/slopes?id=70");
+    await detailPanel(page, "중앙광장 계단")
+      .getByRole("button", { name: "계단 편집" })
+      .click();
+    await expect(page).toHaveURL(/\?id=70&edit=1$/);
+    const panel = editPanel(page, "중앙광장 계단");
+    await expect(panel.getByRole("checkbox")).toHaveCount(0);
+    await panel.getByLabel("설명 (선택)").fill("우회: 국제관 엘리베이터");
+    await panel.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("계단을 수정했어요")).toBeVisible();
+    expect(state.slopes.find((row) => row.id === 70)).toMatchObject({
+      note: "우회: 국제관 엘리베이터",
+      osm_way_id: 394382780,
+      kind: "stairs",
+    });
+  });
 });
 
 /** 최근 수정순 첫 페이지를 채움 경로로 채워 `둘째 쪽 경로`(id 900)를 2페이지로 민다 */

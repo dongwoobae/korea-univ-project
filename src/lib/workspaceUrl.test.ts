@@ -87,3 +87,39 @@ describe("writeWorkspaceState", () => {
     }
   });
 });
+
+describe("계단 상태", () => {
+  const stairs = { allowEdit: true, stairs: true };
+
+  it("new=stairs는 새 계단, osm=번호는 후보다", () => {
+    expect(readWorkspaceState("?new=stairs", stairs)).toEqual({
+      mode: "new-stairs",
+    });
+    expect(readWorkspaceState("?osm=394382780", stairs)).toEqual({
+      mode: "candidate",
+      osmWayId: 394382780,
+    });
+  });
+
+  it("계단을 받지 않는 탭과 숫자가 아닌 osm은 닫힘이다", () => {
+    expect(readWorkspaceState("?new=stairs", { allowEdit: false })).toEqual({
+      mode: "closed",
+    });
+    expect(readWorkspaceState("?osm=abc", stairs)).toEqual({ mode: "closed" });
+    expect(readWorkspaceState("?osm=0", stairs)).toEqual({ mode: "closed" });
+  });
+
+  it("쓰고 다시 읽으면 같은 상태이고, 다른 상태로 쓰면 osm을 지운다", () => {
+    for (const state of [
+      { mode: "new-stairs" },
+      { mode: "candidate", osmWayId: 7 },
+    ] as const) {
+      expect(
+        readWorkspaceState(writeWorkspaceState("", state), stairs),
+      ).toEqual(state);
+    }
+    expect(writeWorkspaceState("?osm=7&tab=x", { mode: "closed" })).toBe(
+      "?tab=x",
+    );
+  });
+});
