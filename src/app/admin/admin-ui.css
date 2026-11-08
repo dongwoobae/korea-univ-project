@@ -2167,6 +2167,11 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   justify-content: space-between;
   gap: 10px;
 }
+.ku-float-panel-add {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
 .ku-float-panel-title {
   font-size: 20px;
   font-weight: 700;
@@ -2293,6 +2298,13 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+}
+.ku-float-panel-legend li span[data-dotted] {
+  width: 14px;
+  height: 4px;
+  border-radius: 0;
+  background: radial-gradient(circle, currentColor 1.5px, transparent 2px) 0
+    50% / 5px 4px repeat-x;
 }
 .ku-float-panel-legend-bar {
   display: flex;
@@ -3023,6 +3035,19 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   min-width: 0;
   color: var(--ku-text-3);
   font-size: 12.5px;
+}
+.ku-stairs-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.ku-stairs-facts dt {
+  color: var(--ku-text-3);
+}
+.ku-stairs-facts dd {
+  margin: 0;
 }
 .ku-slope-table {
   width: 100%;

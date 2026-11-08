@@ -16,7 +16,14 @@ import {
   SLOPE_COLLECTION_POLICY,
   type SlopeListItem,
   type SlopeRouteSummary,
+  type StairsSummary,
 } from "@/lib/slopeWorkspace";
+import {
+  STAIRS_LINE_CLASS,
+  stairsCasingStyle,
+  stairsHitStyle,
+  stairsLineStyle,
+} from "@/lib/stairs";
 
 const DIMMED_OPACITY = 0.28;
 
@@ -90,6 +97,52 @@ function RouteLines({
   ));
 }
 
+interface StairsLinesProps {
+  id: string;
+  summary: StairsSummary;
+  selected: boolean;
+  dimmed: boolean;
+  onSelect: (id: string) => void;
+}
+
+// 점선은 점 위만 눌려, 보이지 않는 굵은 선이 누르기를 받는다. 경로 선처럼 ku-slope-route-{id}는 누르는 선에만 단다
+function StairsLines({
+  id,
+  summary,
+  selected,
+  dimmed,
+  onSelect,
+}: StairsLinesProps) {
+  const weight = selected ? 7 : 5;
+  const opacity = dimmed ? DIMMED_OPACITY : 1;
+  const positions = summary.vertices.map(
+    ({ lat, lng }) => [lat, lng] as [number, number],
+  );
+  return (
+    <>
+      <Polyline
+        positions={positions}
+        className={SLOPE_CASING_CLASS}
+        interactive={false}
+        pathOptions={stairsCasingStyle(weight, false, opacity)}
+        eventHandlers={SEND_TO_BACK}
+      />
+      <Polyline
+        positions={positions}
+        className={STAIRS_LINE_CLASS}
+        interactive={false}
+        pathOptions={stairsLineStyle(weight, opacity)}
+      />
+      <Polyline
+        positions={positions}
+        className={`ku-slope-route-${id}`}
+        pathOptions={stairsHitStyle()}
+        eventHandlers={{ click: () => onSelect(id) }}
+      />
+    </>
+  );
+}
+
 interface SlopeWorkspaceMapProps extends WorkspaceMapSlotProps {
   /** 거른 결과 전체(페이지와 상관없다). 저장 형식이 깨진 경로는 그리지 않는다 */
   routes: SlopeListItem[];
@@ -113,7 +166,16 @@ export default function SlopeWorkspaceMap({
       {routes.map((item) => {
         const id = SLOPE_COLLECTION_POLICY.id(item);
         if (!item.summary || id === selectedId) return null;
-        return (
+        return item.kind === "stairs" ? (
+          <StairsLines
+            key={id}
+            id={id}
+            summary={item.summary}
+            selected={false}
+            dimmed={selectedId !== null}
+            onSelect={onSelect}
+          />
+        ) : (
           <RouteLines
             key={id}
             id={id}
@@ -125,8 +187,18 @@ export default function SlopeWorkspaceMap({
           />
         );
       })}
+      {selected?.kind === "stairs" && selected.summary && (
+        <StairsLines
+          key={`selected:${selectedId}`}
+          id={SLOPE_COLLECTION_POLICY.id(selected)}
+          summary={selected.summary}
+          selected
+          dimmed={false}
+          onSelect={onSelect}
+        />
+      )}
       {/* 따로 된 key로 다시 붙여 SVG 맨 뒤(위)에 그린다. 흐린 선 밑에 고른 선이 깔리지 않게 한다 */}
-      {selected?.summary && (
+      {selected?.kind === "slope" && selected.summary && (
         <>
           <RouteLines
             key={`selected:${selectedId}`}

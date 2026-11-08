@@ -8,6 +8,7 @@ import SlopeEditPanel from "@/components/admin/slopes/SlopeEditPanel";
 import { MOBILE_TOOLBAR_BOTTOM } from "@/components/admin/slopes/SlopeEditToolbar";
 import SlopeListRow from "@/components/admin/slopes/SlopeListRow";
 import SlopeViewPanel from "@/components/admin/slopes/SlopeViewPanel";
+import StairsViewPanel from "@/components/admin/slopes/StairsViewPanel";
 import AdminMapWorkspace from "@/components/admin/workspace/AdminMapWorkspace";
 import WorkspaceListPanel from "@/components/admin/workspace/WorkspaceListPanel";
 import {
@@ -29,15 +30,19 @@ import {
   INITIAL_ADMIN_COLLECTION_QUERY,
   pageOfItem,
   viewAdminCollection,
+  type AdminChip,
 } from "@/lib/adminCollection";
 import { useSlopeBands } from "@/lib/slopeBandsStore";
 import { deleteSlopeRoute } from "@/lib/slopeSave";
 import {
+  SLOPE_CHIPS,
   SLOPE_COLLECTION_POLICY,
   slopeDisplayName,
-  summarizeSlopeRoute,
+  slopeListItem,
+  type SlopeChip,
   type SlopeListItem,
 } from "@/lib/slopeWorkspace";
+import { STAIRS_LINE_COLOR } from "@/lib/stairs";
 import { supabase } from "@/lib/supabaseClient";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { readWorkspaceState, type WorkspaceState } from "@/lib/workspaceUrl";
@@ -115,6 +120,13 @@ export default function SlopesPage() {
   const { state, request } = useWorkspaceSelection({ allowEdit: true });
   const collection = useAdminCollection(routes, SLOPE_COLLECTION_POLICY);
   const { view, setPage } = collection;
+  const chips = [
+    { key: "all", label: "전체", count: view.chipCounts.all },
+    ...SLOPE_CHIPS.map((chip) => ({
+      ...chip,
+      count: view.chipCounts[chip.key],
+    })),
+  ];
   const selectedId = selectedRouteId(state);
   const selected =
     selectedId === null
@@ -125,7 +137,9 @@ export default function SlopesPage() {
   // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다(owner가 null)
   const owner =
     state.mode === "new" ||
-    (state.mode === "edit" && Boolean(selected?.summary))
+    (state.mode === "edit" &&
+      selected?.kind === "slope" &&
+      Boolean(selected.summary))
       ? editOwner(state)
       : null;
   // 패널이 바뀐 뒤 늦게 끝난 저장의 잠금이 남지 않게 owner로 거른다(명소의 activeDraft와 같다)
@@ -144,10 +158,7 @@ export default function SlopesPage() {
       .select("*")
       .order("id", { ascending: true });
     if (error) return null;
-    return (data ?? []).map((route) => ({
-      route,
-      summary: summarizeSlopeRoute(route.segments),
-    })) as SlopeListItem[];
+    return (data ?? []).map(slopeListItem);
   }, []);
 
   const {
@@ -301,7 +312,11 @@ export default function SlopesPage() {
         key={owner}
         owner={owner}
         route={selected && state.mode === "edit" ? selected.route : null}
-        summary={selected && state.mode === "edit" ? selected.summary : null}
+        summary={
+          selected?.kind === "slope" && state.mode === "edit"
+            ? selected.summary
+            : null
+        }
         editor={activeEditor}
         onDraftChange={setDraft}
         onSaved={handleSaved}
@@ -313,18 +328,33 @@ export default function SlopesPage() {
         showToast={showToast}
       />
     ) : selected ? (
-      <SlopeViewPanel
-        key={SLOPE_COLLECTION_POLICY.id(selected)}
-        item={selected}
-        onEdit={() =>
-          requestSelection({
-            mode: "edit",
-            id: SLOPE_COLLECTION_POLICY.id(selected),
-          })
-        }
-        onClose={() => requestSelection({ mode: "closed" })}
-        remove={remove}
-      />
+      selected.kind === "stairs" ? (
+        <StairsViewPanel
+          key={SLOPE_COLLECTION_POLICY.id(selected)}
+          item={selected}
+          onEdit={() =>
+            requestSelection({
+              mode: "edit",
+              id: SLOPE_COLLECTION_POLICY.id(selected),
+            })
+          }
+          onClose={() => requestSelection({ mode: "closed" })}
+          remove={remove}
+        />
+      ) : (
+        <SlopeViewPanel
+          key={SLOPE_COLLECTION_POLICY.id(selected)}
+          item={selected}
+          onEdit={() =>
+            requestSelection({
+              mode: "edit",
+              id: SLOPE_COLLECTION_POLICY.id(selected),
+            })
+          }
+          onClose={() => requestSelection({ mode: "closed" })}
+          remove={remove}
+        />
+      )
     ) : null;
 
   return (
@@ -364,7 +394,14 @@ export default function SlopesPage() {
         list={
           <WorkspaceListPanel
             title="경사도 경로"
-            caption={`구간별 경사를 기록한 보행 경로 · 총 ${view.total}개`}
+            caption={`경사로와 계단 · 총 ${view.total}개`}
+            chips={chips}
+            activeChip={collection.chip}
+            onChipChange={(key) =>
+              clearSelectionThen(() =>
+                collection.setChip(key as AdminChip<SlopeChip>),
+              )
+            }
             addLabel="＋ 경로 그리기"
             onAdd={() => requestSelection({ mode: "new" })}
             searchValue={collection.search}
@@ -384,10 +421,13 @@ export default function SlopesPage() {
             matchedCount={view.matched.length}
             page={view.page}
             onPageChange={(page) => clearSelectionThen(() => setPage(page))}
-            legend={slopeBands.bands.map((band) => ({
-              label: band.name,
-              color: band.color,
-            }))}
+            legend={[
+              ...slopeBands.bands.map((band) => ({
+                label: band.name,
+                color: band.color,
+              })),
+              { label: "계단", color: STAIRS_LINE_COLOR, dotted: true },
+            ]}
             legendAction={legendAction}
           >
             {view.pageItems.map((item) => {

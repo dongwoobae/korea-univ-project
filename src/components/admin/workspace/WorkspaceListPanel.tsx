@@ -15,6 +15,8 @@ export interface WorkspaceChip {
 export interface WorkspaceLegendItem {
   label: string;
   color: string;
+  /** 계단처럼 점선 견본 */
+  dotted?: boolean;
 }
 
 interface WorkspaceListPanelProps {
@@ -22,6 +24,8 @@ interface WorkspaceListPanelProps {
   caption: string;
   addLabel: string;
   onAdd: () => void;
+  /** 두 번째 추가 동작. 경사도 탭의 "＋ 계단 그리기" */
+  secondaryAdd?: { label: string; mobileLabel: string; onClick: () => void };
   searchValue: string;
   onSearchChange: (value: string) => void;
   searchLabel: string;
@@ -58,6 +62,7 @@ export default function WorkspaceListPanel({
   caption,
   addLabel,
   onAdd,
+  secondaryAdd,
   searchValue,
   onSearchChange,
   searchLabel,
@@ -181,6 +186,15 @@ export default function WorkspaceListPanel({
             <h1>{title}</h1>
             <span role="status">{matchedCount}개 표시</span>
             {sortSelect}
+            {secondaryAdd && (
+              <button
+                type="button"
+                className="ku-workspace-button"
+                onClick={secondaryAdd.onClick}
+              >
+                {secondaryAdd.mobileLabel}
+              </button>
+            )}
             <button
               type="button"
               className="ku-workspace-primary"
@@ -206,13 +220,24 @@ export default function WorkspaceListPanel({
             <h1 className="ku-float-panel-title">{title}</h1>
             <p className="ku-float-panel-caption">{caption}</p>
           </div>
-          <button
-            type="button"
-            className="ku-workspace-primary"
-            onClick={onAdd}
-          >
-            {addLabel}
-          </button>
+          <div className="ku-float-panel-add">
+            {secondaryAdd && (
+              <button
+                type="button"
+                className="ku-workspace-button"
+                onClick={secondaryAdd.onClick}
+              >
+                {secondaryAdd.label}
+              </button>
+            )}
+            <button
+              type="button"
+              className="ku-workspace-primary"
+              onClick={onAdd}
+            >
+              {addLabel}
+            </button>
+          </div>
         </div>
         {searchRow}
         {chipRow}
@@ -228,7 +253,15 @@ export default function WorkspaceListPanel({
             <ul className="ku-float-panel-legend" aria-label="범례">
               {legend.map((item, index) => (
                 <li key={index}>
-                  <span aria-hidden="true" style={{ background: item.color }} />
+                  <span
+                    aria-hidden="true"
+                    data-dotted={item.dotted || undefined}
+                    style={
+                      item.dotted
+                        ? { color: item.color }
+                        : { background: item.color }
+                    }
+                  />
                   {item.label}
                 </li>
               ))}
