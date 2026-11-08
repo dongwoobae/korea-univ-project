@@ -459,6 +459,80 @@ test.describe("경사도 작업 화면 — OSM 계단 후보", () => {
     await expect(listRow(page, "먼저 확정한 계단")).toBeVisible();
   });
 
+  test("경로 목록을 받기 전에는 후보 확정 패널을 열지 않는다 — 끝 잇기 대상이 빈 채 확정하지 않게", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseList = () => {};
+    const listHeld = new Promise<void>((resolve) => (releaseList = resolve));
+    await page.route(slopesRequest, async (route) => {
+      if (slopeListGet(route)) await listHeld;
+      return route.fallback();
+    });
+    const snapshotLoaded = page.waitForResponse((response) =>
+      response.url().endsWith("/osm-stairs.geojson"),
+    );
+    await page.goto("/admin/dashboard/slopes?osm=394382780");
+    await snapshotLoaded;
+    // 스냅숏을 읽고 그리는 데 걸리는 틈. 패널이 열릴 거라면 이 안에 열린다
+    await page.waitForTimeout(500);
+    await expect(detailPanel(page, "OSM 계단 확정")).toHaveCount(0);
+
+    releaseList();
+    await expect(
+      detailPanel(page, "OSM 계단 확정").getByRole("checkbox", {
+        name: "정문-중앙광장 끝에 잇기 (1.1m)",
+      }),
+    ).toBeChecked();
+  });
+
+  test("끝 잇기로 계단이 한 점으로 줄면 저장하지 않는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    // 윗길 끝과 옆길 시작이 같은 점(Q)에서 만나고, 짧은 계단의 끝이 이미 Q다. 시작 쪽은 5.6m 떨어진 옆길 시작을 제안받는다
+    state.slopes.push(
+      slopeRow({
+        id: 90,
+        name: "윗길",
+        segments: [
+          { lat: 37.5895, lng: 127.033 },
+          { lat: 37.5897, lng: 127.033, slope: 2, distance: 22.2 },
+        ],
+      }),
+      slopeRow({
+        id: 91,
+        name: "옆길",
+        segments: [
+          { lat: 37.5897, lng: 127.033 },
+          { lat: 37.5899, lng: 127.0332, slope: 2, distance: 28 },
+        ],
+      }),
+      slopeRow({
+        id: 92,
+        name: "짧은 계단",
+        kind: "stairs",
+        note: null,
+        osm_way_id: null,
+        segments: [
+          { lat: 37.58965, lng: 127.033 },
+          { lat: 37.5897, lng: 127.033 },
+        ],
+      }),
+    );
+    await page.goto("/admin/dashboard/slopes?id=92&edit=1");
+    const panel = editPanel(page, "짧은 계단");
+    const join = panel.getByRole("checkbox", { name: /^옆길 끝에 잇기/ });
+    await expect(join).not.toBeChecked();
+    await expect(panel.getByRole("button", { name: "저장" })).toBeEnabled();
+
+    await join.check();
+    await expect(
+      panel.getByText(
+        "길이가 0m인 구간이 있어요. 같은 자리를 두 번 찍지 말아주세요",
+      ),
+    ).toBeVisible();
+    await expect(panel.getByRole("button", { name: "저장" })).toBeDisabled();
+  });
+
   test("없는 후보 주소는 닫고 알리며, 스냅숏을 못 받으면 토글 옆에 알리고 끈다", async ({
     page,
   }) => {
