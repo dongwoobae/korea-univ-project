@@ -120,7 +120,7 @@ export function readStoredSlopes(points: SlopeRoutePoints): number[] {
   return measured.map((point) => point.slope);
 }
 
-function isCoordinate(value: unknown): value is SlopeRouteStart {
+export function isCoordinate(value: unknown): value is SlopeRouteStart {
   if (typeof value !== "object" || value === null) return false;
   const point = value as Record<string, unknown>;
   return (

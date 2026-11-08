@@ -13,7 +13,7 @@ export interface SlopeDraftValues {
 
 // 지도가 좌표를 다시 읽어 배열을 새로 만들어도(편집 없이 마운트만 해도)
 // 참조가 아니라 값이 같으면 dirty가 아니어야 한다.
-function verticesEqual(a: Vertex[], b: Vertex[]) {
+export function verticesEqual(a: Vertex[], b: Vertex[]) {
   if (a.length !== b.length) return false;
   return a.every(
     (vertex, index) =>
