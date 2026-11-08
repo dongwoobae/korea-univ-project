@@ -3649,6 +3649,10 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 .ku-bands-modal-preview .ku-slope-bands {
   width: 100%;
 }
+.ku-bands-modal-preview .ku-slope-bands-scale {
+  flex: 1;
+  width: auto;
+}
 .ku-bands-modal-preview p {
   margin: 0;
   color: var(--ku-text-3);

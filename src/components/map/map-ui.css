@@ -1691,6 +1691,11 @@
   .ku-slope-legend .ku-slope-bands {
     width: auto;
   }
+  .ku-slope-legend .ku-slope-bands-scale {
+    flex: 1;
+    width: auto;
+    min-width: 0;
+  }
   .ku-map-action {
     width: 48px;
     height: 48px;

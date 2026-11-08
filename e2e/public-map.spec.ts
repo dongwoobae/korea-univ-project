@@ -922,6 +922,7 @@ test.describe("공개 지도 — 경사도 범례", () => {
     const legend = legendOf(page);
     const stairs = legend.getByRole("button", { name: "계단", exact: true });
     await expect(stairs).toBeVisible();
+    await expect(stairs.locator("svg circle")).toHaveCount(3);
     await expect(
       legend
         .locator(".ku-slope-bands-bar")
