@@ -3306,6 +3306,10 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   color: var(--ku-text-3);
   font-size: 13px;
 }
+.ku-stairs-snapshot-error {
+  color: var(--ku-danger);
+  font-size: 12px;
+}
 .ku-stairs-joins {
   display: grid;
   gap: 6px;

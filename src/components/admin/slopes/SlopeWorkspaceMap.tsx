@@ -20,9 +20,11 @@ import {
 } from "@/lib/slopeWorkspace";
 import {
   STAIRS_LINE_CLASS,
+  STAIRS_LINE_COLOR,
   stairsCasingStyle,
   stairsHitStyle,
   stairsLineStyle,
+  type StairsCandidate,
 } from "@/lib/stairs";
 
 const DIMMED_OPACITY = 0.28;
@@ -148,12 +150,17 @@ interface SlopeWorkspaceMapProps extends WorkspaceMapSlotProps {
   routes: SlopeListItem[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** 켠 경우만. 이미 확정된 번호는 페이지가 뺀다 */
+  candidates: StairsCandidate[] | null;
+  onSelectCandidate: (osmWayId: number) => void;
 }
 
 export default function SlopeWorkspaceMap({
   routes,
   selectedId,
   onSelect,
+  candidates,
+  onSelectCandidate,
   ...slot
 }: SlopeWorkspaceMapProps) {
   const { bands } = useSlopeBands();
@@ -163,6 +170,35 @@ export default function SlopeWorkspaceMap({
 
   return (
     <AdminWorkspaceMap {...slot}>
+      {/* 후보는 확정된 계단(점선)과 갈리게 긴 대시·옅은 선이고, 확정된 선보다 먼저 붙여 아래에 깐다 */}
+      {candidates?.map((candidate) => {
+        const positions = candidate.vertices.map(
+          ({ lat, lng }) => [lat, lng] as [number, number],
+        );
+        return (
+          <Fragment key={`osm:${candidate.osmWayId}`}>
+            <Polyline
+              positions={positions}
+              className="ku-stairs-candidate"
+              interactive={false}
+              pathOptions={{
+                color: STAIRS_LINE_COLOR,
+                weight: 4,
+                opacity: 0.6,
+                dashArray: "6 6",
+              }}
+            />
+            <Polyline
+              positions={positions}
+              className={`ku-stairs-candidate-hit ku-stairs-candidate-hit-${candidate.osmWayId}`}
+              pathOptions={stairsHitStyle()}
+              eventHandlers={{
+                click: () => onSelectCandidate(candidate.osmWayId),
+              }}
+            />
+          </Fragment>
+        );
+      })}
       {routes.map((item) => {
         const id = SLOPE_COLLECTION_POLICY.id(item);
         if (!item.summary || id === selectedId) return null;

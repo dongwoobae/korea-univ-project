@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useId, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import SlopeBandsModal from "@/components/admin/slopes/SlopeBandsModal";
@@ -33,15 +41,23 @@ import {
 import { useSlopeBands } from "@/lib/slopeBandsStore";
 import { deleteSlopeRoute } from "@/lib/slopeSave";
 import {
+  confirmedOsmWayIds,
   SLOPE_CHIPS,
   SLOPE_COLLECTION_POLICY,
   slopeDisplayName,
   slopeListItem,
   slopeRouteEndpoints,
+  verticesBounds,
   type SlopeChip,
   type SlopeListItem,
 } from "@/lib/slopeWorkspace";
-import { STAIRS_LINE_COLOR, type StairsCandidate } from "@/lib/stairs";
+import {
+  availableCandidates,
+  OSM_STAIRS_SNAPSHOT_URL,
+  readStairsSnapshot,
+  STAIRS_LINE_COLOR,
+  type StairsCandidate,
+} from "@/lib/stairs";
 import { supabase } from "@/lib/supabaseClient";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { readWorkspaceState, type WorkspaceState } from "@/lib/workspaceUrl";
@@ -57,6 +73,9 @@ const SlopeRouteMap = dynamic(
 );
 
 const NOT_FOUND_MESSAGE = "경로를 찾지 못했어요. 삭제됐거나 주소가 틀렸어요.";
+const CANDIDATE_NOT_FOUND =
+  "OSM 계단 후보를 찾지 못했어요. 이미 확정됐거나 주소가 틀렸어요.";
+const SNAPSHOT_FAILED = "OSM 계단 후보를 불러오지 못했어요";
 
 const DELETE_CONFIRM_MESSAGE = "삭제한 경사도 경로는 복구할 수 없어요.";
 const LEGEND_READ_FAILED =
@@ -99,6 +118,9 @@ export default function SlopesPage() {
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const slopeBands = useSlopeBands();
   const [bandsModalOpen, setBandsModalOpen] = useState(false);
+  const [showCandidates, setShowCandidates] = useState(false);
+  const [snapshot, setSnapshot] = useState<StairsCandidate[] | null>(null);
+  const [snapshotError, setSnapshotError] = useState(false);
   const legendBlockedId = useId();
   const legendReadFailed = slopeBands.status === "error";
   // ready가 아닐 때 열면 초안이 기본값에서 시작해, 저장하는 순간 DB의 실제 설정을 덮어쓴다(설계 3장)
@@ -143,7 +165,19 @@ export default function SlopesPage() {
         ) ?? null);
   // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다(owner가 null)
   const endpoints = useMemo(() => slopeRouteEndpoints(routes), [routes]);
-  const candidate: StairsCandidate | null = null;
+  const confirmedIds = useMemo(() => confirmedOsmWayIds(routes), [routes]);
+  const available = useMemo(
+    () => (snapshot ? availableCandidates(snapshot, confirmedIds) : null),
+    [snapshot, confirmedIds],
+  );
+  // 확정 패널의 후보는 거르기 전 스냅숏에서 찾는다. 걸러진 목록에서 찾으면, 확정 직후 목록을 다시 받는 순간 후보가
+  // 빠져 저장 중인 패널이 사라지고 없는 후보 안내가 뜬다
+  const candidate =
+    state.mode === "candidate"
+      ? (snapshot?.find((item) => item.osmWayId === state.osmWayId) ?? null)
+      : null;
+  const candidateConfirmed =
+    candidate !== null && confirmedIds.has(candidate.osmWayId);
   const owner =
     state.mode === "new" ||
     state.mode === "new-stairs" ||
@@ -223,6 +257,61 @@ export default function SlopesPage() {
   useWorkspaceCloseRequest(state.mode !== "closed", () =>
     requestSelection({ mode: "closed" }),
   );
+
+  // 후보 주소로 바로 들어와도 받는다. 한 번 받으면 다시 받지 않는다(설계 2026-11-06 5.3·6.1)
+  const needSnapshot = showCandidates || state.mode === "candidate";
+  useEffect(() => {
+    if (!needSnapshot || snapshot !== null || snapshotError) return;
+    let cancelled = false;
+    fetch(OSM_STAIRS_SNAPSHOT_URL)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((raw: unknown) => {
+        if (cancelled) return;
+        const candidates = readStairsSnapshot(raw);
+        if (candidates) {
+          setSnapshot(candidates);
+          return;
+        }
+        setSnapshotError(true);
+        setShowCandidates(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSnapshotError(true);
+        setShowCandidates(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [needSnapshot, snapshot, snapshotError]);
+
+  const closeMissingCandidate = useEffectEvent((message: string) => {
+    applyWorkspaceState({ mode: "closed" });
+    showToast(message, snapshotError ? "error" : "warning");
+  });
+  // 저장 중에는 보지 않는다 — 확정이 끝나 목록을 다시 받으면 그 후보는 확정된 번호가 되고, 뒤이어 handleSaved가 보기로 옮긴다.
+  // 닫기는 한 틱 미룬다. 그사이 조건이 바뀌면 정리 함수가 거둔다
+  useEffect(() => {
+    if (state.mode !== "candidate" || saving) return;
+    const message = snapshotError
+      ? SNAPSHOT_FAILED
+      : status === "ready" &&
+          snapshot !== null &&
+          (candidate === null || candidateConfirmed)
+        ? CANDIDATE_NOT_FOUND
+        : null;
+    if (message === null) return;
+    const timer = window.setTimeout(() => closeMissingCandidate(message), 0);
+    return () => window.clearTimeout(timer);
+  }, [
+    state.mode,
+    saving,
+    snapshotError,
+    status,
+    snapshot,
+    candidate,
+    candidateConfirmed,
+  ]);
 
   // 검색·정렬은 설계 2026-10-14 3.3대로 선택을 푼다
   function clearSelectionThen(change: () => void) {
@@ -312,6 +401,7 @@ export default function SlopesPage() {
     await loadRoutes();
   }
 
+  const candidateBounds = candidate ? verticesBounds(candidate.vertices) : null;
   const focus: WorkspaceFocus | null =
     fullMapFocus && fullMapFocus.owner === owner
       ? fullMapFocus.focus
@@ -320,7 +410,12 @@ export default function SlopesPage() {
             key: `route:${SLOPE_COLLECTION_POLICY.id(selected)}`,
             target: { bounds: selected.summary.bounds },
           }
-        : null;
+        : candidate && candidateBounds
+          ? {
+              key: `osm:${candidate.osmWayId}`,
+              target: { bounds: candidateBounds },
+            }
+          : null;
 
   const remove = selected
     ? {
@@ -343,9 +438,13 @@ export default function SlopesPage() {
           initialVertices={
             state.mode === "edit"
               ? (editingStairs?.summary?.vertices ?? null)
+              : (candidate?.vertices ?? null)
+          }
+          candidate={
+            candidate
+              ? { osmWayId: candidate.osmWayId, name: candidate.name }
               : null
           }
-          candidate={null}
           endpoints={endpoints}
           editor={activeEditor}
           onDraftChange={setDraft}
@@ -426,7 +525,9 @@ export default function SlopesPage() {
               initialVertices={
                 state.mode === "edit"
                   ? (selected?.summary?.vertices ?? null)
-                  : null
+                  : state.mode === "candidate"
+                    ? (candidate?.vertices ?? null)
+                    : null
               }
               editingRouteId={state.mode === "edit" ? state.id : null}
               kind={editingKind}
@@ -441,6 +542,10 @@ export default function SlopesPage() {
                 selected ? SLOPE_COLLECTION_POLICY.id(selected) : null
               }
               onSelect={select}
+              candidates={showCandidates ? available : null}
+              onSelectCandidate={(osmWayId) =>
+                requestSelection({ mode: "candidate", osmWayId })
+              }
             />
           )
         }
@@ -468,6 +573,26 @@ export default function SlopesPage() {
             }
             searchLabel="경사도 경로 검색"
             searchPlaceholder="경로명 검색"
+            filters={
+              <>
+                <button
+                  type="button"
+                  className="ku-workspace-button"
+                  aria-pressed={showCandidates}
+                  onClick={() => {
+                    setSnapshotError(false);
+                    setShowCandidates((value) => !value);
+                  }}
+                >
+                  OSM 계단 후보
+                </button>
+                {snapshotError && (
+                  <span role="alert" className="ku-stairs-snapshot-error">
+                    {SNAPSHOT_FAILED}
+                  </span>
+                )}
+              </>
+            }
             sort={collection.sort}
             onSortChange={(sort) =>
               clearSelectionThen(() => collection.setSort(sort))
