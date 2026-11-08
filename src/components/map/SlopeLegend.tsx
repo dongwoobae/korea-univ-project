@@ -8,7 +8,7 @@ function MapSlopeLegend() {
   const { bands } = useSlopeBands();
   return (
     <div className="ku-slope-legend">
-      <SlopeBandsLegend bands={bands} />
+      <SlopeBandsLegend bands={bands} showStairs />
     </div>
   );
 }

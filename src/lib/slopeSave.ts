@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import type { SlopeRoutePoints } from "@/types/domain";
+import type { SlopeRoutePoints, StairsPoints } from "@/types/domain";
 import type { Json } from "@supabase-types";
 
 export type SlopeSaveResult =
@@ -40,6 +40,56 @@ export async function saveSlopeRoute(input: {
   const { data, error } = await supabase
     .from("slope_segments")
     .update({ name: input.name, segments })
+    .eq("id", input.routeId)
+    .eq("updated_at", input.loadedAt ?? "")
+    .select("id");
+  if (error) return { ok: false, reason: "error", message: error.message };
+  if (!data?.length) return { ok: false, reason: "conflict" };
+  return { ok: true, routeId: input.routeId, created: false };
+}
+
+export type StairsSaveResult =
+  SlopeSaveResult | { ok: false; reason: "duplicate" };
+
+/** 설계 2026-11-06 6.2·6.7. 수정은 saveSlopeRoute와 같은 updated_at 조건이다 */
+export async function saveStairs(input: {
+  routeId: string | null;
+  loadedAt: string | null;
+  name: string;
+  note: string | null;
+  osmWayId: number | null;
+  points: StairsPoints;
+}): Promise<StairsSaveResult> {
+  const segments = input.points as unknown as Json;
+
+  if (input.routeId === null) {
+    const { data, error } = await supabase
+      .from("slope_segments")
+      .insert({
+        kind: "stairs",
+        name: input.name,
+        note: input.note,
+        osm_way_id: input.osmWayId,
+        gpx_file: null,
+        segments,
+      })
+      .select("id")
+      .single();
+    if (error?.code === "23505") return { ok: false, reason: "duplicate" };
+    if (error || !data) {
+      return {
+        ok: false,
+        reason: "error",
+        message: error?.message ?? "저장 실패",
+      };
+    }
+    // 목 백엔드는 id를 숫자로 돌려준다
+    return { ok: true, routeId: String(data.id), created: true };
+  }
+
+  const { data, error } = await supabase
+    .from("slope_segments")
+    .update({ name: input.name, note: input.note, segments })
     .eq("id", input.routeId)
     .eq("updated_at", input.loadedAt ?? "")
     .select("id");

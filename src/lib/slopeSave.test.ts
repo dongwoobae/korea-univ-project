@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { SlopeRoutePoints } from "@/types/domain";
+import type { SlopeRoutePoints, StairsPoints } from "@/types/domain";
 
 const single = vi.fn();
 const selectAfterInsert = vi.fn(() => ({ single }));
@@ -130,5 +130,76 @@ describe("deleteSlopeRoute", () => {
     eqDelete.mockResolvedValue({ error: { message: "거부" } });
     const { deleteSlopeRoute } = await import("./slopeSave");
     expect(await deleteSlopeRoute("3")).toBe("삭제 실패: 거부");
+  });
+});
+
+describe("saveStairs", () => {
+  const points: StairsPoints = [
+    { lat: 37.58, lng: 127.02 },
+    { lat: 37.581, lng: 127.02 },
+  ];
+
+  it("새 계단은 종류·OSM 번호·설명과 좌표만 넣는다", async () => {
+    single.mockResolvedValue({ data: { id: 11 }, error: null });
+    const { saveStairs } = await import("./slopeSave");
+    const result = await saveStairs({
+      routeId: null,
+      loadedAt: null,
+      name: "본관 계단",
+      note: null,
+      osmWayId: 394382780,
+      points,
+    });
+    expect(insert).toHaveBeenCalledWith({
+      kind: "stairs",
+      name: "본관 계단",
+      note: null,
+      osm_way_id: 394382780,
+      gpx_file: null,
+      segments: points,
+    });
+    expect(result).toEqual({ ok: true, routeId: "11", created: true });
+  });
+
+  it("같은 OSM 계단(23505)은 duplicate다", async () => {
+    single.mockResolvedValue({
+      data: null,
+      error: { code: "23505", message: "duplicate key" },
+    });
+    const { saveStairs } = await import("./slopeSave");
+    expect(
+      await saveStairs({
+        routeId: null,
+        loadedAt: null,
+        name: "본관 계단",
+        note: null,
+        osmWayId: 394382780,
+        points,
+      }),
+    ).toEqual({ ok: false, reason: "duplicate" });
+  });
+
+  it("기존 계단은 이름·설명·좌표만 updated_at 조건으로 고친다", async () => {
+    selectAfterUpdate.mockResolvedValue({ data: [{ id: 11 }], error: null });
+    const { saveStairs } = await import("./slopeSave");
+    const result = await saveStairs({
+      routeId: "11",
+      loadedAt: "2026-11-06T00:00:00Z",
+      name: "본관 계단",
+      note: "우회",
+      osmWayId: 394382780,
+      points,
+    });
+    expect(update).toHaveBeenCalledWith({
+      name: "본관 계단",
+      note: "우회",
+      segments: points,
+    });
+    expect(eqUpdateId).toHaveBeenCalledWith("id", "11");
+    expect(eqUpdatedAt).toHaveBeenCalledWith(
+      "updated_at",
+      "2026-11-06T00:00:00Z",
+    );
+    expect(result).toEqual({ ok: true, routeId: "11", created: false });
   });
 });

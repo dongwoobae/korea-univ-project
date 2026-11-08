@@ -1,0 +1,1548 @@
+{
+  "type": "FeatureCollection",
+  "attribution": "© OpenStreetMap contributors",
+  "license": "ODbL-1.0",
+  "fetchedAt": "2026-11-08T09:13:04.179Z",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 392740612,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0318395,
+            37.5894567
+          ],
+          [
+            127.0316648,
+            37.5894654
+          ],
+          [
+            127.0313128,
+            37.5894831
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 392740615,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0310299,
+            37.5895246
+          ],
+          [
+            127.0310002,
+            37.5895455
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 393240562,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0262098,
+            37.5931754
+          ],
+          [
+            127.0262818,
+            37.5931197
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 394374374,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0283547,
+            37.5850586
+          ],
+          [
+            127.0280355,
+            37.5849189
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 394374377,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0270213,
+            37.5844617
+          ],
+          [
+            127.026944,
+            37.5845656
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 394374385,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0267461,
+            37.5843804
+          ],
+          [
+            127.0266776,
+            37.5844799
+          ],
+          [
+            127.0266515,
+            37.5845178
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 394382776,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0320904,
+            37.587044
+          ],
+          [
+            127.0321607,
+            37.5870036
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 394382780,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.030978,
+            37.5873373
+          ],
+          [
+            127.0306909,
+            37.5875124
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 435327110,
+        "name": "애기능 산책로"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0273243,
+            37.5836142
+          ],
+          [
+            127.0272661,
+            37.583701
+          ],
+          [
+            127.0271905,
+            37.5838027
+          ],
+          [
+            127.0271103,
+            37.5839106
+          ],
+          [
+            127.0270536,
+            37.5839869
+          ],
+          [
+            127.0270151,
+            37.5840467
+          ],
+          [
+            127.0269601,
+            37.5841319
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 448713871,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0266104,
+            37.5927
+          ],
+          [
+            127.0267478,
+            37.5926112
+          ],
+          [
+            127.0268493,
+            37.5925456
+          ],
+          [
+            127.0268871,
+            37.5925178
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 787353488,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0340388,
+            37.5899181
+          ],
+          [
+            127.0339796,
+            37.5902204
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 792411487,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0319762,
+            37.5893441
+          ],
+          [
+            127.0319671,
+            37.5894221
+          ],
+          [
+            127.0319021,
+            37.589459
+          ],
+          [
+            127.031803,
+            37.5894233
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 802936059,
+        "name": "애기능 산책로"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0269601,
+            37.5841319
+          ],
+          [
+            127.0269459,
+            37.5842769
+          ],
+          [
+            127.0269133,
+            37.5843751
+          ],
+          [
+            127.0268838,
+            37.5844515
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 802936077,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0356166,
+            37.5896592
+          ],
+          [
+            127.0353676,
+            37.5894151
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 803044658,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0344921,
+            37.5914319
+          ],
+          [
+            127.0349327,
+            37.5918115
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 803623185,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0326761,
+            37.5869729
+          ],
+          [
+            127.0327029,
+            37.5869981
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 803623188,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0323734,
+            37.5866883
+          ],
+          [
+            127.0323304,
+            37.5866478
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 803623213,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0339643,
+            37.5893183
+          ],
+          [
+            127.033687,
+            37.5895072
+          ],
+          [
+            127.0336238,
+            37.5895498
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 803710527,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0270392,
+            37.5852979
+          ],
+          [
+            127.026988,
+            37.5852738
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 803710530,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.026973,
+            37.5853854
+          ],
+          [
+            127.0269223,
+            37.5853587
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 803710533,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0268931,
+            37.5852882
+          ],
+          [
+            127.0265914,
+            37.5851548
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 804525724,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0340643,
+            37.5889328
+          ],
+          [
+            127.0341125,
+            37.5889014
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 804525725,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0342959,
+            37.5889782
+          ],
+          [
+            127.0343666,
+            37.5890443
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 804525727,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0332772,
+            37.5882159
+          ],
+          [
+            127.0333309,
+            37.5881793
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 804525728,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.033549,
+            37.5882828
+          ],
+          [
+            127.0334652,
+            37.5882049
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 804525730,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0340522,
+            37.5887498
+          ],
+          [
+            127.0341199,
+            37.5888138
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 807058729,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0324408,
+            37.5900067
+          ],
+          [
+            127.0324175,
+            37.590023
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 807198495,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.03466,
+            37.5896539
+          ],
+          [
+            127.0347002,
+            37.5896903
+          ],
+          [
+            127.0347374,
+            37.5897222
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 807801799,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0329792,
+            37.589872
+          ],
+          [
+            127.0328134,
+            37.5897792
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 808222742,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.029144,
+            37.5905108
+          ],
+          [
+            127.0291407,
+            37.590572
+          ],
+          [
+            127.0291445,
+            37.5906904
+          ],
+          [
+            127.0290628,
+            37.5906937
+          ],
+          [
+            127.0290655,
+            37.5907501
+          ],
+          [
+            127.0290517,
+            37.5907744
+          ],
+          [
+            127.0290158,
+            37.5908128
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 818753446,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.025643,
+            37.5834218
+          ],
+          [
+            127.0259359,
+            37.5835499
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 819103568,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0333319,
+            37.5890774
+          ],
+          [
+            127.0332564,
+            37.5891283
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 819103570,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0330111,
+            37.5887828
+          ],
+          [
+            127.0329287,
+            37.58884
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 828743227,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0256621,
+            37.5921221
+          ],
+          [
+            127.0257986,
+            37.5920274
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 829085903,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0353866,
+            37.5893195
+          ],
+          [
+            127.0357205,
+            37.5895968
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 837483266,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0345001,
+            37.5912773
+          ],
+          [
+            127.0343797,
+            37.5911713
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 860888128,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0326867,
+            37.588627
+          ],
+          [
+            127.0327759,
+            37.5885668
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 860888132,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.033089,
+            37.588981
+          ],
+          [
+            127.0331687,
+            37.5889275
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 860888135,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0335253,
+            37.589365
+          ],
+          [
+            127.0335931,
+            37.5893161
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 866481320,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.025506,
+            37.5835021
+          ],
+          [
+            127.0256444,
+            37.5833149
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 875533627,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0321941,
+            37.5885461
+          ],
+          [
+            127.0322952,
+            37.5885387
+          ],
+          [
+            127.0323998,
+            37.5885488
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 875533628,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0320546,
+            37.5882941
+          ],
+          [
+            127.0319917,
+            37.5883441
+          ],
+          [
+            127.0318968,
+            37.5884084
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 909550016,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0322684,
+            37.589849
+          ],
+          [
+            127.0321972,
+            37.5899117
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 909550026,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0296615,
+            37.5912871
+          ],
+          [
+            127.0296473,
+            37.5912352
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 923278823,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0242858,
+            37.5914866
+          ],
+          [
+            127.0242909,
+            37.5914547
+          ],
+          [
+            127.0243483,
+            37.591407
+          ],
+          [
+            127.0244207,
+            37.5913469
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 923278825,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.024786,
+            37.5919313
+          ],
+          [
+            127.024844,
+            37.5918774
+          ],
+          [
+            127.024912,
+            37.5918164
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 923278830,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0251444,
+            37.5921679
+          ],
+          [
+            127.0251847,
+            37.5920927
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 923278833,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0252258,
+            37.5921048
+          ],
+          [
+            127.025229,
+            37.5920879
+          ],
+          [
+            127.025246,
+            37.5919957
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 923278834,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0255884,
+            37.5919252
+          ],
+          [
+            127.0256812,
+            37.5920119
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 923278837,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0244339,
+            37.5908143
+          ],
+          [
+            127.0244542,
+            37.5908343
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 923278838,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0242423,
+            37.5911166
+          ],
+          [
+            127.0242789,
+            37.5911064
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 923278840,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0244954,
+            37.5917327
+          ],
+          [
+            127.0245349,
+            37.5916975
+          ],
+          [
+            127.024598,
+            37.591645
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 923278842,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0280537,
+            37.5918515
+          ],
+          [
+            127.0281914,
+            37.5920588
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 943702813,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0340401,
+            37.5893999
+          ],
+          [
+            127.0337709,
+            37.5895811
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 944932548,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0321824,
+            37.5875881
+          ],
+          [
+            127.0320161,
+            37.587704
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 944932550,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0319544,
+            37.5876528
+          ],
+          [
+            127.032147,
+            37.5875258
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 944932557,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.031113,
+            37.5872237
+          ],
+          [
+            127.0311826,
+            37.5871767
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 944932559,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0317311,
+            37.5867898
+          ],
+          [
+            127.0318127,
+            37.5867323
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 944932572,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0318925,
+            37.5866549
+          ],
+          [
+            127.0319199,
+            37.5865905
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 944932573,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0319922,
+            37.5866549
+          ],
+          [
+            127.0320191,
+            37.5865937
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 944932590,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0323839,
+            37.5894678
+          ],
+          [
+            127.0324413,
+            37.5894308
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 953224062,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0280513,
+            37.5855379
+          ],
+          [
+            127.0280566,
+            37.5855507
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 991301370,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0255001,
+            37.5910698
+          ],
+          [
+            127.0255357,
+            37.591045
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 1459536135,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.035284,
+            37.591383
+          ],
+          [
+            127.0353354,
+            37.5914198
+          ],
+          [
+            127.0353336,
+            37.5914579
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 1461310966,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0258877,
+            37.591487
+          ],
+          [
+            127.0259613,
+            37.5914165
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 1494626163,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0347588,
+            37.590873
+          ],
+          [
+            127.0348168,
+            37.5908237
+          ],
+          [
+            127.0348417,
+            37.5908447
+          ],
+          [
+            127.0348748,
+            37.590818
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 1494626164,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0356704,
+            37.5905219
+          ],
+          [
+            127.0357575,
+            37.5904583
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 1495140502,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0345594,
+            37.590062
+          ],
+          [
+            127.034613,
+            37.5901098
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 1495140511,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0346002,
+            37.5909694
+          ],
+          [
+            127.0345705,
+            37.5910061
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 1499363564,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0331163,
+            37.5910287
+          ],
+          [
+            127.033148,
+            37.5910608
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "osmWayId": 1499363565,
+        "name": null
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            127.0328091,
+            37.5903062
+          ],
+          [
+            127.0327329,
+            37.5903568
+          ]
+        ]
+      }
+    }
+  ]
+}

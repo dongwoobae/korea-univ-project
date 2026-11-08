@@ -242,6 +242,322 @@ function addMixedRoutes(state: MockState) {
   );
 }
 
+/** 경로 1 끝(37.5892, 127.0322)에 이어 붙은 OSM 계단과 손으로 그린 계단 */
+function addStairs(state: MockState) {
+  state.slopes.push(
+    slopeRow({
+      id: 70,
+      name: "중앙광장 계단",
+      kind: "stairs",
+      note: "우회: 본관 엘리베이터",
+      osm_way_id: 394382780,
+      segments: [
+        { lat: 37.5892, lng: 127.0322 },
+        { lat: 37.5894, lng: 127.0324 },
+      ],
+      updated_at: "2026-11-06T00:00:00Z",
+    }),
+    slopeRow({
+      id: 71,
+      name: "본관 뒤 계단",
+      kind: "stairs",
+      note: null,
+      osm_way_id: null,
+      segments: [
+        { lat: 37.5897, lng: 127.0331 },
+        { lat: 37.5898, lng: 127.0333 },
+      ],
+      updated_at: "2026-11-05T00:00:00Z",
+    }),
+  );
+}
+
+test.describe("경사도 작업 화면 — 계단 목록·보기", () => {
+  test("칩으로 경사로와 계단을 거르고, 계단 행은 계단 요약 줄만 보인다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addStairs(state);
+    await page.goto("/admin/dashboard/slopes");
+    const list = listPanel(page);
+    const names = list.getByTestId("admin-list-item-name");
+    await expect(list.getByText("경사로와 계단 · 총 4개")).toBeVisible();
+
+    await list.getByRole("button", { name: "계단 2개" }).click();
+    await expect(names).toHaveText(["중앙광장 계단", "본관 뒤 계단"]);
+    const row = listRow(page, "중앙광장 계단");
+    await expect(row.locator(".ku-workspace-row-meta")).toHaveText(
+      /^계단 · \d+(\.\d)?m · /,
+    );
+    await expect(row.locator(".ku-slope-profile")).toHaveCount(0);
+    await expect(row.locator(".ku-row-badge")).toHaveCount(0);
+
+    await list.getByRole("button", { name: "경사로 2개" }).click();
+    await expect(names).toHaveText(["안암병원 정문 경사로", "정문-중앙광장"]);
+  });
+
+  test("계단은 작업 지도에 점선으로 그리고, 고르면 출처·길이·설명을 보이며 계단 편집으로 들어간다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addStairs(state);
+    await page.goto("/admin/dashboard/slopes");
+    const line = page.locator("path.ku-stairs-line");
+    await expect(line).toHaveCount(2);
+    await expect(line.first()).toHaveAttribute("stroke-dasharray", "0 14");
+
+    await routeLine(page, 70).click();
+    await expect(page).toHaveURL(/\?id=70$/);
+    const view = detailPanel(page, "중앙광장 계단");
+    await expect(view).toContainText("OSM 394382780");
+    await expect(view).toContainText("우회: 본관 엘리베이터");
+    await listRow(page, "본관 뒤 계단").click();
+    await expect(detailPanel(page, "본관 뒤 계단")).toContainText("직접 그림");
+  });
+
+  test("＋ 계단 그리기로 그린 계단은 좌표만 저장하고 보기 패널에 직접 그림으로 보인다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    await listPanel(page)
+      .getByRole("button", { name: "＋ 계단 그리기" })
+      .click();
+    await expect(page).toHaveURL(/\?new=stairs$/);
+    const panel = detailPanel(page, "새 계단");
+    await expect(panel.getByRole("group", { name: "경사 단위" })).toHaveCount(
+      0,
+    );
+
+    await drawRoute(page, THREE_POINTS);
+    await expect(
+      page.locator(".leaflet-pane.slope-preview-pane path.ku-stairs-line"),
+    ).toHaveCount(1);
+    await panel.getByLabel("계단 이름").fill("본관 뒤 계단");
+    await panel.getByLabel("설명 (선택)").fill("우회: 본관 엘리베이터");
+    await panel.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("계단을 추가했어요")).toBeVisible();
+
+    const saved = state.slopes.at(-1)!;
+    expect(saved).toMatchObject({
+      kind: "stairs",
+      name: "본관 뒤 계단",
+      note: "우회: 본관 엘리베이터",
+      osm_way_id: null,
+    });
+    const points = saved.segments as Record<string, unknown>[];
+    expect(points).toHaveLength(3);
+    expect(
+      points.every((point) => Object.keys(point).sort().join() === "lat,lng"),
+    ).toBe(true);
+    await expect(detailPanel(page, "본관 뒤 계단")).toContainText("직접 그림");
+  });
+
+  test("기존 계단을 고쳐 저장하면 OSM 번호는 남고 설명이 바뀐다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    addStairs(state);
+    await page.goto("/admin/dashboard/slopes?id=70");
+    await detailPanel(page, "중앙광장 계단")
+      .getByRole("button", { name: "계단 편집" })
+      .click();
+    await expect(page).toHaveURL(/\?id=70&edit=1$/);
+    const panel = editPanel(page, "중앙광장 계단");
+    await expect(panel.getByRole("checkbox")).toHaveCount(0);
+    await panel.getByLabel("설명 (선택)").fill("우회: 국제관 엘리베이터");
+    await panel.getByRole("button", { name: "저장" }).click();
+    await expect(page.getByText("계단을 수정했어요")).toBeVisible();
+    expect(state.slopes.find((row) => row.id === 70)).toMatchObject({
+      note: "우회: 국제관 엘리베이터",
+      osm_way_id: 394382780,
+      kind: "stairs",
+    });
+  });
+});
+
+test.describe("경사도 작업 화면 — OSM 계단 후보", () => {
+  function candidateLines(page: Page) {
+    return page.locator("path.ku-stairs-candidate");
+  }
+
+  test("후보를 켜고 눌러 계단으로 확정하면 경사로 끝에 이어 저장하고 후보에서 빠진다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes");
+    const toggle = listPanel(page).getByRole("button", {
+      name: "OSM 계단 후보",
+    });
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(candidateLines(page)).toHaveCount(0);
+
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await expect(candidateLines(page)).toHaveCount(2);
+    await page.locator("path.ku-stairs-candidate-hit-394382780").click();
+    await expect(page).toHaveURL(/\?osm=394382780$/);
+
+    const panel = detailPanel(page, "OSM 계단 확정");
+    await expect(panel.getByLabel("계단 이름")).toHaveValue("중앙광장 계단");
+    const join = panel.getByRole("checkbox", {
+      name: "정문-중앙광장 끝에 잇기 (1.1m)",
+    });
+    await expect(join).toBeChecked();
+    await panel.getByRole("button", { name: "계단으로 확정" }).click();
+    await expect(page.getByText("계단을 추가했어요")).toBeVisible();
+
+    const saved = state.slopes.at(-1)!;
+    expect(saved).toMatchObject({
+      kind: "stairs",
+      name: "중앙광장 계단",
+      osm_way_id: 394382780,
+    });
+    expect((saved.segments as unknown[])[0]).toEqual({
+      lat: 37.5892,
+      lng: 127.0322,
+    });
+    await expect(candidateLines(page)).toHaveCount(1);
+  });
+
+  test("끝 잇기를 끄면 OSM 모양 그대로 저장한다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?osm=394382780");
+    const panel = detailPanel(page, "OSM 계단 확정");
+    await panel.getByRole("checkbox", { name: /끝에 잇기/ }).uncheck();
+    await panel.getByRole("button", { name: "계단으로 확정" }).click();
+    await expect(page.getByText("계단을 추가했어요")).toBeVisible();
+    expect((state.slopes.at(-1)!.segments as unknown[])[0]).toEqual({
+      lat: 37.58921,
+      lng: 127.0322,
+    });
+  });
+
+  test("그사이 다른 곳에서 확정된 후보는 알리고 목록을 다시 받는다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?osm=394382780");
+    const panel = detailPanel(page, "OSM 계단 확정");
+    await expect(panel).toBeVisible();
+    state.slopes.push(
+      slopeRow({
+        id: 80,
+        name: "먼저 확정한 계단",
+        kind: "stairs",
+        note: null,
+        osm_way_id: 394382780,
+        segments: [
+          { lat: 37.5892, lng: 127.0322 },
+          { lat: 37.5894, lng: 127.0324 },
+        ],
+      }),
+    );
+    await panel.getByRole("button", { name: "계단으로 확정" }).click();
+    await expect(page.getByText("이미 확정된 계단이에요")).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+    await expect(listRow(page, "먼저 확정한 계단")).toBeVisible();
+  });
+
+  test("경로 목록을 받기 전에는 후보 확정 패널을 열지 않는다 — 끝 잇기 대상이 빈 채 확정하지 않게", async ({
+    page,
+  }) => {
+    await installMockBackend(page, { authenticated: true });
+    let releaseList = () => {};
+    const listHeld = new Promise<void>((resolve) => (releaseList = resolve));
+    await page.route(slopesRequest, async (route) => {
+      if (slopeListGet(route)) await listHeld;
+      return route.fallback();
+    });
+    const snapshotLoaded = page.waitForResponse((response) =>
+      response.url().endsWith("/osm-stairs.geojson"),
+    );
+    await page.goto("/admin/dashboard/slopes?osm=394382780");
+    await snapshotLoaded;
+    // 스냅숏을 읽고 그리는 데 걸리는 틈. 패널이 열릴 거라면 이 안에 열린다
+    await page.waitForTimeout(500);
+    await expect(detailPanel(page, "OSM 계단 확정")).toHaveCount(0);
+
+    releaseList();
+    await expect(
+      detailPanel(page, "OSM 계단 확정").getByRole("checkbox", {
+        name: "정문-중앙광장 끝에 잇기 (1.1m)",
+      }),
+    ).toBeChecked();
+  });
+
+  test("끝 잇기로 계단이 한 점으로 줄면 저장하지 않는다", async ({ page }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    // 윗길 끝과 옆길 시작이 같은 점(Q)에서 만나고, 짧은 계단의 끝이 이미 Q다. 시작 쪽은 5.6m 떨어진 옆길 시작을 제안받는다
+    state.slopes.push(
+      slopeRow({
+        id: 90,
+        name: "윗길",
+        segments: [
+          { lat: 37.5895, lng: 127.033 },
+          { lat: 37.5897, lng: 127.033, slope: 2, distance: 22.2 },
+        ],
+      }),
+      slopeRow({
+        id: 91,
+        name: "옆길",
+        segments: [
+          { lat: 37.5897, lng: 127.033 },
+          { lat: 37.5899, lng: 127.0332, slope: 2, distance: 28 },
+        ],
+      }),
+      slopeRow({
+        id: 92,
+        name: "짧은 계단",
+        kind: "stairs",
+        note: null,
+        osm_way_id: null,
+        segments: [
+          { lat: 37.58965, lng: 127.033 },
+          { lat: 37.5897, lng: 127.033 },
+        ],
+      }),
+    );
+    await page.goto("/admin/dashboard/slopes?id=92&edit=1");
+    const panel = editPanel(page, "짧은 계단");
+    const join = panel.getByRole("checkbox", { name: /^옆길 끝에 잇기/ });
+    await expect(join).not.toBeChecked();
+    await expect(panel.getByRole("button", { name: "저장" })).toBeEnabled();
+
+    await join.check();
+    await expect(
+      panel.getByText(
+        "길이가 0m인 구간이 있어요. 같은 자리를 두 번 찍지 말아주세요",
+      ),
+    ).toBeVisible();
+    await expect(panel.getByRole("button", { name: "저장" })).toBeDisabled();
+  });
+
+  test("없는 후보 주소는 닫고 알리며, 스냅숏을 못 받으면 토글 옆에 알리고 끈다", async ({
+    page,
+  }) => {
+    const state = await installMockBackend(page, { authenticated: true });
+    await page.goto("/admin/dashboard/slopes?osm=1");
+    await expect(
+      page.getByText(
+        "OSM 계단 후보를 찾지 못했어요. 이미 확정됐거나 주소가 틀렸어요.",
+      ),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/dashboard\/slopes$/);
+
+    state.osmStairs = null;
+    await page.reload();
+    const toggle = listPanel(page).getByRole("button", {
+      name: "OSM 계단 후보",
+    });
+    await toggle.click();
+    await expect(
+      listPanel(page).getByText("OSM 계단 후보를 불러오지 못했어요"),
+    ).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
 /** 최근 수정순 첫 페이지를 채움 경로로 채워 `둘째 쪽 경로`(id 900)를 2페이지로 민다 */
 function addSecondPageRoute(state: MockState) {
   for (let index = 0; index < 20; index += 1) {
@@ -320,14 +636,14 @@ test.describe("경사도 작업 화면 — 목록", () => {
     const list = listPanel(page);
     const names = list.getByTestId("admin-list-item-name");
 
-    await expect(
-      list.getByText("구간별 경사를 기록한 보행 경로 · 총 4개"),
-    ).toBeVisible();
+    await expect(list.getByText("경사로와 계단 · 총 4개")).toBeVisible();
     await expect(list.getByRole("status")).toHaveText("4개 표시");
-    await expect(list.getByRole("group", { name: "목록 필터" })).toHaveCount(0);
+    await expect(
+      list.getByRole("group", { name: "목록 필터" }).getByRole("button"),
+    ).toHaveText([/^전체/, /^경사로/, /^계단/]);
     await expect(
       list.getByRole("list", { name: "범례" }).getByRole("listitem"),
-    ).toHaveText(["보도 기준 이내", "완화 범위", "특례 범위", "초과"]);
+    ).toHaveText(["보도 기준 이내", "완화 범위", "특례 범위", "초과", "계단"]);
 
     const search = list.getByRole("searchbox", { name: "경사도 경로 검색" });
     await expect(search).toHaveAttribute("placeholder", "경로명 검색");
@@ -2068,7 +2384,9 @@ test.describe("경사도 작업 화면 — 모바일", () => {
     await expect(
       page.getByRole("searchbox", { name: "경사도 경로 검색" }),
     ).toBeVisible();
-    await expect(page.getByRole("group", { name: "목록 필터" })).toHaveCount(0);
+    await expect(
+      page.getByRole("group", { name: "목록 필터" }).getByRole("button"),
+    ).toHaveText([/^전체/, /^경사로/, /^계단/]);
 
     await sheet.getByRole("button", { name: "목록 펼치기" }).click();
     const row = listRow(page, ROUTE_2);
@@ -2380,7 +2698,9 @@ test.describe("경사도 작업 화면 — 모바일", () => {
   }) => {
     await installMockBackend(page, { authenticated: true });
     await page.goto("/admin/dashboard/slopes");
-    await expect(page.getByRole("group", { name: "목록 필터" })).toHaveCount(0);
+    await expect(
+      page.getByRole("group", { name: "목록 필터" }).getByRole("button"),
+    ).toHaveText([/^전체/, /^경사로/, /^계단/]);
     const edit = listPanel(page).getByRole("button", { name: "범례 편집" });
     // 접힌 시트는 첫 행을 보이려고 아랫줄을 숨긴다
     await expect(edit).toBeHidden();
@@ -2672,6 +2992,11 @@ test.describe("경사도 작업 화면 — 범례 편집", () => {
     await page.goto("/admin/dashboard/slopes");
     const dialog = await openBands(page);
     const percent = dialog.getByRole("button", { name: "퍼센트(%)" });
+    await expect(
+      dialog
+        .getByRole("group", { name: "경사도 범례" })
+        .getByRole("button", { name: "계단", exact: true }),
+    ).toHaveCount(0);
     await expect(percent).toHaveAttribute("aria-pressed", "false");
 
     await dialog

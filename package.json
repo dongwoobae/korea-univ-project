@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "start": "next start",
-    "sync-buildings": "node --env-file=.env.local src/scripts/syncBuildings.ts"
+    "sync-buildings": "node --env-file=.env.local src/scripts/syncBuildings.ts",
+    "fetch-osm-stairs": "node --experimental-strip-types src/scripts/fetchOsmStairs.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",

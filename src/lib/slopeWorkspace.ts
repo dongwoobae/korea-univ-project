@@ -7,6 +7,11 @@ import {
   type Vertex,
 } from "@/lib/slopeRoute";
 import { formatDeg } from "@/lib/slopeScale";
+import {
+  polylineLength,
+  readStairsPoints,
+  type RouteEndpoint,
+} from "@/lib/stairs";
 import type { SlopeSegment } from "@/types/domain";
 
 export interface SlopeSegmentSummary {
@@ -70,31 +75,65 @@ export function summarizeSlopeRoute(raw: unknown): SlopeRouteSummary | null {
   };
 }
 
-export interface SlopeListItem {
-  route: SlopeSegment;
-  summary: SlopeRouteSummary | null;
+export interface StairsSummary {
+  vertices: Vertex[];
+  /** 0.1m 반올림 */
+  length: number;
+  bounds: [[number, number], [number, number]];
+}
+
+export function summarizeStairs(raw: unknown): StairsSummary | null {
+  const points = readStairsPoints(raw);
+  if (!points) return null;
+  const vertices = points.map(({ lat, lng }) => ({ lat, lng }));
+  const bounds = verticesBounds(vertices);
+  if (!bounds) return null;
+  return { vertices, length: polylineLength(vertices), bounds };
+}
+
+/** 읽는 곳마다 kind로 먼저 나눈다 — 계단 행이 readRoutePoints로 가면 형식 오류가 된다(설계 2026-11-06 4.2) */
+export type SlopeListItem =
+  | { kind: "slope"; route: SlopeSegment; summary: SlopeRouteSummary | null }
+  | { kind: "stairs"; route: SlopeSegment; summary: StairsSummary | null };
+export type SlopeRouteListItem = Extract<SlopeListItem, { kind: "slope" }>;
+export type StairsListItem = Extract<SlopeListItem, { kind: "stairs" }>;
+
+export function slopeListItem(route: SlopeSegment): SlopeListItem {
+  return route.kind === "stairs"
+    ? { kind: "stairs", route, summary: summarizeStairs(route.segments) }
+    : { kind: "slope", route, summary: summarizeSlopeRoute(route.segments) };
 }
 
 export function slopeDisplayName(route: Pick<SlopeSegment, "name">): string {
   return route.name?.trim() || "이름 없는 경로";
 }
 
-// 구간 색은 관리자가 고치는 값이라 칩 조건으로 두지 않는다(설계 2026-10-19 5장)
+export type SlopeChip = "slope" | "stairs";
+
+export const SLOPE_CHIPS: { key: SlopeChip; label: string }[] = [
+  { key: "slope", label: "경사로" },
+  { key: "stairs", label: "계단" },
+];
+
+// 구간 색은 관리자가 고치는 값이라 칩 조건으로 두지 않는다(설계 2026-10-19 5장). 칩은 종류다(설계 2026-11-06 6.5)
 export const SLOPE_COLLECTION_POLICY: AdminCollectionPolicy<
   SlopeListItem,
-  never
+  SlopeChip
 > = {
   // 목 백엔드는 id를 숫자로 돌려준다
   id: ({ route }) => String(route.id),
   name: ({ route }) => slopeDisplayName(route),
   updatedAt: ({ route }) => route.updated_at,
   searchText: ({ route }) => [route.name],
-  chips: {},
+  chips: {
+    slope: (item) => item.kind === "slope",
+    stairs: (item) => item.kind === "stairs",
+  },
 };
 
 /** 판정 배지는 없다. 형식 오류는 판정이 아니라 읽기 실패 표시라 남긴다(설계 2026-10-19 5장) */
 export function slopeRouteBadge(
-  summary: SlopeRouteSummary | null,
+  summary: object | null,
 ): { label: "형식 오류"; tone: "missing" } | null {
   return summary ? null : { label: "형식 오류", tone: "missing" };
 }
@@ -110,4 +149,36 @@ export function formatSlopeRouteMeta(
   const updated = formatAdminUpdatedAt(updatedAt);
   if (!summary) return updated;
   return `${summary.segments.length}개 구간 · ${formatMeters(summary.totalDistance)} · 최대 ${formatDeg(summary.maxSlope)} · ${updated}`;
+}
+
+export function formatSlopeListMeta(item: SlopeListItem): string {
+  if (item.kind === "slope")
+    return formatSlopeRouteMeta(item.summary, item.route.updated_at);
+  const updated = formatAdminUpdatedAt(item.route.updated_at);
+  return item.summary
+    ? `계단 · ${formatMeters(item.summary.length)} · ${updated}`
+    : updated;
+}
+
+export function slopeRouteEndpoints(items: SlopeListItem[]): RouteEndpoint[] {
+  return items.flatMap((item) => {
+    if (item.kind !== "slope" || !item.summary) return [];
+    const id = SLOPE_COLLECTION_POLICY.id(item);
+    const routeName = slopeDisplayName(item.route);
+    const { vertices } = item.summary;
+    return [
+      { key: `${id}:start`, routeName, point: vertices[0] },
+      { key: `${id}:end`, routeName, point: vertices[vertices.length - 1] },
+    ];
+  });
+}
+
+export function confirmedOsmWayIds(items: SlopeListItem[]): Set<number> {
+  return new Set(
+    items.flatMap((item) =>
+      item.kind === "stairs" && item.route.osm_way_id !== null
+        ? [Number(item.route.osm_way_id)]
+        : [],
+    ),
+  );
 }

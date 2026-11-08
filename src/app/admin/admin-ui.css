@@ -2167,6 +2167,11 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   justify-content: space-between;
   gap: 10px;
 }
+.ku-float-panel-add {
+  display: flex;
+  flex: none;
+  gap: 6px;
+}
 .ku-float-panel-title {
   font-size: 20px;
   font-weight: 700;
@@ -2293,6 +2298,13 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+}
+.ku-float-panel-legend li span[data-dotted] {
+  width: 14px;
+  height: 4px;
+  border-radius: 0;
+  background: radial-gradient(circle, currentColor 1.5px, transparent 2px) 0
+    50% / 5px 4px repeat-x;
 }
 .ku-float-panel-legend-bar {
   display: flex;
@@ -3024,6 +3036,19 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   color: var(--ku-text-3);
   font-size: 12.5px;
 }
+.ku-stairs-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.ku-stairs-facts dt {
+  color: var(--ku-text-3);
+}
+.ku-stairs-facts dd {
+  margin: 0;
+}
 .ku-slope-table {
   width: 100%;
   border-collapse: separate;
@@ -3113,11 +3138,26 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
   font-size: 16px;
   font-weight: 700;
 }
-.ku-slope-edit-name input::placeholder {
+/* 계단 설명. 입력칸과 같은 테두리에 두 줄 높이, 글자는 보통 굵기다. 16px 아래면 iOS가 포커스 때 화면을 키운다 */
+.ku-slope-edit-name textarea {
+  display: block;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--ku-border-input);
+  border-radius: var(--ku-radius);
+  color: var(--ku-text-1);
+  background: var(--ku-surface);
+  font: inherit;
+  font-size: 16px;
+  resize: vertical;
+}
+.ku-slope-edit-name input::placeholder,
+.ku-slope-edit-name textarea::placeholder {
   color: var(--ku-text-3);
   font-weight: 400;
 }
 .ku-slope-edit-name input:focus-visible,
+.ku-slope-edit-name textarea:focus-visible,
 .ku-slope-card-input input:focus-visible {
   border-color: var(--ku-crimson-700);
 }
@@ -3265,6 +3305,23 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 .ku-slope-card-empty {
   color: var(--ku-text-3);
   font-size: 13px;
+}
+.ku-stairs-snapshot-error {
+  color: var(--ku-danger);
+  font-size: 12px;
+}
+.ku-stairs-joins {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 13px;
+}
+.ku-stairs-joins label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .ku-slope-edit-errors {
   margin: 0;
@@ -3648,6 +3705,10 @@ label.ku-inbox-photo[data-selected="true"] .ku-inbox-photo-check {
 }
 .ku-bands-modal-preview .ku-slope-bands {
   width: 100%;
+}
+.ku-bands-modal-preview .ku-slope-bands-scale {
+  flex: 1;
+  width: auto;
 }
 .ku-bands-modal-preview p {
   margin: 0;

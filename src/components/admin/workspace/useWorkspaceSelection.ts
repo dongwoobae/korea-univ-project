@@ -50,7 +50,10 @@ export function applyWorkspaceState(
 }
 
 /** URL이 선택의 원본이다. 뒤로가기로 바뀐 URL도 popstate로 따라온다 */
-export function useWorkspaceSelection(options: { allowEdit: boolean }) {
+export function useWorkspaceSelection(options: {
+  allowEdit: boolean;
+  stairs?: boolean;
+}) {
   const search = useSyncExternalStore(subscribe, readSearch, readServerSearch);
   const state = readWorkspaceState(search, options);
   const { guard } = useUnsavedChangesGuard();

@@ -34,6 +34,7 @@ export interface SlopeEditorHandle {
 /** 편집 패널이 내놓는다. 지도는 이것으로 미리보기를 칠하고 꼭짓점 변경을 돌려준다 */
 export interface SlopeEditDraft {
   owner: string;
+  kind: "slope";
   slopes: (number | null)[];
   /** 저장 중. 지도 편집을 잠근다 */
   locked: boolean;
@@ -41,3 +42,16 @@ export interface SlopeEditDraft {
   bounds: [[number, number], [number, number]] | null;
   onVerticesChange: (vertices: Vertex[]) => void;
 }
+
+/** 계단 편집 패널이 내놓는다. 지도는 preview를 그리고 꼭짓점 변경을 돌려준다 */
+export interface StairsEditDraft {
+  owner: string;
+  kind: "stairs";
+  /** 끝 잇기를 반영한, 저장될 좌표 */
+  preview: Vertex[];
+  locked: boolean;
+  bounds: [[number, number], [number, number]] | null;
+  onVerticesChange: (vertices: Vertex[]) => void;
+}
+
+export type EditDraft = SlopeEditDraft | StairsEditDraft;

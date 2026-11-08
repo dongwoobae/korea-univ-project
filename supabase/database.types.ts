@@ -549,7 +549,10 @@ export type Database = {
           created_at: string | null;
           gpx_file: string | null;
           id: string;
+          kind: string;
           name: string;
+          note: string | null;
+          osm_way_id: number | null;
           segments: Json;
           updated_at: string;
         };
@@ -557,7 +560,10 @@ export type Database = {
           created_at?: string | null;
           gpx_file?: string | null;
           id?: string;
+          kind?: string;
           name: string;
+          note?: string | null;
+          osm_way_id?: number | null;
           segments: Json;
           updated_at?: string;
         };
@@ -565,7 +571,10 @@ export type Database = {
           created_at?: string | null;
           gpx_file?: string | null;
           id?: string;
+          kind?: string;
           name?: string;
+          note?: string | null;
+          osm_way_id?: number | null;
           segments?: Json;
           updated_at?: string;
         };

@@ -73,6 +73,8 @@ export interface MockState {
   facilityTypes: Row[];
   /** 브라우저가 보낸 종류 맞바꾸기 RPC 인자(화면 순서) */
   facilityTypeSwapRequests: { p_first: string; p_second: string }[];
+  /** `/osm-stairs.geojson` 응답. null이면 404 */
+  osmStairs: unknown;
 }
 
 // ── 픽스처(고정 데이터) ───────────────────────────────────────────────
@@ -431,6 +433,9 @@ function createState(authenticated: boolean): MockState {
         id: 1,
         name: "정문-중앙광장",
         gpx_file: null,
+        kind: "slope",
+        note: null,
+        osm_way_id: null,
         segments: [
           { lat: 37.589, lng: 127.032 },
           { lat: 37.5892, lng: 127.0322, slope: 3, distance: 28.4 },
@@ -442,6 +447,9 @@ function createState(authenticated: boolean): MockState {
         id: 2,
         name: "안암병원 정문 경사로",
         gpx_file: null,
+        kind: "slope",
+        note: null,
+        osm_way_id: null,
         segments: [
           { lat: 37.5861, lng: 127.0268, ele: null },
           {
@@ -464,6 +472,37 @@ function createState(authenticated: boolean): MockState {
     photoSwapRequests: [],
     facilityTypes: types.map((type) => ({ ...type })),
     facilityTypeSwapRequests: [],
+    // 경로 1 끝에서 1.1m(394382780), 경로 2 끝에서 10m 밖(944932557)
+    osmStairs: {
+      type: "FeatureCollection",
+      attribution: "© OpenStreetMap contributors",
+      license: "ODbL-1.0",
+      fetchedAt: "2026-11-06T00:00:00Z",
+      features: [
+        {
+          type: "Feature",
+          properties: { osmWayId: 394382780, name: "중앙광장 계단" },
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [127.0322, 37.58921],
+              [127.0324, 37.5894],
+            ],
+          },
+        },
+        {
+          type: "Feature",
+          properties: { osmWayId: 944932557, name: null },
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [127.027, 37.5863],
+              [127.0272, 37.5865],
+            ],
+          },
+        },
+      ],
+    },
     photos: [
       {
         id: 1,
@@ -1056,6 +1095,27 @@ async function handleRest(route: Route, state: MockState, url: URL) {
       updated_at: "2026-07-21T01:00:00Z",
       ...input,
     };
+    if (name === "slope_segments") {
+      created.kind ??= "slope";
+      created.note ??= null;
+      created.osm_way_id ??= null;
+      // 운영의 slope_segments_osm_way_id_key와 같은 고유 인덱스(설계 4.1·6.7)
+      if (
+        created.osm_way_id !== null &&
+        target.some((row) => row.osm_way_id === created.osm_way_id)
+      )
+        return json(
+          route,
+          {
+            code: "23505",
+            message:
+              'duplicate key value violates unique constraint "slope_segments_osm_way_id_key"',
+            details: null,
+            hint: null,
+          },
+          409,
+        );
+    }
     if (name === "building_facilities") {
       created.facility_types =
         state.facilityTypes.find(
@@ -1366,7 +1426,7 @@ async function handleApi(route: Route, state: MockState, url: URL) {
         .map((row) => withTypeEmbed(state, row)),
     );
   if (path === "/api/landmarks") return json(route, state.landmarks);
-  // 실제 라우트는 id·name·segments만 select한다. 넓게 돌려주면 공개 지도가
+  // 실제 라우트는 id·name·kind·note·segments만 select한다. 넓게 돌려주면 공개 지도가
   // 응답에 없는 필드에 기대도 e2e가 초록으로 남는다.
   if (path === "/api/slopes")
     return json(
@@ -1374,6 +1434,8 @@ async function handleApi(route: Route, state: MockState, url: URL) {
       state.slopes.map((row) => ({
         id: row.id,
         name: row.name,
+        kind: row.kind ?? "slope",
+        note: row.note ?? null,
         segments: row.segments,
       })),
     );
@@ -1815,6 +1877,10 @@ export async function installMockBackend(
           : json(route, { message: "not authenticated" }, 401);
       }
     }
+    if (url.pathname === "/osm-stairs.geojson")
+      return state.osmStairs === null
+        ? route.fulfill({ status: 404, body: "" })
+        : json(route, state.osmStairs);
     if (url.pathname.startsWith("/rest/v1/"))
       return handleRest(route, state, url);
     if (url.pathname.startsWith("/api/")) return handleApi(route, state, url);

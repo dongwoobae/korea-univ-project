@@ -11,7 +11,7 @@ import { degToPercent, formatDeg, formatPercent } from "@/lib/slopeScale";
 import {
   formatMeters,
   slopeDisplayName,
-  type SlopeListItem,
+  type SlopeRouteListItem,
   type SlopeRouteSummary,
 } from "@/lib/slopeWorkspace";
 import { useMediaQuery } from "@/lib/useMediaQuery";
@@ -54,7 +54,7 @@ function SegmentTable({ summary }: { summary: SlopeRouteSummary }) {
 }
 
 interface SlopeViewPanelProps {
-  item: SlopeListItem;
+  item: SlopeRouteListItem;
   onEdit: () => void;
   onClose: () => void;
   remove?: DetailRemoveAction;

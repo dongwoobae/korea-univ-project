@@ -22,9 +22,15 @@ import {
 } from "@/lib/slopeBands";
 import { useSlopeBands } from "@/lib/slopeBandsStore";
 import { isSlopeDegInRange } from "@/lib/slopeScale";
+import {
+  STAIRS_LINE_CLASS,
+  readStairsPoints,
+  stairsCasingStyle,
+  stairsLineStyle,
+} from "@/lib/stairs";
 import { supabase } from "@/lib/supabaseClient";
 import type {
-  SlopeEditDraft,
+  EditDraft,
   SlopeEditMode,
   SlopeEditorCommands,
   SlopeEditorHandle,
@@ -38,6 +44,8 @@ const EDIT_OPTIONS = {
   hideMiddleMarkers: true,
   preventMarkerRemoval: true,
 };
+// 계단은 구간마다 값이 없어 꼭짓점을 더하고 지워도 된다(설계 2026-11-06 12장)
+const STAIRS_EDIT_OPTIONS = { allowSelfIntersection: true };
 
 // 기존 선과 geoman이 새로 그리는 선이 같은 모양이어야 한다. 색은 CSS가 칠한다(설계 2026-10-14 6.4).
 // Leaflet은 className을 선을 만들 때만 붙인다
@@ -73,8 +81,10 @@ interface SlopeRouteMapProps extends WorkspaceMapSlotProps {
   initialVertices: Vertex[] | null;
   /** 다른 경로로 깔지 않을 경로. 새 경로면 null */
   editingRouteId: string | null;
+  /** 마운트 때만 읽는다 */
+  kind: "slope" | "stairs";
   /** owner가 맞는 것만 페이지가 넘긴다 */
-  draft: SlopeEditDraft | null;
+  draft: EditDraft | null;
   /** 정리될 때 먼저 null을 보낸다 */
   onEditorChange: (editor: SlopeEditorHandle | null) => void;
 }
@@ -86,6 +96,7 @@ export default function SlopeRouteMap({
   owner,
   initialVertices,
   editingRouteId,
+  kind,
   draft,
   onEditorChange,
 }: SlopeRouteMapProps) {
@@ -96,11 +107,19 @@ export default function SlopeRouteMap({
   const [otherSegments, setOtherSegments] = useState<OtherSegment[] | null>(
     null,
   );
+  const [otherStairs, setOtherStairs] = useState<[number, number][][] | null>(
+    null,
+  );
   const { bands } = useSlopeBands();
   const labelsRef = useRef<L.LayerGroup | null>(null);
   const verticesRef = useRef<Vertex[]>([]);
   const controllerRef = useRef<EditorController | null>(null);
-  const mountRef = useRef({ initialViewport, initialVertices, editingRouteId });
+  const mountRef = useRef({
+    initialViewport,
+    initialVertices,
+    editingRouteId,
+    kind,
+  });
   const draftRef = useRef(draft);
   const onViewportChangeRef = useRef(onViewportChange);
   const onCommandsReadyRef = useRef(onCommandsReady);
@@ -114,7 +133,8 @@ export default function SlopeRouteMap({
   // 미리보기는 초안의 slopes와 지도의 좌표로 그린다. slopes가 같은 채 좌표만 바뀌어도(꼭짓점 끌기)
   // 다시 그리도록 따로 신호를 준다.
   const [vertexVersion, setVertexVersion] = useState(0);
-  const slopes = draft?.slopes;
+  const slopes = draft?.kind === "slope" ? draft.slopes : undefined;
+  const stairsPreview = draft?.kind === "stairs" ? draft.preview : null;
   const locked = draft?.locked ?? false;
 
   useEffect(() => {
@@ -129,7 +149,10 @@ export default function SlopeRouteMap({
       initialViewport: viewport,
       initialVertices: initial,
       editingRouteId: skipRouteId,
+      kind: mountKind,
     } = mountRef.current;
+    const editOptions =
+      mountKind === "stairs" ? STAIRS_EDIT_OPTIONS : EDIT_OPTIONS;
     let disposed = false;
     let mode: SlopeEditMode = "vertex";
     let editLocked = false;
@@ -182,12 +205,21 @@ export default function SlopeRouteMap({
     othersRef.current = L.layerGroup().addTo(map);
     void supabase
       .from("slope_segments")
-      .select("id, segments")
+      .select("id, kind, segments")
       .then(({ data, error }) => {
         if (disposed || error) return;
         const segments: OtherSegment[] = [];
+        const stairs: [number, number][][] = [];
         for (const route of data ?? []) {
           if (String(route.id) === skipRouteId) continue;
+          if (route.kind === "stairs") {
+            const points = readStairsPoints(route.segments);
+            if (points)
+              stairs.push(
+                points.map(({ lat, lng }) => [lat, lng] as [number, number]),
+              );
+            continue;
+          }
           const points = readRoutePoints(route.segments);
           if (!points) continue;
           const [, ...measured] = points;
@@ -202,6 +234,7 @@ export default function SlopeRouteMap({
           );
         }
         setOtherSegments(segments);
+        setOtherStairs(stairs);
       });
 
     // 편집선(overlayPane, z-index 400)보다 아래에 둔다. "아래에 그린다"를 말로만
@@ -242,7 +275,7 @@ export default function SlopeRouteMap({
       if (mode === "vertex") {
         // geoman의 enableLayerDrag가 꼭짓점 편집을 끄므로, 드래그 모드를 끈 뒤 다시 켠다
         disableDragMode();
-        line.pm.enable(EDIT_OPTIONS);
+        line.pm.enable(editOptions);
         return;
       }
       line.pm.disable();
@@ -270,7 +303,7 @@ export default function SlopeRouteMap({
 
     function attachLine(next: L.Polyline) {
       line = next;
-      line.pm.enable(EDIT_OPTIONS);
+      line.pm.enable(editOptions);
       line.on("pm:edit", syncVertices);
       line.on("pm:markerdragend", syncVertices);
       line.on("pm:dragend", syncVertices);
@@ -423,21 +456,34 @@ export default function SlopeRouteMap({
 
   useEffect(() => {
     const group = othersRef.current;
-    if (!group || !otherSegments) return;
+    if (!group || !otherSegments || !otherStairs) return;
     group.clearLayers();
     // 다른 경로는 늘 흐린 선이라 외곽선도 그 비율로 흐린다
     const casing = slopeCasingStyle(OTHER_WEIGHT, false, OTHER_OPACITY);
+    const stairsCasing = stairsCasingStyle(OTHER_WEIGHT, false, OTHER_OPACITY);
     const common = {
       interactive: false,
       pmIgnore: true,
       pane: "slopeOthers",
     };
-    // 외곽선을 전부 먼저 넣는다 — 번갈아 넣으면 다음 외곽선이 앞 선의 끝을 덮는다
+    // 외곽선을 전부 먼저, 계단을 경사로보다 먼저 넣는다(공개 지도 SlopeLayer와 같은 순서)
+    for (const positions of otherStairs)
+      L.polyline(positions, {
+        ...stairsCasing,
+        ...common,
+        className: SLOPE_CASING_CLASS,
+      }).addTo(group);
     for (const segment of otherSegments)
       L.polyline(segment.positions, {
         ...casing,
         ...common,
         className: SLOPE_CASING_CLASS,
+      }).addTo(group);
+    for (const positions of otherStairs)
+      L.polyline(positions, {
+        ...stairsLineStyle(OTHER_WEIGHT, OTHER_OPACITY),
+        ...common,
+        className: STAIRS_LINE_CLASS,
       }).addTo(group);
     for (const segment of otherSegments)
       L.polyline(segment.positions, {
@@ -446,7 +492,7 @@ export default function SlopeRouteMap({
         weight: OTHER_WEIGHT,
         opacity: OTHER_OPACITY,
       }).addTo(group);
-  }, [otherSegments, bands]);
+  }, [otherSegments, otherStairs, bands]);
 
   useEffect(() => {
     const group = previewRef.current;
@@ -454,6 +500,28 @@ export default function SlopeRouteMap({
     if (!group || !labels) return;
     group.clearLayers();
     labels.clearLayers();
+    if (mountRef.current.kind === "stairs") {
+      if (!stairsPreview || stairsPreview.length < 2) return;
+      const positions = stairsPreview.map(
+        ({ lat, lng }) => [lat, lng] as [number, number],
+      );
+      const common = {
+        pmIgnore: true,
+        interactive: false,
+        pane: "slopePreview",
+      };
+      L.polyline(positions, {
+        ...stairsCasingStyle(PREVIEW_WEIGHT, false),
+        ...common,
+        className: SLOPE_CASING_CLASS,
+      }).addTo(group);
+      L.polyline(positions, {
+        ...stairsLineStyle(PREVIEW_WEIGHT, 0.85),
+        ...common,
+        className: STAIRS_LINE_CLASS,
+      }).addTo(group);
+      return;
+    }
     const vertices = verticesRef.current;
     const lines: { positions: [number, number][]; color: string }[] = [];
     for (let i = 0; i < vertices.length - 1; i++) {
@@ -511,7 +579,7 @@ export default function SlopeRouteMap({
         weight: PREVIEW_WEIGHT,
         opacity: 0.85,
       }).addTo(group);
-  }, [slopes, vertexVersion, bands]);
+  }, [slopes, stairsPreview, vertexVersion, bands]);
 
   return (
     <div

@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useId, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import dynamic from "next/dynamic";
 import Toast from "@/components/Toast";
 import SlopeBandsModal from "@/components/admin/slopes/SlopeBandsModal";
@@ -8,6 +16,8 @@ import SlopeEditPanel from "@/components/admin/slopes/SlopeEditPanel";
 import { MOBILE_TOOLBAR_BOTTOM } from "@/components/admin/slopes/SlopeEditToolbar";
 import SlopeListRow from "@/components/admin/slopes/SlopeListRow";
 import SlopeViewPanel from "@/components/admin/slopes/SlopeViewPanel";
+import StairsEditPanel from "@/components/admin/slopes/StairsEditPanel";
+import StairsViewPanel from "@/components/admin/slopes/StairsViewPanel";
 import AdminMapWorkspace from "@/components/admin/workspace/AdminMapWorkspace";
 import WorkspaceListPanel from "@/components/admin/workspace/WorkspaceListPanel";
 import {
@@ -21,23 +31,33 @@ import {
   useWorkspaceSelection,
 } from "@/components/admin/workspace/useWorkspaceSelection";
 import { useWorkspaceLoad } from "@/components/admin/workspace/useWorkspaceLoad";
-import type {
-  SlopeEditDraft,
-  SlopeEditorHandle,
-} from "@/components/slope/types";
+import type { EditDraft, SlopeEditorHandle } from "@/components/slope/types";
 import {
   INITIAL_ADMIN_COLLECTION_QUERY,
   pageOfItem,
   viewAdminCollection,
+  type AdminChip,
 } from "@/lib/adminCollection";
 import { useSlopeBands } from "@/lib/slopeBandsStore";
 import { deleteSlopeRoute } from "@/lib/slopeSave";
 import {
+  confirmedOsmWayIds,
+  SLOPE_CHIPS,
   SLOPE_COLLECTION_POLICY,
   slopeDisplayName,
-  summarizeSlopeRoute,
+  slopeListItem,
+  slopeRouteEndpoints,
+  verticesBounds,
+  type SlopeChip,
   type SlopeListItem,
 } from "@/lib/slopeWorkspace";
+import {
+  availableCandidates,
+  OSM_STAIRS_SNAPSHOT_URL,
+  readStairsSnapshot,
+  STAIRS_LINE_COLOR,
+  type StairsCandidate,
+} from "@/lib/stairs";
 import { supabase } from "@/lib/supabaseClient";
 import { useMediaQuery } from "@/lib/useMediaQuery";
 import { readWorkspaceState, type WorkspaceState } from "@/lib/workspaceUrl";
@@ -53,13 +73,19 @@ const SlopeRouteMap = dynamic(
 );
 
 const NOT_FOUND_MESSAGE = "경로를 찾지 못했어요. 삭제됐거나 주소가 틀렸어요.";
+const CANDIDATE_NOT_FOUND =
+  "OSM 계단 후보를 찾지 못했어요. 이미 확정됐거나 주소가 틀렸어요.";
+const SNAPSHOT_FAILED = "OSM 계단 후보를 불러오지 못했어요";
 
 const DELETE_CONFIRM_MESSAGE = "삭제한 경사도 경로는 복구할 수 없어요.";
 const LEGEND_READ_FAILED =
   "범례 설정을 읽지 못해 편집할 수 없어요. 새로 고친 뒤 다시 시도해 주세요";
 
 function currentSelection() {
-  return readWorkspaceState(window.location.search, { allowEdit: true });
+  return readWorkspaceState(window.location.search, {
+    allowEdit: true,
+    stairs: true,
+  });
 }
 
 function selectedRouteId(state: WorkspaceState) {
@@ -70,6 +96,8 @@ function selectedRouteId(state: WorkspaceState) {
 function editOwner(state: WorkspaceState) {
   if (state.mode === "edit") return `edit:${state.id}`;
   if (state.mode === "new") return "edit:new";
+  if (state.mode === "new-stairs") return "edit:new-stairs";
+  if (state.mode === "candidate") return `edit:osm:${state.osmWayId}`;
   return null;
 }
 
@@ -78,7 +106,7 @@ export default function SlopesPage() {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(
     null,
   );
-  const [draft, setDraft] = useState<SlopeEditDraft | null>(null);
+  const [draft, setDraft] = useState<EditDraft | null>(null);
   const [editor, setEditor] = useState<SlopeEditorHandle | null>(null);
   // 모바일에서 상세를 접고 전체 지도에서 경로를 고치는 편집 패널(owner)과, 그때 초안 경계로 옮길 지도 초점
   const [fullMapOwner, setFullMapOwner] = useState<string | null>(null);
@@ -90,6 +118,9 @@ export default function SlopesPage() {
   const mobile = useMediaQuery(ADMIN_MOBILE_QUERY);
   const slopeBands = useSlopeBands();
   const [bandsModalOpen, setBandsModalOpen] = useState(false);
+  const [showCandidates, setShowCandidates] = useState(false);
+  const [snapshot, setSnapshot] = useState<StairsCandidate[] | null>(null);
+  const [snapshotError, setSnapshotError] = useState(false);
   const legendBlockedId = useId();
   const legendReadFailed = slopeBands.status === "error";
   // ready가 아닐 때 열면 초안이 기본값에서 시작해, 저장하는 순간 DB의 실제 설정을 덮어쓴다(설계 3장)
@@ -112,28 +143,19 @@ export default function SlopesPage() {
       )}
     </>
   );
-  const { state, request } = useWorkspaceSelection({ allowEdit: true });
+  const { state, request } = useWorkspaceSelection({
+    allowEdit: true,
+    stairs: true,
+  });
   const collection = useAdminCollection(routes, SLOPE_COLLECTION_POLICY);
   const { view, setPage } = collection;
-  const selectedId = selectedRouteId(state);
-  const selected =
-    selectedId === null
-      ? null
-      : (routes.find(
-          (item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId,
-        ) ?? null);
-  // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다(owner가 null)
-  const owner =
-    state.mode === "new" ||
-    (state.mode === "edit" && Boolean(selected?.summary))
-      ? editOwner(state)
-      : null;
-  // 패널이 바뀐 뒤 늦게 끝난 저장의 잠금이 남지 않게 owner로 거른다(명소의 activeDraft와 같다)
-  const activeDraft = draft && draft.owner === owner ? draft : null;
-  const activeEditor = editor && editor.owner === owner ? editor : null;
-  const saving = activeDraft?.locked ?? false;
-  const fullMap = mobile && fullMapOwner !== null && fullMapOwner === owner;
-
+  const chips = [
+    { key: "all", label: "전체", count: view.chipCounts.all },
+    ...SLOPE_CHIPS.map((chip) => ({
+      ...chip,
+      count: view.chipCounts[chip.key],
+    })),
+  ];
   function showToast(message: string, type = "success") {
     setToast({ message, type });
   }
@@ -144,10 +166,7 @@ export default function SlopesPage() {
       .select("*")
       .order("id", { ascending: true });
     if (error) return null;
-    return (data ?? []).map((route) => ({
-      route,
-      summary: summarizeSlopeRoute(route.segments),
-    })) as SlopeListItem[];
+    return (data ?? []).map(slopeListItem);
   }, []);
 
   const {
@@ -188,6 +207,48 @@ export default function SlopesPage() {
     showToast,
   });
 
+  const selectedId = selectedRouteId(state);
+  const selected =
+    selectedId === null
+      ? null
+      : (routes.find(
+          (item) => SLOPE_COLLECTION_POLICY.id(item) === selectedId,
+        ) ?? null);
+  // 편집 상태라도 목록을 받기 전이거나 형식 오류 경로면 편집 패널과 편집 지도를 그리지 않는다(owner가 null)
+  const endpoints = useMemo(() => slopeRouteEndpoints(routes), [routes]);
+  const confirmedIds = useMemo(() => confirmedOsmWayIds(routes), [routes]);
+  const available = useMemo(
+    () => (snapshot ? availableCandidates(snapshot, confirmedIds) : null),
+    [snapshot, confirmedIds],
+  );
+  // 확정 패널의 후보는 거르기 전 스냅숏에서 찾는다. 걸러진 목록에서 찾으면, 확정 직후 목록을 다시 받는 순간 후보가
+  // 빠져 저장 중인 패널이 사라지고 없는 후보 안내가 뜬다
+  const candidate =
+    state.mode === "candidate"
+      ? (snapshot?.find((item) => item.osmWayId === state.osmWayId) ?? null)
+      : null;
+  const candidateConfirmed =
+    candidate !== null && confirmedIds.has(candidate.osmWayId);
+  const owner =
+    state.mode === "new" ||
+    state.mode === "new-stairs" ||
+    // 후보는 목록을 받은 뒤에 연다 — 끝 잇기 대상(경사로 끝점)이 목록에서 온다
+    (state.mode === "candidate" && candidate !== null && status === "ready") ||
+    (state.mode === "edit" && Boolean(selected?.summary))
+      ? editOwner(state)
+      : null;
+  const editingKind: "slope" | "stairs" =
+    state.mode === "new"
+      ? "slope"
+      : state.mode === "edit"
+        ? (selected?.kind ?? "slope")
+        : "stairs";
+  // 패널이 바뀐 뒤 늦게 끝난 저장의 잠금이 남지 않게 owner로 거른다(명소의 activeDraft와 같다)
+  const activeDraft = draft && draft.owner === owner ? draft : null;
+  const activeEditor = editor && editor.owner === owner ? editor : null;
+  const saving = activeDraft?.locked ?? false;
+  const fullMap = mobile && fullMapOwner !== null && fullMapOwner === owner;
+
   // 저장 중에는 선택을 바꾸지 않는다 — 행·선·닫기를 막는다(설계 2026-10-14 3.4)
   function requestSelection(next: WorkspaceState, alsoApply?: () => void) {
     if (saving) return;
@@ -197,6 +258,61 @@ export default function SlopesPage() {
   useWorkspaceCloseRequest(state.mode !== "closed", () =>
     requestSelection({ mode: "closed" }),
   );
+
+  // 후보 주소로 바로 들어와도 받는다. 한 번 받으면 다시 받지 않는다(설계 2026-11-06 5.3·6.1)
+  const needSnapshot = showCandidates || state.mode === "candidate";
+  useEffect(() => {
+    if (!needSnapshot || snapshot !== null || snapshotError) return;
+    let cancelled = false;
+    fetch(OSM_STAIRS_SNAPSHOT_URL)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((raw: unknown) => {
+        if (cancelled) return;
+        const candidates = readStairsSnapshot(raw);
+        if (candidates) {
+          setSnapshot(candidates);
+          return;
+        }
+        setSnapshotError(true);
+        setShowCandidates(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setSnapshotError(true);
+        setShowCandidates(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [needSnapshot, snapshot, snapshotError]);
+
+  const closeMissingCandidate = useEffectEvent((message: string) => {
+    applyWorkspaceState({ mode: "closed" });
+    showToast(message, snapshotError ? "error" : "warning");
+  });
+  // 저장 중에는 보지 않는다 — 확정이 끝나 목록을 다시 받으면 그 후보는 확정된 번호가 되고, 뒤이어 handleSaved가 보기로 옮긴다.
+  // 닫기는 한 틱 미룬다. 그사이 조건이 바뀌면 정리 함수가 거둔다
+  useEffect(() => {
+    if (state.mode !== "candidate" || saving) return;
+    const message = snapshotError
+      ? SNAPSHOT_FAILED
+      : status === "ready" &&
+          snapshot !== null &&
+          (candidate === null || candidateConfirmed)
+        ? CANDIDATE_NOT_FOUND
+        : null;
+    if (message === null) return;
+    const timer = window.setTimeout(() => closeMissingCandidate(message), 0);
+    return () => window.clearTimeout(timer);
+  }, [
+    state.mode,
+    saving,
+    snapshotError,
+    status,
+    snapshot,
+    candidate,
+    candidateConfirmed,
+  ]);
 
   // 검색·정렬은 설계 2026-10-14 3.3대로 선택을 푼다
   function clearSelectionThen(change: () => void) {
@@ -264,7 +380,9 @@ export default function SlopesPage() {
     // 늦게 끝난 저장이 그사이 바뀐 화면을 덮지 않게, 아직 그 편집 상태일 때만 바꾼다(설계 2026-10-14 3.4)
     const selection = currentSelection();
     const stillEditing = created
-      ? selection.mode === "new"
+      ? selection.mode === "new" ||
+        selection.mode === "new-stairs" ||
+        selection.mode === "candidate"
       : selection.mode === "edit" && selection.id === routeId;
     if (stillEditing) applyWorkspaceState(afterEdit(routeId));
   }
@@ -277,7 +395,14 @@ export default function SlopesPage() {
     }
     await loadRoutes();
   }
+  // 패널을 먼저 닫는다 — 다시 받은 목록에서 후보가 빠지면 없는 후보 안내가 같은 일을 두 번 알린다(설계 2026-11-06 6.7)
+  async function handleDuplicate() {
+    if (currentSelection().mode === "candidate")
+      applyWorkspaceState({ mode: "closed" });
+    await loadRoutes();
+  }
 
+  const candidateBounds = candidate ? verticesBounds(candidate.vertices) : null;
   const focus: WorkspaceFocus | null =
     fullMapFocus && fullMapFocus.owner === owner
       ? fullMapFocus.focus
@@ -286,7 +411,12 @@ export default function SlopesPage() {
             key: `route:${SLOPE_COLLECTION_POLICY.id(selected)}`,
             target: { bounds: selected.summary.bounds },
           }
-        : null;
+        : candidate && candidateBounds
+          ? {
+              key: `osm:${candidate.osmWayId}`,
+              target: { bounds: candidateBounds },
+            }
+          : null;
 
   const remove = selected
     ? {
@@ -295,36 +425,88 @@ export default function SlopesPage() {
       }
     : undefined;
 
+  const editingStairs = selected?.kind === "stairs" ? selected : null;
+  const editingSlope = selected?.kind === "slope" ? selected : null;
   const detail =
     owner !== null ? (
-      <SlopeEditPanel
-        key={owner}
-        owner={owner}
-        route={selected && state.mode === "edit" ? selected.route : null}
-        summary={selected && state.mode === "edit" ? selected.summary : null}
-        editor={activeEditor}
-        onDraftChange={setDraft}
-        onSaved={handleSaved}
-        onCancel={() =>
-          requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
-        }
-        remove={remove}
-        onFullMapChange={handleFullMapChange}
-        showToast={showToast}
-      />
+      editingKind === "stairs" ? (
+        <StairsEditPanel
+          key={owner}
+          owner={owner}
+          route={
+            state.mode === "edit" && editingStairs ? editingStairs.route : null
+          }
+          initialVertices={
+            state.mode === "edit"
+              ? (editingStairs?.summary?.vertices ?? null)
+              : (candidate?.vertices ?? null)
+          }
+          candidate={
+            candidate
+              ? { osmWayId: candidate.osmWayId, name: candidate.name }
+              : null
+          }
+          endpoints={endpoints}
+          editor={activeEditor}
+          onDraftChange={setDraft}
+          onSaved={handleSaved}
+          onDuplicate={handleDuplicate}
+          onCancel={() =>
+            requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
+          }
+          remove={remove}
+          onFullMapChange={handleFullMapChange}
+          showToast={showToast}
+        />
+      ) : (
+        <SlopeEditPanel
+          key={owner}
+          owner={owner}
+          route={
+            editingSlope && state.mode === "edit" ? editingSlope.route : null
+          }
+          summary={
+            editingSlope && state.mode === "edit" ? editingSlope.summary : null
+          }
+          editor={activeEditor}
+          onDraftChange={setDraft}
+          onSaved={handleSaved}
+          onCancel={() =>
+            requestSelection(afterEdit(state.mode === "edit" ? state.id : null))
+          }
+          remove={remove}
+          onFullMapChange={handleFullMapChange}
+          showToast={showToast}
+        />
+      )
     ) : selected ? (
-      <SlopeViewPanel
-        key={SLOPE_COLLECTION_POLICY.id(selected)}
-        item={selected}
-        onEdit={() =>
-          requestSelection({
-            mode: "edit",
-            id: SLOPE_COLLECTION_POLICY.id(selected),
-          })
-        }
-        onClose={() => requestSelection({ mode: "closed" })}
-        remove={remove}
-      />
+      selected.kind === "stairs" ? (
+        <StairsViewPanel
+          key={SLOPE_COLLECTION_POLICY.id(selected)}
+          item={selected}
+          onEdit={() =>
+            requestSelection({
+              mode: "edit",
+              id: SLOPE_COLLECTION_POLICY.id(selected),
+            })
+          }
+          onClose={() => requestSelection({ mode: "closed" })}
+          remove={remove}
+        />
+      ) : (
+        <SlopeViewPanel
+          key={SLOPE_COLLECTION_POLICY.id(selected)}
+          item={selected}
+          onEdit={() =>
+            requestSelection({
+              mode: "edit",
+              id: SLOPE_COLLECTION_POLICY.id(selected),
+            })
+          }
+          onClose={() => requestSelection({ mode: "closed" })}
+          remove={remove}
+        />
+      )
     ) : null;
 
   return (
@@ -344,9 +526,12 @@ export default function SlopesPage() {
               initialVertices={
                 state.mode === "edit"
                   ? (selected?.summary?.vertices ?? null)
-                  : null
+                  : state.mode === "candidate"
+                    ? (candidate?.vertices ?? null)
+                    : null
               }
               editingRouteId={state.mode === "edit" ? state.id : null}
+              kind={editingKind}
               draft={activeDraft}
               onEditorChange={setEditor}
             />
@@ -358,21 +543,57 @@ export default function SlopesPage() {
                 selected ? SLOPE_COLLECTION_POLICY.id(selected) : null
               }
               onSelect={select}
+              candidates={showCandidates ? available : null}
+              onSelectCandidate={(osmWayId) =>
+                requestSelection({ mode: "candidate", osmWayId })
+              }
             />
           )
         }
         list={
           <WorkspaceListPanel
             title="경사도 경로"
-            caption={`구간별 경사를 기록한 보행 경로 · 총 ${view.total}개`}
+            caption={`경사로와 계단 · 총 ${view.total}개`}
+            chips={chips}
+            activeChip={collection.chip}
+            onChipChange={(key) =>
+              clearSelectionThen(() =>
+                collection.setChip(key as AdminChip<SlopeChip>),
+              )
+            }
             addLabel="＋ 경로 그리기"
             onAdd={() => requestSelection({ mode: "new" })}
+            secondaryAdd={{
+              label: "＋ 계단 그리기",
+              mobileLabel: "＋ 계단",
+              onClick: () => requestSelection({ mode: "new-stairs" }),
+            }}
             searchValue={collection.search}
             onSearchChange={(value) =>
               clearSelectionThen(() => collection.setSearch(value))
             }
             searchLabel="경사도 경로 검색"
             searchPlaceholder="경로명 검색"
+            filters={
+              <>
+                <button
+                  type="button"
+                  className="ku-workspace-button"
+                  aria-pressed={showCandidates}
+                  onClick={() => {
+                    setSnapshotError(false);
+                    setShowCandidates((value) => !value);
+                  }}
+                >
+                  OSM 계단 후보
+                </button>
+                {snapshotError && (
+                  <span role="alert" className="ku-stairs-snapshot-error">
+                    {SNAPSHOT_FAILED}
+                  </span>
+                )}
+              </>
+            }
             sort={collection.sort}
             onSortChange={(sort) =>
               clearSelectionThen(() => collection.setSort(sort))
@@ -384,10 +605,13 @@ export default function SlopesPage() {
             matchedCount={view.matched.length}
             page={view.page}
             onPageChange={(page) => clearSelectionThen(() => setPage(page))}
-            legend={slopeBands.bands.map((band) => ({
-              label: band.name,
-              color: band.color,
-            }))}
+            legend={[
+              ...slopeBands.bands.map((band) => ({
+                label: band.name,
+                color: band.color,
+              })),
+              { label: "계단", color: STAIRS_LINE_COLOR, dotted: true },
+            ]}
             legendAction={legendAction}
           >
             {view.pageItems.map((item) => {

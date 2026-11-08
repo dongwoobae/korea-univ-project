@@ -336,7 +336,9 @@ test.describe("가로 좁은 화면(설계 1.2)", () => {
     await openMap(page);
     await setSlope(page, true);
     const legend = page.getByRole("group", { name: "경사도 범례" });
-    await expect(legend.getByRole("button")).toHaveCount(6);
+    await expect(
+      legend.locator(".ku-slope-bands-bar").getByRole("button"),
+    ).toHaveCount(6);
     const rows = await legend
       .locator(".ku-slope-bands-ticks")
       .evaluateAll((elements) =>
