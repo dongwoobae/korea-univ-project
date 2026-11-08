@@ -2672,6 +2672,11 @@ test.describe("경사도 작업 화면 — 범례 편집", () => {
     await page.goto("/admin/dashboard/slopes");
     const dialog = await openBands(page);
     const percent = dialog.getByRole("button", { name: "퍼센트(%)" });
+    await expect(
+      dialog
+        .getByRole("group", { name: "경사도 범례" })
+        .getByRole("button", { name: "계단", exact: true }),
+    ).toHaveCount(0);
     await expect(percent).toHaveAttribute("aria-pressed", "false");
 
     await dialog

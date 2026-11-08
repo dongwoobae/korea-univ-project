@@ -696,7 +696,9 @@ test.describe("공개 지도 — 경사도 범례", () => {
     for (const name of ["보도 기준 이내", "완화 범위", "특례 범위", "초과"]) {
       await expect(legend.getByText(name, { exact: true })).toHaveCount(0);
     }
-    await expect(legend.getByRole("button")).toHaveCount(4);
+    await expect(
+      legend.locator(".ku-slope-bands-bar").getByRole("button"),
+    ).toHaveCount(4);
     for (const name of [
       "보도 기준 이내, 5.56% 이하 (3.18°)",
       "완화 범위, 5.56–8.33% (3.18–4.76°)",
@@ -807,7 +809,9 @@ test.describe("공개 지도 — 경사도 범례", () => {
     await page.goto("/");
     await setSlope(page, true);
     const legend = legendOf(page);
-    await expect(legend.getByRole("button")).toHaveCount(3);
+    await expect(
+      legend.locator(".ku-slope-bands-bar").getByRole("button"),
+    ).toHaveCount(3);
     await expect(legend.getByText("6%", { exact: true })).toBeVisible();
     await expect(legend.getByText("12%", { exact: true })).toBeVisible();
     // 목 경로 1은 3°(5.24%), 2는 7.2°(12.63%)다
@@ -821,7 +825,9 @@ test.describe("공개 지도 — 경사도 범례", () => {
     state.slopeBands = { bands: "broken" };
     await page.goto("/");
     await setSlope(page, true);
-    await expect(legend.getByRole("button")).toHaveCount(4);
+    await expect(
+      legend.locator(".ku-slope-bands-bar").getByRole("button"),
+    ).toHaveCount(4);
     await expect(
       page.locator('.leaflet-overlay-pane path[stroke="#8BC34A"]'),
     ).toHaveCount(1);
@@ -886,7 +892,9 @@ test.describe("공개 지도 — 경사도 범례", () => {
       await page.goto("/");
       await setSlope(page, true);
       const legend = legendOf(page);
-      await expect(legend.getByRole("button")).toHaveCount(6);
+      await expect(
+        legend.locator(".ku-slope-bands-bar").getByRole("button"),
+      ).toHaveCount(6);
 
       const rows = await legend
         .locator(".ku-slope-bands-ticks")
@@ -905,6 +913,31 @@ test.describe("공개 지도 — 경사도 범례", () => {
           expect(ticks[i - 1][1]).toBeLessThanOrEqual(ticks[i][0]);
       }
     }
+  });
+
+  test("막대 옆 계단 칸은 툴팁으로 계단을 알린다", async ({ page }) => {
+    await installMockBackend(page);
+    await page.goto("/");
+    await setSlope(page, true);
+    const legend = legendOf(page);
+    const stairs = legend.getByRole("button", { name: "계단", exact: true });
+    await expect(stairs).toBeVisible();
+    await expect(
+      legend
+        .locator(".ku-slope-bands-bar")
+        .getByRole("button", { name: "계단" }),
+    ).toHaveCount(0);
+
+    await stairs.click();
+    const tooltip = legend.getByRole("tooltip");
+    await expect(tooltip.locator("strong")).toHaveText("계단");
+    await expect(tooltip).toContainText("휠체어로 지나갈 수 없어요");
+    await expect(stairs).toHaveAttribute(
+      "aria-describedby",
+      (await tooltip.getAttribute("id")) ?? "",
+    );
+    await page.keyboard.press("Escape");
+    await expect(tooltip).toHaveCount(0);
   });
 });
 

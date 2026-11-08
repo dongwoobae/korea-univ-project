@@ -1165,7 +1165,9 @@ test("150%에서도 범례 눈금끼리 겹치지 않는다", async ({ page }) =
     await page.goto("/");
     await setSlope(page, true);
     const legend = page.getByRole("group", { name: "경사도 범례" });
-    await expect(legend.getByRole("button")).toHaveCount(6);
+    await expect(
+      legend.locator(".ku-slope-bands-bar").getByRole("button"),
+    ).toHaveCount(6);
     const rows = await legend
       .locator(".ku-slope-bands-ticks")
       .evaluateAll((elements) =>
