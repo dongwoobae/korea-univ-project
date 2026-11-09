@@ -32,7 +32,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^1.31.0",
     "lucide-static": "^1.31.0",
-    "next": "16.2.4",
+    "next": "16.4.5",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-leaflet": "^5.0.0"
@@ -45,10 +45,10 @@
     "@types/react-dom": "^19.2.3",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.4",
+    "eslint-config-next": "^16.4.5",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.4",
-    "sharp": "^0.34.5",
+    "sharp": "^0.35.5",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   }
