@@ -330,7 +330,8 @@ PR마다 main에서 브랜치를 따고, 앞 PR이 병합된 뒤 다음을 시�
   뒤로 가면 이미 다른 기록이라 막지 못하므로 확인 창을 거둔다. dirty가 풀려도(저장, 패널이 사라짐) 띄운 확인 창을
   거둔다.
 - 표식은 Next가 기록을 오갈 때 보존하고(`completeTraverseNavigation`의 `preserveCustomHistoryState`), 새 이동은 자기
-  상태로 쌓는다(v16.2.4 `segment-cache/navigation.js`, 2026-10-14 확인).
+  상태로 쌓는다(v16.2.4 `segment-cache/navigation.js`, 2026-10-14 확인. v16.4.5에서는 `app-router-state.js`로 옮겨졌고
+  동작은 같다, 2026-11-09 확인).
 
 **진행 중인 작업(2026-10-15).** 가드는 묻는 이유를 둘 안다. 저장 안 한 변경(dirty)과, 화면이 끝내야 할 클라이언트 일이
 도는 동안(busy)이다. 승인 뒤 번역 호출처럼 떠나면 빠지는 일이 있어서다. 제공자는 두 키 집합을 따로 들고
@@ -343,7 +344,8 @@ busy일 때의 문구는 `처리 중인 작업이 있어요` / `지금 나가면
 
 Next 16.2.4는 사용자가 부른 `pushState`·`replaceState`를 라우터와 맞춘다. 지금 기록의 라우터 상태를 새 기록에
 복사하고, 그 기록에서 뒤로가기를 하면 같은 트리로 복원해 페이지를 다시 마운트하지도 다시 받지도 않는다(v16.2.4
-`app-router.tsx`의 패치된 `pushState`와 `onPopState`, `restore-reducer.ts`, 2026-10-14 확인).
+`app-router.tsx`의 패치된 `pushState`와 `onPopState`, `restore-reducer.ts`, 2026-10-14 확인. v16.4.5에서도 같다,
+2026-11-09 확인).
 
 ### 3.5 지도
 
@@ -577,7 +579,7 @@ Next 16.2.4는 사용자가 부른 `pushState`·`replaceState`를 라우터와 �
 원래 쿼리가 목적지에 붙어 겹친 조합이 될 수 있다. 우선순위는 3.4가 정한다.
 Next 16.2.4는 요청 쿼리를 모두 목적지로 넘기고, 같은 키는 목적지 값(`id=:id`, `edit=1`)이 이긴다
 (`shared/lib/router/utils/prepare-destination.js`의 `{ ...args.query, ...parsedDestination.query }`와
-`next/dist/docs`의 `redirects.md`, 2026-10-14 확인). `permanent: false`는 307이다.
+`next/dist/docs`의 `redirects.md`, 2026-10-14 확인. v16.4.5에서도 같다, 2026-11-09 확인). `permanent: false`는 307이다.
 
 목록의 `?redirected=missing|invalid` 안내는 3.4의 없는 `?id=` 처리와 6.2의 형식 오류 표시가 대신한다.
 
